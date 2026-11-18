@@ -35,8 +35,11 @@ class StillValidQuestion {
 ///   der Angabe → bis wann).
 /// Wartende Trails und wartende Angaben fragen nichts: Sie sind gerade
 /// erst entstanden.
-List<StillValidQuestion> stillValidQuestionsOf(Trail t,
-    {required DateTime now, Map<String, DateTime> snoozed = const {}}) {
+List<StillValidQuestion> stillValidQuestionsOf(
+  Trail t, {
+  required DateTime now,
+  Map<String, DateTime> snoozed = const {},
+}) {
   if (t.pending) return const [];
   final out = <StillValidQuestion>[];
   for (final kind in ReportKind.values) {
@@ -48,7 +51,9 @@ List<StillValidQuestion> stillValidQuestionsOf(Trail t,
     final r = mine.first;
     if (r.pending) continue;
     final shown = kind == ReportKind.status ? t.shownStatus : t.shownCondition;
-    if (!identical(shown.confirmed, r) && !identical(shown.unconfirmed, r)) continue;
+    if (!identical(shown.confirmed, r) && !identical(shown.unconfirmed, r)) {
+      continue;
+    }
     if (kind == ReportKind.status && !(r.status?.warns ?? false)) continue;
     if (now.difference(r.reportedAt) < kStillValidAfter) continue;
     final until = snoozed[r.id];
@@ -59,22 +64,32 @@ List<StillValidQuestion> stillValidQuestionsOf(Trail t,
 }
 
 /// Alle Fragen, die älteste Angabe zuerst.
-List<StillValidQuestion> stillValidQuestions(Iterable<Trail> trails,
-        {required DateTime now, Map<String, DateTime> snoozed = const {}}) =>
-    [for (final t in trails) ...stillValidQuestionsOf(t, now: now, snoozed: snoozed)]
-      ..sort((a, b) => a.report.reportedAt.compareTo(b.report.reportedAt));
+List<StillValidQuestion> stillValidQuestions(
+  Iterable<Trail> trails, {
+  required DateTime now,
+  Map<String, DateTime> snoozed = const {},
+}) => [
+  for (final t in trails)
+    ...stillValidQuestionsOf(t, now: now, snoozed: snoozed),
+]..sort((a, b) => a.report.reportedAt.compareTo(b.report.reportedAt));
 
 /// Die ruhenden Angaben aus den Einstellungen: je Eintrag
 /// `<Kennung>|<bis, ISO-8601>`. Unlesbares fällt weg.
 Map<String, DateTime> decodeStillValidSnoozes(Iterable<String>? raw) => {
-      for (final e in raw ?? const <String>[])
-        if (e.split('|') case [final id, final at] when DateTime.tryParse(at) != null)
-          id: DateTime.parse(at).toUtc(),
-    };
+  for (final e in raw ?? const <String>[])
+    if (e.split('|') case [
+      final id,
+      final at,
+    ] when DateTime.tryParse(at) != null)
+      id: DateTime.parse(at).toUtc(),
+};
 
 /// Zurück in die Einstellungen — ohne Abgelaufenes, sonst wüchse die
 /// Liste mit jeder Antwort weiter.
-List<String> encodeStillValidSnoozes(Map<String, DateTime> snoozes, {required DateTime now}) => [
-      for (final e in snoozes.entries)
-        if (now.isBefore(e.value)) '${e.key}|${e.value.toUtc().toIso8601String()}',
-    ];
+List<String> encodeStillValidSnoozes(
+  Map<String, DateTime> snoozes, {
+  required DateTime now,
+}) => [
+  for (final e in snoozes.entries)
+    if (now.isBefore(e.value)) '${e.key}|${e.value.toUtc().toIso8601String()}',
+];

@@ -34,8 +34,10 @@ void main() {
     test('scheitert die Abfrage, kommen nur die Wechsel', () async {
       final changes = StreamController<String>();
       final seen = <String>[];
-      startingWith(Future<String>.error(StateError('kein Kanal')), changes.stream)
-          .listen(seen.add, onError: (Object e) => fail('$e'));
+      startingWith(
+        Future<String>.error(StateError('kein Kanal')),
+        changes.stream,
+      ).listen(seen.add, onError: (Object e) => fail('$e'));
       await pumpEventQueue();
       changes.add('danach');
       await pumpEventQueue();
@@ -49,31 +51,54 @@ void main() {
   // Rückkehr des Netzes muss ein Wechsel von „kein Netz" auf „verbunden"
   // sein — daran hängen Ausgangskorb und Neuladen (`map_screen.dart`).
   // Gefahren wird der ECHTE Provider, über die Kanäle des Plugins.
-  testWidgets('Start ohne Empfang, Strom ohne Anfang: die Rückkehr ist ein Wechsel', (tester) async {
-    final messenger = tester.binding.defaultBinaryMessenger;
-    messenger.setMockMethodCallHandler(const MethodChannel('dev.fluttercommunity.plus/connectivity'),
-        (call) async => call.method == 'check' ? ['none'] : null);
-    MockStreamHandlerEventSink? sink;
-    messenger.setMockStreamHandler(const EventChannel('dev.fluttercommunity.plus/connectivity_status'),
-        MockStreamHandler.inline(onListen: (_, s) {
-          sink = s;
-        }));
-    addTearDown(() {
-      messenger.setMockMethodCallHandler(const MethodChannel('dev.fluttercommunity.plus/connectivity'), null);
-      messenger.setMockStreamHandler(const EventChannel('dev.fluttercommunity.plus/connectivity_status'), null);
-    });
+  testWidgets(
+    'Start ohne Empfang, Strom ohne Anfang: die Rückkehr ist ein Wechsel',
+    (tester) async {
+      final messenger = tester.binding.defaultBinaryMessenger;
+      messenger.setMockMethodCallHandler(
+        const MethodChannel('dev.fluttercommunity.plus/connectivity'),
+        (call) async => call.method == 'check' ? ['none'] : null,
+      );
+      MockStreamHandlerEventSink? sink;
+      messenger.setMockStreamHandler(
+        const EventChannel('dev.fluttercommunity.plus/connectivity_status'),
+        MockStreamHandler.inline(
+          onListen: (_, s) {
+            sink = s;
+          },
+        ),
+      );
+      addTearDown(() {
+        messenger.setMockMethodCallHandler(
+          const MethodChannel('dev.fluttercommunity.plus/connectivity'),
+          null,
+        );
+        messenger.setMockStreamHandler(
+          const EventChannel('dev.fluttercommunity.plus/connectivity_status'),
+          null,
+        );
+      });
 
-    final container = ProviderContainer();
-    final states = <bool>[];
-    container.listen<bool>(noConnectivityProvider, (_, next) => states.add(next), fireImmediately: true);
-    await tester.pump();
-    expect(container.read(noConnectivityProvider), isTrue, reason: 'der Anfang ohne Wechsel');
-    sink!.success(['wifi']);
-    await tester.pump();
-    expect(container.read(noConnectivityProvider), isFalse);
-    await tester.pump();
-    expect(states, [false, true, false]);
-    container.dispose();
-    await tester.pump(const Duration(seconds: 1));
-  });
+      final container = ProviderContainer();
+      final states = <bool>[];
+      container.listen<bool>(
+        noConnectivityProvider,
+        (_, next) => states.add(next),
+        fireImmediately: true,
+      );
+      await tester.pump();
+      expect(
+        container.read(noConnectivityProvider),
+        isTrue,
+        reason: 'der Anfang ohne Wechsel',
+      );
+      sink!.success(['wifi']);
+      await tester.pump();
+      expect(container.read(noConnectivityProvider), isFalse);
+      await tester.pump();
+      expect(states, [false, true, false]);
+      container.dispose();
+      await tester.pump(const Duration(seconds: 1));
+    },
+  );
 }

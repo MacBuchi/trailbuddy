@@ -34,7 +34,8 @@ import 'package:trailbuddy/features/routing/road_graph_loader.dart';
 import 'package:trailbuddy/features/routing/route_profile.dart';
 import 'package:trailbuddy/features/routing/route_search.dart';
 import 'package:trailbuddy/features/routing/routing_tile.dart';
-import 'package:trailbuddy/features/routing/trail_head_route.dart' show kTrailHeadMarginM;
+import 'package:trailbuddy/features/routing/trail_head_route.dart'
+    show kTrailHeadMarginM;
 
 const _z = 13;
 
@@ -43,11 +44,16 @@ void main() {
   test('Nachladen beim Suchen: erreichte Kacheln je Planung', () {
     if (dir == null) {
       // ignore: avoid_print
-      print('TB_TILES_DIR fehlt — erst `python3 tool/routing_tiles.py sample --out DIR --size 15`.');
+      print(
+        'TB_TILES_DIR fehlt — erst `python3 tool/routing_tiles.py sample --out DIR --size 15`.',
+      );
       return;
     }
-    final frames = Directory(dir).listSync().whereType<Directory>().toList()..sort((a, b) => a.path.compareTo(b.path));
-    _out('| Rahmen | Fall | Rahmen-Kacheln | erreicht im Rahmen | erreicht darüber hinaus | Suchen | Zusammensetzen ganz / erreicht |');
+    final frames = Directory(dir).listSync().whereType<Directory>().toList()
+      ..sort((a, b) => a.path.compareTo(b.path));
+    _out(
+      '| Rahmen | Fall | Rahmen-Kacheln | erreicht im Rahmen | erreicht darüber hinaus | Suchen | Zusammensetzen ganz / erreicht |',
+    );
     _out('|---|---|---:|---:|---:|---:|---:|');
     for (final f in frames) {
       _measure(_Frame.read(f));
@@ -67,29 +73,41 @@ class _Frame {
   final Map<(int, int), HeightTile> heights;
 
   static _Frame read(Directory d) {
-    final meta = jsonDecode(File('${d.path}/frame.json').readAsStringSync()) as Map<String, dynamic>;
-    final tiles = [for (final t in meta['tiles'] as List) ((t as List)[0] as int, t[1] as int)];
+    final meta =
+        jsonDecode(File('${d.path}/frame.json').readAsStringSync())
+            as Map<String, dynamic>;
+    final tiles = [
+      for (final t in meta['tiles'] as List)
+        ((t as List)[0] as int, t[1] as int),
+    ];
     Map<(int, int), Uint8List> load(String kind, String ext) => {
-          for (final t in tiles)
-            if (File('${d.path}/$kind/${t.$1}_${t.$2}.$ext').existsSync())
-              t: File('${d.path}/$kind/${t.$1}_${t.$2}.$ext').readAsBytesSync(),
-        };
+      for (final t in tiles)
+        if (File('${d.path}/$kind/${t.$1}_${t.$2}.$ext').existsSync())
+          t: File('${d.path}/$kind/${t.$1}_${t.$2}.$ext').readAsBytesSync(),
+    };
     final h = load('heights', 'bin');
-    return _Frame(meta['frame'] as String, tiles, load('roads', 'mvt'), load('ways', 'mvt'),
-        {for (final e in h.entries) e.key: HeightTile.decode(e.value)});
+    return _Frame(
+      meta['frame'] as String,
+      tiles,
+      load('roads', 'mvt'),
+      load('ways', 'mvt'),
+      {for (final e in h.entries) e.key: HeightTile.decode(e.value)},
+    );
   }
 
   HeightTiles heightsAround((int, int) t) => HeightTiles({
-        for (var dx = -1; dx <= 1; dx++)
-          for (var dy = -1; dy <= 1; dy++)
-            HeightTiles.keyOf(t.$1 + dx, t.$2 + dy): ?heights[(t.$1 + dx, t.$2 + dy)],
-      });
+    for (var dx = -1; dx <= 1; dx++)
+      for (var dy = -1; dy <= 1; dy++)
+        HeightTiles.keyOf(t.$1 + dx, t.$2 + dy):
+            ?heights[(t.$1 + dx, t.$2 + dy)],
+  });
 
   List<RoadTileBytes> waysAround((int, int) t) => [
-        for (var dx = -1; dx <= 1; dx++)
-          for (var dy = -1; dy <= 1; dy++)
-            if (ways[(t.$1 + dx, t.$2 + dy)] case final b?) (tile: (z: _z, x: t.$1 + dx, y: t.$2 + dy), bytes: b)
-      ];
+    for (var dx = -1; dx <= 1; dx++)
+      for (var dy = -1; dy <= 1; dy++)
+        if (ways[(t.$1 + dx, t.$2 + dy)] case final b?)
+          (tile: (z: _z, x: t.$1 + dx, y: t.$2 + dy), bytes: b),
+  ];
 
   (int, int) get centre {
     final xs = tiles.map((t) => t.$1).toList()..sort();
@@ -107,12 +125,16 @@ double _tileLat(num y) {
   final n = 1 << _z;
   final x = ((p.longitude + 180) / 360 * n).floor();
   final r = p.latitude * math.pi / 180;
-  final y = ((1 - math.log(math.tan(r) + 1 / math.cos(r)) / math.pi) / 2 * n).floor();
+  final y = ((1 - math.log(math.tan(r) + 1 / math.cos(r)) / math.pi) / 2 * n)
+      .floor();
   return (x, y);
 }
 
 void _measure(_Frame f) {
-  final present = [for (final t in f.tiles) if (f.roads.containsKey(t)) t];
+  final present = [
+    for (final t in f.tiles)
+      if (f.roads.containsKey(t)) t,
+  ];
   final lat0 = _tileLat(f.centre.$2 + 0.5);
 
   // Backen je Kachel wie der Rechen-Isolate (Höhen und Wege-Archiv der
@@ -131,9 +153,14 @@ void _measure(_Frame f) {
 
   // Kachel je Knoten, einmal.
   final tileOfNode = [for (final p in g.nodeLatLng) _tileOf(p)];
-  final comp = <int>{for (final ei in g.components().first) ...[g.edgeA(ei), g.edgeB(ei)]}.toList()..sort();
+  final comp = <int>{
+    for (final ei in g.components().first) ...[g.edgeA(ei), g.edgeB(ei)],
+  }.toList()..sort();
   final c = f.centre;
-  final mid = LatLng(_tileLat(c.$2 + 0.5), (c.$1 + 0.5) / (1 << _z) * 360 - 180);
+  final mid = LatLng(
+    _tileLat(c.$2 + 0.5),
+    (c.$1 + 0.5) / (1 << _z) * 360 - 180,
+  );
   final start = g.nearestNode(g.proj.xy(mid), 2000)!;
   final startXy = g.nodes[start];
 
@@ -159,22 +186,29 @@ void _measure(_Frame f) {
     final rnd = math.Random(381 + count + radiusM.round() + hours);
     final near = [
       for (final n in comp)
-        if (g.nodes[n].distanceTo(startXy) < radiusM) n
+        if (g.nodes[n].distanceTo(startXy) < radiusM) n,
     ];
     final tails = <int>[];
     final points = <LatLng>[g.nodeLatLng[start]];
     while (tails.length < count) {
       final head = near[rnd.nextInt(near.length)];
-      final a = rnd.nextDouble() * 2 * math.pi, d = 1000 + rnd.nextDouble() * 1000;
+      final a = rnd.nextDouble() * 2 * math.pi,
+          d = 1000 + rnd.nextDouble() * 1000;
       final h = g.nodes[head];
-      final tail = g.nearestNode(math.Point(h.x + d * math.cos(a), h.y + d * math.sin(a)), 300);
+      final tail = g.nearestNode(
+        math.Point(h.x + d * math.cos(a), h.y + d * math.sin(a)),
+        300,
+      );
       if (tail == null || tail == head) continue;
       tails.add(tail);
       points
         ..add(g.nodeLatLng[head])
         ..add(g.nodeLatLng[tail]);
     }
-    final frame = {for (final t in roadGraphTiles(LatBox.of(points), kTrailHeadMarginM)) (t.x, t.y)};
+    final frame = {
+      for (final t in roadGraphTiles(LatBox.of(points), kTrailHeadMarginM))
+        (t.x, t.y),
+    };
 
     final costs = EdgeCosts(g, profile);
     final reached = <(int, int)>{};
@@ -189,11 +223,18 @@ void _measure(_Frame f) {
     final beyond = reached.length - inFrame.length;
     // Rand des Beispiels erreicht ⇒ „darüber hinaus" ist eine Untergrenze.
     final xs = f.tiles.map((t) => t.$1), ys = f.tiles.map((t) => t.$2);
-    final edge = reached.any((t) =>
-        t.$1 == xs.reduce(math.min) || t.$1 == xs.reduce(math.max) || t.$2 == ys.reduce(math.min) || t.$2 == ys.reduce(math.max));
+    final edge = reached.any(
+      (t) =>
+          t.$1 == xs.reduce(math.min) ||
+          t.$1 == xs.reduce(math.max) ||
+          t.$2 == ys.reduce(math.min) ||
+          t.$2 == ys.reduce(math.max),
+    );
     final pct = (100 * inFrame.length / frame.length).round();
-    _out('| ${f.name} | $count Trails in ${(radiusM / 1000).round()} km, ${profile.name} $hours h '
-        '| ${frame.length} | ${inFrame.length} ($pct %) | $beyond${edge ? '+' : ''} | ${sources.length} '
-        '| ${stitchMs(frame)} / ${stitchMs(inFrame)} ms |');
+    _out(
+      '| ${f.name} | $count Trails in ${(radiusM / 1000).round()} km, ${profile.name} $hours h '
+      '| ${frame.length} | ${inFrame.length} ($pct %) | $beyond${edge ? '+' : ''} | ${sources.length} '
+      '| ${stitchMs(frame)} / ${stitchMs(inFrame)} ms |',
+    );
   }
 }

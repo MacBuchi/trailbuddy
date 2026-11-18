@@ -35,7 +35,9 @@ class HighlightArt extends StatelessWidget {
               border: Border.all(color: p.line, width: s * 0.03),
             ),
             alignment: const Alignment(-0.12, -0.12),
-            child: ExcludeSemantics(child: Icon(highlight.icon, size: s * 0.42, color: p.accentText)),
+            child: ExcludeSemantics(
+              child: Icon(highlight.icon, size: s * 0.42, color: p.accentText),
+            ),
           ),
           Positioned(
             right: 0,
@@ -43,7 +45,11 @@ class HighlightArt extends StatelessWidget {
             child: ExcludeSemantics(
               child: Container(
                 padding: EdgeInsets.all(s * 0.04),
-                decoration: BoxDecoration(color: p.surface, shape: BoxShape.circle, border: Border.all(color: p.line)),
+                decoration: BoxDecoration(
+                  color: p.surface,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: p.line),
+                ),
                 child: TrailBuddyMark(size: s * 0.3),
               ),
             ),

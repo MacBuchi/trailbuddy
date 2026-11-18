@@ -96,27 +96,39 @@ class SearchResult {
 /// [steep] sind die Höhenmeter über [kSteepGrade], die dabei zählen;
 /// gekostet wird das Gewicht ([GraphEdge.steepWUp]). Bergab auf einem
 /// Trail kostet keine verschenkte Höhe (#188) — dafür ist er da.
-({double cost, double gain, double loss, double steep}) edgeCostFrom(RoadGraph g, int ei, int from, RiderParams p) {
+({double cost, double gain, double loss, double steep}) edgeCostFrom(
+  RoadGraph g,
+  int ei,
+  int from,
+  RiderParams p,
+) {
   final e = g.edges[ei];
   final forward = e.a == from;
   final gain = forward ? e.gain : e.loss;
   final loss = forward ? e.loss : e.gain;
   // Eine Lücke (#492) hat keinen Weg und keine Höhe: geschoben, teuer.
-  if (e.gap) return (cost: gapCostS(e.length), gain: 0.0, loss: 0.0, steep: 0.0);
+  if (e.gap) {
+    return (cost: gapCostS(e.length), gain: 0.0, loss: 0.0, steep: 0.0);
+  }
   if (e.connector) {
-    final cost = edgeTimeS(p, e.cls, lengthM: e.length, gainM: gain, lossM: loss) * kTrailConnectorFactor;
+    final cost =
+        edgeTimeS(p, e.cls, lengthM: e.length, gainM: gain, lossM: loss) *
+        kTrailConnectorFactor;
     return (cost: cost, gain: gain, loss: loss, steep: 0.0);
   }
   final steep = forward ? e.steepUp : e.steepDown;
-  final cost = edgeCostS(p, e.cls,
-      lengthM: e.length,
-      gainM: gain,
-      lossM: loss,
-      steepW: forward ? e.steepWUp : e.steepWDown,
-      descent: e.trail == null,
-      carry: e.carry,
-      way: e.way,
-      uphill: e.uphill);
+  final cost = edgeCostS(
+    p,
+    e.cls,
+    lengthM: e.length,
+    gainM: gain,
+    lossM: loss,
+    steepW: forward ? e.steepWUp : e.steepWDown,
+    descent: e.trail == null,
+    carry: e.carry,
+    way: e.way,
+    uphill: e.uphill,
+  );
   return (cost: cost, gain: gain, loss: loss, steep: steep);
 }
 
@@ -130,13 +142,15 @@ class SearchResult {
 /// seinen Suchspeicher, der bei einem neuen Stand ohnehin leer wird.
 class EdgeCosts {
   EdgeCosts(this.graph, this.profile)
-      : _revision = graph.revision,
-        _cost = Float64List(2 * graph.edges.length) {
+    : _revision = graph.revision,
+      _cost = Float64List(2 * graph.edges.length) {
     for (var ei = 0; ei < graph.edges.length; ei++) {
       final e = graph.edges[ei];
       _cost[2 * ei] = edgeCostFrom(graph, ei, e.a, profile).cost;
       // Auf einer Schleife (a == b) ist jede Richtung „vorwärts".
-      _cost[2 * ei + 1] = e.a == e.b ? _cost[2 * ei] : edgeCostFrom(graph, ei, e.b, profile).cost;
+      _cost[2 * ei + 1] = e.a == e.b
+          ? _cost[2 * ei]
+          : edgeCostFrom(graph, ei, e.b, profile).cost;
     }
   }
 
@@ -147,7 +161,9 @@ class EdgeCosts {
 
   /// Die Kosten der Kante [ei] ab Knoten [from].
   double of(int ei, int from) {
-    if (graph.revision != _revision) return edgeCostFrom(graph, ei, from, profile).cost;
+    if (graph.revision != _revision) {
+      return edgeCostFrom(graph, ei, from, profile).cost;
+    }
     return _cost[graph.edgeA(ei) == from ? 2 * ei : 2 * ei + 1];
   }
 }
@@ -161,12 +177,16 @@ bool edgeOpenFrom(GraphEdge e, int from) => e.openFrom(from);
 /// [allow] lässt Kanten aus — der Planer sucht damit die Verbindung OHNE
 /// Wanderweg, wenn das Budget „höchstens Wanderweg" sonst nicht hält.
 /// [costs] sind die vorab gerechneten Kosten für [p] (#379).
-SearchResult dijkstra(RoadGraph g, int src, RiderParams p,
-    {double limit = double.infinity,
-    int? target,
-    double Function(int node)? heuristic,
-    bool Function(GraphEdge edge)? allow,
-    EdgeCosts? costs}) {
+SearchResult dijkstra(
+  RoadGraph g,
+  int src,
+  RiderParams p, {
+  double limit = double.infinity,
+  int? target,
+  double Function(int node)? heuristic,
+  bool Function(GraphEdge edge)? allow,
+  EdgeCosts? costs,
+}) {
   // Während der Suche Felder über den ganzen Graphen (eine Suche zur Zeit),
   // danach nur die erreichten Knoten.
   final count = g.nodes.length;
@@ -189,7 +209,9 @@ SearchResult dijkstra(RoadGraph g, int src, RiderParams p,
       if (allow != null && !allow(g.edges[ei])) continue;
       final a = g.edgeA(ei);
       final m = a == n ? g.edgeB(ei) : a;
-      final nd = dist[n] + (costs != null ? costs.of(ei, n) : edgeCostFrom(g, ei, n, p).cost);
+      final nd =
+          dist[n] +
+          (costs != null ? costs.of(ei, n) : edgeCostFrom(g, ei, n, p).cost);
       if (nd > limit) continue;
       if (nd < dist[m]) {
         if (dist[m] == double.infinity) reached++;
@@ -199,7 +221,9 @@ SearchResult dijkstra(RoadGraph g, int src, RiderParams p,
       }
     }
   }
-  final nodes = Int32List(reached), cost = Float64List(reached), edge = Int32List(reached);
+  final nodes = Int32List(reached),
+      cost = Float64List(reached),
+      edge = Int32List(reached);
   var k = 0;
   for (var n = 0; n < count; n++) {
     if (dist[n] == double.infinity) continue;
@@ -214,10 +238,22 @@ SearchResult dijkstra(RoadGraph g, int src, RiderParams p,
 /// Der günstigste Weg von [src] nach [dst] (A* mit Luftlinie durch die
 /// Abfahrtsgeschwindigkeit mal [kTrailConnectorFactor] — nie überschätzt,
 /// auch nicht auf einem Verbinder), oder null.
-({double costS, double climbM, List<int> edges})? shortestPath(RoadGraph g, int src, int dst, RiderParams p) {
+({double costS, double climbM, List<int> edges})? shortestPath(
+  RoadGraph g,
+  int src,
+  int dst,
+  RiderParams p,
+) {
   final t = g.nodes[dst];
   final vMax = p.vDownKmh / 3.6;
-  final r = dijkstra(g, src, p, target: dst, heuristic: (n) => g.nodeDistance(n, t.x, t.y) / vMax * kTrailConnectorFactor);
+  final r = dijkstra(
+    g,
+    src,
+    p,
+    target: dst,
+    heuristic: (n) =>
+        g.nodeDistance(n, t.x, t.y) / vMax * kTrailConnectorFactor,
+  );
   final path = r.pathTo(dst);
   if (path == null) return null;
   return (costS: r.costTo(dst)!, climbM: r.climbTo(dst)!, edges: path);
@@ -270,13 +306,20 @@ const kSteepNoteMinM = 5.0;
 
 /// Der Satz dazu, oder null. Keine Zahl: Gezählt ist nur, was ÜBER der
 /// Grenze steigt, und „12 hm steil" läse sich wie die Länge der Rampe.
-String? steepNote(AppLocalizations l, double steepM) =>
-    steepM < kSteepNoteMinM ? null : l.routingSteepNote((kSteepGrade * 100).round());
+String? steepNote(AppLocalizations l, double steepM) => steepM < kSteepNoteMinM
+    ? null
+    : l.routingSteepNote((kSteepGrade * 100).round());
 
 /// Fasst die Kanten [path] ab Knoten [src] zusammen.
 PathSummary summarizePath(RoadGraph g, List<int> path, int src, RiderParams p) {
   var n = src;
-  var length = 0.0, gain = 0.0, loss = 0.0, time = 0.0, hiking = 0.0, trailUp = 0.0, steep = 0.0;
+  var length = 0.0,
+      gain = 0.0,
+      loss = 0.0,
+      time = 0.0,
+      hiking = 0.0,
+      trailUp = 0.0,
+      steep = 0.0;
   var complete = true;
   final mix = <WayClass, double>{};
   final points = <LatLng>[];
@@ -290,7 +333,9 @@ PathSummary summarizePath(RoadGraph g, List<int> path, int src, RiderParams p) {
     gain += c.gain;
     loss += c.loss;
     steep += c.steep;
-    time += e.gap ? gapTimeS(e.length) : edgeTimeS(p, e.cls, lengthM: e.length, gainM: c.gain, lossM: c.loss);
+    time += e.gap
+        ? gapTimeS(e.length)
+        : edgeTimeS(p, e.cls, lengthM: e.length, gainM: c.gain, lossM: c.loss);
     mix[e.cls] = (mix[e.cls] ?? 0) + e.length;
     if (e.hiking) hiking += e.length;
     if (e.connector) trailUp += e.length;

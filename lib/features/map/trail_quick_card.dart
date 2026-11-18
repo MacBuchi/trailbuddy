@@ -18,7 +18,12 @@ import '../trails/grade_shield.dart';
 import '../../l10n/l10n.dart';
 
 class TrailQuickCard extends StatelessWidget {
-  const TrailQuickCard({super.key, required this.trail, required this.onOpen, required this.onClose});
+  const TrailQuickCard({
+    super.key,
+    required this.trail,
+    required this.onOpen,
+    required this.onClose,
+  });
 
   final Trail trail;
   final VoidCallback onOpen;
@@ -48,21 +53,32 @@ class TrailQuickCard extends StatelessWidget {
               if (trail.grade != null)
                 Padding(
                   padding: const EdgeInsets.only(right: 10),
-                  child: GradeShield(trail.grade!, fontSize: 13, uphill: isUphill(trail)),
+                  child: GradeShield(
+                    trail.grade!,
+                    fontSize: 13,
+                    uphill: isUphill(trail),
+                  ),
                 ),
               Expanded(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(trail.displayName(context.l10n),
-                        maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.textTheme.titleMedium),
+                    Text(
+                      trail.displayName(context.l10n),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.titleMedium,
+                    ),
                     Text(
                       parts.join(' · '),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: theme.textTheme.bodySmall?.copyWith(
-                          color: trail.status.warns ? palette.warningText : theme.hintColor),
+                        color: trail.status.warns
+                            ? palette.warningText
+                            : theme.hintColor,
+                      ),
                     ),
                   ],
                 ),

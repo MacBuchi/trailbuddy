@@ -38,14 +38,19 @@ class TrailRideCounts {
       if (rides is! Map) return empty;
       return TrailRideCounts({
         for (final e in rides.entries)
-          if (e.key is String && e.value is List) e.key as String: [for (final id in e.value as List) if (id is String) id],
+          if (e.key is String && e.value is List)
+            e.key as String: [
+              for (final id in e.value as List)
+                if (id is String) id,
+            ],
       });
     } catch (_) {
       return empty;
     }
   }
 
-  String encode() => jsonEncode({'v': kTrailRideCountsVersion, 'rides': byRide});
+  String encode() =>
+      jsonEncode({'v': kTrailRideCountsVersion, 'rides': byRide});
 
   /// In wie vielen Fahrten [t] vorkommt — er selbst oder ein Duplikat,
   /// das bei mir unter ihm steht ([Trail.answersTo]); jede Fahrt einmal.
@@ -59,9 +64,9 @@ class TrailRideCounts {
 
   /// [of] für alle [trails] auf einmal, nur die mit mindestens einer Fahrt.
   Map<String, int> countsFor(Iterable<Trail> trails) => {
-        for (final t in trails)
-          if (of(t) case final n when n > 0) t.id: n,
-      };
+    for (final t in trails)
+      if (of(t) case final n when n > 0) t.id: n,
+  };
 }
 
 /// Zählt nur gefahrene Fahrten: keine geplanten (ohne Zeiten, nie
@@ -84,7 +89,10 @@ Future<TrailRideCounts?> updateTrailRideCounts(
   required List<Trail> trails,
   Future<void> Function()? between,
 }) async {
-  final ridden = [for (final r in rides) if (countsAsRidden(r)) r];
+  final ridden = [
+    for (final r in rides)
+      if (countsAsRidden(r)) r,
+  ];
   final ids = {for (final r in ridden) r.id};
   final next = <String, List<String>>{
     for (final e in old.byRide.entries)

@@ -62,7 +62,10 @@ class FileWatchEventStore implements WatchEventStore {
         }
         final f = await _file();
         final tmp = File('${f.path}.part');
-        await tmp.writeAsString(jsonEncode([for (final l in logs) l.toJson()]), flush: true);
+        await tmp.writeAsString(
+          jsonEncode([for (final l in logs) l.toJson()]),
+          flush: true,
+        );
         await tmp.rename(f.path);
       } catch (_) {
         // Ein Protokoll ist Beiwerk: Ohne Platte gibt es eben keins.
@@ -78,7 +81,9 @@ class FileWatchEventStore implements WatchEventStore {
     try {
       await _lock;
       final logs = await _read();
-      return logs.isEmpty ? null : logs.reduce((a, b) => b.at.isAfter(a.at) ? b : a);
+      return logs.isEmpty
+          ? null
+          : logs.reduce((a, b) => b.at.isAfter(a.at) ? b : a);
     } catch (_) {
       // Kaputte oder fehlende Datei: dann eben keins.
       return null;
@@ -101,12 +106,18 @@ class MemoryWatchEventStore implements WatchEventStore {
   Future<WatchEventLog?> latest() async => logs.isEmpty ? null : logs.last;
 }
 
-final watchEventStoreProvider = Provider<WatchEventStore>((ref) => FileWatchEventStore());
+final watchEventStoreProvider = Provider<WatchEventStore>(
+  (ref) => FileWatchEventStore(),
+);
 
 /// Das neueste Protokoll, wenn es jünger als [kWatchEventsOffer] ist —
 /// sonst bietet der Feedback-Dialog nichts an.
-final watchEventOfferProvider = FutureProvider.autoDispose<WatchEventLog?>((ref) async {
+final watchEventOfferProvider = FutureProvider.autoDispose<WatchEventLog?>((
+  ref,
+) async {
   final log = await ref.read(watchEventStoreProvider).latest();
-  if (log == null || DateTime.now().difference(log.at) > kWatchEventsOffer) return null;
+  if (log == null || DateTime.now().difference(log.at) > kWatchEventsOffer) {
+    return null;
+  }
   return log;
 });

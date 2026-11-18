@@ -19,17 +19,19 @@ void main() {
   late FakeSettings settings;
 
   const water = Poi(
-      id: 'node/1',
-      kind: PoiKind.drinkingWater,
-      position: LatLng(48.004, 9.001),
-      name: 'Brunnen am Hang',
-      drinkable: true);
+    id: 'node/1',
+    kind: PoiKind.drinkingWater,
+    position: LatLng(48.004, 9.001),
+    name: 'Brunnen am Hang',
+    drinkable: true,
+  );
   const cafe = Poi(
-      id: 'node/2',
-      kind: PoiKind.cafe,
-      position: LatLng(48.006, 8.999),
-      name: 'Hüttencafé',
-      openingHours: 'Sa-Su 10:00-18:00');
+    id: 'node/2',
+    kind: PoiKind.cafe,
+    position: LatLng(48.006, 8.999),
+    name: 'Hüttencafé',
+    openingHours: 'Sa-Su 10:00-18:00',
+  );
 
   final waterPin = find.byKey(const ValueKey('poi-node/1'));
   final cafePin = find.byKey(const ValueKey('poi-node/2'));
@@ -39,7 +41,9 @@ void main() {
     final anna = backend.addUser(username: 'anna');
     backend.signInAs(anna.id);
     trails = FakeTrailRepository(
-        myId: () => backend.currentUserId ?? '', areFriends: backend.areFriends);
+      myId: () => backend.currentUserId ?? '',
+      areFriends: backend.areFriends,
+    );
     pois = FakePoiSource([water, cafe]);
     settings = FakeSettings();
   });
@@ -55,13 +59,19 @@ void main() {
   Future<void> start(WidgetTester tester, {bool withTrail = true}) async {
     // Ein Trail, damit die Karte von selbst auf Zoom 15 geht.
     if (withTrail) trails.seedTrail(backend.currentUserId!, name: 'Roots');
-    await pumpApp(tester, backend,
-        trails: trails, pois: pois, settings: settings);
+    await pumpApp(
+      tester,
+      backend,
+      trails: trails,
+      pois: pois,
+      settings: settings,
+    );
     await settle(tester, frames: 20);
   }
 
-  testWidgets('Vorgabe: Trinkwasser als Nadel, Tipp zeigt, was es ist',
-      (tester) async {
+  testWidgets('Vorgabe: Trinkwasser als Nadel, Tipp zeigt, was es ist', (
+    tester,
+  ) async {
     await start(tester);
     expect(waterPin, findsOneWidget);
     expect(cafePin, findsNothing);
@@ -96,8 +106,9 @@ void main() {
     expect(find.text('Öffnungszeiten: Sa-Su 10:00-18:00'), findsOneWidget);
   });
 
-  testWidgets('Detailfilter: eine Art ausblenden, ohne neu zu fragen',
-      (tester) async {
+  testWidgets('Detailfilter: eine Art ausblenden, ohne neu zu fragen', (
+    tester,
+  ) async {
     settings.poiGroups = const ['food', 'water'];
     await start(tester);
     expect(waterPin, findsOneWidget);

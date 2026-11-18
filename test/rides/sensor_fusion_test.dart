@@ -12,33 +12,38 @@ import 'package:trailbuddy/features/rides/sensor_fusion.dart';
 typedef _M = List<List<double>>;
 
 _M _mm(_M a, _M b) => [
-      for (var i = 0; i < 3; i++)
-        [for (var j = 0; j < 3; j++) a[i][0] * b[0][j] + a[i][1] * b[1][j] + a[i][2] * b[2][j]]
-    ];
+  for (var i = 0; i < 3; i++)
+    [
+      for (var j = 0; j < 3; j++)
+        a[i][0] * b[0][j] + a[i][1] * b[1][j] + a[i][2] * b[2][j],
+    ],
+];
 
 _M _mt(_M a) => [
-      for (var i = 0; i < 3; i++) [for (var j = 0; j < 3; j++) a[j][i]]
-    ];
+  for (var i = 0; i < 3; i++) [for (var j = 0; j < 3; j++) a[j][i]],
+];
 
-List<double> _mv(_M m, List<double> v) => [for (final r in m) r[0] * v[0] + r[1] * v[1] + r[2] * v[2]];
+List<double> _mv(_M m, List<double> v) => [
+  for (final r in m) r[0] * v[0] + r[1] * v[1] + r[2] * v[2],
+];
 
 _M _rz(double a) => [
-      [math.cos(a), -math.sin(a), 0.0],
-      [math.sin(a), math.cos(a), 0.0],
-      [0.0, 0.0, 1.0],
-    ];
+  [math.cos(a), -math.sin(a), 0.0],
+  [math.sin(a), math.cos(a), 0.0],
+  [0.0, 0.0, 1.0],
+];
 
 _M _ry(double a) => [
-      [math.cos(a), 0.0, math.sin(a)],
-      [0.0, 1.0, 0.0],
-      [-math.sin(a), 0.0, math.cos(a)],
-    ];
+  [math.cos(a), 0.0, math.sin(a)],
+  [0.0, 1.0, 0.0],
+  [-math.sin(a), 0.0, math.cos(a)],
+];
 
 _M _rx(double a) => [
-      [1.0, 0.0, 0.0],
-      [0.0, math.cos(a), -math.sin(a)],
-      [0.0, math.sin(a), math.cos(a)],
-    ];
+  [1.0, 0.0, 0.0],
+  [0.0, math.cos(a), -math.sin(a)],
+  [0.0, math.sin(a), math.cos(a)],
+];
 
 double _rad(double deg) => deg * math.pi / 180;
 
@@ -102,11 +107,15 @@ List<(String, double, List<double>)> _synthetic({bool slipPitch = false}) {
   }
 
   (_M, double, double, double) attitude(double t) {
-    final yawRate = 0.6 * math.min(1.0, math.max(0.0, math.min(t - 70, 80 - t)));
-    final yaw = t > 70 ? 0.6 * (math.max(0.0, math.min(t, 80.0) - 70) - 0.5) : 0.0;
+    final yawRate =
+        0.6 * math.min(1.0, math.max(0.0, math.min(t - 70, 80 - t)));
+    final yaw = t > 70
+        ? 0.6 * (math.max(0.0, math.min(t, 80.0) - 70) - 0.5)
+        : 0.0;
     final v = speed(t);
     final roll = -math.atan2(v * yawRate, kG);
-    final pitch = _rad(25) * _ramp(t, 90, 92) -
+    final pitch =
+        _rad(25) * _ramp(t, 90, 92) -
         _rad(20) * _ramp(t, 110, 112.5) +
         _rad(10) * _ramp(t, 128, 145, 3.0) +
         _rad(26) * _ramp(t, 135, 137) +
@@ -139,9 +148,11 @@ List<(String, double, List<double>)> _synthetic({bool slipPitch = false}) {
     final m = t >= 150 ? mount1 : _mount0;
     final fP = _mv(m, _mv(_mt(rWb), fW));
     final rel = _mm(_mt(prev), rWb);
-    final wB = [rel[2][1] - rel[1][2], rel[0][2] - rel[2][0], rel[1][0] - rel[0][1]]
-        .map((c) => c * 0.5 / dt)
-        .toList();
+    final wB = [
+      rel[2][1] - rel[1][2],
+      rel[0][2] - rel[2][0],
+      rel[1][0] - rel[0][1],
+    ].map((c) => c * 0.5 / dt).toList();
     final wP = [for (final (k, c) in _mv(m, wB).indexed) c + bias[k]];
     prev = rWb;
     final noise = 100.0 <= t && t < 100.5 ? 0.05 : 1.0;
@@ -159,10 +170,15 @@ final _ride = _synthetic();
 List<(String, double, List<double>)> _cornersOnly() {
   const hz = 100.0, v = 6.0, dt = 1 / hz;
   final rnd = _Noise(7);
-  double rate(double t) => t < 20 ? 0.0 : ((t - 20) ~/ 5).isEven ? 0.4 : -0.4;
+  double rate(double t) => t < 20
+      ? 0.0
+      : ((t - 20) ~/ 5).isEven
+      ? 0.4
+      : -0.4;
   final out = <(String, double, List<double>)>[];
   var yaw = 0.0;
-  _M att(double t, double yaw) => _mm(_rz(yaw), _rx(-math.atan2(v * rate(t), kG)));
+  _M att(double t, double yaw) =>
+      _mm(_rz(yaw), _rx(-math.atan2(v * rate(t), kG)));
   var prev = att(0, 0);
   for (var i = 1; i < (80 * hz).toInt(); i++) {
     final t = i * dt;
@@ -171,7 +187,11 @@ List<(String, double, List<double>)> _cornersOnly() {
     final fW = [-v * rate(t) * math.sin(yaw), v * rate(t) * math.cos(yaw), kG];
     final fP = _mv(_mount0, _mv(_mt(rWb), fW));
     final rel = _mm(_mt(prev), rWb);
-    final wB = [rel[2][1] - rel[1][2], rel[0][2] - rel[2][0], rel[1][0] - rel[0][1]].map((c) => c * 0.5 / dt).toList();
+    final wB = [
+      rel[2][1] - rel[1][2],
+      rel[0][2] - rel[2][0],
+      rel[1][0] - rel[0][1],
+    ].map((c) => c * 0.5 / dt).toList();
     final wP = _mv(_mount0, wB);
     prev = rWb;
     out.add(('a', t, [for (final c in fP) c + rnd.gauss(0.3)]));
@@ -185,8 +205,11 @@ int _us(double t) => (t * 1e6).round();
 
 /// Füttert die Fahrt; [accelAhead] Werte der Beschleunigung kommen je
 /// Schub vor dem Kreisel an, wie der Kanal des Sensors sie liefert.
-(SensorFusion, List<FusionEvent>) _run(
-    {FusionMount? carried, int accelAhead = 0, List<(String, double, List<double>)>? ride}) {
+(SensorFusion, List<FusionEvent>) _run({
+  FusionMount? carried,
+  int accelAhead = 0,
+  List<(String, double, List<double>)>? ride,
+}) {
   final fusion = SensorFusion(carried: carried, originUs: 0);
   final events = <FusionEvent>[];
   final held = <(String, double, List<double>)>[];
@@ -219,7 +242,10 @@ double _s(int us) => us / 1e6;
 
 FusionMount _mount(_M m) {
   final up = _mv(m, [0.0, 0.0, 1.0]), fwd = _mv(m, [1.0, 0.0, 0.0]);
-  return FusionMount(up: (up[0], up[1], up[2]), forward: (fwd[0], fwd[1], fwd[2]));
+  return FusionMount(
+    up: (up[0], up[1], up[2]),
+    forward: (fwd[0], fwd[1], fwd[2]),
+  );
 }
 
 void main() {
@@ -227,13 +253,30 @@ void main() {
     final (fusion, events) = _run();
     final wheelies = events.whereType<WheelieEvent>().toList();
     // Das Werkzeug (Mahony, 20° seit 2026-11-01): 90,30/1,50 · 135,30/1,50 · 280,27/1,56 · 310,58/88,96 s.
-    const expected = [(90.30, 1.50), (135.30, 1.50), (280.27, 1.56), (310.58, 88.96)];
+    const expected = [
+      (90.30, 1.50),
+      (135.30, 1.50),
+      (280.27, 1.56),
+      (310.58, 88.96),
+    ];
     expect(wheelies, hasLength(4), reason: '$wheelies');
     for (final (i, (start, duration)) in expected.indexed) {
-      expect(_s(wheelies[i].startUs), closeTo(start, 0.11), reason: 'Wheelie $i');
-      expect(wheelies[i].duration.inMicroseconds / 1e6, closeTo(duration, 0.11), reason: 'Wheelie $i');
+      expect(
+        _s(wheelies[i].startUs),
+        closeTo(start, 0.11),
+        reason: 'Wheelie $i',
+      );
+      expect(
+        wheelies[i].duration.inMicroseconds / 1e6,
+        closeTo(duration, 0.11),
+        reason: 'Wheelie $i',
+      );
     }
-    expect(wheelies.last.maxTiltDeg, closeTo(40.6, 1), reason: 'der lange, 40°');
+    expect(
+      wheelies.last.maxTiltDeg,
+      closeTo(40.6, 1),
+      reason: 'der lange, 40°',
+    );
     expect(wheelies.last.lengthM, closeTo(6 * 88.96, 5));
 
     final jumps = events.whereType<JumpEvent>().toList();
@@ -291,144 +334,182 @@ void main() {
   test('die Halterung nach dem Verrutschen ist die neue', () {
     final (fusion, _) = _run();
     final m = fusion.mount!;
-    final up1 = _mv(_mount1, [0.0, 0.0, 1.0]), fwd1 = _mv(_mount1, [1.0, 0.0, 0.0]);
+    final up1 = _mv(_mount1, [0.0, 0.0, 1.0]),
+        fwd1 = _mv(_mount1, [1.0, 0.0, 0.0]);
     double angle(Vec a, List<double> b) =>
-        math.acos((a.$1 * b[0] + a.$2 * b[1] + a.$3 * b[2]).clamp(-1.0, 1.0)) * 180 / math.pi;
+        math.acos((a.$1 * b[0] + a.$2 * b[1] + a.$3 * b[2]).clamp(-1.0, 1.0)) *
+        180 /
+        math.pi;
     expect(angle(m.up, up1), lessThan(4));
     expect(angle(m.forward, fwd1), lessThan(8));
   });
 
-  test('verrutscht Front hoch: kein Wheelie, wenn das Bremsen das Verrutschen zeigt', () {
-    final (fusion, events) = _run(ride: _synthetic(slipPitch: true));
-    expect(fusion.slips, hasLength(1));
-    final starts = [for (final w in events.whereType<WheelieEvent>()) _s(w.startUs)];
-    expect(starts.where((t) => t >= 140 && t <= 235), isEmpty, reason: '$starts');
-    // Danach fehlt die Zeit, „vorn" neu zu lernen (nur eine Bremsung bei 250 s).
-    expect(starts, [closeTo(90.3, 0.11), closeTo(135.3, 0.11)], reason: 'die echten davor bleiben');
-  });
+  test(
+    'verrutscht Front hoch: kein Wheelie, wenn das Bremsen das Verrutschen zeigt',
+    () {
+      final (fusion, events) = _run(ride: _synthetic(slipPitch: true));
+      expect(fusion.slips, hasLength(1));
+      final starts = [
+        for (final w in events.whereType<WheelieEvent>()) _s(w.startUs),
+      ];
+      expect(
+        starts.where((t) => t >= 140 && t <= 235),
+        isEmpty,
+        reason: '$starts',
+      );
+      // Danach fehlt die Zeit, „vorn" neu zu lernen (nur eine Bremsung bei 250 s).
+      expect(starts, [
+        closeTo(90.3, 0.11),
+        closeTo(135.3, 0.11),
+      ], reason: 'die echten davor bleiben');
+    },
+  );
 
-  test('die Live-Ansicht liest nur mit: dieselben Ereignisse, je Takt ein Zustand', () {
-    final (_, plain) = _run();
-    final fusion = SensorFusion(originUs: 0)..keepLive = true;
-    final events = <FusionEvent>[];
-    final live = <FusionLive>[];
-    for (final (kind, t, v) in _ride) {
-      events.addAll(switch (kind) {
-        'a' => fusion.addAccel(_us(t), v[0], v[1], v[2]),
-        'w' => fusion.addGyro(_us(t), v[0], v[1], v[2]),
-        _ => fusion.addGps(_us(t), v[0]),
-      });
+  test(
+    'die Live-Ansicht liest nur mit: dieselben Ereignisse, je Takt ein Zustand',
+    () {
+      final (_, plain) = _run();
+      final fusion = SensorFusion(originUs: 0)..keepLive = true;
+      final events = <FusionEvent>[];
+      final live = <FusionLive>[];
+      for (final (kind, t, v) in _ride) {
+        events.addAll(switch (kind) {
+          'a' => fusion.addAccel(_us(t), v[0], v[1], v[2]),
+          'w' => fusion.addGyro(_us(t), v[0], v[1], v[2]),
+          _ => fusion.addGps(_us(t), v[0]),
+        });
+        live.addAll(fusion.takeLive());
+      }
+      events.addAll(fusion.finish());
       live.addAll(fusion.takeLive());
-    }
-    events.addAll(fusion.finish());
-    live.addAll(fusion.takeLive());
-    String key(FusionEvent e) => '${e.runtimeType} ${e.startUs} ${e.duration.inMicroseconds}';
-    expect(events.map(key), plain.map(key));
+      String key(FusionEvent e) =>
+          '${e.runtimeType} ${e.startUs} ${e.duration.inMicroseconds}';
+      expect(events.map(key), plain.map(key));
 
-    // Rund 10 Hz über die Fahrt, in der Zeit aufsteigend.
-    expect(live.length, inInclusiveRange(_ride.last.$2 * 10 - 100, _ride.last.$2 * 10 + 1));
-    for (var i = 1; i < live.length; i++) {
-      expect(live[i].tUs, greaterThan(live[i - 1].tUs));
-    }
-    // Ohne gelernte Halterung kein Winkel; danach einer.
-    expect(live.first.mountReady, isFalse);
-    expect(live.first.upKnown, isFalse);
-    FusionLive at(double s) => live.firstWhere((l) => l.tUs >= _us(s));
-    expect(at(60).mountReady, isTrue);
-    // Mitten im langen Wheelie (310,5–399,8 s, 40°): Phase, Beginn, Spitze.
-    final mid = at(350);
-    expect(mid.phase, FusionPhase.wheelie);
-    expect(_s(mid.phaseStartUs!), closeTo(310.48, 0.11));
-    expect(mid.pitchDeg, closeTo(40, 3));
-    expect(mid.peakDeg, greaterThanOrEqualTo(mid.pitchDeg));
-    // Der Sprung (100,0–100,5 s) in der Luft, der Stoppie (410,5 s) mit der Front unten.
-    expect(at(100.3).phase, FusionPhase.airborne);
-    final stoppie = at(410.9);
-    expect(stoppie.phase, FusionPhase.stoppie);
-    expect(stoppie.pitchDeg, lessThan(-kFusionStoppieTiltDeg + 5));
-    expect(at(200).phase, FusionPhase.none);
-    // Ohne Ansicht sammelt sich nichts an.
-    final quiet = SensorFusion(originUs: 0);
-    for (final (kind, t, v) in _ride.take(20000)) {
-      if (kind == 'a') quiet.addAccel(_us(t), v[0], v[1], v[2]);
-    }
-    expect(quiet.takeLive(), isEmpty);
-  });
+      // Rund 10 Hz über die Fahrt, in der Zeit aufsteigend.
+      expect(
+        live.length,
+        inInclusiveRange(_ride.last.$2 * 10 - 100, _ride.last.$2 * 10 + 1),
+      );
+      for (var i = 1; i < live.length; i++) {
+        expect(live[i].tUs, greaterThan(live[i - 1].tUs));
+      }
+      // Ohne gelernte Halterung kein Winkel; danach einer.
+      expect(live.first.mountReady, isFalse);
+      expect(live.first.upKnown, isFalse);
+      FusionLive at(double s) => live.firstWhere((l) => l.tUs >= _us(s));
+      expect(at(60).mountReady, isTrue);
+      // Mitten im langen Wheelie (310,5–399,8 s, 40°): Phase, Beginn, Spitze.
+      final mid = at(350);
+      expect(mid.phase, FusionPhase.wheelie);
+      expect(_s(mid.phaseStartUs!), closeTo(310.48, 0.11));
+      expect(mid.pitchDeg, closeTo(40, 3));
+      expect(mid.peakDeg, greaterThanOrEqualTo(mid.pitchDeg));
+      // Der Sprung (100,0–100,5 s) in der Luft, der Stoppie (410,5 s) mit der Front unten.
+      expect(at(100.3).phase, FusionPhase.airborne);
+      final stoppie = at(410.9);
+      expect(stoppie.phase, FusionPhase.stoppie);
+      expect(stoppie.pitchDeg, lessThan(-kFusionStoppieTiltDeg + 5));
+      expect(at(200).phase, FusionPhase.none);
+      // Ohne Ansicht sammelt sich nichts an.
+      final quiet = SensorFusion(originUs: 0);
+      for (final (kind, t, v) in _ride.take(20000)) {
+        if (kind == 'a') quiet.addAccel(_us(t), v[0], v[1], v[2]);
+      }
+      expect(quiet.takeLive(), isEmpty);
+    },
+  );
 
-  test('die Lage jetzt: vorn statt 1,5 s hinten, nah am späteren Takt, ändert nichts', () {
-    final (_, plain) = _run();
-    final fusion = SensorFusion(originUs: 0)..keepLive = true;
-    final events = <FusionEvent>[];
-    final live = <FusionLive>[];
-    final previews = <FusionLive>[];
-    var behind = 0.0;
-    var nextPreview = 0.0;
-    for (final (kind, t, v) in _ride) {
-      events.addAll(switch (kind) {
-        'a' => fusion.addAccel(_us(t), v[0], v[1], v[2]),
-        'w' => fusion.addGyro(_us(t), v[0], v[1], v[2]),
-        _ => fusion.addGps(_us(t), v[0]),
-      });
-      live.addAll(fusion.takeLive());
-      // Wie der Logger: alle 100 ms.
-      if (t >= nextPreview) {
-        nextPreview = t + 0.1;
-        final now = fusion.preview();
-        if (now != null) {
-          previews.add(now);
-          if (t > 60) behind = math.max(behind, t - _s(now.tUs));
+  test(
+    'die Lage jetzt: vorn statt 1,5 s hinten, nah am späteren Takt, ändert nichts',
+    () {
+      final (_, plain) = _run();
+      final fusion = SensorFusion(originUs: 0)..keepLive = true;
+      final events = <FusionEvent>[];
+      final live = <FusionLive>[];
+      final previews = <FusionLive>[];
+      var behind = 0.0;
+      var nextPreview = 0.0;
+      for (final (kind, t, v) in _ride) {
+        events.addAll(switch (kind) {
+          'a' => fusion.addAccel(_us(t), v[0], v[1], v[2]),
+          'w' => fusion.addGyro(_us(t), v[0], v[1], v[2]),
+          _ => fusion.addGps(_us(t), v[0]),
+        });
+        live.addAll(fusion.takeLive());
+        // Wie der Logger: alle 100 ms.
+        if (t >= nextPreview) {
+          nextPreview = t + 0.1;
+          final now = fusion.preview();
+          if (now != null) {
+            previews.add(now);
+            if (t > 60) behind = math.max(behind, t - _s(now.tUs));
+          }
         }
       }
-    }
-    events.addAll(fusion.finish());
-    String key(FusionEvent e) => '${e.runtimeType} ${e.startUs} ${e.duration.inMicroseconds}';
-    expect(events.map(key), plain.map(key), reason: 'nur lesend');
+      events.addAll(fusion.finish());
+      String key(FusionEvent e) =>
+          '${e.runtimeType} ${e.startUs} ${e.duration.inMicroseconds}';
+      expect(events.map(key), plain.map(key), reason: 'nur lesend');
 
-    // Die Vorschau steht beim neuesten Kreisel-Wert (120 Hz), nicht 1,5 s
-    // dahinter wie die Takte.
-    expect(behind, lessThan(0.02), reason: 'höchstens ${behind}s hinter dem neuesten Wert');
-    final probe = previews.firstWhere((p) => p.tUs >= _us(350));
+      // Die Vorschau steht beim neuesten Kreisel-Wert (120 Hz), nicht 1,5 s
+      // dahinter wie die Takte.
+      expect(
+        behind,
+        lessThan(0.02),
+        reason: 'höchstens ${behind}s hinter dem neuesten Wert',
+      );
+      final probe = previews.firstWhere((p) => p.tUs >= _us(350));
 
-    // Gegen den späteren korrigierten Takt derselben Zeit: wenige Grad.
-    var worst = 0.0, compared = 0;
-    for (final p in previews.where((p) => p.mountReady)) {
-      final i = live.indexWhere((l) => l.tUs >= p.tUs);
-      if (i < 0 || !live[i].mountReady || live[i].tUs - p.tUs > _us(0.05)) continue;
-      // Die Synthetik setzt das Telefon bei 150 s in EINEM Wert um — ohne
-      // Drehung, die der Kreisel sähe; das holt nur die Korrektur nach.
-      // Ein echtes Verrutschen dreht.
-      if (_s(p.tUs) >= 150 && _s(p.tUs) < 156) continue;
-      worst = math.max(worst, (live[i].pitchDeg - p.pitchDeg).abs());
-      compared++;
-    }
-    expect(compared, greaterThan(2000));
-    expect(worst, lessThan(4), reason: 'größte Abweichung $worst°');
+      // Gegen den späteren korrigierten Takt derselben Zeit: wenige Grad.
+      var worst = 0.0, compared = 0;
+      for (final p in previews.where((p) => p.mountReady)) {
+        final i = live.indexWhere((l) => l.tUs >= p.tUs);
+        if (i < 0 || !live[i].mountReady || live[i].tUs - p.tUs > _us(0.05)) {
+          continue;
+        }
+        // Die Synthetik setzt das Telefon bei 150 s in EINEM Wert um — ohne
+        // Drehung, die der Kreisel sähe; das holt nur die Korrektur nach.
+        // Ein echtes Verrutschen dreht.
+        if (_s(p.tUs) >= 150 && _s(p.tUs) < 156) continue;
+        worst = math.max(worst, (live[i].pitchDeg - p.pitchDeg).abs());
+        compared++;
+      }
+      expect(compared, greaterThan(2000));
+      expect(worst, lessThan(4), reason: 'größte Abweichung $worst°');
 
-    // Mitten im langen Wheelie (40°) zeigt sie die Front oben.
-    expect(probe.pitchDeg, closeTo(40, 3));
-    expect(probe.phase, FusionPhase.wheelie);
-    // Vor dem ersten Wert gibt es keine Lage.
-    expect(SensorFusion(originUs: 0).preview(), isNull);
-  });
+      // Mitten im langen Wheelie (40°) zeigt sie die Front oben.
+      expect(probe.pitchDeg, closeTo(40, 3));
+      expect(probe.phase, FusionPhase.wheelie);
+      // Vor dem ersten Wert gibt es keine Lage.
+      expect(SensorFusion(originUs: 0).preview(), isNull);
+    },
+  );
 
   test('Schübe des Sensors ändern nichts', () {
     final (_, plain) = _run();
     final (_, bursts) = _run(accelAhead: 25);
-    String key(FusionEvent e) => '${e.runtimeType} ${e.startUs} ${e.duration.inMicroseconds}';
+    String key(FusionEvent e) =>
+        '${e.runtimeType} ${e.startUs} ${e.duration.inMicroseconds}';
     expect(bursts.map(key), plain.map(key));
   });
 
-  test('die Halterung der letzten Fahrt: passend bleibt sie, falsch fällt sie', () {
-    final (right, rightEvents) = _run(carried: _mount(_mount0));
-    expect(right.mountCarried, isTrue);
-    expect(right.mountDroppedAt, isNull);
-    expect(rightEvents.whereType<WheelieEvent>(), hasLength(4));
+  test(
+    'die Halterung der letzten Fahrt: passend bleibt sie, falsch fällt sie',
+    () {
+      final (right, rightEvents) = _run(carried: _mount(_mount0));
+      expect(right.mountCarried, isTrue);
+      expect(right.mountDroppedAt, isNull);
+      expect(rightEvents.whereType<WheelieEvent>(), hasLength(4));
 
-    final (wrong, wrongEvents) = _run(carried: _mount(_mm(_rx(_rad(90)), _mount0)));
-    expect(wrong.mountDroppedAt, lessThanOrEqualTo(10));
-    expect(wrong.forwardAt, lessThanOrEqualTo(45));
-    expect(wrongEvents.whereType<WheelieEvent>(), hasLength(4));
-  });
+      final (wrong, wrongEvents) = _run(
+        carried: _mount(_mm(_rx(_rad(90)), _mount0)),
+      );
+      expect(wrong.mountDroppedAt, lessThanOrEqualTo(10));
+      expect(wrong.forwardAt, lessThanOrEqualTo(45));
+      expect(wrongEvents.whereType<WheelieEvent>(), hasLength(4));
+    },
+  );
 
   test('nur Kurven, kein Bremsen: „vorn" entsteht nicht (#36, 2026-11-01)', () {
     // Wie die letzten 15 s der Fahrt vom 2026-11-01: neun Kurven lernten
@@ -443,7 +524,11 @@ void main() {
   test('gespeichert wird nur eine belastbare Halterung (#36)', () {
     final (carried, _) = _run(carried: _mount(_mount0), ride: _cornersOnly());
     expect(carried.mountDroppedAt, isNull);
-    expect(carried.solidMount, isNotNull, reason: 'mitgebracht und nie verworfen');
+    expect(
+      carried.solidMount,
+      isNotNull,
+      reason: 'mitgebracht und nie verworfen',
+    );
     // Ohne mitgebrachte: gelernt, verrutscht bei 231 s, danach nur noch
     // eine Bremsung — die neue „vorn" steht, taugt aber nicht für die
     // nächste Fahrt; die alte Datei bleibt.
@@ -457,7 +542,13 @@ void main() {
     final back = FusionMount.fromJson(m.toJson())!;
     expect(back.up, m.up);
     expect(back.forward, m.forward);
-    expect(FusionMount.fromJson({'up': [0, 0], 'forward': [1, 0, 0]}), isNull);
+    expect(
+      FusionMount.fromJson({
+        'up': [0, 0],
+        'forward': [1, 0, 0],
+      }),
+      isNull,
+    );
     expect(FusionMount.fromJson('kaputt'), isNull);
   });
 }

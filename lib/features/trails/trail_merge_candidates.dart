@@ -32,7 +32,11 @@ double mergeNearShare(List<LatLng> a, List<LatLng> b) {
   final xa = proj.line(a), xb = proj.line(b);
   final (short, other) = _length(xa) <= _length(xb) ? (xa, xb) : (xb, xa);
   final samples = resampleXy(short, kMatchSampleStepM);
-  return coverageWithin(samples, SegmentGrid([other], kMergeNearM), kMergeNearM);
+  return coverageWithin(
+    samples,
+    SegmentGrid([other], kMergeNearM),
+    kMergeNearM,
+  );
 }
 
 double _length(List<math.Point<double>> xy) {
@@ -61,21 +65,23 @@ List<MergeCandidate> mergeCandidates(Trail trail, Iterable<Trail> all) {
     final share = mergeNearShare(trail.points, t.points);
     if (share >= kMergeNearShare) out.add((trail: t, share: share));
   }
-  return out
-    ..sort((a, b) {
-      final c = b.share.compareTo(a.share);
-      return c != 0 ? c : compareTrailNames(a.trail, b.trail);
-    });
+  return out..sort((a, b) {
+    final c = b.share.compareTo(a.share);
+    return c != 0 ? c : compareTrailNames(a.trail, b.trail);
+  });
 }
 
 /// Wie viele Menschen an [t] sichtbar beitragen — Aufzeichnung oder
 /// Beitrag.
-int visibleContributors(Trail t) =>
-    {for (final r in t.recordings) r.userId, for (final d in t.details) d.userId}.length;
+int visibleContributors(Trail t) => {
+  for (final r in t.recordings) r.userId,
+  for (final d in t.details) d.userId,
+}.length;
 
 /// Wann [t] angelegt wurde: seine älteste sichtbare Aufzeichnung.
-DateTime firstSeen(Trail t) =>
-    t.recordings.map((r) => r.createdAt).reduce((a, b) => a.isBefore(b) ? a : b);
+DateTime firstSeen(Trail t) => t.recordings
+    .map((r) => r.createdAt)
+    .reduce((a, b) => a.isBefore(b) ? a : b);
 
 /// Welcher von [a] und [b] bleibt, wenn der Nutzer nichts anderes wählt
 /// (Betreiber, 2026-10-11): der mit mehr sichtbaren Beiträgen, bei

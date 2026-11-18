@@ -40,8 +40,8 @@ class IdbOutbox implements Outbox {
     this._db, {
     Future<bool> Function() requestDurable = storage.requestDurableStorage,
     Future<bool> Function() checkDurable = storage.isStorageDurable,
-  })  : _requestDurable = requestDurable,
-        _checkDurable = checkDurable;
+  }) : _requestDurable = requestDurable,
+       _checkDurable = checkDurable;
 
   final BrowserDb _db;
   final Future<bool> Function() _requestDurable;
@@ -68,7 +68,8 @@ class IdbOutbox implements Outbox {
   }
 
   @override
-  Future<List<OutboxJob>> read({required String uid}) => _serialized(() => _readUnlocked(uid: uid));
+  Future<List<OutboxJob>> read({required String uid}) =>
+      _serialized(() => _readUnlocked(uid: uid));
 
   Future<List<OutboxJob>> _readUnlocked({required String uid}) async {
     try {
@@ -83,7 +84,8 @@ class IdbOutbox implements Outbox {
   }
 
   @override
-  Future<void> append(OutboxJob job, {required String uid}) => _serialized(() async {
+  Future<void> append(OutboxJob job, {required String uid}) =>
+      _serialized(() async {
         // Der eine Moment, in dem die Frage einen Anlass hat: Gerade
         // entsteht etwas, das noch nirgends sonst liegt. Die Antwort ändert
         // am Ablegen NICHTS — nicht abgewartet, sonst hinge das Ablegen an
@@ -109,7 +111,10 @@ class IdbOutbox implements Outbox {
 
   /// Anders als bei der Kopie wird hier NICHTS geschluckt.
   Future<void> _writeUnlocked(List<OutboxJob> jobs, {required String uid}) =>
-      _db.writeStore(kOutboxStore, (s) => s.put(encodeOutbox(jobs, uid: uid), _key));
+      _db.writeStore(
+        kOutboxStore,
+        (s) => s.put(encodeOutbox(jobs, uid: uid), _key),
+      );
 
   /// Wartet eine laufende Bitte ab (Firefox fragt nach), dann der Stand
   /// des Browsers. Ohne Bitte in dieser Sitzung (der Korb lag schon da)

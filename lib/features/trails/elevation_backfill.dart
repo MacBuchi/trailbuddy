@@ -75,7 +75,9 @@ class ExistingRecording {
 /// damit ein Zip mit dreihundert Dateien gegen hundert Aufzeichnungen
 /// nicht jede Paarung ganz durchläuft.
 ExistingRecording? findOwnRecording(
-    GpxTrack track, Iterable<TrailRecording> own) {
+  GpxTrack track,
+  Iterable<TrailRecording> own,
+) {
   final raw = track.points;
   final keys = {for (final p in raw) _key(p.lat, p.lon)};
   for (final r in own) {

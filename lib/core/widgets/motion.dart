@@ -8,7 +8,8 @@ import '../app_colors.dart';
 import 'trailbuddy_logo.dart';
 
 /// „Animationen entfernen" (Android) bzw. „Bewegung reduzieren" im Browser.
-bool reduceMotion(BuildContext context) => MediaQuery.maybeDisableAnimationsOf(context) ?? false;
+bool reduceMotion(BuildContext context) =>
+    MediaQuery.maybeDisableAnimationsOf(context) ?? false;
 
 /// Ein Durchlauf des Loaders: Das Zeichen zeichnet sich ganz ein, steht
 /// kurz und blendet zurück in die Spur — 0,85 s + 0,2 s + 0,35 s.
@@ -32,8 +33,13 @@ const kLoaderFadeMs = 350;
   // Kurve lehnt das ab. Und knapp darunter ist auch fertig — sonst fehlt
   // am Übergang zum Stehen ein Hauch vom letzten Strich.
   final x = ms / kLoaderDrawMs;
-  final draw = x >= 1 - 1e-9 ? 1.0 : Curves.easeInOut.transform(x.clamp(0.0, 1.0));
-  final fade = ((ms - kLoaderDrawMs - kLoaderHoldMs) / kLoaderFadeMs).clamp(0.0, 1.0);
+  final draw = x >= 1 - 1e-9
+      ? 1.0
+      : Curves.easeInOut.transform(x.clamp(0.0, 1.0));
+  final fade = ((ms - kLoaderDrawMs - kLoaderHoldMs) / kLoaderFadeMs).clamp(
+    0.0,
+    1.0,
+  );
   return (to: draw * total, opacity: 1 - Curves.easeIn.transform(fade));
 }
 
@@ -45,14 +51,20 @@ class TrailLoader extends StatefulWidget {
 
   final double size;
 
-  static const period = Duration(milliseconds: kLoaderDrawMs + kLoaderHoldMs + kLoaderFadeMs);
+  static const period = Duration(
+    milliseconds: kLoaderDrawMs + kLoaderHoldMs + kLoaderFadeMs,
+  );
 
   @override
   State<TrailLoader> createState() => _TrailLoaderState();
 }
 
-class _TrailLoaderState extends State<TrailLoader> with SingleTickerProviderStateMixin {
-  late final _controller = AnimationController(vsync: this, duration: TrailLoader.period);
+class _TrailLoaderState extends State<TrailLoader>
+    with SingleTickerProviderStateMixin {
+  late final _controller = AnimationController(
+    vsync: this,
+    duration: TrailLoader.period,
+  );
 
   @override
   void didChangeDependencies() {
@@ -61,7 +73,9 @@ class _TrailLoaderState extends State<TrailLoader> with SingleTickerProviderStat
       _controller
         ..stop()
         // Still: das ganze Zeichen, nie ein halbes.
-        ..value = (kLoaderDrawMs + kLoaderHoldMs / 2) / TrailLoader.period.inMilliseconds;
+        ..value =
+            (kLoaderDrawMs + kLoaderHoldMs / 2) /
+            TrailLoader.period.inMilliseconds;
     } else if (!_controller.isAnimating) {
       _controller.repeat();
     }
@@ -121,7 +135,12 @@ class CenteredTrailLoader extends StatelessWidget {
 /// nur solange er ungesehen ist (der Aufrufer entscheidet, ob er da ist).
 /// Bei reduzierter Bewegung steht der ruhige, schwache Schein.
 class BreathingGlow extends StatefulWidget {
-  const BreathingGlow({super.key, required this.color, required this.radius, required this.child});
+  const BreathingGlow({
+    super.key,
+    required this.color,
+    required this.radius,
+    required this.child,
+  });
 
   final Color color;
   final double radius;
@@ -133,10 +152,13 @@ class BreathingGlow extends StatefulWidget {
   State<BreathingGlow> createState() => _BreathingGlowState();
 }
 
-class _BreathingGlowState extends State<BreathingGlow> with SingleTickerProviderStateMixin {
+class _BreathingGlowState extends State<BreathingGlow>
+    with SingleTickerProviderStateMixin {
   // Eine Periode ist hin UND zurück: 0,9 s ein, 0,9 s aus.
   late final _controller = AnimationController(
-      vsync: this, duration: BreathingGlow.period ~/ 2);
+    vsync: this,
+    duration: BreathingGlow.period ~/ 2,
+  );
 
   @override
   void didChangeDependencies() {
@@ -158,21 +180,25 @@ class _BreathingGlowState extends State<BreathingGlow> with SingleTickerProvider
 
   @override
   Widget build(BuildContext context) => AnimatedBuilder(
-        animation: _controller,
-        child: widget.child,
-        builder: (context, child) {
-          final g = glowAt(_controller.value);
-          return DecoratedBox(
-            key: const ValueKey('breathing-glow'),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(widget.radius),
-              boxShadow: [
-                BoxShadow(color: widget.color, blurRadius: g.inner),
-                if (g.outer > 0) BoxShadow(color: widget.color.withValues(alpha: 0.6), blurRadius: g.outer),
-              ],
-            ),
-            child: child,
-          );
-        },
+    animation: _controller,
+    child: widget.child,
+    builder: (context, child) {
+      final g = glowAt(_controller.value);
+      return DecoratedBox(
+        key: const ValueKey('breathing-glow'),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(widget.radius),
+          boxShadow: [
+            BoxShadow(color: widget.color, blurRadius: g.inner),
+            if (g.outer > 0)
+              BoxShadow(
+                color: widget.color.withValues(alpha: 0.6),
+                blurRadius: g.outer,
+              ),
+          ],
+        ),
+        child: child,
       );
+    },
+  );
 }

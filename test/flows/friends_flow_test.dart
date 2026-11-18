@@ -21,15 +21,18 @@ void main() {
     return (backend, me);
   }
 
-  testWidgets('Buddy-Suche findet Nutzer und sendet eine Anfrage',
-      (tester) async {
+  testWidgets('Buddy-Suche findet Nutzer und sendet eine Anfrage', (
+    tester,
+  ) async {
     final (backend, me) = loggedInBackend();
     backend.addUser(username: 'lilli92');
     await pumpApp(tester, backend);
 
     await openTab(tester, 'Buddys');
     await tester.enterText(
-        find.widgetWithText(TextField, 'Buddy finden'), 'lilli');
+      find.widgetWithText(TextField, 'Buddy finden'),
+      'lilli',
+    );
     await tester.testTextInput.receiveAction(TextInputAction.done);
     await settle(tester);
 
@@ -45,11 +48,13 @@ void main() {
   // Der gescannte QR landet als Startadresse in `launchLink` (main liest sie,
   // im Test setzt sie der Fall selbst) — dieselbe Adresse, die der
   // Intent-Filter im Manifest fängt.
-  Uri scannedQr(String name) =>
-      Uri.parse('https://macbuchi.github.io/trailbuddy/install.html?invite=$name');
+  Uri scannedQr(String name) => Uri.parse(
+    'https://macbuchi.github.io/trailbuddy/install.html?invite=$name',
+  );
 
-  testWidgets('ein gescannter QR öffnet die Buddys mit dem Namen (#502)',
-      (tester) async {
+  testWidgets('ein gescannter QR öffnet die Buddys mit dem Namen (#502)', (
+    tester,
+  ) async {
     final (backend, _) = loggedInBackend();
     backend.addUser(username: 'lilli92');
     launchLink = scannedQr('lilli92');
@@ -58,8 +63,11 @@ void main() {
     await settle(tester);
 
     // Nichts ist zu tippen: die Suche läuft von selbst, das Ergebnis steht.
-    expect(find.text('Anfragen'), findsOneWidget,
-        reason: 'die Suche musste gleich laufen, nicht erst nach einem Tipp');
+    expect(
+      find.text('Anfragen'),
+      findsOneWidget,
+      reason: 'die Suche musste gleich laufen, nicht erst nach einem Tipp',
+    );
     expect(find.text('lilli92'), findsWidgets);
     await drainSnackbars(tester);
   });
@@ -78,13 +86,17 @@ void main() {
 
     backend.setCurrentUser(me, AuthChangeEvent.signedIn);
     await settle(tester);
-    expect(find.text('Anfragen'), findsOneWidget,
-        reason: 'nach der Anmeldung müssen die Buddys mit dem Namen offen sein');
+    expect(
+      find.text('Anfragen'),
+      findsOneWidget,
+      reason: 'nach der Anmeldung müssen die Buddys mit dem Namen offen sein',
+    );
     await drainSnackbars(tester);
   });
 
-  testWidgets('der Teilen-Knopf zeigt den QR mit dem eigenen Namen (#496)',
-      (tester) async {
+  testWidgets('der Teilen-Knopf zeigt den QR mit dem eigenen Namen (#496)', (
+    tester,
+  ) async {
     final (backend, me) = loggedInBackend();
     await pumpApp(tester, backend);
     await openTab(tester, 'Buddys');
@@ -92,15 +104,19 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('invite-button')));
     await settle(tester);
     expect(find.byType(QrImageView), findsOneWidget);
-    expect(find.text(AppInfo.inviteUrl(me.username)), findsOneWidget,
-        reason: 'der QR muss dieselbe Adresse tragen wie der geteilte Text');
+    expect(
+      find.text(AppInfo.inviteUrl(me.username)),
+      findsOneWidget,
+      reason: 'der QR muss dieselbe Adresse tragen wie der geteilte Text',
+    );
     await tester.tap(find.text('Schließen'));
     await settle(tester);
     expect(find.byType(QrImageView), findsNothing);
   });
 
-  testWidgets('Die Suche findet über die EXAKTE Adresse, nicht über Teile',
-      (tester) async {
+  testWidgets('Die Suche findet über die EXAKTE Adresse, nicht über Teile', (
+    tester,
+  ) async {
     // Sonst wäre die Suche ein Adressverzeichnis: „example" lieferte
     // jedes Konto der Domain.
     final (backend, _) = loggedInBackend();
@@ -109,63 +125,89 @@ void main() {
     await openTab(tester, 'Buddys');
 
     await tester.enterText(
-        find.widgetWithText(TextField, 'Buddy finden'), 'example.org');
+      find.widgetWithText(TextField, 'Buddy finden'),
+      'example.org',
+    );
     await tester.testTextInput.receiveAction(TextInputAction.done);
     await settle(tester);
     expect(find.text('Niemanden gefunden.'), findsOneWidget);
 
     await tester.enterText(
-        find.widgetWithText(TextField, 'Buddy finden'), 'lilli@example.org');
+      find.widgetWithText(TextField, 'Buddy finden'),
+      'lilli@example.org',
+    );
     await tester.testTextInput.receiveAction(TextInputAction.done);
     await settle(tester);
     expect(find.text('lilli92'), findsOneWidget);
   });
 
-  testWidgets('Eine eingehende Anfrage lässt sich annehmen — und die Karte sagt, was sich tut',
-      (tester) async {
-    final (backend, me) = loggedInBackend();
-    final lilli = backend.addUser(username: 'lilli92');
-    backend.addFriendship(lilli.id, me.id, status: 'pending');
-    // Konzept 6: ein gemeinsamer Trail (beide belegt), einer nur von
-    // Lilli, einer nur von mir — und ein privater von mir, den Lilli
-    // auch jetzt nicht sieht.
-    final trails = FakeTrailRepository(myId: () => backend.currentUserId ?? '', areFriends: backend.areFriends);
-    trails.seedTrail(me.id, name: 'Hexentanz', trailId: 'shared');
-    trails.seedTrail(lilli.id, name: 'Roots', trailId: 'shared', lat: 48.0, lon: 9.0);
-    trails.seedTrail(lilli.id, name: 'Nur Lilli', lat: 48.1);
-    trails.seedTrail(me.id, name: 'Nur ich', lat: 48.2);
-    trails.seedTrail(me.id, name: 'Geheim', lat: 48.3, visibility: TrailVisibility.private);
-    await pumpApp(tester, backend, trails: trails);
-    await openTab(tester, 'Buddys');
+  testWidgets(
+    'Eine eingehende Anfrage lässt sich annehmen — und die Karte sagt, was sich tut',
+    (tester) async {
+      final (backend, me) = loggedInBackend();
+      final lilli = backend.addUser(username: 'lilli92');
+      backend.addFriendship(lilli.id, me.id, status: 'pending');
+      // Konzept 6: ein gemeinsamer Trail (beide belegt), einer nur von
+      // Lilli, einer nur von mir — und ein privater von mir, den Lilli
+      // auch jetzt nicht sieht.
+      final trails = FakeTrailRepository(
+        myId: () => backend.currentUserId ?? '',
+        areFriends: backend.areFriends,
+      );
+      trails.seedTrail(me.id, name: 'Hexentanz', trailId: 'shared');
+      trails.seedTrail(
+        lilli.id,
+        name: 'Roots',
+        trailId: 'shared',
+        lat: 48.0,
+        lon: 9.0,
+      );
+      trails.seedTrail(lilli.id, name: 'Nur Lilli', lat: 48.1);
+      trails.seedTrail(me.id, name: 'Nur ich', lat: 48.2);
+      trails.seedTrail(
+        me.id,
+        name: 'Geheim',
+        lat: 48.3,
+        visibility: TrailVisibility.private,
+      );
+      await pumpApp(tester, backend, trails: trails);
+      await openTab(tester, 'Buddys');
 
-    expect(find.text('ANFRAGEN AN DICH · 1'), findsOneWidget);
-    await tester.tap(find.widgetWithText(FilledButton, 'Annehmen'));
-    await settle(tester, frames: 12);
+      expect(find.text('ANFRAGEN AN DICH · 1'), findsOneWidget);
+      await tester.tap(find.widgetWithText(FilledButton, 'Annehmen'));
+      await settle(tester, frames: 12);
 
-    expect(backend.friendships.single.status, 'accepted');
-    expect(find.text('ANFRAGEN AN DICH · 1'), findsNothing);
-    // Der neue Buddy steht in der Liste — mit Alias-Knopf, denn erst
-    // jetzt darf er einen bekommen.
-    expect(find.text('lilli92'), findsWidgets);
-    expect(find.byTooltip('Alias vergeben'), findsOneWidget);
-    // Die Zusammenfassung NACH dem Annehmen: der private Trail zählt
-    // nicht als „neu für Lilli".
-    // Seit Design 1k eine Karte mit drei Zahlen statt einer Leiste; der
-    // Satz steht für den Bildschirmleser darüber.
-    expect(findLabel('Mit lilli92 verbunden: 1 Trail gemeinsam, 1 neu von lilli92, 1 neu für lilli92.'),
-        findsOneWidget);
-    expect(find.text('MIT LILLI92 VERBUNDEN'), findsOneWidget);
-    // Die Buddy-Zeile zählt dieselben gemeinsamen Trails.
-    expect(find.text('1 gemeinsam'), findsOneWidget);
-    // Die Karte bleibt, bis man sie schließt.
-    await tester.pump(const Duration(seconds: 10));
-    expect(find.byKey(const ValueKey('connect-summary')), findsOneWidget);
-    await tester.tap(find.byTooltip('Schließen'));
-    await settle(tester);
-    expect(find.byKey(const ValueKey('connect-summary')), findsNothing);
-  });
+      expect(backend.friendships.single.status, 'accepted');
+      expect(find.text('ANFRAGEN AN DICH · 1'), findsNothing);
+      // Der neue Buddy steht in der Liste — mit Alias-Knopf, denn erst
+      // jetzt darf er einen bekommen.
+      expect(find.text('lilli92'), findsWidgets);
+      expect(find.byTooltip('Alias vergeben'), findsOneWidget);
+      // Die Zusammenfassung NACH dem Annehmen: der private Trail zählt
+      // nicht als „neu für Lilli".
+      // Seit Design 1k eine Karte mit drei Zahlen statt einer Leiste; der
+      // Satz steht für den Bildschirmleser darüber.
+      expect(
+        findLabel(
+          'Mit lilli92 verbunden: 1 Trail gemeinsam, 1 neu von lilli92, 1 neu für lilli92.',
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('MIT LILLI92 VERBUNDEN'), findsOneWidget);
+      // Die Buddy-Zeile zählt dieselben gemeinsamen Trails.
+      expect(find.text('1 gemeinsam'), findsOneWidget);
+      // Die Karte bleibt, bis man sie schließt.
+      await tester.pump(const Duration(seconds: 10));
+      expect(find.byKey(const ValueKey('connect-summary')), findsOneWidget);
+      await tester.tap(find.byTooltip('Schließen'));
+      await settle(tester);
+      expect(find.byKey(const ValueKey('connect-summary')), findsNothing);
+    },
+  );
 
-  testWidgets('Annehmen ohne Trails auf beiden Seiten sagt das', (tester) async {
+  testWidgets('Annehmen ohne Trails auf beiden Seiten sagt das', (
+    tester,
+  ) async {
     final (backend, me) = loggedInBackend();
     final lilli = backend.addUser(username: 'lilli92');
     backend.addFriendship(lilli.id, me.id, status: 'pending');
@@ -190,8 +232,7 @@ void main() {
     expect(find.text('lilli92'), findsNothing);
   });
 
-  testWidgets('Eine gesendete Anfrage lässt sich zurückziehen',
-      (tester) async {
+  testWidgets('Eine gesendete Anfrage lässt sich zurückziehen', (tester) async {
     final (backend, me) = loggedInBackend();
     final lilli = backend.addUser(username: 'lilli92');
     backend.addFriendship(me.id, lilli.id, status: 'pending');
@@ -206,8 +247,9 @@ void main() {
     expect(find.text('GESENDETE ANFRAGEN · 1'), findsNothing);
   });
 
-  testWidgets('Entfernen fragt nach und beendet die Freundschaft',
-      (tester) async {
+  testWidgets('Entfernen fragt nach und beendet die Freundschaft', (
+    tester,
+  ) async {
     final (backend, me) = loggedInBackend();
     final lilli = backend.addUser(username: 'lilli92');
     backend.addFriendship(me.id, lilli.id);
@@ -231,8 +273,9 @@ void main() {
     expect(find.textContaining('Noch keine Buddys verbunden'), findsOneWidget);
   });
 
-  testWidgets('Ein schon verbundener Treffer bietet kein „Anfragen" mehr',
-      (tester) async {
+  testWidgets('Ein schon verbundener Treffer bietet kein „Anfragen" mehr', (
+    tester,
+  ) async {
     final (backend, me) = loggedInBackend();
     final lilli = backend.addUser(username: 'lilli92');
     backend.addFriendship(me.id, lilli.id);
@@ -240,7 +283,9 @@ void main() {
     await openTab(tester, 'Buddys');
 
     await tester.enterText(
-        find.widgetWithText(TextField, 'Buddy finden'), 'lilli');
+      find.widgetWithText(TextField, 'Buddy finden'),
+      'lilli',
+    );
     await tester.testTextInput.receiveAction(TextInputAction.done);
     await settle(tester);
 

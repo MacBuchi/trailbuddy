@@ -49,7 +49,10 @@ class _AndroidPictureInPicture implements PictureInPicture {
   }
 
   @override
-  void listen({required void Function(bool inPip) onMode, required VoidCallback onStop}) {
+  void listen({
+    required void Function(bool inPip) onMode,
+    required VoidCallback onStop,
+  }) {
     if (!_supported) return;
     _channel.setMethodCallHandler((call) async {
       switch (call.method) {

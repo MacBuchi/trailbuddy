@@ -24,19 +24,28 @@ void main() {
     backend.signInAs(anna.id);
     annaId = anna.id;
     trails = FakeTrailRepository(
-        myId: () => backend.currentUserId ?? '', areFriends: backend.areFriends);
+      myId: () => backend.currentUserId ?? '',
+      areFriends: backend.areFriends,
+    );
     trails.usernames[bob.id] = 'bob';
     trails.usernames[carl.id] = 'carl';
     // Ein Trail, den Bob zuerst belegt hat („Roots") und Anna danach
     // („Hexentanz"); Bobs zweiter Trail; Carls Trail, den niemand sehen darf.
     final shared = trails.seedTrail(bob.id, name: 'Roots');
     trails.seedTrail(anna.id, name: 'Hexentanz', trailId: shared);
-    trails.seedTrail(bob.id, name: 'Bobs Flow', lat: 48.1,
-        status: TrailStatus.closed, statusAt: DateTime.now().subtract(const Duration(days: 40)));
+    trails.seedTrail(
+      bob.id,
+      name: 'Bobs Flow',
+      lat: 48.1,
+      status: TrailStatus.closed,
+      statusAt: DateTime.now().subtract(const Duration(days: 40)),
+    );
     trails.seedTrail(carl.id, name: 'Geheim', lat: 48.2);
   });
 
-  testWidgets('Liste: eigener Name gewinnt, Buddy-Trail steht, Fremdes fehlt', (tester) async {
+  testWidgets('Liste: eigener Name gewinnt, Buddy-Trail steht, Fremdes fehlt', (
+    tester,
+  ) async {
     await pumpApp(tester, backend, trails: trails);
     await openTab(tester, 'Trails');
     await settle(tester, frames: 20);
@@ -61,7 +70,10 @@ void main() {
     await settle(tester);
     await tester.tap(find.text('Bobs Flow'));
     await settle(tester);
-    expect(find.textContaining('du bist ihn noch nicht gefahren'), findsOneWidget);
+    expect(
+      find.textContaining('du bist ihn noch nicht gefahren'),
+      findsOneWidget,
+    );
     expect(find.textContaining('gemeldet vor 40 Tagen'), findsOneWidget);
     expect(find.text('Mein Beitrag'), findsNothing);
   });
@@ -69,12 +81,16 @@ void main() {
   testWidgets('Karte zeichnet genau die sichtbaren Trails', (tester) async {
     await pumpApp(tester, backend, trails: trails);
     await settle(tester, frames: 20);
-    final lines = fakeMapLayers(tester).polylines.where((p) => p.hitValue is Trail);
+    final lines = fakeMapLayers(
+      tester,
+    ).polylines.where((p) => p.hitValue is Trail);
     expect(lines.length, 2);
     expect(lines.map((p) => (p.hitValue as Trail).id).toSet(), hasLength(2));
   });
 
-  testWidgets('Melden: die Meldung steht im Verlauf, der Beitrag bleibt', (tester) async {
+  testWidgets('Melden: die Meldung steht im Verlauf, der Beitrag bleibt', (
+    tester,
+  ) async {
     await pumpApp(tester, backend, trails: trails);
     await openTab(tester, 'Trails');
     await settle(tester, frames: 20);
@@ -90,15 +106,28 @@ void main() {
 
     final r = trails.reports.where((r) => r.userId == annaId).single;
     expect(r.status, TrailStatus.destroyed);
-    expect(trails.details.where((d) => d.userId == annaId).single.name, 'Hexentanz',
-        reason: 'Melden fasst den Beitrag nicht an');
-    expect(find.descendant(of: find.byType(SnackBar), matching: find.text('Gemeldet')), findsOneWidget);
+    expect(
+      trails.details.where((d) => d.userId == annaId).single.name,
+      'Hexentanz',
+      reason: 'Melden fasst den Beitrag nicht an',
+    );
+    expect(
+      find.descendant(
+        of: find.byType(SnackBar),
+        matching: find.text('Gemeldet'),
+      ),
+      findsOneWidget,
+    );
     expect(find.byKey(const ValueKey('status-chip')), findsOneWidget);
   });
 
-  testWidgets('privater Beitrag des Buddys: sein Beleg verschwindet', (tester) async {
+  testWidgets('privater Beitrag des Buddys: sein Beleg verschwindet', (
+    tester,
+  ) async {
     final bobId = backend.users.firstWhere((u) => u.username == 'bob').id;
-    final d = trails.details.firstWhere((x) => x.userId == bobId && x.name == 'Bobs Flow');
+    final d = trails.details.firstWhere(
+      (x) => x.userId == bobId && x.name == 'Bobs Flow',
+    );
     trails.details.remove(d);
     trails.details.add(d.copyWith(visibility: TrailVisibility.private));
     await pumpApp(tester, backend, trails: trails);

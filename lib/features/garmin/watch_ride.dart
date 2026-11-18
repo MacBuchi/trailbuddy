@@ -53,15 +53,36 @@ enum WatchRecordEvent { start, pause, resume, trail, end }
 /// Was die Uhr über ihre Aufzeichnung sagt, oder null bei einer anderen
 /// Nachricht. [trailStart] und [trailEnd] sind die Marke eines behaltenen
 /// Trails, [keep] das Ende.
-({WatchRecordEvent event, RideMark? trailStart, RideMark? trailEnd, bool? keep})? watchRecordOf(Object? message) {
+({
+  WatchRecordEvent event,
+  RideMark? trailStart,
+  RideMark? trailEnd,
+  bool? keep,
+})?
+watchRecordOf(Object? message) {
   if (message is! Map) return null;
   switch (message['t']) {
     case kWatchRecordStart:
-      return (event: WatchRecordEvent.start, trailStart: null, trailEnd: null, keep: null);
+      return (
+        event: WatchRecordEvent.start,
+        trailStart: null,
+        trailEnd: null,
+        keep: null,
+      );
     case kWatchRecordPause:
-      return (event: WatchRecordEvent.pause, trailStart: null, trailEnd: null, keep: null);
+      return (
+        event: WatchRecordEvent.pause,
+        trailStart: null,
+        trailEnd: null,
+        keep: null,
+      );
     case kWatchRecordResume:
-      return (event: WatchRecordEvent.resume, trailStart: null, trailEnd: null, keep: null);
+      return (
+        event: WatchRecordEvent.resume,
+        trailStart: null,
+        trailEnd: null,
+        keep: null,
+      );
     case kWatchTrailKept:
       final s = message['s'], e = message['e'];
       if (s is! int || e is! int || e < s) return null;
@@ -73,12 +94,18 @@ enum WatchRecordEvent { start, pause, resume, trail, end }
       );
     case kWatchRecordEnd:
       final k = message['k'];
-      return (event: WatchRecordEvent.end, trailStart: null, trailEnd: null, keep: k is bool ? k : true);
+      return (
+        event: WatchRecordEvent.end,
+        trailStart: null,
+        trailEnd: null,
+        keep: k is bool ? k : true,
+      );
   }
   return null;
 }
 
-DateTime _utc(int s) => DateTime.fromMillisecondsSinceEpoch(s * 1000, isUtc: true);
+DateTime _utc(int s) =>
+    DateTime.fromMillisecondsSinceEpoch(s * 1000, isUtc: true);
 
 /// Die Trail-Marken der Uhr (`m`) als [RideMark]; Unlesbares fällt weg.
 List<RideMark> watchMarksOf(Object? m) {
@@ -87,7 +114,12 @@ List<RideMark> watchMarksOf(Object? m) {
   for (var i = 0; i + 1 < m.length; i += 2) {
     final kind = m[i], t = m[i + 1];
     if (t is! int || (kind != 0 && kind != 1)) continue;
-    out.add(RideMark(kind: kind == 0 ? RideMarkKind.start : RideMarkKind.end, at: _utc(t)));
+    out.add(
+      RideMark(
+        kind: kind == 0 ? RideMarkKind.start : RideMarkKind.end,
+        at: _utc(t),
+      ),
+    );
   }
   return out;
 }
@@ -100,10 +132,22 @@ Map<String, Object> watchRideAckOf(String id) => {'t': kWatchRideAck, 'id': id};
 
 /// Eine Nachricht der Fahrt: `(id, p, n, chunks, marks)`, oder null bei
 /// falscher Form. [marks] trägt nur die erste.
-({String id, int p, int n, List<List<int>> chunks, List<RideMark> marks})? watchRidePartOf(Object? message) {
+({String id, int p, int n, List<List<int>> chunks, List<RideMark> marks})?
+watchRidePartOf(Object? message) {
   if (message is! Map || message['t'] != kWatchRide) return null;
-  final id = message['id'], p = message['p'], n = message['n'], c = message['c'];
-  if (id is! String || p is! int || n is! int || c is! List || n < 1 || p < 0 || p >= n) return null;
+  final id = message['id'],
+      p = message['p'],
+      n = message['n'],
+      c = message['c'];
+  if (id is! String ||
+      p is! int ||
+      n is! int ||
+      c is! List ||
+      n < 1 ||
+      p < 0 ||
+      p >= n) {
+    return null;
+  }
   final chunks = <List<int>>[];
   for (final chunk in c) {
     if (chunk is! List || chunk.length < 5 || chunk.length.isEven) return null;
@@ -114,7 +158,13 @@ Map<String, Object> watchRideAckOf(String id) => {'t': kWatchRideAck, 'id': id};
     }
     chunks.add(ints);
   }
-  return (id: id, p: p, n: n, chunks: chunks, marks: p == 0 ? watchMarksOf(message['m']) : const <RideMark>[]);
+  return (
+    id: id,
+    p: p,
+    n: n,
+    chunks: chunks,
+    marks: p == 0 ? watchMarksOf(message['m']) : const <RideMark>[],
+  );
 }
 
 /// Die Stücke einer Fahrt als Punkte, in ihrer Reihenfolge — oder null,
@@ -125,11 +175,26 @@ List<RidePoint>? decodeWatchRide(List<List<int>> chunks) {
     if (c.length < 5 || c.length.isEven) return null;
     var la = c[0], lo = c[1], t = c[2], e = c[3];
     var acc = c[4];
-    for (var i = 4;; i += 2) {
-      if (la < -9000000 || la > 9000000 || lo < -18000000 || lo > 18000000 || acc < 0 || acc > 3) return null;
+    for (var i = 4; ; i += 2) {
+      if (la < -9000000 ||
+          la > 9000000 ||
+          lo < -18000000 ||
+          lo > 18000000 ||
+          acc < 0 ||
+          acc > 3) {
+        return null;
+      }
       final at = DateTime.fromMillisecondsSinceEpoch(t * 1000, isUtc: true);
       if (out.isNotEmpty && at.isBefore(out.last.at)) return null;
-      out.add(RidePoint(lat: la / 1e5, lng: lo / 1e5, at: at, accuracyM: kWatchAccuracyM[acc], altM: e / 10));
+      out.add(
+        RidePoint(
+          lat: la / 1e5,
+          lng: lo / 1e5,
+          at: at,
+          accuracyM: kWatchAccuracyM[acc],
+          altM: e / 10,
+        ),
+      );
       if (i + 2 >= c.length) break;
       final (dLat, dLon) = watchUnpack(c[i + 1]);
       final l = c[i + 2] & 0xffff;
@@ -146,7 +211,10 @@ List<RidePoint>? decodeWatchRide(List<List<int>> chunks) {
 /// Gegenstück zu [decodeWatchRide] für die Tests: Punkte als `(lat, lon,
 /// t, e, acc)` in den Einheiten der Uhr, je [perChunk] ein Stück, wie
 /// `RideLog.add` packt.
-List<List<int>> encodeWatchRide(List<(int, int, int, int, int)> points, {int perChunk = 60}) {
+List<List<int>> encodeWatchRide(
+  List<(int, int, int, int, int)> points, {
+  int perChunk = 60,
+}) {
   final out = <List<int>>[];
   List<int>? c;
   var n = 0;

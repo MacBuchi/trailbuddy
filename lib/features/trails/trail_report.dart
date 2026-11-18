@@ -58,16 +58,26 @@ String reportAgeLabel(AppLocalizations l, DateTime at, {DateTime? now}) {
 }
 
 /// Was eine Meldung sagt, in Worten: „Gesperrt" bzw. „Ausgefahren".
-String reportValueLabel(AppLocalizations l, TrailReport r) => r.kind == ReportKind.status
+String reportValueLabel(AppLocalizations l, TrailReport r) =>
+    r.kind == ReportKind.status
     ? r.status!.label(l)
     : trailCondition(r.condition!).label(l);
 
 /// Das Ergebnis des Melde-Dialogs (#433): wahlweise ein Status, Text und
 /// Foto — mindestens Status oder Text.
-typedef ReportInput = ({TrailStatus? status, bool onSite, String? note, PreparedPhoto? photo});
+typedef ReportInput = ({
+  TrailStatus? status,
+  bool onSite,
+  String? note,
+  PreparedPhoto? photo,
+});
 
 /// „Melden" im Blatt: Dialog, dann schreiben (oder in den Ausgangskorb).
-Future<void> reportTrail(BuildContext context, WidgetRef ref, Trail trail) async {
+Future<void> reportTrail(
+  BuildContext context,
+  WidgetRef ref,
+  Trail trail,
+) async {
   final input = await showDialog<ReportInput>(
     context: context,
     builder: (_) => _ReportDialog(trail: trail),
@@ -76,19 +86,32 @@ Future<void> reportTrail(BuildContext context, WidgetRef ref, Trail trail) async
   final messenger = ScaffoldMessenger.of(context);
   final l = context.l10n;
   try {
-    final result = await ref.read(trailsProvider.notifier).reportEntry(trail.id,
-        status: input.status, onSite: input.onSite, note: input.note, photo: input.photo);
+    final result = await ref
+        .read(trailsProvider.notifier)
+        .reportEntry(
+          trail.id,
+          status: input.status,
+          onSite: input.onSite,
+          note: input.note,
+          photo: input.photo,
+        );
     final photoError = result.photoError;
     final done = input.photo != null ? l.reportDoneWithPhoto : l.reportDone;
-    messenger.showSnackBar(SnackBar(
+    messenger.showSnackBar(
+      SnackBar(
         content: Text(switch (result.outcome) {
-      // Beides sagen: Der Eintrag steht — sonst schriebe man ihn ein
-      // zweites Mal —, das Foto nicht.
-      _ when photoError != null => l.notePhotoFailed(friendlyError(l, photoError)),
-      WriteOutcome.done => done,
-      WriteOutcome.doneStale => l.staleAfterWrite(done),
-      WriteOutcome.queued => result.photoDropped ? l.reportQueuedNoPhoto : l.queuedHint,
-    })));
+          // Beides sagen: Der Eintrag steht — sonst schriebe man ihn ein
+          // zweites Mal —, das Foto nicht.
+          _ when photoError != null => l.notePhotoFailed(
+            friendlyError(l, photoError),
+          ),
+          WriteOutcome.done => done,
+          WriteOutcome.doneStale => l.staleAfterWrite(done),
+          WriteOutcome.queued =>
+            result.photoDropped ? l.reportQueuedNoPhoto : l.queuedHint,
+        }),
+      ),
+    );
   } catch (e, st) {
     logError('Trail melden', e, st);
     messenger.showSnackBar(SnackBar(content: Text(friendlyError(l, e))));
@@ -123,10 +146,13 @@ class _ReportDialogState extends ConsumerState<_ReportDialog> {
     final text = _note.text.trim();
     // Privat zählt nur, wenn ich selbst einen Beitrag habe — sonst gibt
     // es nichts, was ich verbergen könnte.
-    final private = widget.trail.myDetails?.visibility == TrailVisibility.private;
+    final private =
+        widget.trail.myDetails?.visibility == TrailVisibility.private;
     final offline = ref.watch(noConnectivityProvider);
     // Ein Foto ohne Text gibt es nicht (`trail_notes.body` ist Pflicht).
-    final ready = (_status != null || text.isNotEmpty) && (_photo == null || text.isNotEmpty);
+    final ready =
+        (_status != null || text.isNotEmpty) &&
+        (_photo == null || text.isNotEmpty);
     final muted = theme.textTheme.bodySmall?.copyWith(color: palette.muted);
     return AlertDialog(
       title: Text(l.reportDialogTitle),
@@ -174,17 +200,31 @@ class _ReportDialogState extends ConsumerState<_ReportDialog> {
               onChanged: (photo) => setState(() => _photo = photo),
             ),
             if (_photo != null && text.isEmpty)
-              Text(l.reportPhotoNeedsText, key: const ValueKey('report-photo-needs-text'), style: muted),
+              Text(
+                l.reportPhotoNeedsText,
+                key: const ValueKey('report-photo-needs-text'),
+                style: muted,
+              ),
             if (_photo != null && offline)
-              Text(l.reportPhotoOffline, key: const ValueKey('report-photo-offline'), style: muted),
+              Text(
+                l.reportPhotoOffline,
+                key: const ValueKey('report-photo-offline'),
+                style: muted,
+              ),
             const SizedBox(height: 8),
-            Text(reportAudience(l, private: private, status: _status != null),
-                key: const ValueKey('report-audience'), style: muted),
+            Text(
+              reportAudience(l, private: private, status: _status != null),
+              key: const ValueKey('report-audience'),
+              style: muted,
+            ),
             // Bestätigen gibt es nur für einen Status — Text allein ist
             // nichts, was man bestätigen müsste.
             if (_status != null) ...[
               const SizedBox(height: 8),
-              ReportConfirmation(trail: widget.trail, onChanged: (onSite) => _onSite = onSite),
+              ReportConfirmation(
+                trail: widget.trail,
+                onChanged: (onSite) => _onSite = onSite,
+              ),
             ],
           ],
         ),
@@ -227,14 +267,21 @@ const kReportStatusOrder = [
 extension on TrailStatus {
   /// Im Dialog heißt „offen" „wieder offen" — gemeldet wird es, wenn es
   /// vorher nicht so war.
-  String reportLabel(AppLocalizations l) => this == TrailStatus.open ? l.reportStatusOpenAgain : label(l);
+  String reportLabel(AppLocalizations l) =>
+      this == TrailStatus.open ? l.reportStatusOpenAgain : label(l);
 }
 
 /// Wer was sieht, in einem Satz (Betreiber 2026-10-31: Status und Text
 /// sehen dieselben, die direkten Buddys). Bei „privat" ehrlich: niemand.
-String reportAudience(AppLocalizations l, {required bool private, required bool status}) {
+String reportAudience(
+  AppLocalizations l, {
+  required bool private,
+  required bool status,
+}) {
   if (private) return l.noteAudiencePrivate;
-  return status ? l.reportAudienceWithStatus(kNotePhotoDays) : l.reportAudienceText(kNotePhotoDays);
+  return status
+      ? l.reportAudienceWithStatus(kNotePhotoDays)
+      : l.reportAudienceText(kNotePhotoDays);
 }
 
 enum _Site { unknown, checking, onSite, away, noFix }
@@ -243,7 +290,11 @@ enum _Site { unknown, checking, onSite, away, noFix }
 /// dieselbe Zeile im Dialog „Melden" und beim Zustand (#433). Meldet
 /// [onChanged], sobald die Prüfung ein Ergebnis hat.
 class ReportConfirmation extends ConsumerStatefulWidget {
-  const ReportConfirmation({super.key, required this.trail, required this.onChanged});
+  const ReportConfirmation({
+    super.key,
+    required this.trail,
+    required this.onChanged,
+  });
   final Trail trail;
   final ValueChanged<bool> onChanged;
 
@@ -268,7 +319,10 @@ class _ReportConfirmationState extends ConsumerState<ReportConfirmation> {
         setState(() => _site = _Site.noFix);
         return;
       }
-      final d = distanceToLineM(LatLng(fix.latitude, fix.longitude), widget.trail.points);
+      final d = distanceToLineM(
+        LatLng(fix.latitude, fix.longitude),
+        widget.trail.points,
+      );
       setState(() {
         _distance = d;
         _site = d != null && d <= kOnSiteMaxM ? _Site.onSite : _Site.away;
@@ -299,9 +353,11 @@ class _ReportConfirmationState extends ConsumerState<ReportConfirmation> {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(_confirmationText(l),
-            key: const ValueKey('report-confirmation'),
-            style: theme.textTheme.bodySmall?.copyWith(color: palette.muted)),
+        Text(
+          _confirmationText(l),
+          key: const ValueKey('report-confirmation'),
+          style: theme.textTheme.bodySmall?.copyWith(color: palette.muted),
+        ),
         if (!_ridden && _site != _Site.onSite)
           Align(
             alignment: Alignment.centerLeft,
@@ -310,7 +366,11 @@ class _ReportConfirmationState extends ConsumerState<ReportConfirmation> {
               style: TextButton.styleFrom(padding: EdgeInsets.zero),
               onPressed: _site == _Site.checking ? null : _checkSite,
               icon: const Icon(Icons.my_location, size: 18),
-              label: Text(_site == _Site.checking ? l.reportCheckingPosition : l.reportOnSite),
+              label: Text(
+                _site == _Site.checking
+                    ? l.reportCheckingPosition
+                    : l.reportOnSite,
+              ),
             ),
           ),
       ],
@@ -320,8 +380,12 @@ class _ReportConfirmationState extends ConsumerState<ReportConfirmation> {
 
 /// Wer den Trail gemeldet hat, in einem Namen: „Du", der Alias, der
 /// Benutzername.
-String reporterName(AppLocalizations l, TrailReport r, Trail trail, BuddyNames names) =>
-    r.userId == trail.myId ? l.reportYou : names.of(r.userId, r.username);
+String reporterName(
+  AppLocalizations l,
+  TrailReport r,
+  Trail trail,
+  BuddyNames names,
+) => r.userId == trail.myId ? l.reportYou : names.of(r.userId, r.username);
 
 /// Die eigene Bewertung direkt im Blatt, wie [OwnGradePicker]: ein Tipp
 /// auf einen Stern speichert, ein zweiter Tipp auf denselben nimmt sie
@@ -339,19 +403,26 @@ class _OwnRatingPickerState extends ConsumerState<OwnRatingPicker> {
 
   Future<void> _set(int? rating) async {
     final trail = widget.trail;
-    final current = trail.myDetails ?? TrailDetails(trailId: trail.id, userId: trail.myId);
+    final current =
+        trail.myDetails ?? TrailDetails(trailId: trail.id, userId: trail.myId);
     setState(() => _saving = true);
     final messenger = ScaffoldMessenger.of(context);
     final l = context.l10n;
     try {
-      final outcome = await ref.read(trailsProvider.notifier).saveDetails(
-          rating == null ? current.copyWith(clearRating: true) : current.copyWith(rating: rating));
+      final outcome = await ref
+          .read(trailsProvider.notifier)
+          .saveDetails(
+            rating == null
+                ? current.copyWith(clearRating: true)
+                : current.copyWith(rating: rating),
+          );
       switch (outcome) {
         case WriteOutcome.done:
           break;
         case WriteOutcome.doneStale:
-          messenger.showSnackBar(SnackBar(
-              content: Text(l.staleAfterWrite(l.reportRatingSaved))));
+          messenger.showSnackBar(
+            SnackBar(content: Text(l.staleAfterWrite(l.reportRatingSaved))),
+          );
         case WriteOutcome.queued:
           messenger.showSnackBar(SnackBar(content: Text(l.queuedHint)));
       }
@@ -381,19 +452,26 @@ class _OwnRatingPickerState extends ConsumerState<OwnRatingPicker> {
                 visualDensity: VisualDensity.compact,
                 onPressed: _saving ? null : () => _set(mine == i ? null : i),
                 icon: Icon(
-                  mine != null && i <= mine ? Icons.star_rounded : Icons.star_outline_rounded,
+                  mine != null && i <= mine
+                      ? Icons.star_rounded
+                      : Icons.star_outline_rounded,
                   // Sofort gesetzt, verblasst bis auf dem Server (#183).
                   color: mine == null
                       ? palette.muted.withValues(alpha: 0.5)
                       : widget.trail.pendingDetails
-                          ? palette.accentText.withValues(alpha: kPendingValueOpacity)
-                          : palette.accentText,
+                      ? palette.accentText.withValues(
+                          alpha: kPendingValueOpacity,
+                        )
+                      : palette.accentText,
                 ),
               ),
           ],
         ),
         PendingValueCaption(
-            key: const ValueKey('own-rating-pending'), trail: widget.trail, hasValue: mine != null),
+          key: const ValueKey('own-rating-pending'),
+          trail: widget.trail,
+          hasValue: mine != null,
+        ),
       ],
     );
   }
@@ -401,7 +479,11 @@ class _OwnRatingPickerState extends ConsumerState<OwnRatingPicker> {
 
 /// Die Einzelstimmen der Bewertung (Rework E8: „ein Tipp zeigt die
 /// Einzelstimmen wie beim S-Grad").
-Future<void> showRatingVotesSheet(BuildContext context, WidgetRef ref, Trail trail) {
+Future<void> showRatingVotesSheet(
+  BuildContext context,
+  WidgetRef ref,
+  Trail trail,
+) {
   final names = ref.read(buddyNamesViewProvider);
   return showModalBottomSheet<void>(
     context: context,
@@ -420,16 +502,21 @@ Future<void> showRatingVotesSheet(BuildContext context, WidgetRef ref, Trail tra
             children: [
               Text(l.reportRatingTitle, style: theme.textTheme.titleLarge),
               Text(
-                  n == 0 || median == null
-                      ? l.reportRatingNone
-                      : l.reportRatingMedian(median, kRatingMax, n),
-                  style: theme.textTheme.bodyMedium),
+                n == 0 || median == null
+                    ? l.reportRatingNone
+                    : l.reportRatingMedian(median, kRatingMax, n),
+                style: theme.textTheme.bodyMedium,
+              ),
               const SizedBox(height: 8),
               for (final d in trail.ratingVotes)
                 ListTile(
                   dense: true,
                   contentPadding: EdgeInsets.zero,
-                  title: Text(d.userId == trail.myId ? l.reportYou : names.of(d.userId, d.username)),
+                  title: Text(
+                    d.userId == trail.myId
+                        ? l.reportYou
+                        : names.of(d.userId, d.username),
+                  ),
                   trailing: RatingStars(d.rating),
                 ),
             ],
@@ -446,14 +533,21 @@ Future<void> showRatingVotesSheet(BuildContext context, WidgetRef ref, Trail tra
 /// Person die jüngste, mit Alter und „zu bestätigen"). Bei 1 oder 2 bietet
 /// die Rückmeldung an, etwas dazu zu schreiben: Das öffnet „Melden" ohne
 /// Status.
-Future<void> showConditionVotesSheet(BuildContext context, WidgetRef ref, Trail trail) async {
+Future<void> showConditionVotesSheet(
+  BuildContext context,
+  WidgetRef ref,
+  Trail trail,
+) async {
   final names = ref.read(buddyNamesViewProvider);
   final latest = <String, TrailReport>{};
   for (final r in trail.reports.where((r) => r.kind == ReportKind.condition)) {
     final prev = latest[r.userId];
-    if (prev == null || r.reportedAt.isAfter(prev.reportedAt)) latest[r.userId] = r;
+    if (prev == null || r.reportedAt.isAfter(prev.reportedAt)) {
+      latest[r.userId] = r;
+    }
   }
-  final votes = latest.values.toList()..sort((a, b) => b.reportedAt.compareTo(a.reportedAt));
+  final votes = latest.values.toList()
+    ..sort((a, b) => b.reportedAt.compareTo(a.reportedAt));
   final input = await showModalBottomSheet<({int value, bool onSite})>(
     context: context,
     showDragHandle: true,
@@ -468,21 +562,24 @@ Future<void> showConditionVotesSheet(BuildContext context, WidgetRef ref, Trail 
         .read(trailsProvider.notifier)
         .report(trail.id, condition: input.value, onSite: input.onSite);
     final poor = input.value <= kConditionWordMax;
-    messenger.showSnackBar(SnackBar(
-      content: Text(switch (outcome) {
-        WriteOutcome.done => l.conditionSaved,
-        WriteOutcome.doneStale => l.staleAfterWrite(l.conditionSaved),
-        WriteOutcome.queued => l.queuedHint,
-      }),
-      persist: false,
-      action: poor
-          ? SnackBarAction(
-              label: l.conditionWriteMore,
-              onPressed: () {
-                if (context.mounted) reportTrail(context, ref, trail);
-              })
-          : null,
-    ));
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text(switch (outcome) {
+          WriteOutcome.done => l.conditionSaved,
+          WriteOutcome.doneStale => l.staleAfterWrite(l.conditionSaved),
+          WriteOutcome.queued => l.queuedHint,
+        }),
+        persist: false,
+        action: poor
+            ? SnackBarAction(
+                label: l.conditionWriteMore,
+                onPressed: () {
+                  if (context.mounted) reportTrail(context, ref, trail);
+                },
+              )
+            : null,
+      ),
+    );
   } catch (e, st) {
     logError('Zustand melden', e, st);
     messenger.showSnackBar(SnackBar(content: Text(friendlyError(l, e))));
@@ -490,7 +587,11 @@ Future<void> showConditionVotesSheet(BuildContext context, WidgetRef ref, Trail 
 }
 
 class _ConditionSheet extends ConsumerStatefulWidget {
-  const _ConditionSheet({required this.trail, required this.votes, required this.names});
+  const _ConditionSheet({
+    required this.trail,
+    required this.votes,
+    required this.names,
+  });
   final Trail trail;
   final List<TrailReport> votes;
   final BuddyNames names;
@@ -530,19 +631,25 @@ class _ConditionSheetState extends ConsumerState<_ConditionSheet> {
                     label: Text(c.label(l)),
                     tooltip: c.description(l),
                     selected: _value == c.value,
-                    onSelected: (on) => setState(() => _value = on ? c.value : null),
+                    onSelected: (on) =>
+                        setState(() => _value = on ? c.value : null),
                   ),
               ],
             ),
             const SizedBox(height: 8),
-            ReportConfirmation(trail: trail, onChanged: (onSite) => _onSite = onSite),
+            ReportConfirmation(
+              trail: trail,
+              onChanged: (onSite) => _onSite = onSite,
+            ),
             Align(
               alignment: Alignment.centerRight,
               child: FilledButton(
                 key: const ValueKey('condition-submit'),
                 onPressed: _value == null
                     ? null
-                    : () => Navigator.of(context).pop((value: _value!, onSite: _onSite)),
+                    : () => Navigator.of(
+                        context,
+                      ).pop((value: _value!, onSite: _onSite)),
                 child: Text(l.conditionSubmit),
               ),
             ),
@@ -554,21 +661,26 @@ class _ConditionSheetState extends ConsumerState<_ConditionSheet> {
                   dense: true,
                   contentPadding: EdgeInsets.zero,
                   title: Text(reporterName(l, r, trail, widget.names)),
-                  subtitle: Text([
-                    trailCondition(r.condition!).label(l),
-                    reportAgeLabel(l, r.reportedAt),
-                    if (r.sending)
-                      l.reportSending
-                    else if (r.pending)
-                      l.reportWaiting
-                    else if (!r.confirmed)
-                      l.reportUnconfirmed,
-                  ].join(' · ')),
+                  subtitle: Text(
+                    [
+                      trailCondition(r.condition!).label(l),
+                      reportAgeLabel(l, r.reportedAt),
+                      if (r.sending)
+                        l.reportSending
+                      else if (r.pending)
+                        l.reportWaiting
+                      else if (!r.confirmed)
+                        l.reportUnconfirmed,
+                    ].join(' · '),
+                  ),
                 ),
               ),
             const SizedBox(height: 8),
             for (final c in kTrailConditions)
-              Text('${c.label(l)}: ${c.description(l)}', style: theme.textTheme.bodySmall),
+              Text(
+                '${c.label(l)}: ${c.description(l)}',
+                style: theme.textTheme.bodySmall,
+              ),
           ],
         ),
       ),

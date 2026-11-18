@@ -39,11 +39,16 @@ void main() {
   });
 
   final grade4 = find.byKey(const ValueKey('own-grade-4'));
-  Finder gradeCaption(String text) =>
-      find.descendant(of: find.byKey(const ValueKey('own-grade-pending')), matching: find.text(text));
-  bool selected(WidgetTester tester, Finder chip) => tester.widget<ChoiceChip>(chip).selected;
+  Finder gradeCaption(String text) => find.descendant(
+    of: find.byKey(const ValueKey('own-grade-pending')),
+    matching: find.text(text),
+  );
+  bool selected(WidgetTester tester, Finder chip) =>
+      tester.widget<ChoiceChip>(chip).selected;
   double opacityOf(WidgetTester tester, Finder chip) => tester
-      .widget<Opacity>(find.ancestor(of: chip, matching: find.byType(Opacity)).first)
+      .widget<Opacity>(
+        find.ancestor(of: chip, matching: find.byType(Opacity)).first,
+      )
       .opacity;
 
   Future<void> openRoots(WidgetTester tester, {FakeOutbox? outbox}) async {
@@ -55,54 +60,84 @@ void main() {
     await tester.ensureVisible(grade4);
   }
 
-  testWidgets('der S-Grad steht sofort da, verblasst, bis er auf dem Server liegt',
-      (tester) async {
-    await openRoots(tester);
-    final net = Completer<void>();
-    trails.saveDetailsGate = net.future;
-    await tester.tap(grade4);
-    await tester.pump();
-    expect(selected(tester, grade4), isTrue, reason: 'vor der ersten Antwort des Netzes');
-    expect(opacityOf(tester, grade4), lessThan(1));
-    expect(gradeCaption('wird übertragen …'), findsOneWidget);
-    expect(find.text('Dein Beitrag wird übertragen …'), findsOneWidget);
-    expect(findLabel('S4 · 1 Einschätzung'), findsOneWidget, reason: 'Schild und Karte zählen ihn schon');
-    // Auch nach Sekunden ohne Antwort bleibt er stehen.
-    await settle(tester, frames: 30);
-    expect(selected(tester, grade4), isTrue);
+  testWidgets(
+    'der S-Grad steht sofort da, verblasst, bis er auf dem Server liegt',
+    (tester) async {
+      await openRoots(tester);
+      final net = Completer<void>();
+      trails.saveDetailsGate = net.future;
+      await tester.tap(grade4);
+      await tester.pump();
+      expect(
+        selected(tester, grade4),
+        isTrue,
+        reason: 'vor der ersten Antwort des Netzes',
+      );
+      expect(opacityOf(tester, grade4), lessThan(1));
+      expect(gradeCaption('wird übertragen …'), findsOneWidget);
+      expect(find.text('Dein Beitrag wird übertragen …'), findsOneWidget);
+      expect(
+        findLabel('S4 · 1 Einschätzung'),
+        findsOneWidget,
+        reason: 'Schild und Karte zählen ihn schon',
+      );
+      // Auch nach Sekunden ohne Antwort bleibt er stehen.
+      await settle(tester, frames: 30);
+      expect(selected(tester, grade4), isTrue);
 
-    net.complete();
-    await settle(tester, frames: 12);
-    expect(trails.details.single.grade, 4);
-    expect(selected(tester, grade4), isTrue);
-    expect(opacityOf(tester, grade4), 1);
-    expect(find.text('wird übertragen …'), findsNothing);
-    expect(find.byKey(const ValueKey('pending-details')), findsNothing);
-  });
+      net.complete();
+      await settle(tester, frames: 12);
+      expect(trails.details.single.grade, 4);
+      expect(selected(tester, grade4), isTrue);
+      expect(opacityOf(tester, grade4), 1);
+      expect(find.text('wird übertragen …'), findsNothing);
+      expect(find.byKey(const ValueKey('pending-details')), findsNothing);
+    },
+  );
 
-  testWidgets('nach dem Speichern wird nur der Beitrag nachgelesen, nicht das Netz', (tester) async {
-    // Feldbericht 2026-10-02: Ein Stern lud jede Linie neu — über die
-    // Leitung, und die Karte übertrug danach jede Linie neu an MapLibre.
-    trails.seedTrail(annaId, name: 'Wald', lat: 48.2);
-    await openRoots(tester);
-    final container = ProviderScope.containerOf(tester.element(find.byType(MaterialApp).first));
-    final before = container.read(trailsProvider).value!;
-    final wald = before.firstWhere((t) => t.displayName(l10nDe) == 'Wald');
-    final fetches = trails.recordingFetches;
+  testWidgets(
+    'nach dem Speichern wird nur der Beitrag nachgelesen, nicht das Netz',
+    (tester) async {
+      // Feldbericht 2026-10-02: Ein Stern lud jede Linie neu — über die
+      // Leitung, und die Karte übertrug danach jede Linie neu an MapLibre.
+      trails.seedTrail(annaId, name: 'Wald', lat: 48.2);
+      await openRoots(tester);
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(MaterialApp).first),
+      );
+      final before = container.read(trailsProvider).value!;
+      final wald = before.firstWhere((t) => t.displayName(l10nDe) == 'Wald');
+      final fetches = trails.recordingFetches;
 
-    await tester.tap(grade4);
-    await settle(tester, frames: 12);
-    expect(trails.details.firstWhere((d) => d.name == 'Roots').grade, 4);
-    expect(trails.recordingFetches, fetches, reason: 'die Linien hat der Beitrag nicht geändert');
-    final after = container.read(trailsProvider).value!;
-    expect(after.firstWhere((t) => t.displayName(l10nDe) == 'Roots').grade, 4);
-    expect(after.firstWhere((t) => t.displayName(l10nDe) == 'Wald'), same(wald),
-        reason: 'ein unveränderter Trail bleibt dasselbe Objekt — samt geglätteter Linie');
-    expect(after.firstWhere((t) => t.displayName(l10nDe) == 'Roots').points,
-        same(before.firstWhere((t) => t.displayName(l10nDe) == 'Roots').points));
-  });
+      await tester.tap(grade4);
+      await settle(tester, frames: 12);
+      expect(trails.details.firstWhere((d) => d.name == 'Roots').grade, 4);
+      expect(
+        trails.recordingFetches,
+        fetches,
+        reason: 'die Linien hat der Beitrag nicht geändert',
+      );
+      final after = container.read(trailsProvider).value!;
+      expect(
+        after.firstWhere((t) => t.displayName(l10nDe) == 'Roots').grade,
+        4,
+      );
+      expect(
+        after.firstWhere((t) => t.displayName(l10nDe) == 'Wald'),
+        same(wald),
+        reason:
+            'ein unveränderter Trail bleibt dasselbe Objekt — samt geglätteter Linie',
+      );
+      expect(
+        after.firstWhere((t) => t.displayName(l10nDe) == 'Roots').points,
+        same(before.firstWhere((t) => t.displayName(l10nDe) == 'Roots').points),
+      );
+    },
+  );
 
-  testWidgets('ohne Netz: der Wert bleibt stehen und sagt, dass er wartet', (tester) async {
+  testWidgets('ohne Netz: der Wert bleibt stehen und sagt, dass er wartet', (
+    tester,
+  ) async {
     final outbox = FakeOutbox();
     await openRoots(tester, outbox: outbox);
     final net = Completer<void>();
@@ -115,11 +150,16 @@ void main() {
     expect((outbox.jobs.single as DetailsJob).details.grade, 4);
     expect(selected(tester, grade4), isTrue);
     expect(opacityOf(tester, grade4), lessThan(1));
-    expect(gradeCaption('nur auf dem Gerät — wartet auf Übertragung'), findsOneWidget);
+    expect(
+      gradeCaption('nur auf dem Gerät — wartet auf Übertragung'),
+      findsOneWidget,
+    );
     expect(find.text('wird übertragen …'), findsNothing);
   });
 
-  testWidgets('ein Serverfehler nimmt den Wert sichtbar zurück', (tester) async {
+  testWidgets('ein Serverfehler nimmt den Wert sichtbar zurück', (
+    tester,
+  ) async {
     await openRoots(tester);
     final net = Completer<void>();
     trails.saveDetailsGate = net.future;
@@ -133,7 +173,9 @@ void main() {
     expect(trails.details.single.grade, isNull);
   });
 
-  testWidgets('eine Meldung steht sofort im Verlauf, mit „wird übertragen"', (tester) async {
+  testWidgets('eine Meldung steht sofort im Verlauf, mit „wird übertragen"', (
+    tester,
+  ) async {
     await openRoots(tester);
     await tester.ensureVisible(find.byKey(const ValueKey('trail-report')));
     await tester.tap(find.byKey(const ValueKey('trail-report')));
@@ -151,44 +193,50 @@ void main() {
     expect(find.textContaining('wird übertragen'), findsNothing);
   });
 
-  testWidgets('Kaltstart, das Netz zögert: die Kopie nach kurzer Frist, dann der frische Stand',
-      (tester) async {
-    final cache = FakeTrailCache();
-    await pumpApp(tester, backend, trails: trails, trailCache: cache);
-    await settle(tester, frames: 12);
-    expect(cache.snapshot, isNotNull);
+  testWidgets(
+    'Kaltstart, das Netz zögert: die Kopie nach kurzer Frist, dann der frische Stand',
+    (tester) async {
+      final cache = FakeTrailCache();
+      await pumpApp(tester, backend, trails: trails, trailCache: cache);
+      await settle(tester, frames: 12);
+      expect(cache.snapshot, isNotNull);
 
-    // Neustart: ein Balken, über den nichts kommt. Erst den Baum
-    // abbauen — ein zweites `pumpApp` behielte den ProviderScope, und das
-    // wäre kein Kaltstart.
-    await tester.pumpWidget(const SizedBox());
-    final backend2 = FakeBackend();
-    final anna = backend2.addUser(username: 'anna');
-    backend2.signInAs(anna.id);
-    cache.uid = anna.id;
-    trails = FakeTrailRepository(myId: () => backend2.currentUserId ?? '');
-    trails.seedTrail(anna.id, name: 'Roots');
-    trails.seedTrail(anna.id, name: 'Neu seit gestern', lat: 48.2);
-    final net = Completer<void>();
-    trails.fetchGate = net.future;
-    await pumpApp(tester, backend2, trails: trails, trailCache: cache);
-    // 2 s — die Frist ist 1,5 s; ohne sie stünde die Karte bis zum
-    // Aufgeben des Netzes leer.
-    await settle(tester, frames: 20);
-    final notice = find.byKey(const ValueKey('cached-notice'));
-    // Die Kopie steht, der Hinweis wartet noch (#397): Meist kommt das
-    // Netz kurz danach, und dann blitzte er nur auf.
-    expect(notice, findsNothing);
-    await settle(tester, frames: 32);
-    expect(notice, findsOneWidget);
-    expect(find.textContaining('das Netz antwortet noch'), findsOneWidget);
-    expect(find.textContaining('Kein Empfang'), findsNothing, reason: 'Netz ist da, nur langsam');
+      // Neustart: ein Balken, über den nichts kommt. Erst den Baum
+      // abbauen — ein zweites `pumpApp` behielte den ProviderScope, und das
+      // wäre kein Kaltstart.
+      await tester.pumpWidget(const SizedBox());
+      final backend2 = FakeBackend();
+      final anna = backend2.addUser(username: 'anna');
+      backend2.signInAs(anna.id);
+      cache.uid = anna.id;
+      trails = FakeTrailRepository(myId: () => backend2.currentUserId ?? '');
+      trails.seedTrail(anna.id, name: 'Roots');
+      trails.seedTrail(anna.id, name: 'Neu seit gestern', lat: 48.2);
+      final net = Completer<void>();
+      trails.fetchGate = net.future;
+      await pumpApp(tester, backend2, trails: trails, trailCache: cache);
+      // 2 s — die Frist ist 1,5 s; ohne sie stünde die Karte bis zum
+      // Aufgeben des Netzes leer.
+      await settle(tester, frames: 20);
+      final notice = find.byKey(const ValueKey('cached-notice'));
+      // Die Kopie steht, der Hinweis wartet noch (#397): Meist kommt das
+      // Netz kurz danach, und dann blitzte er nur auf.
+      expect(notice, findsNothing);
+      await settle(tester, frames: 32);
+      expect(notice, findsOneWidget);
+      expect(find.textContaining('das Netz antwortet noch'), findsOneWidget);
+      expect(
+        find.textContaining('Kein Empfang'),
+        findsNothing,
+        reason: 'Netz ist da, nur langsam',
+      );
 
-    net.complete();
-    await settle(tester, frames: 12);
-    expect(notice, findsNothing);
-    await openTab(tester, 'Trails');
-    await settle(tester, frames: 12);
-    expect(find.text('Neu seit gestern'), findsOneWidget);
-  });
+      net.complete();
+      await settle(tester, frames: 12);
+      expect(notice, findsNothing);
+      await openTab(tester, 'Trails');
+      await settle(tester, frames: 12);
+      expect(find.text('Neu seit gestern'), findsOneWidget);
+    },
+  );
 }

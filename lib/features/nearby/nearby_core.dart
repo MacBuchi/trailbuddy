@@ -74,7 +74,8 @@ class NearbyCell {
   String encode() => '$row:$col';
 
   @override
-  bool operator ==(Object other) => other is NearbyCell && other.row == row && other.col == col;
+  bool operator ==(Object other) =>
+      other is NearbyCell && other.row == row && other.col == col;
 
   @override
   int get hashCode => Object.hash(row, col);
@@ -121,7 +122,8 @@ NearbyPoint? parseNearbyHome(String? raw) {
 String encodeNearbyHome(NearbyPoint p) =>
     '${p.lat.toStringAsFixed(5)},${p.lon.toStringAsFixed(5)}';
 
-double _dist(NearbyPoint a, NearbyPoint b) => distanceMeters(a.lat, a.lon, b.lat, b.lon);
+double _dist(NearbyPoint a, NearbyPoint b) =>
+    distanceMeters(a.lat, a.lon, b.lat, b.lon);
 
 /// Darf jetzt geteilt (und gehört) werden? null heißt ja; sonst der Grund,
 /// warum nicht. Die Reihenfolge ist die Reihenfolge der Antwort im Profil.
@@ -134,9 +136,13 @@ NearbyPause? nearbyPause({
 }) {
   if (enabled != true) return NearbyPause.off;
   if (position == null) return NearbyPause.noPosition;
-  if (home != null && _dist(position, home) < kNearbyQuietMeters) return NearbyPause.home;
+  if (home != null && _dist(position, home) < kNearbyQuietMeters) {
+    return NearbyPause.home;
+  }
   if (rideStart != null) {
-    return _dist(position, rideStart) < kNearbyQuietMeters ? NearbyPause.nearStart : null;
+    return _dist(position, rideStart) < kNearbyQuietMeters
+        ? NearbyPause.nearStart
+        : null;
   }
   if (!foreground) return NearbyPause.background;
   if (home == null) return NearbyPause.noHome;
@@ -222,17 +228,16 @@ class BuddySighting {
     NearbyPoint? Function()? position,
     DateTime? Function()? positionAt,
     bool? positionPresent,
-  }) =>
-      BuddySighting(
-        buddyId: buddyId,
-        cell: cell != null ? cell() : this.cell,
-        cellPresent: cellPresent ?? this.cellPresent,
-        cellGoneAt: cellGoneAt != null ? cellGoneAt() : this.cellGoneAt,
-        live: live ?? this.live,
-        position: position != null ? position() : this.position,
-        positionAt: positionAt != null ? positionAt() : this.positionAt,
-        positionPresent: positionPresent ?? this.positionPresent,
-      );
+  }) => BuddySighting(
+    buddyId: buddyId,
+    cell: cell != null ? cell() : this.cell,
+    cellPresent: cellPresent ?? this.cellPresent,
+    cellGoneAt: cellGoneAt != null ? cellGoneAt() : this.cellGoneAt,
+    live: live ?? this.live,
+    position: position != null ? position() : this.position,
+    positionAt: positionAt != null ? positionAt() : this.positionAt,
+    positionPresent: positionPresent ?? this.positionPresent,
+  );
 }
 
 /// Wie ein Buddy auf der Karte steht.
@@ -315,6 +320,7 @@ Set<String> livePairsFor({
   if (mine == null || !myLive) return const {};
   return {
     for (final s in sightings)
-      if (s.live && s.cellPresent && s.cell != null && mine.isNearTo(s.cell!)) s.buddyId,
+      if (s.live && s.cellPresent && s.cell != null && mine.isNearTo(s.cell!))
+        s.buddyId,
   };
 }

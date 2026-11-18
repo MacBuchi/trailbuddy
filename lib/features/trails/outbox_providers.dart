@@ -22,8 +22,9 @@ import 'trail_geometry.dart';
 /// Datei auf Android, IndexedDB im Browser (#153). Ohne IndexedDB
 /// (privater Modus, `file://`) kein Korb: Dort wirft `append`, und der
 /// Netzfehler erscheint wie vor #30.
-final outboxProvider =
-    Provider<Outbox>((ref) => chooseOutbox(web: kIsWeb, factory: browserIdbFactory()));
+final outboxProvider = Provider<Outbox>(
+  (ref) => chooseOutbox(web: kIsWeb, factory: browserIdbFactory()),
+);
 
 /// Die Aufträge im Korb — gelesen beim Start, geändert nur über diesen
 /// Notifier, damit Anzeige und Datei nie auseinanderlaufen.
@@ -48,7 +49,10 @@ class OutboxJobsNotifier extends AsyncNotifier<List<OutboxJob>> {
     final trailId = job is DetailsJob ? job.details.trailId : null;
     final kept = [
       for (final j in current)
-        if (!(trailId != null && j is DetailsJob && j.details.trailId == trailId)) j,
+        if (!(trailId != null &&
+            j is DetailsJob &&
+            j.details.trailId == trailId))
+          j,
     ];
     final next = [...kept, job];
     if (next.length == current.length + 1) {
@@ -61,14 +65,24 @@ class OutboxJobsNotifier extends AsyncNotifier<List<OutboxJob>> {
 
   /// Nimmt einen Auftrag zurück — „doch nicht", oder einer, den der
   /// Server dauerhaft ablehnt.
-  Future<void> discard(String id) => _rewrite((jobs) => [for (final j in jobs) if (j.id != id) j]);
+  Future<void> discard(String id) => _rewrite(
+    (jobs) => [
+      for (final j in jobs)
+        if (j.id != id) j,
+    ],
+  );
 
   /// Ein abgelehnter Auftrag noch einmal, von vorn.
-  Future<void> retry(String id) => _rewrite((jobs) => [
-        for (final j in jobs) j.id == id ? j.copyWith(attempts: 0, clearFailure: true) : j,
-      ]);
+  Future<void> retry(String id) => _rewrite(
+    (jobs) => [
+      for (final j in jobs)
+        j.id == id ? j.copyWith(attempts: 0, clearFailure: true) : j,
+    ],
+  );
 
-  Future<void> _rewrite(List<OutboxJob> Function(List<OutboxJob>) change) async {
+  Future<void> _rewrite(
+    List<OutboxJob> Function(List<OutboxJob>) change,
+  ) async {
     final uid = ref.read(currentUserIdProvider);
     if (uid == null) return;
     final outbox = ref.read(outboxProvider);
@@ -85,7 +99,9 @@ class OutboxJobsNotifier extends AsyncNotifier<List<OutboxJob>> {
 }
 
 final outboxJobsProvider =
-    AsyncNotifierProvider<OutboxJobsNotifier, List<OutboxJob>>(OutboxJobsNotifier.new);
+    AsyncNotifierProvider<OutboxJobsNotifier, List<OutboxJob>>(
+      OutboxJobsNotifier.new,
+    );
 
 /// Wie viele Aufträge warten — die Zahl im Banner.
 /// Sichert die Ablage des Korbs zu, ihn nicht von selbst zu räumen?
@@ -100,13 +116,21 @@ final outboxDurableProvider = FutureProvider<bool>((ref) async {
   return ref.watch(outboxProvider).isDurable();
 });
 
-final pendingJobCountProvider =
-    Provider<int>((ref) => ref.watch(outboxJobsProvider).valueOrNull?.length ?? 0);
+final pendingJobCountProvider = Provider<int>(
+  (ref) => ref.watch(outboxJobsProvider).valueOrNull?.length ?? 0,
+);
 
 /// Aufträge, die der Server dauerhaft abgelehnt hat: Sie brauchen eine
 /// Entscheidung von Hand und verschwinden nicht von allein.
-final failedJobCountProvider = Provider<int>((ref) =>
-    ref.watch(outboxJobsProvider).valueOrNull?.where((j) => j.failure != null).length ?? 0);
+final failedJobCountProvider = Provider<int>(
+  (ref) =>
+      ref
+          .watch(outboxJobsProvider)
+          .valueOrNull
+          ?.where((j) => j.failure != null)
+          .length ??
+      0,
+);
 
 /// Die Trails des Servers plus die, die noch im Korb liegen (Konzept
 /// 4.7: „steht als eigener Trail auf der Karte, bis er hochgeht").
@@ -120,8 +144,12 @@ final failedJobCountProvider = Provider<int>((ref) =>
 /// (#183): Sie stehen genauso da wie wartende, nur mit dem Vermerk
 /// „wird übertragen". Liegt für denselben Trail ein wartender UND ein
 /// laufender Beitrag vor, gilt der spätere in [jobs].
-List<Trail> withPendingJobs(List<Trail> server, List<OutboxJob> jobs,
-    {required String myId, Set<String> sending = const {}}) {
+List<Trail> withPendingJobs(
+  List<Trail> server,
+  List<OutboxJob> jobs, {
+  required String myId,
+  Set<String> sending = const {},
+}) {
   // Feedback (#218) und Startpunkte (#543) hängen an keinem Trail. Ein
   // Korb, in dem nur solche warten, gibt das Netz UNVERÄNDERT zurück —
   // dieselbe Liste, damit die Karte nichts neu zeichnet.
@@ -165,7 +193,9 @@ List<Trail> withPendingJobs(List<Trail> server, List<OutboxJob> jobs,
               userId: myId,
               body: j.note!.trim(),
               createdAt: j.createdAt.toLocal(),
-              reportId: j.status == null ? null : 'pending-${j.id}-${ReportKind.status.db}',
+              reportId: j.status == null
+                  ? null
+                  : 'pending-${j.id}-${ReportKind.status.db}',
               pending: true,
               sending: sending.contains(j.id),
             ),
@@ -202,40 +232,50 @@ List<Trail> withPendingJobs(List<Trail> server, List<OutboxJob> jobs,
   for (final j in jobs) {
     if (j is! ContributeJob) continue;
     final points = <LatLng>[
-      for (var i = 0; i + 1 < j.coords.length; i += 2) LatLng(j.coords[i + 1], j.coords[i]),
+      for (var i = 0; i + 1 < j.coords.length; i += 2)
+        LatLng(j.coords[i + 1], j.coords[i]),
     ];
     var length = 0.0;
     for (var i = 1; i < points.length; i++) {
-      length += haversineM(points[i - 1].latitude, points[i - 1].longitude,
-          points[i].latitude, points[i].longitude);
+      length += haversineM(
+        points[i - 1].latitude,
+        points[i - 1].longitude,
+        points[i].latitude,
+        points[i].longitude,
+      );
     }
-    result.add(Trail(
-      id: j.id,
-      recordings: [
-        TrailRecording(
-          id: 'pending-${j.id}',
-          trailId: j.id,
-          userId: myId,
-          source: j.source,
-          recordedAt: j.recordedAt?.toLocal(),
-          reversed: false,
-          quality: 0,
-          createdAt: j.createdAt.toLocal(),
-          points: points,
-          lengthM: length,
-          ele: j.eles,
-        ),
-      ],
-      details: [
-        TrailDetails(
+    result.add(
+      Trail(
+        id: j.id,
+        recordings: [
+          TrailRecording(
+            id: 'pending-${j.id}',
             trailId: j.id,
             userId: myId,
-            name: (j.name ?? '').trim().isEmpty ? null : clampTrailName(j.name!)),
-      ],
-      myId: myId,
-      pending: true,
-      pendingFailure: j.failure,
-    ));
+            source: j.source,
+            recordedAt: j.recordedAt?.toLocal(),
+            reversed: false,
+            quality: 0,
+            createdAt: j.createdAt.toLocal(),
+            points: points,
+            lengthM: length,
+            ele: j.eles,
+          ),
+        ],
+        details: [
+          TrailDetails(
+            trailId: j.id,
+            userId: myId,
+            name: (j.name ?? '').trim().isEmpty
+                ? null
+                : clampTrailName(j.name!),
+          ),
+        ],
+        myId: myId,
+        pending: true,
+        pendingFailure: j.failure,
+      ),
+    );
   }
   return result..sort(compareTrailNames);
 }
@@ -248,11 +288,16 @@ List<Trail> withPendingJobs(List<Trail> server, List<OutboxJob> jobs,
 ///
 /// Ein abgelehnter Auftrag (`failure`) zählt nicht: Der Server hat den
 /// Punkt so nicht, und die Entscheidung fällt im Korb.
-List<StartPoint> withPendingStartPoints(List<StartPoint> server, List<OutboxJob> jobs,
-    {required String myId, Set<String> sending = const {}}) {
+List<StartPoint> withPendingStartPoints(
+  List<StartPoint> server,
+  List<OutboxJob> jobs, {
+  required String myId,
+  Set<String> sending = const {},
+}) {
   final relevant = [
     for (final j in jobs)
-      if ((j is StartPointJob || j is StartPointDeleteJob) && j.failure == null) j,
+      if ((j is StartPointJob || j is StartPointDeleteJob) && j.failure == null)
+        j,
   ];
   if (relevant.isEmpty) return server;
   final result = [...server];
@@ -262,9 +307,14 @@ List<StartPoint> withPendingStartPoints(List<StartPoint> server, List<OutboxJob>
       StartPointDeleteJob(:final clientId) => clientId,
       _ => null,
     };
-    final at = result.indexWhere((p) => p.userId == myId && p.clientId == clientId);
+    final at = result.indexWhere(
+      (p) => p.userId == myId && p.clientId == clientId,
+    );
     if (j is StartPointJob) {
-      final point = j.point.copyWith(pending: true, sending: sending.contains(j.id));
+      final point = j.point.copyWith(
+        pending: true,
+        sending: sending.contains(j.id),
+      );
       if (at < 0) {
         result.add(point);
       } else {
@@ -276,4 +326,3 @@ List<StartPoint> withPendingStartPoints(List<StartPoint> server, List<OutboxJob>
   }
   return result;
 }
-

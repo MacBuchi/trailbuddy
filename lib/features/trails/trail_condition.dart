@@ -17,23 +17,23 @@ class TrailConditionLevel {
 
   /// Das Wort: „Ausgefahren" (#209: aus den ARB-Dateien).
   String label(AppLocalizations l) => switch (value) {
-        5 => l.conditionTop,
-        4 => l.conditionGood,
-        3 => l.conditionWorn,
-        2 => l.conditionRough,
-        1 => l.conditionBarelyRideable,
-        _ => throw StateError('Kein Zustand: $value'),
-      };
+    5 => l.conditionTop,
+    4 => l.conditionGood,
+    3 => l.conditionWorn,
+    2 => l.conditionRough,
+    1 => l.conditionBarelyRideable,
+    _ => throw StateError('Kein Zustand: $value'),
+  };
 
   /// Ein Satz für Auswahl und Bildschirmleser.
   String description(AppLocalizations l) => switch (value) {
-        5 => l.conditionTopDescription,
-        4 => l.conditionGoodDescription,
-        3 => l.conditionWornDescription,
-        2 => l.conditionRoughDescription,
-        1 => l.conditionBarelyRideableDescription,
-        _ => throw StateError('Kein Zustand: $value'),
-      };
+    5 => l.conditionTopDescription,
+    4 => l.conditionGoodDescription,
+    3 => l.conditionWornDescription,
+    2 => l.conditionRoughDescription,
+    1 => l.conditionBarelyRideableDescription,
+    _ => throw StateError('Kein Zustand: $value'),
+  };
 }
 
 const kTrailConditions = <TrailConditionLevel>[
@@ -48,4 +48,5 @@ TrailConditionLevel trailCondition(int value) =>
     kTrailConditions.firstWhere((c) => c.value == value);
 
 /// Nur das Wort — für den Rechenteil der Liste, der ohne Widgets bleibt.
-String trailConditionLabel(AppLocalizations l, int value) => trailCondition(value).label(l);
+String trailConditionLabel(AppLocalizations l, int value) =>
+    trailCondition(value).label(l);

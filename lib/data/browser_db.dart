@@ -69,7 +69,11 @@ class BrowserDb {
   Future<Database> open() async {
     final open = _db;
     if (open != null) return open;
-    final db = await _factory.open(kBrowserDbName, version: kBrowserDbVersion, onUpgradeNeeded: _upgrade);
+    final db = await _factory.open(
+      kBrowserDbName,
+      version: kBrowserDbVersion,
+      onUpgradeNeeded: _upgrade,
+    );
     try {
       // Ein zweiter Tab, der auf eine neue Version hebt, bleibt sonst
       // hängen, solange diese Verbindung offen ist — stumm.
@@ -86,14 +90,21 @@ class BrowserDb {
 
   void forget() => _db = null;
 
-  Future<T> readStore<T>(String store, Future<T> Function(ObjectStore) action) =>
-      _inStore(store, idbModeReadOnly, action);
+  Future<T> readStore<T>(
+    String store,
+    Future<T> Function(ObjectStore) action,
+  ) => _inStore(store, idbModeReadOnly, action);
 
-  Future<T> writeStore<T>(String store, Future<T> Function(ObjectStore) action) =>
-      _inStore(store, idbModeReadWrite, action);
+  Future<T> writeStore<T>(
+    String store,
+    Future<T> Function(ObjectStore) action,
+  ) => _inStore(store, idbModeReadWrite, action);
 
   /// Mehrere Speicher in EINER Transaktion — alles oder nichts.
-  Future<T> writeStores<T>(List<String> stores, Future<T> Function(Transaction) action) async {
+  Future<T> writeStores<T>(
+    List<String> stores,
+    Future<T> Function(Transaction) action,
+  ) async {
     final db = await open();
     final txn = db.transactionList(stores, idbModeReadWrite);
     try {
@@ -106,7 +117,11 @@ class BrowserDb {
     }
   }
 
-  Future<T> _inStore<T>(String store, String mode, Future<T> Function(ObjectStore) action) async {
+  Future<T> _inStore<T>(
+    String store,
+    String mode,
+    Future<T> Function(ObjectStore) action,
+  ) async {
     final db = await open();
     final txn = db.transaction(store, mode);
     try {

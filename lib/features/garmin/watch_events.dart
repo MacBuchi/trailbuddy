@@ -29,7 +29,9 @@ const kWatchEventsOut = ' hi x  ok g  d  e  rs re rp rr rt w  sh ';
 /// sucht.
 const kWatchEventsTag = 'ev1:';
 
-List<String> _types(String s) => [for (var i = 0; i + 1 < s.length; i += 3) s.substring(i, i + 3).trim()];
+List<String> _types(String s) => [
+  for (var i = 0; i + 1 < s.length; i += 3) s.substring(i, i + 3).trim(),
+];
 
 /// Ein Ereignis, entpackt.
 typedef WatchEvent = ({int kind, int detail, int sec});
@@ -69,9 +71,21 @@ List<int>? watchEventsOf(Object? raw) {
       final table = _types(e.kind <= 4 ? kWatchEventsIn : kWatchEventsOut);
       final i = e.detail + (e.kind == 4 || e.kind == 6 ? 8 : 0);
       final unknown = (e.kind == 4 || e.kind == 6) && e.detail == 7;
-      return (kind: e.kind <= 4 ? 'in' : 'out', detail: unknown || i >= table.length ? '?' : table[i]);
+      return (
+        kind: e.kind <= 4 ? 'in' : 'out',
+        detail: unknown || i >= table.length ? '?' : table[i],
+      );
   }
-  const kinds = {0: 'start', 1: 'key', 2: 'menu', 7: 'sent', 8: 'state', 9: 'fix', 10: 'due', 11: 'shelf'};
+  const kinds = {
+    0: 'start',
+    1: 'key',
+    2: 'menu',
+    7: 'sent',
+    8: 'state',
+    9: 'fix',
+    10: 'due',
+    11: 'shelf',
+  };
   return (kind: kinds[e.kind] ?? 'other', detail: '${e.detail}');
 }
 
@@ -135,14 +149,21 @@ List<int>? decodeWatchEvents(String text) {
 /// Ein abgelegtes Protokoll: wann es ankam, woher ([fromCrash]: mit dem
 /// „hallo" nach einem Absturz, sonst mit einer Fahrt) und die Ereignisse.
 class WatchEventLog {
-  const WatchEventLog({required this.at, required this.fromCrash, required this.events});
+  const WatchEventLog({
+    required this.at,
+    required this.fromCrash,
+    required this.events,
+  });
 
   final DateTime at;
   final bool fromCrash;
   final List<int> events;
 
-  Map<String, Object?> toJson() =>
-      {'at': at.toUtc().toIso8601String(), 'crash': fromCrash, 'ev': events};
+  Map<String, Object?> toJson() => {
+    'at': at.toUtc().toIso8601String(),
+    'crash': fromCrash,
+    'ev': events,
+  };
 
   static WatchEventLog? fromJson(Object? j) {
     if (j is! Map) return null;

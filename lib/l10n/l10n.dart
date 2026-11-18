@@ -39,9 +39,9 @@ enum AppLanguage {
 /// findet man seine Sprache auch in einer App, die man nicht lesen kann.
 /// Deshalb nicht aus den ARB-Dateien.
 String languageName(Locale locale) => switch (locale.languageCode) {
-      'de' => 'Deutsch',
-      _ => 'English',
-    };
+  'de' => 'Deutsch',
+  _ => 'English',
+};
 
 /// Die Wahl im Profil, gemerkt in [Settings.language].
 class LanguageNotifier extends Notifier<AppLanguage> {
@@ -58,11 +58,15 @@ class LanguageNotifier extends Notifier<AppLanguage> {
     ref
         .read(settingsProvider)
         .setLanguage(language.name)
-        .catchError((Object e, StackTrace s) => logError('Sprache merken', e, s));
+        .catchError(
+          (Object e, StackTrace s) => logError('Sprache merken', e, s),
+        );
   }
 }
 
-final languageProvider = NotifierProvider<LanguageNotifier, AppLanguage>(LanguageNotifier.new);
+final languageProvider = NotifierProvider<LanguageNotifier, AppLanguage>(
+  LanguageNotifier.new,
+);
 
 /// Die Sprache, in der die App läuft — `null` heißt: die des Geräts bzw.
 /// des Browsers, aufgelöst über [resolveAppLocale].
@@ -70,7 +74,9 @@ final languageProvider = NotifierProvider<LanguageNotifier, AppLanguage>(Languag
 /// Ein eigener Provider über [languageProvider]: Tests starten die App
 /// damit unter einer festen Sprache (`test/l10n_test.dart`), ohne die
 /// Einstellung anzufassen.
-final appLocaleProvider = Provider<Locale?>((ref) => ref.watch(languageProvider).locale);
+final appLocaleProvider = Provider<Locale?>(
+  (ref) => ref.watch(languageProvider).locale,
+);
 
 /// Die gewählte Sprache in DIESEM Isolate; `null` heißt: die des Geräts.
 /// In der App setzt sie [LanguageNotifier], im Service-Isolate
@@ -83,8 +89,12 @@ Locale? chosenAppLocale;
 /// und der Navigation, die im Service-Isolate entstehen, und Notifier
 /// ohne `BuildContext`. Dieselbe Wahl wie die App: [chosenAppLocale],
 /// sonst die Gerätesprache über [resolveAppLocale].
-AppLocalizations serviceL10n() => lookupAppLocalizations(chosenAppLocale ??
-    resolveAppLocale(debugDeviceLocales ?? PlatformDispatcher.instance.locales));
+AppLocalizations serviceL10n() => lookupAppLocalizations(
+  chosenAppLocale ??
+      resolveAppLocale(
+        debugDeviceLocales ?? PlatformDispatcher.instance.locales,
+      ),
+);
 
 /// Die Sprachen des Testgeräts für [serviceL10n]: `pumpApp` setzt sie mit
 /// `localesTestValue` gleich. Ohne diese Naht läse der Dienst im Test das
@@ -101,7 +111,9 @@ Future<void> refreshServiceLocale() async {
   try {
     final prefs = await SharedPreferences.getInstance();
     await prefs.reload();
-    chosenAppLocale = AppLanguage.parse(prefs.getString(kLanguageSettingKey)).locale;
+    chosenAppLocale = AppLanguage.parse(
+      prefs.getString(kLanguageSettingKey),
+    ).locale;
   } catch (_) {
     // Der Dienst hat niemanden, der fängt; der nächste Takt versucht es.
   }

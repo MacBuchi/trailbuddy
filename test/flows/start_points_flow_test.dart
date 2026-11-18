@@ -37,64 +37,113 @@ void main() {
     outbox = FakeOutbox();
   });
 
-  StartPoint parking(String clientId, {String name = 'Parkplatz Talboden'}) => StartPoint(
-      clientId: clientId, userId: annaId, name: name, lat: 47.5, lon: 10.5, createdAt: DateTime.utc(2026, 11, 16));
+  StartPoint parking(String clientId, {String name = 'Parkplatz Talboden'}) =>
+      StartPoint(
+        clientId: clientId,
+        userId: annaId,
+        name: name,
+        lat: 47.5,
+        lon: 10.5,
+        createdAt: DateTime.utc(2026, 11, 16),
+      );
 
   ProviderContainer containerOf(WidgetTester tester) =>
       ProviderScope.containerOf(tester.element(find.byType(MaterialApp).first));
 
   Future<ProviderContainer> start(WidgetTester tester) async {
-    await pumpApp(tester, backend, trails: trails, trailCache: cache, outbox: outbox);
+    await pumpApp(
+      tester,
+      backend,
+      trails: trails,
+      trailCache: cache,
+      outbox: outbox,
+    );
     await settle(tester, frames: 12);
     return containerOf(tester);
   }
 
-  testWidgets('merken: sofort da, nachgelesen werden nur die Startpunkte', (tester) async {
+  testWidgets('merken: sofort da, nachgelesen werden nur die Startpunkte', (
+    tester,
+  ) async {
     final c = await start(tester);
     expect(c.read(startPointsProvider), isEmpty);
     final lines = trails.recordingFetches;
     final points = trails.startPointFetches;
 
     final outcome = await tester.runAsync(
-        () => c.read(trailsProvider.notifier).saveStartPoint(parking('p1', name: '  Parkplatz Talboden  ')));
+      () => c
+          .read(trailsProvider.notifier)
+          .saveStartPoint(parking('p1', name: '  Parkplatz Talboden  ')),
+    );
     await settle(tester, frames: 6);
     expect(outcome, WriteOutcome.done);
-    expect(trails.startPoints.single.name, 'Parkplatz Talboden', reason: 'gekürzt wie in der Datenbank');
+    expect(
+      trails.startPoints.single.name,
+      'Parkplatz Talboden',
+      reason: 'gekürzt wie in der Datenbank',
+    );
     final shown = c.read(startPointsProvider).single;
     expect((shown.key, shown.pending), ('$annaId/p1', false));
-    expect(trails.recordingFetches, lines, reason: 'ein Startpunkt ändert keine Linie');
+    expect(
+      trails.recordingFetches,
+      lines,
+      reason: 'ein Startpunkt ändert keine Linie',
+    );
     expect(trails.startPointFetches, points + 1);
-    await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 20)));
-    expect(cache.snapshot!.startPoints.single.name, 'Parkplatz Talboden',
-        reason: 'die Kopie trägt ihn mit — am Parkplatz ohne Empfang');
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 20)),
+    );
+    expect(
+      cache.snapshot!.startPoints.single.name,
+      'Parkplatz Talboden',
+      reason: 'die Kopie trägt ihn mit — am Parkplatz ohne Empfang',
+    );
 
-    await tester.runAsync(() => c.read(trailsProvider.notifier).deleteStartPoint('p1'));
+    await tester.runAsync(
+      () => c.read(trailsProvider.notifier).deleteStartPoint('p1'),
+    );
     await settle(tester, frames: 6);
     expect(trails.startPoints, isEmpty);
     expect(c.read(startPointsProvider), isEmpty);
   });
 
-  testWidgets('ohne Netz: wartet sichtbar im Korb und geht danach hinaus', (tester) async {
+  testWidgets('ohne Netz: wartet sichtbar im Korb und geht danach hinaus', (
+    tester,
+  ) async {
     final c = await start(tester);
     trails.failNextStartPointWrite = const SocketException('offline');
-    final outcome = await tester.runAsync(() => c.read(trailsProvider.notifier).saveStartPoint(parking('p1')));
+    final outcome = await tester.runAsync(
+      () => c.read(trailsProvider.notifier).saveStartPoint(parking('p1')),
+    );
     await settle(tester, frames: 6);
     expect(outcome, WriteOutcome.queued);
     expect(trails.startPoints, isEmpty);
     expect((outbox.jobs.single as StartPointJob).point.clientId, 'p1');
-    expect(c.read(startPointsProvider).single.pending, isTrue, reason: 'steht schon da, als wartend');
+    expect(
+      c.read(startPointsProvider).single.pending,
+      isTrue,
+      reason: 'steht schon da, als wartend',
+    );
 
     final lines = trails.recordingFetches;
-    final result = await tester.runAsync(() => c.read(trailsProvider.notifier).sendOutbox());
+    final result = await tester.runAsync(
+      () => c.read(trailsProvider.notifier).sendOutbox(),
+    );
     await settle(tester, frames: 6);
     expect(result?.sent, 1);
     expect(outbox.jobs, isEmpty);
     expect(trails.startPoints.single.clientId, 'p1');
     expect(c.read(startPointsProvider).single.pending, isFalse);
-    expect(trails.recordingFetches, lines, reason: 'nach einem Startpunkt kein ganzes Neuladen');
+    expect(
+      trails.recordingFetches,
+      lines,
+      reason: 'nach einem Startpunkt kein ganzes Neuladen',
+    );
   });
 
-  testWidgets('die Obergrenze sagt es, bevor ein Auftrag wartet', (tester) async {
+  testWidgets('die Obergrenze sagt es, bevor ein Auftrag wartet', (
+    tester,
+  ) async {
     for (var i = 0; i < kStartPointMax; i++) {
       trails.startPoints.add(parking('voll$i', name: 'P$i'));
     }
@@ -110,17 +159,29 @@ void main() {
       }
     });
     expect(error, isA<StartPointLimitException>());
-    expect(outbox.jobs, isEmpty, reason: 'kein Auftrag, den der Server sicher ablehnt');
+    expect(
+      outbox.jobs,
+      isEmpty,
+      reason: 'kein Auftrag, den der Server sicher ablehnt',
+    );
     // Umbenennen geht auch am Limit.
     trails.failNextStartPointWrite = null;
-    await tester.runAsync(() => c.read(trailsProvider.notifier).saveStartPoint(parking('voll0', name: 'Neu')));
+    await tester.runAsync(
+      () => c
+          .read(trailsProvider.notifier)
+          .saveStartPoint(parking('voll0', name: 'Neu')),
+    );
     expect(trails.startPoints.first.name, 'Neu');
   });
 
-  testWidgets('Kaltstart ohne Empfang: die Startpunkte aus der Kopie', (tester) async {
+  testWidgets('Kaltstart ohne Empfang: die Startpunkte aus der Kopie', (
+    tester,
+  ) async {
     trails.startPoints.add(parking('p1'));
     await start(tester);
-    await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 20)));
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 20)),
+    );
     expect(cache.snapshot!.startPoints, hasLength(1));
 
     await tester.pumpWidget(const SizedBox());
@@ -130,7 +191,13 @@ void main() {
     cache.uid = anna.id;
     trails = FakeTrailRepository(myId: () => backend2.currentUserId ?? '')
       ..failFetch = const SocketException('offline');
-    await pumpApp(tester, backend2, trails: trails, trailCache: cache, outbox: outbox);
+    await pumpApp(
+      tester,
+      backend2,
+      trails: trails,
+      trailCache: cache,
+      outbox: outbox,
+    );
     await settle(tester, frames: 12);
     final shown = containerOf(tester).read(startPointsProvider);
     expect(shown.map((p) => p.name), ['Parkplatz Talboden']);

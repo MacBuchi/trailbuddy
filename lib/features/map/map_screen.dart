@@ -7,7 +7,8 @@ import 'package:geolocator/geolocator.dart' show Position;
 import 'package:go_router/go_router.dart';
 import 'package:latlong2/latlong.dart';
 
-import '../garmin/watch_buddies.dart' show decodeVoiceWatch, kVoiceWatchMessagePrefix;
+import '../garmin/watch_buddies.dart'
+    show decodeVoiceWatch, kVoiceWatchMessagePrefix;
 import '../garmin/watch_providers.dart';
 import '../../core/app_colors.dart';
 import '../../core/geo.dart';
@@ -28,7 +29,8 @@ import '../nearby/nearby_providers.dart';
 import '../nearby/nearby_widgets.dart' show LiveShareButton;
 import '../rides/airtime_live.dart';
 import '../rides/airtime_live_window.dart';
-import '../rides/climb_limit_row.dart' show offerClimbLimitAfter, takePendingClimbLimit;
+import '../rides/climb_limit_row.dart'
+    show offerClimbLimitAfter, takePendingClimbLimit;
 import '../../core/screen_awake.dart';
 import '../rides/mark_name_dialog.dart';
 import '../rides/ride_mark_name.dart';
@@ -44,17 +46,21 @@ import '../routing/loop_planner_providers.dart';
 import '../routing/loop_planner_sheet.dart';
 import '../routing/loop_tool_rail.dart';
 import '../routing/map_panel.dart';
-import '../routing/nav_notice.dart' show kNavMessageLeft, kNavMessageOpen, kNavMessageStop;
+import '../routing/nav_notice.dart'
+    show kNavMessageLeft, kNavMessageOpen, kNavMessageStop;
 import '../routing/nav_providers.dart';
 import '../routing/nav_service.dart';
 import '../routing/nav_sections.dart';
 import '../routing/nav_view.dart';
-import '../routing/route_progress.dart' show followCenter, kNavMinFollowZoom, kNavPipZoom, kNavZoom, pipAheadPx;
-import '../routing/route_elevation.dart' show RouteCursorSymbol, routeProfileCursorProvider;
+import '../routing/route_progress.dart'
+    show followCenter, kNavMinFollowZoom, kNavPipZoom, kNavZoom, pipAheadPx;
+import '../routing/route_elevation.dart'
+    show RouteCursorSymbol, routeProfileCursorProvider;
 import '../routing/route_profile.dart' show RiderProfile, RoutePrefs;
 import '../routing/route_via_providers.dart';
 import '../routing/route_vias.dart';
-import '../routing/routing_bake.dart' show routingBakeOnStartProvider, routingBakeProvider;
+import '../routing/routing_bake.dart'
+    show routingBakeOnStartProvider, routingBakeProvider;
 import '../routing/via_handles.dart';
 import '../routing/trail_head_providers.dart';
 import '../trails/trail_navigation.dart' show navigateToPoint;
@@ -124,8 +130,10 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   static const _dachCenter = LatLng(48.8, 10.5);
   static const _initialZoom = 6.0;
 
-  final _controller =
-      MapViewController(initialCenter: _dachCenter, initialZoom: _initialZoom);
+  final _controller = MapViewController(
+    initialCenter: _dachCenter,
+    initialZoom: _initialZoom,
+  );
   bool _fittedOnce = false;
 
   /// Das Scaffold der Karte: Die Routen-Blätter hängen sich als Persistent
@@ -178,8 +186,11 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     // (#28): Der Service hat derweil in die Datei geschrieben.
     unawaited(ref.read(rideProvider.notifier).restore());
     // Bildschirm an, solange eine Fahrt läuft und ihr Knopf an ist (#445).
-    ref.listenManual<bool>(rideHoldsScreenProvider, (_, on) => _screen.set(_rideScreenHold, on),
-        fireImmediately: true);
+    ref.listenManual<bool>(
+      rideHoldsScreenProvider,
+      (_, on) => _screen.set(_rideScreenHold, on),
+      fireImmediately: true,
+    );
     // Ebenso eine Navigation, die der Dienst weitergeführt hat (#232,
     // 9.5) — ohne Rückfrage, sie lief ja.
     unawaited(_restoreNavigation());
@@ -188,9 +199,14 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     // `main()` (`initRideCommunication`).
     FlutterForegroundTask.addTaskDataCallback(_onRideTick);
     // Bild-im-Bild (#232, 9.6): klein oder groß, und „Beenden" im Fenster.
-    ref.read(pictureInPictureProvider).listen(onMode: _onPipMode, onStop: () {
-      if (mounted) ref.read(navigationProvider.notifier).stop();
-    });
+    ref
+        .read(pictureInPictureProvider)
+        .listen(
+          onMode: _onPipMode,
+          onStop: () {
+            if (mounted) ref.read(navigationProvider.notifier).stop();
+          },
+        );
     _registerCoachScenes();
     // Ein Fokus-Wunsch, der VOR dem Aufbau gestellt wurde (Route
     // `/trail/<id>` aus einer Push): `ref.listen` sieht nur Änderungen.
@@ -200,7 +216,9 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       unawaited(_firstStart());
       // Stücke für den Planer, die beim Start fehlen (#410): Bereiche von
       // vor 0.137.0, ein abgebrochenes Backen. Still, wenn alles liegt.
-      if (ref.read(routingBakeOnStartProvider)) unawaited(ref.read(routingBakeProvider.notifier).bakeStored());
+      if (ref.read(routingBakeOnStartProvider)) {
+        unawaited(ref.read(routingBakeProvider.notifier).bakeStored());
+      }
     });
   }
 
@@ -227,7 +245,8 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     // Läuft schon etwas (aus der Kurzanleitung gestartet), nicht
     // dazwischenfahren.
     var overlayShown = shownNote;
-    if (!ref.read(mapTourSeenProvider) && !ref.read(coachProvider.notifier).busy) {
+    if (!ref.read(mapTourSeenProvider) &&
+        !ref.read(coachProvider.notifier).busy) {
       startWelcomeTour(context.l10n, ref, GoRouter.of(context));
       overlayShown = true;
     }
@@ -252,49 +271,73 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     }
 
     _coachScenes
-      ..add(coach.registerScene(MapCoach.rail, () async {
-        final wasOpen = ref.read(offlineOverlayProvider);
-        if (!wasOpen) _openTools();
-        return () {
-          if (wasOpen || !mounted) return;
-          ref.read(areaDraftProvider.notifier).discard();
-          ref.read(offlineOverlayProvider.notifier).state = false;
-        };
-      }))
-      ..add(coach.registerScene(MapCoach.layersSheet, () => sheet(() => showMapLayersSheet(context))))
+      ..add(
+        coach.registerScene(MapCoach.rail, () async {
+          final wasOpen = ref.read(offlineOverlayProvider);
+          if (!wasOpen) _openTools();
+          return () {
+            if (wasOpen || !mounted) return;
+            ref.read(areaDraftProvider.notifier).discard();
+            ref.read(offlineOverlayProvider.notifier).state = false;
+          };
+        }),
+      )
+      ..add(
+        coach.registerScene(
+          MapCoach.layersSheet,
+          () => sheet(() => showMapLayersSheet(context)),
+        ),
+      )
       // Die Legende (#182): aufklappen, und zu, wenn sie zu war.
-      ..add(coach.registerScene(MapCoach.legend, () async {
-        final legend = ref.read(mapLegendOpenProvider.notifier);
-        final wasOpen = ref.read(mapLegendOpenProvider);
-        if (!wasOpen) legend.set(true);
-        return () {
-          if (!wasOpen && mounted) legend.set(false);
-        };
-      }))
+      ..add(
+        coach.registerScene(MapCoach.legend, () async {
+          final legend = ref.read(mapLegendOpenProvider.notifier);
+          final wasOpen = ref.read(mapLegendOpenProvider);
+          if (!wasOpen) legend.set(true);
+          return () {
+            if (!wasOpen && mounted) legend.set(false);
+          };
+        }),
+      )
       // Der Planer ist seit 0.74.0 ein Modus mit Leiste: Die Szene öffnet
       // ihn und schließt ihn wieder, wenn sie ihn geöffnet hat.
-      ..add(coach.registerScene(MapCoach.loopRail, () async {
-        final wasOpen = ref.read(loopPlannerProvider).open;
-        if (!wasOpen) await _openLoopPlanner();
-        return () {
-          if (!wasOpen && mounted) ref.read(loopPlannerProvider.notifier).close();
-        };
-      }))
+      ..add(
+        coach.registerScene(MapCoach.loopRail, () async {
+          final wasOpen = ref.read(loopPlannerProvider).open;
+          if (!wasOpen) await _openLoopPlanner();
+          return () {
+            if (!wasOpen && mounted) {
+              ref.read(loopPlannerProvider.notifier).close();
+            }
+          };
+        }),
+      )
       // Das Einstiegsblatt (#516): ein frischer Planer mit dem Blatt.
-      ..add(coach.registerScene(MapCoach.loopEntry, () async {
-        final wasOpen = ref.read(loopPlannerProvider).open;
-        if (!wasOpen) await _openLoopPlanner(entry: true);
-        return () {
-          if (!wasOpen && mounted) ref.read(loopPlannerProvider.notifier).close();
-        };
-      }))
-      ..add(coach.registerScene(MapCoach.trailSheet, () async {
-        final trail = _coachTrail;
-        // Ohne Trail nichts zu öffnen — der Schritt fällt über `unless`
-        // ohnehin weg; ein leerer Schließer hält die Kette trotzdem.
-        if (trail == null) return () {};
-        return sheet(() => showTrailSheet(context, ref.read(trailByIdProvider(trail.id)) ?? trail));
-      }));
+      ..add(
+        coach.registerScene(MapCoach.loopEntry, () async {
+          final wasOpen = ref.read(loopPlannerProvider).open;
+          if (!wasOpen) await _openLoopPlanner(entry: true);
+          return () {
+            if (!wasOpen && mounted) {
+              ref.read(loopPlannerProvider.notifier).close();
+            }
+          };
+        }),
+      )
+      ..add(
+        coach.registerScene(MapCoach.trailSheet, () async {
+          final trail = _coachTrail;
+          // Ohne Trail nichts zu öffnen — der Schritt fällt über `unless`
+          // ohnehin weg; ein leerer Schließer hält die Kette trotzdem.
+          if (trail == null) return () {};
+          return sheet(
+            () => showTrailSheet(
+              context,
+              ref.read(trailByIdProvider(trail.id)) ?? trail,
+            ),
+          );
+        }),
+      );
   }
 
   void _takeFocusWish() {
@@ -326,9 +369,13 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     final camera = _camera;
     if (camera == null) return;
     final b = camera.bounds;
-    final keys = tilesInBounds(AreaBounds(south: b.south, west: b.west, north: b.north, east: b.east));
+    final keys = tilesInBounds(
+      AreaBounds(south: b.south, west: b.west, north: b.north, east: b.east),
+    );
     if (keys == null) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(context.l10n.mapViewportTooLarge)));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(context.l10n.mapViewportTooLarge)));
       return;
     }
     ref.read(areaDraftProvider.notifier).addAll(keys);
@@ -349,9 +396,18 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     final saved = await showSaveDraftDialog(context, draft);
     if (!saved || !mounted) return;
     ref.read(areaDraftProvider.notifier).clear();
-    final area = draft.adds.isEmpty ? null : ref.read(areaDownloadProvider).result;
-    messenger.showSnackBar(SnackBar(
-        content: Text(area == null ? l.mapAreaChangesSaved : l.mapAreaSaved(area.name, formatBytes(area.bytes)))));
+    final area = draft.adds.isEmpty
+        ? null
+        : ref.read(areaDownloadProvider).result;
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text(
+          area == null
+              ? l.mapAreaChangesSaved
+              : l.mapAreaSaved(area.name, formatBytes(area.bytes)),
+        ),
+      ),
+    );
   }
 
   /// Ein fertiger Strich (Stufe C): seine Kacheln in den Entwurf — oder,
@@ -360,7 +416,9 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     final draft = ref.read(areaDraftProvider.notifier);
     if (keys == null) {
       draft.disarm();
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(context.l10n.mapStrokeTooLarge)));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(context.l10n.mapStrokeTooLarge)));
       return;
     }
     draft.applyStroke(keys);
@@ -373,17 +431,29 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   /// antwortete mit dem alten Stand (gemessen: null, obwohl die Liste
   /// den Trail trug).
   bool _focusOn(String id) {
-    final t = ref.read(trailsProvider).valueOrNull?.where((x) => x.id == id).firstOrNull;
+    final t = ref
+        .read(trailsProvider)
+        .valueOrNull
+        ?.where((x) => x.id == id)
+        .firstOrNull;
     if (t == null) return false;
     // Blendet der Filter (#66) genau diesen Trail aus, fällt er — sonst
     // führte eine Push-Meldung auf eine leere Stelle. Und die App sagt es.
     final filter = ref.read(trailListFilterProvider);
-    if (!passesTrailFilter(t, filter,
-        seenNotes: ref.read(seenNotesProvider), snoozed: ref.read(stillValidSnoozesProvider))) {
-      ref.read(trailListFilterProvider.notifier).state = const TrailListFilter();
-      ScaffoldMessenger.maybeOf(context)?.showSnackBar(SnackBar(
+    if (!passesTrailFilter(
+      t,
+      filter,
+      seenNotes: ref.read(seenNotesProvider),
+      snoozed: ref.read(stillValidSnoozesProvider),
+    )) {
+      ref.read(trailListFilterProvider.notifier).state =
+          const TrailListFilter();
+      ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+        SnackBar(
           key: const ValueKey('filter-reset-for-focus'),
-          content: Text(context.l10n.mapFilterResetForFocus)));
+          content: Text(context.l10n.mapFilterResetForFocus),
+        ),
+      );
     }
     _fittedOnce = true;
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -400,7 +470,9 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     }
     // Der Dienst sah es zuerst (#464): weit neben der Route.
     if (data is String && data.startsWith(kNavMessageLeft)) {
-      ref.read(navigationProvider.notifier).leave(double.tryParse(data.substring(kNavMessageLeft.length)) ?? 0);
+      ref
+          .read(navigationProvider.notifier)
+          .leave(double.tryParse(data.substring(kNavMessageLeft.length)) ?? 0);
       return;
     }
     if (data == kNavMessageOpen) {
@@ -459,7 +531,8 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   // An der PUNKTLISTE, nicht am Trail: Ein Trail-Objekt entsteht neu,
   // sobald sich ein Stern ändert, seine Linie nicht. Dieselbe geglättete
   // Liste heißt für MapLibre „nichts zu übertragen" (`MapLibreLineCache`).
-  List<LatLng> _smoothed(Trail t) => _smoothCache[t.points] ??= chaikinSmooth(t.points);
+  List<LatLng> _smoothed(Trail t) =>
+      _smoothCache[t.points] ??= chaikinSmooth(t.points);
 
   /// Die Linie trägt die Schwierigkeit (seit 0.42.0), nicht mehr die
   /// Beziehung; eine Meldung liegt als Leuchtrand darum ([_borderOf]).
@@ -486,7 +559,12 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     ref.read(contourViewProvider.notifier).state = (
       bounds: b,
       metersPerPixel: groundResolution(
-          west: b.west, east: b.east, south: b.south, north: b.north, widthPixels: camera.size.width),
+        west: b.west,
+        east: b.east,
+        south: b.south,
+        north: b.north,
+        widthPixels: camera.size.width,
+      ),
     );
   }
 
@@ -505,7 +583,8 @@ class _MapScreenState extends ConsumerState<MapScreen> {
         ? null
         : '${officialView.s},${officialView.w},${officialView.n},${officialView.e}';
     final poisDue = poiKey != null && poiKey != _requestedPois;
-    final officialDue = officialKey != null && officialKey != _requestedOfficial;
+    final officialDue =
+        officialKey != null && officialKey != _requestedOfficial;
     if (poiKey == null) _requestedPois = null;
     if (officialKey == null) _requestedOfficial = null;
     if (!poisDue && !officialDue) return;
@@ -515,10 +594,16 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     _loadDebounce = Timer(_loadDelay, () {
       if (!mounted) return;
       if (poisDue) {
-        unawaited(ref.read(poiControllerProvider.notifier).ensure(cells!, groups));
+        unawaited(
+          ref.read(poiControllerProvider.notifier).ensure(cells!, groups),
+        );
       }
       if (officialDue) {
-        unawaited(ref.read(officialTrailsControllerProvider.notifier).ensure(officialView!));
+        unawaited(
+          ref
+              .read(officialTrailsControllerProvider.notifier)
+              .ensure(officialView!),
+        );
       }
     });
   }
@@ -564,14 +649,20 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     if (trail == null) return;
     await _openLoopPlanner();
     if (!mounted || !ref.read(loopPlannerProvider).open) return;
-    ref.read(loopPlannerProvider.notifier).takeTrailHead(trail, asTarget: request.asTarget);
+    ref
+        .read(loopPlannerProvider.notifier)
+        .takeTrailHead(trail, asTarget: request.asTarget);
     _fittedOnce = true;
     _fitTo([trail]);
   }
 
   /// Ein Ort als Start, Zwischenpunkt oder Ziel (#331 Schritte 3 und 4),
   /// aus seinem Blatt: Er liegt schon im Bild, also nichts einpassen.
-  Future<void> _planFromPlace(LatLng at, LoopPlaceRole role, {String? name}) async {
+  Future<void> _planFromPlace(
+    LatLng at,
+    LoopPlaceRole role, {
+    String? name,
+  }) async {
     if (!ref.read(loopPlannerProvider).open) await _openLoopPlanner();
     if (!mounted || !ref.read(loopPlannerProvider).open) return;
     ref.read(loopPlannerProvider.notifier).takePlace(at, role, name: name);
@@ -593,25 +684,32 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     notifier.removeWaypoint(k);
     ScaffoldMessenger.of(context)
       ..clearSnackBars()
-      ..showSnackBar(SnackBar(
-        key: const ValueKey('loop-waypoint-removed'),
-        content: Text(context.l10n.mapViaRemoved),
-        action: SnackBarAction(label: context.l10n.commonUndo, onPressed: () => notifier.setWaypoints(before)),
-        persist: false,
-      ));
+      ..showSnackBar(
+        SnackBar(
+          key: const ValueKey('loop-waypoint-removed'),
+          content: Text(context.l10n.mapViaRemoved),
+          action: SnackBarAction(
+            label: context.l10n.commonUndo,
+            onPressed: () => notifier.setWaypoints(before),
+          ),
+          persist: false,
+        ),
+      );
   }
 
   /// Eine Meldung in der Auswahlzeile des Planers (#516), mit Rückgängig;
   /// die nächste ersetzt sie, nach ein paar Sekunden ist sie weg.
   void _showLoopNote(String text, VoidCallback undo) {
     _loopNoteTimer?.cancel();
-    setState(() => _loopNote = (
-          text: text,
-          undo: () {
-            undo();
-            _clearLoopNote();
-          }
-        ));
+    setState(
+      () => _loopNote = (
+        text: text,
+        undo: () {
+          undo();
+          _clearLoopNote();
+        },
+      ),
+    );
     _loopNoteTimer = Timer(kLoopNoteDuration, _clearLoopNote);
   }
 
@@ -647,13 +745,18 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     if (closed == null || !undo) return closed;
     ScaffoldMessenger.of(context)
       ..clearSnackBars()
-      ..showSnackBar(SnackBar(
-        key: const ValueKey('loop-closed'),
-        content: Text(context.l10n.loopClosed),
-        action: SnackBarAction(label: context.l10n.commonUndo, onPressed: () => unawaited(_restoreLoop(closed))),
-        // Seit Flutter 3.47 bliebe eine Leiste mit Aktion stehen (#371).
-        persist: false,
-      ));
+      ..showSnackBar(
+        SnackBar(
+          key: const ValueKey('loop-closed'),
+          content: Text(context.l10n.loopClosed),
+          action: SnackBarAction(
+            label: context.l10n.commonUndo,
+            onPressed: () => unawaited(_restoreLoop(closed)),
+          ),
+          // Seit Flutter 3.47 bliebe eine Leiste mit Aktion stehen (#371).
+          persist: false,
+        ),
+      );
     return closed;
   }
 
@@ -693,10 +796,17 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   /// Einstieg mit fertigem Auftrag und hat sich nichts geändert, schließt
   /// das Blatt den ganzen Planer (Schnell zu, Konzept-Routing 10.4) — und
   /// ein Trail, der vorher ausgewählt war, ist es wieder.
-  Future<void> _showLoopResult({bool compute = true, bool suggest = false}) async {
+  Future<void> _showLoopResult({
+    bool compute = true,
+    bool suggest = false,
+  }) async {
     final scaffold = _scaffoldKey.currentState;
     if (scaffold == null) return;
-    final shown = showLoopResultPanel(scaffold, compute: compute, suggest: suggest);
+    final shown = showLoopResultPanel(
+      scaffold,
+      compute: compute,
+      suggest: suggest,
+    );
     _loopPanel = shown;
     await shown;
     if (!identical(_loopPanel, shown)) return;
@@ -708,7 +818,9 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     // Ein frischer Auftrag hat nichts, was „Rückgängig" holen müsste; eine
     // gebaute Runde, die nach der Navigation wieder dasteht, schon.
     _closeLoopPlanner(undo: s.selected.isNotEmpty || s.waypoints.isNotEmpty);
-    if (back != null && ref.read(trailByIdProvider(back)) != null) setState(() => _selectedTrailId = back);
+    if (back != null && ref.read(trailByIdProvider(back)) != null) {
+      setState(() => _selectedTrailId = back);
+    }
   }
 
   Future<void>? _loopPanel;
@@ -728,8 +840,13 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   /// mit Ziel, gerechnet wird sofort. Bei offenem Planer ist jeder dieser
   /// Einstiege seit #516 das Ziel DIESER Planung; die Rückfrage „Planung
   /// ersetzen?" (bis 0.171.0) gibt es damit nicht mehr.
-  Future<void> _planRoute(LatLng target,
-      {String? trailId, RouteMode? style, String? name, bool saved = false}) async {
+  Future<void> _planRoute(
+    LatLng target, {
+    String? trailId,
+    RouteMode? style,
+    String? name,
+    bool saved = false,
+  }) async {
     final returnTo = _selectedTrailId;
     if (ref.read(offlineOverlayProvider)) {
       await _closeTools();
@@ -737,7 +854,15 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     }
     setState(() => _selectedTrailId = null);
     _quickReturnTrailId = returnTo;
-    ref.read(loopPlannerProvider.notifier).beginRoute(target, trailId: trailId, style: style, targetName: name, targetSaved: saved);
+    ref
+        .read(loopPlannerProvider.notifier)
+        .beginRoute(
+          target,
+          trailId: trailId,
+          style: style,
+          targetName: name,
+          targetSaved: saved,
+        );
     await _showLoopResult();
   }
 
@@ -748,7 +873,12 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   /// sofort. Am Pixel stand der Planer auf „Kein Ziel gesetzt", und „Route
   /// bis hier" wollte den gewählten Trail verwerfen. Ohne Planer ein
   /// fertiger Auftrag wie bisher.
-  Future<void> _routeTo(LatLng target, {Trail? trail, String? name, bool saved = false}) async {
+  Future<void> _routeTo(
+    LatLng target, {
+    Trail? trail,
+    String? name,
+    bool saved = false,
+  }) async {
     if (!ref.read(loopPlannerProvider).open) {
       return _planRoute(target, trailId: trail?.id, name: name, saved: saved);
     }
@@ -773,12 +903,17 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     notifier.remove(r);
     ScaffoldMessenger.of(context)
       ..clearSnackBars()
-      ..showSnackBar(SnackBar(
-        key: const ValueKey('via-removed'),
-        content: Text(context.l10n.mapViaRemoved),
-        action: SnackBarAction(label: context.l10n.commonUndo, onPressed: () => notifier.set(before)),
-        persist: false,
-      ));
+      ..showSnackBar(
+        SnackBar(
+          key: const ValueKey('via-removed'),
+          content: Text(context.l10n.mapViaRemoved),
+          action: SnackBarAction(
+            label: context.l10n.commonUndo,
+            onPressed: () => notifier.set(before),
+          ),
+          persist: false,
+        ),
+      );
   }
 
   void _onHit(Object hit, MapTap tap) {
@@ -816,16 +951,27 @@ class _MapScreenState extends ConsumerState<MapScreen> {
             case LoopToggle.connector || LoopToggle.pending:
               ScaffoldMessenger.of(context)
                 ..clearSnackBars()
-                ..showSnackBar(SnackBar(
+                ..showSnackBar(
+                  SnackBar(
                     key: const ValueKey('loop-not-pickable'),
-                    content:
-                        Text(result == LoopToggle.connector ? l.mapLoopConnector(name) : l.mapLoopPending(name))));
+                    content: Text(
+                      result == LoopToggle.connector
+                          ? l.mapLoopConnector(name)
+                          : l.mapLoopPending(name),
+                    ),
+                  ),
+                );
             // Jeder Tipp sagt, was er geändert hat, mit Rückgängig (#375) —
             // seit #516 in der Auswahlzeile: Als Leiste verdeckte es die
             // Leiste und „Meine Position".
             case LoopToggle.selected || LoopToggle.deselected:
-              _showLoopNote(result == LoopToggle.selected ? l.mapLoopAdded(name) : l.mapLoopRemoved(name),
-                  () => planner.restoreSelection(before.selected, before.mandatory));
+              _showLoopNote(
+                result == LoopToggle.selected
+                    ? l.mapLoopAdded(name)
+                    : l.mapLoopRemoved(name),
+                () =>
+                    planner.restoreSelection(before.selected, before.mandatory),
+              );
           }
           return;
         }
@@ -839,28 +985,46 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       case final OfficialTrail o:
         showOfficialTrailSheet(context, o);
       case final Poi p:
-        showPoiSheet(context, p,
-            onPlan: (role) => unawaited(_planFromPlace(p.position, role, name: p.name)),
-            onRoute: () => unawaited(_routeTo(p.position, name: p.name)),
-            onRemember: () => unawaited(rememberStartPoint(context, ref, p.position, name: p.name ?? p.kind.label(context.l10n))));
+        showPoiSheet(
+          context,
+          p,
+          onPlan: (role) =>
+              unawaited(_planFromPlace(p.position, role, name: p.name)),
+          onRoute: () => unawaited(_routeTo(p.position, name: p.name)),
+          onRemember: () => unawaited(
+            rememberStartPoint(
+              context,
+              ref,
+              p.position,
+              name: p.name ?? p.kind.label(context.l10n),
+            ),
+          ),
+        );
       // Ein gemerkter Startpunkt (#543): wie ein Ort, mit Navi-App.
       case final StartPoint p:
-        showStartPointSheet(context, p,
-            onStart: () => unawaited(_planFromStartPoint(p)),
-            onTarget: () {
-              ref.read(loopPlannerProvider.notifier).noteStartPointChosen(p);
-              unawaited(_routeTo(p.position, name: p.name, saved: true));
-            },
-            onRemember: (p) => unawaited(rememberStartPoint(context, ref, p.position, name: p.name)));
+        showStartPointSheet(
+          context,
+          p,
+          onStart: () => unawaited(_planFromStartPoint(p)),
+          onTarget: () {
+            ref.read(loopPlannerProvider.notifier).noteStartPointChosen(p);
+            unawaited(_routeTo(p.position, name: p.name, saved: true));
+          },
+          onRemember: (p) => unawaited(
+            rememberStartPoint(context, ref, p.position, name: p.name),
+          ),
+        );
       // Ein Buddy (#519): wer, wie genau, wie alt.
       case final BuddyMapHit b:
         ScaffoldMessenger.of(context)
           ..clearSnackBars()
-          ..showSnackBar(SnackBar(
-            key: const ValueKey('buddy-map-hit'),
-            content: Text(buddyMapHitText(context.l10n, b)),
-            persist: false,
-          ));
+          ..showSnackBar(
+            SnackBar(
+              key: const ValueKey('buddy-map-hit'),
+              content: Text(buddyMapHitText(context.l10n, b)),
+              persist: false,
+            ),
+          );
     }
   }
 
@@ -875,13 +1039,21 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     if (fix == null) {
       final blocked = await ref.read(locationBlockedProvider)();
       if (!mounted) return;
-      messenger.showSnackBar(SnackBar(
-          content: Text(blocked ? l.mapPositionBlockedInBrowser : l.mapPositionUnavailable)));
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            blocked ? l.mapPositionBlockedInBrowser : l.mapPositionUnavailable,
+          ),
+        ),
+      );
       return;
     }
     _fittedOnce = true;
     final zoom = _controller.zoom;
-    _controller.move(LatLng(fix.latitude, fix.longitude), zoom < 14 ? 15 : zoom);
+    _controller.move(
+      LatLng(fix.latitude, fix.longitude),
+      zoom < 14 ? 15 : zoom,
+    );
     ref.invalidate(positionStreamProvider);
   }
 
@@ -893,45 +1065,60 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     final messenger = ScaffoldMessenger.of(context);
     final l = context.l10n;
     final rides = ref.read(rideProvider.notifier);
-    final canRecord = ref.read(rideRecordingAvailableProvider) && !rides.isRunning;
+    final canRecord =
+        ref.read(rideRecordingAvailableProvider) && !rides.isRunning;
     // Eine Fahrt kennt ihre Trails nicht: die Karte leitet sie aus dem
     // Netz ab (9.9), mit der Korridor-Regel des Zerlege-Blatts.
     if (request.sections == null) {
       final trails = ref.read(trailsProvider).valueOrNull ?? const <Trail>[];
       request = NavRequest(
-          points: request.points,
-          title: request.title,
-          startAlongM: request.startAlongM,
-          sections: navSectionsOfLine(context.l10n, request.points, trails),
-          fromPlanner: request.fromPlanner,
-          profile: request.profile,
-          routePrefs: request.routePrefs,
-          start: request.start);
+        points: request.points,
+        title: request.title,
+        startAlongM: request.startAlongM,
+        sections: navSectionsOfLine(context.l10n, request.points, trails),
+        fromPlanner: request.fromPlanner,
+        profile: request.profile,
+        routePrefs: request.routePrefs,
+        start: request.start,
+      );
     }
     final watchSync = ref.read(watchSyncProvider.notifier);
     // Aus dem Ergebnis des Planers ist schon gewählt (#517): kein zweites
     // Blatt. Sonst fragt das Start-Blatt mit denselben Chips.
     final chosen = request.start;
     final choice = chosen != null
-        ? NavStartChoice(record: canRecord && chosen.record, watch: chosen.watch)
-        : await showNavStartSheet(context,
+        ? NavStartChoice(
+            record: canRecord && chosen.record,
+            watch: chosen.watch,
+          )
+        : await showNavStartSheet(
+            context,
             title: request.title,
             canRecord: canRecord,
             summary: navStartSummary(l, request),
-            onWatchFound: () => watchSync.prepare(request.points));
+            onWatchFound: () => watchSync.prepare(request.points),
+          );
     if (choice == null || !choice.watch) watchSync.discardPrepared();
     if (choice == null || !mounted) return;
     // Der erste Fix kann dauern (kalter Empfänger): Die Leiste sagt es,
     // bis er da ist (Konzept-Routing 10.6).
-    final searching = messenger.showSnackBar(SnackBar(
-      key: const ValueKey('nav-searching'),
-      duration: const Duration(minutes: 2),
-      content: Row(children: [
-        const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)),
-        const SizedBox(width: 12),
-        Expanded(child: Text(l.mapNavSearching)),
-      ]),
-    ));
+    final searching = messenger.showSnackBar(
+      SnackBar(
+        key: const ValueKey('nav-searching'),
+        duration: const Duration(minutes: 2),
+        content: Row(
+          children: [
+            const SizedBox(
+              width: 18,
+              height: 18,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+            const SizedBox(width: 12),
+            Expanded(child: Text(l.mapNavSearching)),
+          ],
+        ),
+      ),
+    );
     Position? fix;
     try {
       fix = await ref.read(currentPositionProvider)();
@@ -942,8 +1129,13 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     if (fix == null) {
       final blocked = await ref.read(locationBlockedProvider)();
       if (!mounted) return;
-      messenger.showSnackBar(SnackBar(
-          content: Text(blocked ? l.mapNavBlockedInBrowser : l.mapNavNoPosition)));
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            blocked ? l.mapNavBlockedInBrowser : l.mapNavNoPosition,
+          ),
+        ),
+      );
       return;
     }
     // Die Karte gehört jetzt der Route: Blätter, Planer und Auswahl zu.
@@ -952,7 +1144,9 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       if (!mounted || ref.read(offlineOverlayProvider)) return;
     }
     closeMapPanel();
-    final closed = ref.read(loopPlannerProvider).open ? _closeLoopPlanner(undo: false) : null;
+    final closed = ref.read(loopPlannerProvider).open
+        ? _closeLoopPlanner(undo: false)
+        : null;
     _navReturn = request.fromPlanner ? closed : null;
     setState(() => _selectedTrailId = null);
     if (choice.record) {
@@ -967,18 +1161,43 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     // Vor dem Start: Die Uhr folgt dieser Navigation (die Route geht, sobald
     // sie steht) — oder, mit dem Schalter aus, keiner mehr.
     ref.read(watchSyncProvider.notifier).follow(choice.watch);
-    if (!_beginNavigation(request.points, request.title, request.startAlongM, request.sections,
-        profile: request.profile, routePrefs: request.routePrefs)) {
+    if (!_beginNavigation(
+      request.points,
+      request.title,
+      request.startAlongM,
+      request.sections,
+      profile: request.profile,
+      routePrefs: request.routePrefs,
+    )) {
       return;
     }
-    nav.onFix(LatLng(fix.latitude, fix.longitude), headingDeg: fix.heading, speedMps: fix.speed, at: fix.timestamp);
+    nav.onFix(
+      LatLng(fix.latitude, fix.longitude),
+      headingDeg: fix.heading,
+      speedMps: fix.speed,
+      at: fix.timestamp,
+    );
     _follow();
   }
 
-  bool _beginNavigation(List<LatLng> points, String title, double startAlongM, NavSections? sections,
-      {RiderProfile? profile, RoutePrefs? routePrefs}) {
-    if (!ref.read(navigationProvider.notifier).start(points, title,
-        startAlongM: startAlongM, sections: sections, profile: profile, routePrefs: routePrefs)) {
+  bool _beginNavigation(
+    List<LatLng> points,
+    String title,
+    double startAlongM,
+    NavSections? sections, {
+    RiderProfile? profile,
+    RoutePrefs? routePrefs,
+  }) {
+    if (!ref
+        .read(navigationProvider.notifier)
+        .start(
+          points,
+          title,
+          startAlongM: startAlongM,
+          sections: sections,
+          profile: profile,
+          routePrefs: routePrefs,
+        )) {
       return false;
     }
     _fittedOnce = true;
@@ -992,8 +1211,15 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   /// ersten Fix des Positionsstroms.
   Future<void> _restoreNavigation() async {
     final route = await ref.read(navServiceBridgeProvider).restore();
-    if (route == null || !mounted || ref.read(navigationProvider) != null) return;
-    _beginNavigation(route.points, route.title, route.startAlongM, route.sections);
+    if (route == null || !mounted || ref.read(navigationProvider) != null) {
+      return;
+    }
+    _beginNavigation(
+      route.points,
+      route.title,
+      route.startAlongM,
+      route.sections,
+    );
   }
 
   /// Der Zoom der Folgeansicht: [kNavZoom] beim Start, danach der, den die
@@ -1014,7 +1240,9 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     if (session == null || state == null) return;
     final pip = ref.read(pipModeProvider);
     final camera = _controller.zoom;
-    final zoom = pip ? kNavPipZoom : _navZoom ?? (camera < kNavMinFollowZoom ? kNavZoom : camera);
+    final zoom = pip
+        ? kNavPipZoom
+        : _navZoom ?? (camera < kNavMinFollowZoom ? kNavZoom : camera);
     if (!pip) _navZoom = null;
     final bearing = session.bearingDeg;
     // Die Höhe des Fensters, nicht die der letzten Kamera: Gleich nach dem
@@ -1024,11 +1252,18 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     _followHeight = height;
     final center = session.north
         ? state.position
-        : followCenter(state.position, bearing, zoom, height, aheadPx: pip ? pipAheadPx(height) : null);
+        : followCenter(
+            state.position,
+            bearing,
+            zoom,
+            height,
+            aheadPx: pip ? pipAheadPx(height) : null,
+          );
     _controller.move(center, zoom, bearing: bearing);
   }
 
-  void _fitTo(List<Trail> trails) => _fitPoints([for (final t in trails) ...t.points]);
+  void _fitTo(List<Trail> trails) =>
+      _fitPoints([for (final t in trails) ...t.points]);
 
   /// Einpassen — in die Fläche ÜBER einem offenen Routen-Blatt
   /// (`mapPanelInsetProvider`), sonst läge, was gezeigt werden soll,
@@ -1040,7 +1275,12 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   void _fitPoints(List<LatLng> pts) {
     final inset = ref.read(mapPanelInsetProvider);
     final cap = MediaQuery.sizeOf(context).height * 0.55;
-    _controller.fit(pts, padding: 40, maxZoom: 15, bottomInset: inset < cap ? inset : cap);
+    _controller.fit(
+      pts,
+      padding: 40,
+      maxZoom: 15,
+      bottomInset: inset < cap ? inset : cap,
+    );
   }
 
   /// Fahrt aufzeichnen oder beenden (#28). Beim Beenden ist die Fahrt
@@ -1085,8 +1325,12 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     // Höhenmeter über dem Limit des Rads? EINE Zeile im Blatt (#516
     // Schritt 6, Konzept-Routing 12.5a).
     final climbOffer = offerClimbLimitAfter(ref, ride);
-    final discard =
-        await showRideSplitSheet(context, SplitRequest.fromRide(ride), offerDiscard: true, climbOffer: climbOffer);
+    final discard = await showRideSplitSheet(
+      context,
+      SplitRequest.fromRide(ride),
+      offerDiscard: true,
+      climbOffer: climbOffer,
+    );
     if (!mounted || !discard) return;
     // Eine verworfene Fahrt fragt auch im Planer nichts mehr.
     if (climbOffer != null) takePendingClimbLimit(ref);
@@ -1144,7 +1388,11 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       case MarkNameLater():
         say(l.rideMarkEnd);
       case MarkNameDiscarded():
-        say(await rides.annotateMark(mark, discard: true) ? l.rideMarkDiscarded : l.rideMarkFailed);
+        say(
+          await rides.annotateMark(mark, discard: true)
+              ? l.rideMarkDiscarded
+              : l.rideMarkFailed,
+        );
       case MarkNameSaved(:final name, :final next):
         if (!await rides.annotateMark(mark, name: name)) {
           if (mounted) say(l.rideMarkFailed);
@@ -1153,7 +1401,11 @@ class _MapScreenState extends ConsumerState<MapScreen> {
         if (!next) return say(l.rideMarkNamed(name));
         final started = await rides.toggleMark();
         if (!mounted) return;
-        say(started?.kind == RideMarkKind.start ? l.rideMarkNamedNext(name) : l.rideMarkFailed);
+        say(
+          started?.kind == RideMarkKind.start
+              ? l.rideMarkNamedNext(name)
+              : l.rideMarkFailed,
+        );
     }
   }
 
@@ -1196,33 +1448,51 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     final l = context.l10n;
     final choice = await showMenu<String>(
       context: context,
-      position: RelativeRect.fromRect(at & const Size(1, 1), Offset.zero & overlay.size),
+      position: RelativeRect.fromRect(
+        at & const Size(1, 1),
+        Offset.zero & overlay.size,
+      ),
       items: [
         PopupMenuItem(
           key: const ValueKey('map-menu-from'),
           value: 'from',
-          child: ListTile(leading: const Icon(Icons.trip_origin), title: Text(l.mapMenuStartHere)),
+          child: ListTile(
+            leading: const Icon(Icons.trip_origin),
+            title: Text(l.mapMenuStartHere),
+          ),
         ),
         PopupMenuItem(
           key: const ValueKey('map-menu-to'),
           value: 'to',
-          child: ListTile(leading: const Icon(Icons.place_outlined), title: Text(l.mapMenuRouteTo)),
+          child: ListTile(
+            leading: const Icon(Icons.place_outlined),
+            title: Text(l.mapMenuRouteTo),
+          ),
         ),
         PopupMenuItem(
           key: const ValueKey('map-menu-via'),
           value: 'via',
-          child: ListTile(leading: const Icon(Icons.add_location_alt_outlined), title: Text(l.mapMenuViaHere)),
+          child: ListTile(
+            leading: const Icon(Icons.add_location_alt_outlined),
+            title: Text(l.mapMenuViaHere),
+          ),
         ),
         PopupMenuItem(
           key: const ValueKey('map-menu-external'),
           value: 'external',
-          child: ListTile(leading: const Icon(Icons.directions_outlined), title: Text(l.mapMenuExternalNav)),
+          child: ListTile(
+            leading: const Icon(Icons.directions_outlined),
+            title: Text(l.mapMenuExternalNav),
+          ),
         ),
         // Fünfter Eintrag (#543, Konzept Startpunkte 4): ohne Namen.
         PopupMenuItem(
           key: const ValueKey('map-menu-remember'),
           value: 'remember',
-          child: ListTile(leading: const Icon(Icons.flag_outlined), title: Text(l.startPointRemember)),
+          child: ListTile(
+            leading: const Icon(Icons.flag_outlined),
+            title: Text(l.startPointRemember),
+          ),
         ),
       ],
     );
@@ -1265,16 +1535,25 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     final shownTrails = trailFilter.isActive
         ? [
             for (final t in trails)
-              if (passesTrailFilter(t, trailFilter, seenNotes: seenNotes, snoozed: snoozed)) t
+              if (passesTrailFilter(
+                t,
+                trailFilter,
+                seenNotes: seenNotes,
+                snoozed: snoozed,
+              ))
+                t,
           ]
         : trails;
-    _coachTrail = shownTrails.where(hasTrailBadge).firstOrNull ?? shownTrails.firstOrNull;
+    _coachTrail =
+        shownTrails.where(hasTrailBadge).firstOrNull ?? shownTrails.firstOrNull;
     final groups = ref.watch(poiGroupsProvider);
     final hidden = ref.watch(poiHiddenKindsProvider);
     final poiState = ref.watch(poiControllerProvider);
     final poiUnavailable = groups.isNotEmpty && poiState.unavailable;
     final startPointsOn = ref.watch(startPointLayerEnabledProvider);
-    final startPoints = startPointsOn ? ref.watch(startPointsProvider) : const <StartPoint>[];
+    final startPoints = startPointsOn
+        ? ref.watch(startPointsProvider)
+        : const <StartPoint>[];
     final myId = ref.watch(currentUserIdProvider);
     final officialOn = ref.watch(officialTrailsEnabledProvider);
     final position = ref.watch(positionStreamProvider).valueOrNull;
@@ -1286,26 +1565,37 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     // sind — beide leuchten, oben steht, welche es sind.
     final comparePair = ref.watch(mapComparePairProvider);
     Trail? compareFind(String id) =>
-        trails.where((t) => t.id == id).firstOrNull ?? trails.where((t) => t.answersTo(id)).firstOrNull;
+        trails.where((t) => t.id == id).firstOrNull ??
+        trails.where((t) => t.answersTo(id)).firstOrNull;
     final compare = comparePair == null
         ? null
-        : (duplicate: compareFind(comparePair.duplicate), target: compareFind(comparePair.target));
+        : (
+            duplicate: compareFind(comparePair.duplicate),
+            target: compareFind(comparePair.target),
+          );
     final loop = ref.watch(loopPlannerProvider);
     final loopPicking = loop.open && loop.picking;
     final loopPlan = loop.open ? loop.plan : null;
-    final loopLine = loopPlan != null && loopPlan.outcome == LoopOutcome.ok && loopPlan.points.length >= 2
+    final loopLine =
+        loopPlan != null &&
+            loopPlan.outcome == LoopOutcome.ok &&
+            loopPlan.points.length >= 2
         ? loopPlan.points
         : null;
     // Die Fahnen stehen immer (#516, Konzept-Routing 12.6): die Startfahne
     // auch am Standort, solange nichts getippt und nichts gerechnet ist.
     final loopStartPin = !loop.open
         ? null
-        : loop.start ?? loopLine?.first ?? (position == null ? null : LatLng(position.latitude, position.longitude));
+        : loop.start ??
+              loopLine?.first ??
+              (position == null
+                  ? null
+                  : LatLng(position.latitude, position.longitude));
     final loopEndPin = !loop.open
         ? null
         : loopLine != null
-            ? (loop.planEnd == LoopEndMode.loop ? null : loopLine.last)
-            : (loop.prefs.endMode == LoopEndMode.target ? loop.target : null);
+        ? (loop.planEnd == LoopEndMode.loop ? null : loopLine.last)
+        : (loop.prefs.endMode == LoopEndMode.target ? loop.target : null);
     // Zwischenpunkte (#234), solange ihr Ergebnis auf der Karte liegt.
     final viaEdit = ref.watch(routeViaProvider);
     final vias = switch (viaEdit) {
@@ -1316,8 +1606,9 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     // Die im Höhenprofil des Ergebnisses gewählte Stelle (#332) — nur
     // solange ein Ergebnis auf der Karte liegt; das Blatt räumt sie erst
     // beim Abbau weg, und das kann nach dem Schließen des Planers sein.
-    final profileCursor =
-        loopPlan != null ? ref.watch(routeProfileCursorProvider) : null;
+    final profileCursor = loopPlan != null
+        ? ref.watch(routeProfileCursorProvider)
+        : null;
     // Der ausgewählte Trail (#178) — weg, wenn er nicht mehr gezeigt wird
     // (Filter, gelöscht).
     final selected = _selectedTrailId == null
@@ -1330,7 +1621,9 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     // Ins Bild-im-Bild meldet Android erst den Modus, dann die neue Größe;
     // die Kamera rechnete sonst bis zum nächsten Fix mit der alten Höhe,
     // und im Stand kommt keiner (#415).
-    if (nav != null && _followHeight != null && MediaQuery.sizeOf(context).height != _followHeight) {
+    if (nav != null &&
+        _followHeight != null &&
+        MediaQuery.sizeOf(context).height != _followHeight) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) _follow();
       });
@@ -1344,19 +1637,33 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     ref.listen(watchSyncProvider, (previous, next) {
       // Ein anderer Fehler in derselben Phase ist ein neuer Stand (#449:
       // erst die Uhr-App veraltet, dann die App).
-      if (previous?.phase == next.phase && previous?.error == next.error) return;
+      if (previous?.phase == next.phase && previous?.error == next.error) {
+        return;
+      }
       final l = context.l10n;
       final (key, text) = switch (next.phase) {
         WatchSyncPhase.stored => ('map-watch-stored', l.mapWatchStored),
         WatchSyncPhase.prompted => ('map-watch-prompted', l.mapWatchPrompted),
-        WatchSyncPhase.unconfirmed => ('map-watch-unconfirmed', l.mapWatchUnconfirmed),
-        WatchSyncPhase.failed when next.error == 'APP_IS_NOT_INSTALLED' =>
-          ('map-watch-missing', l.mapWatchMissing),
-        WatchSyncPhase.failed when next.error == kWatchTooBig => ('map-watch-too-big', l.mapWatchTooBig),
-        WatchSyncPhase.failed when next.error == kWatchOutdatedWatch =>
-          ('map-watch-outdated-watch', l.mapWatchOutdatedWatch),
-        WatchSyncPhase.failed when next.error == kWatchOutdatedPhone =>
-          ('map-watch-outdated-phone', l.mapWatchOutdatedPhone),
+        WatchSyncPhase.unconfirmed => (
+          'map-watch-unconfirmed',
+          l.mapWatchUnconfirmed,
+        ),
+        WatchSyncPhase.failed when next.error == 'APP_IS_NOT_INSTALLED' => (
+          'map-watch-missing',
+          l.mapWatchMissing,
+        ),
+        WatchSyncPhase.failed when next.error == kWatchTooBig => (
+          'map-watch-too-big',
+          l.mapWatchTooBig,
+        ),
+        WatchSyncPhase.failed when next.error == kWatchOutdatedWatch => (
+          'map-watch-outdated-watch',
+          l.mapWatchOutdatedWatch,
+        ),
+        WatchSyncPhase.failed when next.error == kWatchOutdatedPhone => (
+          'map-watch-outdated-phone',
+          l.mapWatchOutdatedPhone,
+        ),
         WatchSyncPhase.failed => ('map-watch-failed', l.mapWatchFailed),
         _ => (null, null),
       };
@@ -1370,7 +1677,9 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       final list = next.valueOrNull;
       // Während einer Fahrt fragt der Dienst zu unbestätigten Meldungen
       // (#116); seine Liste folgt dem, was die App gerade sieht.
-      if (list != null) unawaited(ref.read(rideProvider.notifier).syncConfirmTargets());
+      if (list != null) {
+        unawaited(ref.read(rideProvider.notifier).syncConfirmTargets());
+      }
       // Ein wartender Fokus-Wunsch geht vor dem Einpassen auf das Netz.
       final pending = _pendingFocus;
       if (pending != null && list != null && _focusOn(pending)) {
@@ -1393,7 +1702,8 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       if (pair == null) return;
       final list = ref.read(trailsProvider).valueOrNull ?? const <Trail>[];
       final both = [
-        for (final id in [pair.duplicate, pair.target]) ?list.where((t) => t.answersTo(id)).firstOrNull,
+        for (final id in [pair.duplicate, pair.target])
+          ?list.where((t) => t.answersTo(id)).firstOrNull,
       ];
       if (both.isEmpty) return;
       _fittedOnce = true;
@@ -1434,7 +1744,9 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       if (r == null) return;
       _fittedOnce = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) _fitPoints([for (final p in r.points) LatLng(p.lat, p.lng)]);
+        if (mounted) {
+          _fitPoints([for (final p in r.points) LatLng(p.lat, p.lng)]);
+        }
       });
     });
     ref.listen(mapSplitRequestProvider, (_, request) {
@@ -1447,12 +1759,17 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     // „Auf der Karte zeigen" aus „Meine Bereiche" (Konzept-Schritt 3).
     // Ein Zwischenpunkt, durch den kein Weg geht, springt zurück (#234).
     ref.listen(routeViaProvider, (prev, next) {
-      if (prev == null || next == null || next.rejections <= prev.rejections) return;
+      if (prev == null || next == null || next.rejections <= prev.rejections) {
+        return;
+      }
       ScaffoldMessenger.of(context)
         ..clearSnackBars()
-        ..showSnackBar(SnackBar(
+        ..showSnackBar(
+          SnackBar(
             key: const ValueKey('via-rejected'),
-            content: Text(context.l10n.mapViaRejected)));
+            content: Text(context.l10n.mapViaRejected),
+          ),
+        );
     });
     // „Navigieren" aus einem Ergebnis-Blatt oder aus „Meine Fahrten".
     ref.listen(navRequestProvider, (_, request) {
@@ -1470,24 +1787,30 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       final l = context.l10n;
       ScaffoldMessenger.of(context)
         ..clearSnackBars()
-        ..showSnackBar(SnackBar(
-          key: const ValueKey('nav-left'),
-          persist: false,
-          // Auf dem Rad schaut man nicht gleich hin (Gerätetest 2026-11-07:
-          // nach 10 s war sie weg, bevor der Finger kam).
-          duration: const Duration(seconds: 30),
-          content: Text(ref.read(rideProvider.notifier).isRunning
-              ? l.navLeftRouteRecording(formatMeters(offM))
-              : l.navLeftRoute(formatMeters(offM))),
-          action: SnackBarAction(
-            key: const ValueKey('nav-left-resume'),
-            label: l.navLeftResume,
-            onPressed: () {
-              final last = ref.read(lastNavProvider);
-              if (last != null) ref.read(navRequestProvider.notifier).state = last;
-            },
+        ..showSnackBar(
+          SnackBar(
+            key: const ValueKey('nav-left'),
+            persist: false,
+            // Auf dem Rad schaut man nicht gleich hin (Gerätetest 2026-11-07:
+            // nach 10 s war sie weg, bevor der Finger kam).
+            duration: const Duration(seconds: 30),
+            content: Text(
+              ref.read(rideProvider.notifier).isRunning
+                  ? l.navLeftRouteRecording(formatMeters(offM))
+                  : l.navLeftRoute(formatMeters(offM)),
+            ),
+            action: SnackBarAction(
+              key: const ValueKey('nav-left-resume'),
+              label: l.navLeftResume,
+              onPressed: () {
+                final last = ref.read(lastNavProvider);
+                if (last != null) {
+                  ref.read(navRequestProvider.notifier).state = last;
+                }
+              },
+            ),
           ),
-        ));
+        );
     });
     // Jeder Fix rückt den Stand weiter und die Kamera nach.
     ref.listen(positionStreamProvider, (_, next) {
@@ -1495,14 +1818,21 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       if (p == null || !ref.read(navigationProvider.notifier).isRunning) return;
       ref
           .read(navigationProvider.notifier)
-          .onFix(LatLng(p.latitude, p.longitude), headingDeg: p.heading, speedMps: p.speed, at: p.timestamp);
+          .onFix(
+            LatLng(p.latitude, p.longitude),
+            headingDeg: p.heading,
+            speedMps: p.speed,
+            at: p.timestamp,
+          );
       _follow();
     });
     // „Norden" sofort, nicht erst beim nächsten Fix; nach dem Ende wieder
     // genordet — außerhalb der Folgeansicht dreht die Karte nie.
     ref.listen(navigationProvider, (prev, next) {
       // Ins Fenster nur, solange navigiert wird (9.6).
-      if ((prev == null) != (next == null)) unawaited(ref.read(pictureInPictureProvider).allow(next != null));
+      if ((prev == null) != (next == null)) {
+        unawaited(ref.read(pictureInPictureProvider).allow(next != null));
+      }
       if (prev != null && next == null) {
         _controller.move(_controller.center, _controller.zoom);
         // Kam sie aus einem Ergebnis des Planers, steht es wieder da —
@@ -1524,7 +1854,9 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       _fittedOnce = true;
       final b = area.bounds;
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) _fitPoints([LatLng(b.south, b.west), LatLng(b.north, b.east)]);
+        if (mounted) {
+          _fitPoints([LatLng(b.south, b.west), LatLng(b.north, b.east)]);
+        }
       });
       ref.read(mapFocusAreaProvider.notifier).state = null;
     });
@@ -1540,12 +1872,19 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     // Beobachtet werden die Bereiche nur dann; sonst kostet jeder
     // Kamera-Stillstand eine Rechnung, die niemand sieht.
     final overlayOn = ref.watch(offlineOverlayProvider);
-    final overlayAreas =
-        overlayOn ? visibleAreas(ref.watch(storedAreasProvider).valueOrNull ?? const <StoredArea>[]) : null;
+    final overlayAreas = overlayOn
+        ? visibleAreas(
+            ref.watch(storedAreasProvider).valueOrNull ?? const <StoredArea>[],
+          )
+        : null;
     // Um den Bestand ein durchgehender Rand in der Textfarbe des Modus
     // (Design Turn 2: dunkel hell, hell #131A16).
     final coverage = overlayAreas != null && camera != null
-        ? offlineCoverage(overlayAreas, camera.bounds, outlineColor: AppPalette.of(context).text)
+        ? offlineCoverage(
+            overlayAreas,
+            camera.bounds,
+            outlineColor: AppPalette.of(context).text,
+          )
         : null;
     final mask = coverage?.mask;
     // Offene Änderungen über der Abdunkelung — Schraffur in der
@@ -1555,18 +1894,29 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     final toolsOpen = overlayOn;
     final draft = overlayOn ? ref.watch(areaDraftProvider) : null;
     final drawTool = draft?.tool;
-    final pending = draft != null && camera != null ? draftLayers(draft, camera) : null;
+    final pending = draft != null && camera != null
+        ? draftLayers(draft, camera)
+        : null;
 
     // Die Höhenlinien (#271): nur, solange der Schalter an ist — der
     // Provider liest vorher nichts. Im Bild-im-Bild-Fenster keine (zu
     // klein, Konzept-Routing 9.6).
     final contourState = ref.watch(contourStateProvider).valueOrNull;
     final contours = contourState?.contours;
-    final showContours = contours != null && contours.lines.isNotEmpty && !ref.watch(pipModeProvider);
-    final buddies = ref.watch(pipModeProvider) ? const <BuddyMapEntry>[] : ref.watch(buddyMapEntriesProvider);
+    final showContours =
+        contours != null &&
+        contours.lines.isNotEmpty &&
+        !ref.watch(pipModeProvider);
+    final buddies = ref.watch(pipModeProvider)
+        ? const <BuddyMapEntry>[]
+        : ref.watch(buddyMapEntriesProvider);
     final layers = MapViewLayers(
       contours: showContours
-          ? MapViewContours(key: contours.key, lines: contours.lines, labels: ref.watch(contourLabelsProvider))
+          ? MapViewContours(
+              key: contours.key,
+              lines: contours.lines,
+              labels: ref.watch(contourLabelsProvider),
+            )
           : null,
       polygons: [
         ?mask,
@@ -1646,7 +1996,9 @@ class _MapScreenState extends ConsumerState<MapScreen> {
             // gestrichelt (`trailLineStyleOf`, Rework E9) — schwarz allein
             // unterschiede S3 nicht von S5. Wartend (#30) gestrichelt und
             // blass.
-            color: _colorOf(t).withValues(alpha: _colorOf(t).a * trailLineStyleOf(t).opacity),
+            color: _colorOf(
+              t,
+            ).withValues(alpha: _colorOf(t).a * trailLineStyleOf(t).opacity),
             width: 4,
             dash: trailLineStyleOf(t).dash,
             borderColor: _borderOf(t, seenNotes).$1,
@@ -1663,12 +2015,21 @@ class _MapScreenState extends ConsumerState<MapScreen> {
           ...poiMarkers(poiState, camera, cells, groups, hidden),
         // Gemerkte Startpunkte (#543) über den Orten, unter den Zeichen
         // des Netzes — eigene verdecken fremde am selben Platz.
-        if (startPointsOn) ...startPointMarkers(shownStartPoints(startPoints, myId), camera, myId),
+        if (startPointsOn)
+          ...startPointMarkers(
+            shownStartPoints(startPoints, myId),
+            camera,
+            myId,
+          ),
         // Anfang, Richtung und Ende (#96) und das Schild am Trailanfang
         // (Design 4c) — über den Orten, weil sie zum Netz gehören; das
         // Schild zuoberst, es ist das Antippbare.
         ...trailEndMarkers(shownTrails, camera, coachTrailId: _coachTrail?.id),
-        ...trailBadgeMarkers(shownTrails, camera, coachTrailId: _coachTrail?.id),
+        ...trailBadgeMarkers(
+          shownTrails,
+          camera,
+          coachTrailId: _coachTrail?.id,
+        ),
         // Start und Ziel des Planers (#331): getippt, sonst — sobald ein
         // Ergebnis liegt — wo es wirklich beginnt und endet.
         if (loopStartPin != null)
@@ -1722,7 +2083,11 @@ class _MapScreenState extends ConsumerState<MapScreen> {
             width: 36,
             height: 36,
             alignment: Alignment.topCenter,
-            child: const Icon(Icons.location_on, size: 36, color: AppColors.brand),
+            child: const Icon(
+              Icons.location_on,
+              size: 36,
+              color: AppColors.brand,
+            ),
           ),
         // Buddys (#519) unter der eigenen Position.
         ...buddyMarkers(buddies, ref.watch(nearbyBuddyNameProvider)),
@@ -1771,486 +2136,568 @@ class _MapScreenState extends ConsumerState<MapScreen> {
         unawaited(_closeTools());
       },
       child: Scaffold(
-      key: _scaffoldKey,
-      // Die Tastatur ÜBERLAGERT die Karte, sie schiebt sie nicht — wie in
-      // der Hülle (`router.dart`) und in PilzBuddy (#397). Dieser Body
-      // hat kein einziges Textfeld; die Felder stecken in Dialogen und
-      // Blättern ÜBER der Karte („Mein Beitrag", Zerlege-Blatt). Ab Werk
-      // schrumpfte der Scaffold trotzdem um die Tastatur, und zwar Bild
-      // für Bild ihrer Animation: Die native Fläche von MapLibre wurde
-      // dabei bei jedem Bild neu bemessen — unnötige Arbeit, gefunden beim
-      // Feldbericht 2026-10-02 (Hänger beim Eintragen der Details). Der
-      // größere Teil lag beim Speichern (CLAUDE.md, „Speichern ohne
-      // Neuladen des Netzes"); die Wirkung dieser Zeile hält
-      // `keyboard_inset_flow_test` fest.
-      resizeToAvoidBottomInset: false,
-      body: Stack(
-        children: [
-          MapView(
-            config: MapViewConfig(
-              initialCenter: _dachCenter,
-              initialZoom: _initialZoom,
-              // OSM liefert Kacheln nur bis Zoom 19; unten reicht 3.
-              minZoom: 3,
-              maxZoom: 19,
-              backgroundColor: AppColors.mapBackground,
-              // Die Quellen der offiziellen Trails, solange die Ebene an
-              // ist und eine ihrer Regionen geladen.
-              bottomLeftInset: toolsOpen || loop.open ? kRailWidth + 8 : 0,
-              attributions: [
-                if (officialOn)
-                  for (final src in official.loadedSources)
-                    '${src.attribution} (${src.license})',
-              ],
-              // In der Folgeansicht tun Taps nichts: Die Trefferprüfung
-              // rechnet ohne Drehung (Konzept-Routing 9.2).
-              onHit: nav == null ? _onHit : null,
-              onTap: nav == null ? _onMapTap : null,
-              onLongPress: nav == null ? _onLongPress : null,
-              onCameraIdle: _onCameraIdle,
-            ),
-            controller: _controller,
-            layers: layers,
-          ),
-          // Nicht positioniert, wie die Leisten unten: Seine SafeAreas
-          // spannen den Stack auf, auch wo die Karte das nicht tut.
-          if (nav != null)
-            NavOverlay(
-              session: nav,
-              compact: ref.watch(pipModeProvider),
-              onStop: _endFromNav,
-              onMark: ride != null && canRecord ? _toggleMark : null,
-              markOpen: ride != null && markedTrailOpen(ride.marks),
-            ),
-          if (nav == null) ...[
-          // Solange ein Werkzeug auf seinen Strich wartet, liegt die
-          // Zeichenfläche über der Karte und hält sie fest.
-          if (drawTool != null && camera != null)
-            Positioned.fill(
-              child: AreaDrawOverlay(camera: camera, tool: drawTool, onStroke: _onStroke),
-            ),
-          // Der Planer zeichnet ein Gebiet: Trails darin dazu oder weg.
-          if (loop.open && loop.drawTool != null && camera != null)
-            Positioned.fill(
-              child: AreaDrawOverlay(
-                key: const ValueKey('loop-draw'),
-                camera: camera,
-                tool: loop.drawTool!,
-                hint: loop.drawTool == AreaDrawTool.add ? context.l10n.mapLoopDrawAdd : context.l10n.mapLoopDrawRemove,
-                onRing: (ring) {
-                  final n = ref.read(loopPlannerProvider.notifier).applyRing(ring);
-                  ScaffoldMessenger.of(context)
-                    ..clearSnackBars()
-                    ..showSnackBar(SnackBar(
-                        content: Text(n == 0
-                            ? context.l10n.mapLoopDrawNone
-                            : loop.drawTool == AreaDrawTool.add
-                                ? context.l10n.mapLoopDrawAdded(n)
-                                : context.l10n.mapLoopDrawRemoved(n))));
-                },
-              ),
-            ),
-          // Die Griffe der Zwischenpunkte (#234): nur sie fangen
-          // Berührungen, der Rest geht zur Karte durch.
-          if (vias != null && camera != null && drawTool == null && loop.drawTool == null)
-            Positioned.fill(
-              child: ViaHandles(
-                key: const ValueKey('via-handles'),
-                camera: camera,
-                vias: vias,
-                onMove: (r, p) => ref.read(routeViaProvider.notifier).move(r, p),
-                onRemove: _removeVia,
-              ),
-            ),
-          if (trailsAsync.isLoading && trails.isEmpty)
-            const CenteredTrailLoader(),
-          // Solange ein Werkzeug scharf ist, gehört der Platz oben der
-          // Zeile, was der nächste Strich tut.
-          if (trailsAsync.hasValue && trails.isEmpty && drawTool == null)
-            const _EmptyHint(),
-          // Die Banner oben untereinander, nicht übereinander: Update,
-          // Ausgangskorb und — solange einer gilt — der Trail-Filter.
-          // Rechts halten sie IMMER Platz für die Glühbirne frei (#180),
-          // auch ohne Banner — sonst spränge nichts, aber ein Banner
-          // läge unter ihr.
-          SafeArea(
-            child: Align(
-              alignment: Alignment.topCenter,
-              child: Padding(
-                padding: const EdgeInsets.only(right: kBannerRightInset),
-                child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const UpdateBanner(),
-                  const _OutboxBanner(),
-                  const _CachedNotice(),
-                  // Der Kopf des Planers (#516): Start, Ziel, Budget, X —
-                  // wie es geht, sagt die Auswahlzeile unten. Solange ein
-                  // Ergebnis offen ist, nur eine Zeile (`compact`).
-                  if (loop.open && !loop.entry)
-                    LoopEditHeader(
-                      compact: panelInset > 0,
-                      onAdjust: () => unawaited(showLoopParamsSheet(context)),
-                      onClose: _closeLoopPlanner,
-                    ),
-                  // Der Planer wartet auf seinen Start (#158 Schritt 5).
-                  if (loopPicking)
-                    Card(
-                      key: const ValueKey('loop-pick-banner'),
-                      margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-                      child: ListTile(
-                        dense: true,
-                        leading: const Icon(Icons.touch_app_outlined),
-                        title: Text(loop.pickingTarget
-                            ? context.l10n.mapLoopPickTarget
-                            : loop.pickingWaypoint
-                                ? context.l10n.mapLoopPickWaypoint
-                                : context.l10n.mapLoopPickStart),
-                        trailing: TextButton(
-                          key: const ValueKey('loop-pick-cancel'),
-                          onPressed: () => ref.read(loopPlannerProvider.notifier).cancelStartPick(),
-                          child: Text(context.l10n.commonCancel),
-                        ),
-                      ),
-                    ),
-                  if (compare != null && (compare.duplicate != null || compare.target != null))
-                    Card(
-                      key: const ValueKey('merge-compare-banner'),
-                      margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-                      child: ListTile(
-                        dense: true,
-                        leading: const Icon(Icons.merge_type),
-                        title: Text(context.l10n.mapCompareTitle(
-                            compare.duplicate?.displayName(context.l10n) ?? '–', compare.target?.displayName(context.l10n) ?? '–')),
-                        subtitle: Text(context.l10n.mapCompareSubtitle),
-                        trailing: IconButton(
-                          key: const ValueKey('merge-compare-close'),
-                          tooltip: context.l10n.mapCompareClose,
-                          icon: const Icon(Icons.close),
-                          onPressed: () => ref.read(mapComparePairProvider.notifier).state = null,
-                        ),
-                      ),
-                    ),
-                  if (trailFilter.isActive)
-                    _TrailFilterBanner(
-                        filter: trailFilter, shown: shownTrails.length, total: trails.length),
+        key: _scaffoldKey,
+        // Die Tastatur ÜBERLAGERT die Karte, sie schiebt sie nicht — wie in
+        // der Hülle (`router.dart`) und in PilzBuddy (#397). Dieser Body
+        // hat kein einziges Textfeld; die Felder stecken in Dialogen und
+        // Blättern ÜBER der Karte („Mein Beitrag", Zerlege-Blatt). Ab Werk
+        // schrumpfte der Scaffold trotzdem um die Tastatur, und zwar Bild
+        // für Bild ihrer Animation: Die native Fläche von MapLibre wurde
+        // dabei bei jedem Bild neu bemessen — unnötige Arbeit, gefunden beim
+        // Feldbericht 2026-10-02 (Hänger beim Eintragen der Details). Der
+        // größere Teil lag beim Speichern (CLAUDE.md, „Speichern ohne
+        // Neuladen des Netzes"); die Wirkung dieser Zeile hält
+        // `keyboard_inset_flow_test` fest.
+        resizeToAvoidBottomInset: false,
+        body: Stack(
+          children: [
+            MapView(
+              config: MapViewConfig(
+                initialCenter: _dachCenter,
+                initialZoom: _initialZoom,
+                // OSM liefert Kacheln nur bis Zoom 19; unten reicht 3.
+                minZoom: 3,
+                maxZoom: 19,
+                backgroundColor: AppColors.mapBackground,
+                // Die Quellen der offiziellen Trails, solange die Ebene an
+                // ist und eine ihrer Regionen geladen.
+                bottomLeftInset: toolsOpen || loop.open ? kRailWidth + 8 : 0,
+                attributions: [
+                  if (officialOn)
+                    for (final src in official.loadedSources)
+                      '${src.attribution} (${src.license})',
                 ],
+                // In der Folgeansicht tun Taps nichts: Die Trefferprüfung
+                // rechnet ohne Drehung (Konzept-Routing 9.2).
+                onHit: nav == null ? _onHit : null,
+                onTap: nav == null ? _onMapTap : null,
+                onLongPress: nav == null ? _onLongPress : null,
+                onCameraIdle: _onCameraIdle,
               ),
-              ),
+              controller: _controller,
+              layers: layers,
             ),
-          ),
-          // Die Glühbirne (#180, Betreiber 2026-10-02): oben rechts, abgesetzt
-          // von den Knöpfen unten — melden kann man immer, also steht sie
-          // immer da, neben den Bannern.
-          SafeArea(
-            child: Align(
-              alignment: Alignment.topRight,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(0, 8, 12, 0),
-                child: CoachAnchor(
-                  id: MapCoach.feedback,
-                  child: MapRoundButton(
-                    key: const ValueKey('feedback-button'),
-                    tooltip: context.l10n.mapFeedbackTooltip,
-                    icon: Icons.lightbulb_outline,
-                    onPressed: () => showFeedbackFlow(context, ref),
+            // Nicht positioniert, wie die Leisten unten: Seine SafeAreas
+            // spannen den Stack auf, auch wo die Karte das nicht tut.
+            if (nav != null)
+              NavOverlay(
+                session: nav,
+                compact: ref.watch(pipModeProvider),
+                onStop: _endFromNav,
+                onMark: ride != null && canRecord ? _toggleMark : null,
+                markOpen: ride != null && markedTrailOpen(ride.marks),
+              ),
+            if (nav == null) ...[
+              // Solange ein Werkzeug auf seinen Strich wartet, liegt die
+              // Zeichenfläche über der Karte und hält sie fest.
+              if (drawTool != null && camera != null)
+                Positioned.fill(
+                  child: AreaDrawOverlay(
+                    camera: camera,
+                    tool: drawTool,
+                    onStroke: _onStroke,
                   ),
                 ),
-              ),
-            ),
-          ),
-          if (ride != null || focusRide != null)
-            SafeArea(
-              child: Align(
-                alignment: Alignment.topCenter,
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 72, 16, 0),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      if (ride != null) _RideStatusCard(ride),
-                      // Was die Erkennung sieht (#36), nur mit ihrem
-                      // Schalter — leer, bis der Dienst etwas schickt.
-                      if (ride != null) const AirtimeLiveWindow(),
-                      if (focusRide != null) _FocusRideCard(focusRide),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          // Die Werkzeugleiste „Offline-Karten" (seit 0.27.0) links, mittig:
-          // unten liegen Maßstab und Quellenhinweis, oben die Banner —
-          // beide bleiben frei. Scrollt, wenn der Schirm zu kurz ist.
-          if (toolsOpen)
-            SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(8, 56, 0, 64),
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: SingleChildScrollView(
-                    child: CoachAnchor(
-                      id: MapCoach.rail,
-                      child: OfflineToolRail(
-                      onSnapshot: _addViewport,
-                      onTrails: trails.isEmpty ? null : _addTrails,
-                      onManage: () => context.go('/profile/areas'),
-                      onSave: _saveDraft,
-                      onClose: _closeTools,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          // Die Leiste des Planers (seit 0.74.0) — derselbe Platz wie die
-          // Leiste „Offline-Karten"; beide sind nie zugleich offen. Seit
-          // #516 steht oben der Kopf und unten die Auswahlzeile: Die
-          // Leiste hält zu beiden Abstand und scrollt, wenn es eng wird.
-          if (loop.open && !loop.entry)
-            SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(8, kLoopRailTopInset, 0, kLoopRailBottomInset),
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: SingleChildScrollView(
-                    child: CoachAnchor(
-                      id: MapCoach.loopRail,
-                      child: LoopToolRail(onList: () => showLoopListSheet(context, ref)),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          // Die Legende (#182): links am Rand, zu eine schmale Lasche. Eine
-          // offene Leiste hat den Platz; solange ein Werkzeug zeichnet,
-          // gehört die Karte dem Strich.
-          if (!toolsOpen && !loop.open && drawTool == null)
-            const SafeArea(
-              child: Padding(
-                padding: EdgeInsets.fromLTRB(0, 56, 0, 64),
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: CoachAnchor(id: MapCoach.legend, child: MapLegend()),
-                ),
-              ),
-            ),
-          // Die Schnellkarte des ausgewählten Trails (#178): unten links,
-          // neben der Knopfspalte; ein offenes Routen-Blatt geht vor.
-          if (selected != null && panelInset == 0)
-            SafeArea(
-              child: Align(
-                alignment: Alignment.bottomLeft,
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(12, 0, 76, 12),
-                  child: TrailQuickCard(
-                    trail: selected,
-                    onOpen: _openSelected,
-                    onClose: () => setState(() => _selectedTrailId = null),
-                  ),
-                ),
-              ),
-            ),
-          // Die Auswahlzeile des Planers (#516): unten links neben der
-          // Knopfspalte, wo danach das Ergebnis steht — solange es offen
-          // ist, rechnet dessen „Neu rechnen". Solange ein Strich oder ein
-          // Tipp erwartet wird, gehört die Karte ihm (wie bei der Legende).
-          // Der Einstieg (#516, Konzept-Routing 12.3) an derselben Stelle,
-          // solange er fragt; ein Tipp auf die Karte blendet ihn aus.
-          if (loop.open && loop.entry && panelInset == 0 && !loopPicking)
-            SafeArea(
-              child: Align(
-                alignment: Alignment.bottomLeft,
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(12, 0, 76, 12),
-                  child: LoopEntrySheet(
-                    onCompute: () => unawaited(_computeLoop()),
-                    onSuggest: () => unawaited(_suggestLoop()),
-                    onClose: _closeLoopPlanner,
-                  ),
-                ),
-              ),
-            ),
-          if (loop.open && !loop.entry && panelInset == 0 && loop.drawTool == null && !loopPicking)
-            SafeArea(
-              child: Align(
-                alignment: Alignment.bottomLeft,
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(12, 0, 76, 12),
-                  child: LoopSelectionBar(
-                    note: _loopNote,
-                    onCompute: () {
-                      _clearLoopNote();
-                      unawaited(_computeLoop());
+              // Der Planer zeichnet ein Gebiet: Trails darin dazu oder weg.
+              if (loop.open && loop.drawTool != null && camera != null)
+                Positioned.fill(
+                  child: AreaDrawOverlay(
+                    key: const ValueKey('loop-draw'),
+                    camera: camera,
+                    tool: loop.drawTool!,
+                    hint: loop.drawTool == AreaDrawTool.add
+                        ? context.l10n.mapLoopDrawAdd
+                        : context.l10n.mapLoopDrawRemove,
+                    onRing: (ring) {
+                      final n = ref
+                          .read(loopPlannerProvider.notifier)
+                          .applyRing(ring);
+                      ScaffoldMessenger.of(context)
+                        ..clearSnackBars()
+                        ..showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              n == 0
+                                  ? context.l10n.mapLoopDrawNone
+                                  : loop.drawTool == AreaDrawTool.add
+                                  ? context.l10n.mapLoopDrawAdded(n)
+                                  : context.l10n.mapLoopDrawRemoved(n),
+                            ),
+                          ),
+                        );
                     },
-                    onClear: _clearLoopSelection,
                   ),
                 ),
-              ),
-            ),
-          // Die Knöpfe rechts (seit 0.27.0; vorher links, wo jetzt die
-          // Werkzeugleiste und — auf beiden Engines — Maßstab und
-          // Quellenhinweis stehen). Die Glühbirne steht seit 0.75.0 oben
-          // rechts (#180).
-          SafeArea(
-            child: Align(
-              alignment: Alignment.bottomRight,
-              child: Padding(
-                padding: const EdgeInsets.all(12),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    if (officialOn && official.unavailable)
-                      Card(
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 10, vertical: 6),
-                          child: Text(context.l10n.mapOfficialUnavailable),
-                        ),
-                      ),
-                    if (poiUnavailable)
-                      Card(
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 10, vertical: 6),
-                          child: Text(context.l10n.mapPoisUnavailable),
-                        ),
-                      ),
-                    // Von oben nach unten (seit 0.75.0, #190): Kartenebenen,
-                    // Offline-Karten, Runde, Position — und unten, am Daumen,
-                    // die Aufnahme.
-                    const SizedBox(height: 4),
-                    // Die Knopfspalte als EIN Anker (#132): Die Tour spart
-                    // sie ganz aus und legt den Ring auf den gemeinten Knopf.
-                    // Mit dem fünften Knopf (0.72.0) passt sie auf einem
-                    // kleinen Telefon QUER (360 px hoch) nicht mehr: Dort
-                    // skaliert sie herunter, statt unten abgeschnitten zu
-                    // werden — hochkant bleiben es 44 px (`map_shell_test`).
-                    // `Flexible` gibt der FittedBox die Höhe, die übrig ist;
-                    // ohne sie bekäme sie „unendlich" und skalierte nie.
-                    Flexible(
-                      child: FittedBox(
-                        fit: BoxFit.scaleDown,
-                        alignment: Alignment.bottomRight,
-                        child: CoachAnchor(
-                      id: MapCoach.buttons,
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          // Kartenebenen (#190): EIN Blatt, direkt — welche
-                          // Trails, offizielle Trails, Orte. Es liegt über
-                          // jeder Leiste und ändert an ihr nichts.
-                          CoachAnchor(
-                            id: MapCoach.layers,
-                            child: MapRoundButton(
-                              key: const ValueKey('layers-button'),
-                              tooltip: context.l10n.mapLayersTooltip,
-                              icon: Icons.layers_outlined,
-                              onPressed: () => showMapLayersSheet(context),
-                            ),
+              // Die Griffe der Zwischenpunkte (#234): nur sie fangen
+              // Berührungen, der Rest geht zur Karte durch.
+              if (vias != null &&
+                  camera != null &&
+                  drawTool == null &&
+                  loop.drawTool == null)
+                Positioned.fill(
+                  child: ViaHandles(
+                    key: const ValueKey('via-handles'),
+                    camera: camera,
+                    vias: vias,
+                    onMove: (r, p) =>
+                        ref.read(routeViaProvider.notifier).move(r, p),
+                    onRemove: _removeVia,
+                  ),
+                ),
+              if (trailsAsync.isLoading && trails.isEmpty)
+                const CenteredTrailLoader(),
+              // Solange ein Werkzeug scharf ist, gehört der Platz oben der
+              // Zeile, was der nächste Strich tut.
+              if (trailsAsync.hasValue && trails.isEmpty && drawTool == null)
+                const _EmptyHint(),
+              // Die Banner oben untereinander, nicht übereinander: Update,
+              // Ausgangskorb und — solange einer gilt — der Trail-Filter.
+              // Rechts halten sie IMMER Platz für die Glühbirne frei (#180),
+              // auch ohne Banner — sonst spränge nichts, aber ein Banner
+              // läge unter ihr.
+              SafeArea(
+                child: Align(
+                  alignment: Alignment.topCenter,
+                  child: Padding(
+                    padding: const EdgeInsets.only(right: kBannerRightInset),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const UpdateBanner(),
+                        const _OutboxBanner(),
+                        const _CachedNotice(),
+                        // Der Kopf des Planers (#516): Start, Ziel, Budget, X —
+                        // wie es geht, sagt die Auswahlzeile unten. Solange ein
+                        // Ergebnis offen ist, nur eine Zeile (`compact`).
+                        if (loop.open && !loop.entry)
+                          LoopEditHeader(
+                            compact: panelInset > 0,
+                            onAdjust: () =>
+                                unawaited(showLoopParamsSheet(context)),
+                            onClose: _closeLoopPlanner,
                           ),
-                          const SizedBox(height: 10),
-                          // Offline-Karten: die Leiste links mit den
-                          // Werkzeugen für Bereiche. Öffnet und schließt sie —
-                          // dasselbe wie ihr X und die Zurück-Taste. Offen:
-                          // Rand in der Marke, die Leiste gehört zu diesem Knopf.
-                          CoachAnchor(
-                            id: MapCoach.offline,
-                            child: MapRoundButton(
-                              key: const ValueKey('offline-button'),
-                              tooltip: context.l10n.mapOfflineTooltip,
-                              icon: Icons.download_for_offline_outlined,
-                              active: toolsOpen,
-                              onPressed: toolsOpen
-                                  ? _closeTools
-                                  : () {
-                                      if (loop.open) _closeLoopPlanner();
-                                      _openTools();
-                                    },
-                            ),
-                          ),
-                          const SizedBox(height: 10),
-                          // Der Rundenplaner (#158 Schritt 5): eigener Knopf,
-                          // nicht die Glühbirne (Entscheidung 8.7).
-                          CoachAnchor(
-                            id: MapCoach.loop,
-                            child: MapRoundButton(
-                              key: const ValueKey('loop-button'),
-                              tooltip: context.l10n.mapLoopTooltip,
-                              icon: Icons.alt_route,
-                              // Öffnet und schließt den Planer — wie der
-                              // Knopf „Offline-Karten" seine Leiste.
-                              active: loop.open,
-                              onPressed: () => loop.open ? _closeLoopPlanner() : unawaited(_openLoopPlanner(entry: true)),
-                            ),
-                          ),
-                          const SizedBox(height: 10),
-                          CoachAnchor(
-                            id: MapCoach.locate,
-                            child: MapRoundButton(
-                              key: const ValueKey('locate-button'),
-                              tooltip: context.l10n.mapLocateTooltip,
-                              icon: Icons.my_location,
-                              onPressed: _locateMe,
-                            ),
-                          ),
-                          // Die Marke über der Aufnahme, nur während einer
-                          // Fahrt (#105, E12): Fahne für „beginnt",
-                          // Zielflagge für „endet"; läuft ein markierter
-                          // Trail, Rand in der Marke.
-                          // Bildschirm an während der Fahrt (#445): aus ab
-                          // Werk, gemerkt; derselbe Knopf wie in der Navigation.
-                          if (canRecord && ride != null && _screen.supported) ...[
-                            const SizedBox(height: 14),
-                            MapRoundButton(
-                              key: const ValueKey('ride-screen-button'),
-                              tooltip: ref.watch(rideKeepScreenOnProvider)
-                                  ? context.l10n.navScreenOffTooltip
-                                  : context.l10n.navScreenTitle,
-                              icon: ref.watch(rideKeepScreenOnProvider) ? Icons.light_mode : Icons.light_mode_outlined,
-                              active: ref.watch(rideKeepScreenOnProvider),
-                              onPressed: () => ref
-                                  .read(rideKeepScreenOnProvider.notifier)
-                                  .set(!ref.read(rideKeepScreenOnProvider)),
-                            ),
-                          ],
-                          // Live mit Buddys (#519): je Fahrt, ab Werk aus.
-                          if (canRecord && ride != null) const LiveShareButton(),
-                          if (canRecord && ride != null) ...[
-                            const SizedBox(height: 14),
-                            MapRoundButton(
-                              key: const ValueKey('ride-mark-button'),
-                              tooltip: markedTrailOpen(ride.marks) ? context.l10n.rideMarkEndTooltip : context.l10n.rideMarkStartTooltip,
-                              icon: markedTrailOpen(ride.marks) ? Icons.sports_score : Icons.flag_outlined,
-                              active: markedTrailOpen(ride.marks),
-                              onPressed: _toggleMark,
-                            ),
-                          ],
-                          if (canRecord) ...[
-                            const SizedBox(height: 14),
-                            CoachAnchor(
-                              id: MapCoach.record,
-                              child: RecordButton(
-                                key: const ValueKey('ride-button'),
-                                recording: ride != null,
-                                onPressed: _toggleRide,
+                        // Der Planer wartet auf seinen Start (#158 Schritt 5).
+                        if (loopPicking)
+                          Card(
+                            key: const ValueKey('loop-pick-banner'),
+                            margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                            child: ListTile(
+                              dense: true,
+                              leading: const Icon(Icons.touch_app_outlined),
+                              title: Text(
+                                loop.pickingTarget
+                                    ? context.l10n.mapLoopPickTarget
+                                    : loop.pickingWaypoint
+                                    ? context.l10n.mapLoopPickWaypoint
+                                    : context.l10n.mapLoopPickStart,
+                              ),
+                              trailing: TextButton(
+                                key: const ValueKey('loop-pick-cancel'),
+                                onPressed: () => ref
+                                    .read(loopPlannerProvider.notifier)
+                                    .cancelStartPick(),
+                                child: Text(context.l10n.commonCancel),
                               ),
                             ),
-                          ],
+                          ),
+                        if (compare != null &&
+                            (compare.duplicate != null ||
+                                compare.target != null))
+                          Card(
+                            key: const ValueKey('merge-compare-banner'),
+                            margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                            child: ListTile(
+                              dense: true,
+                              leading: const Icon(Icons.merge_type),
+                              title: Text(
+                                context.l10n.mapCompareTitle(
+                                  compare.duplicate?.displayName(
+                                        context.l10n,
+                                      ) ??
+                                      '–',
+                                  compare.target?.displayName(context.l10n) ??
+                                      '–',
+                                ),
+                              ),
+                              subtitle: Text(context.l10n.mapCompareSubtitle),
+                              trailing: IconButton(
+                                key: const ValueKey('merge-compare-close'),
+                                tooltip: context.l10n.mapCompareClose,
+                                icon: const Icon(Icons.close),
+                                onPressed: () =>
+                                    ref
+                                            .read(
+                                              mapComparePairProvider.notifier,
+                                            )
+                                            .state =
+                                        null,
+                              ),
+                            ),
+                          ),
+                        if (trailFilter.isActive)
+                          _TrailFilterBanner(
+                            filter: trailFilter,
+                            shown: shownTrails.length,
+                            total: trails.length,
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              // Die Glühbirne (#180, Betreiber 2026-10-02): oben rechts, abgesetzt
+              // von den Knöpfen unten — melden kann man immer, also steht sie
+              // immer da, neben den Bannern.
+              SafeArea(
+                child: Align(
+                  alignment: Alignment.topRight,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(0, 8, 12, 0),
+                    child: CoachAnchor(
+                      id: MapCoach.feedback,
+                      child: MapRoundButton(
+                        key: const ValueKey('feedback-button'),
+                        tooltip: context.l10n.mapFeedbackTooltip,
+                        icon: Icons.lightbulb_outline,
+                        onPressed: () => showFeedbackFlow(context, ref),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              if (ride != null || focusRide != null)
+                SafeArea(
+                  child: Align(
+                    alignment: Alignment.topCenter,
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 72, 16, 0),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (ride != null) _RideStatusCard(ride),
+                          // Was die Erkennung sieht (#36), nur mit ihrem
+                          // Schalter — leer, bis der Dienst etwas schickt.
+                          if (ride != null) const AirtimeLiveWindow(),
+                          if (focusRide != null) _FocusRideCard(focusRide),
                         ],
                       ),
                     ),
+                  ),
+                ),
+              // Die Werkzeugleiste „Offline-Karten" (seit 0.27.0) links, mittig:
+              // unten liegen Maßstab und Quellenhinweis, oben die Banner —
+              // beide bleiben frei. Scrollt, wenn der Schirm zu kurz ist.
+              if (toolsOpen)
+                SafeArea(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(8, 56, 0, 64),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: SingleChildScrollView(
+                        child: CoachAnchor(
+                          id: MapCoach.rail,
+                          child: OfflineToolRail(
+                            onSnapshot: _addViewport,
+                            onTrails: trails.isEmpty ? null : _addTrails,
+                            onManage: () => context.go('/profile/areas'),
+                            onSave: _saveDraft,
+                            onClose: _closeTools,
+                          ),
+                        ),
                       ),
                     ),
-                  ],
+                  ),
+                ),
+              // Die Leiste des Planers (seit 0.74.0) — derselbe Platz wie die
+              // Leiste „Offline-Karten"; beide sind nie zugleich offen. Seit
+              // #516 steht oben der Kopf und unten die Auswahlzeile: Die
+              // Leiste hält zu beiden Abstand und scrollt, wenn es eng wird.
+              if (loop.open && !loop.entry)
+                SafeArea(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(
+                      8,
+                      kLoopRailTopInset,
+                      0,
+                      kLoopRailBottomInset,
+                    ),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: SingleChildScrollView(
+                        child: CoachAnchor(
+                          id: MapCoach.loopRail,
+                          child: LoopToolRail(
+                            onList: () => showLoopListSheet(context, ref),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              // Die Legende (#182): links am Rand, zu eine schmale Lasche. Eine
+              // offene Leiste hat den Platz; solange ein Werkzeug zeichnet,
+              // gehört die Karte dem Strich.
+              if (!toolsOpen && !loop.open && drawTool == null)
+                const SafeArea(
+                  child: Padding(
+                    padding: EdgeInsets.fromLTRB(0, 56, 0, 64),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: CoachAnchor(
+                        id: MapCoach.legend,
+                        child: MapLegend(),
+                      ),
+                    ),
+                  ),
+                ),
+              // Die Schnellkarte des ausgewählten Trails (#178): unten links,
+              // neben der Knopfspalte; ein offenes Routen-Blatt geht vor.
+              if (selected != null && panelInset == 0)
+                SafeArea(
+                  child: Align(
+                    alignment: Alignment.bottomLeft,
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(12, 0, 76, 12),
+                      child: TrailQuickCard(
+                        trail: selected,
+                        onOpen: _openSelected,
+                        onClose: () => setState(() => _selectedTrailId = null),
+                      ),
+                    ),
+                  ),
+                ),
+              // Die Auswahlzeile des Planers (#516): unten links neben der
+              // Knopfspalte, wo danach das Ergebnis steht — solange es offen
+              // ist, rechnet dessen „Neu rechnen". Solange ein Strich oder ein
+              // Tipp erwartet wird, gehört die Karte ihm (wie bei der Legende).
+              // Der Einstieg (#516, Konzept-Routing 12.3) an derselben Stelle,
+              // solange er fragt; ein Tipp auf die Karte blendet ihn aus.
+              if (loop.open && loop.entry && panelInset == 0 && !loopPicking)
+                SafeArea(
+                  child: Align(
+                    alignment: Alignment.bottomLeft,
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(12, 0, 76, 12),
+                      child: LoopEntrySheet(
+                        onCompute: () => unawaited(_computeLoop()),
+                        onSuggest: () => unawaited(_suggestLoop()),
+                        onClose: _closeLoopPlanner,
+                      ),
+                    ),
+                  ),
+                ),
+              if (loop.open &&
+                  !loop.entry &&
+                  panelInset == 0 &&
+                  loop.drawTool == null &&
+                  !loopPicking)
+                SafeArea(
+                  child: Align(
+                    alignment: Alignment.bottomLeft,
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(12, 0, 76, 12),
+                      child: LoopSelectionBar(
+                        note: _loopNote,
+                        onCompute: () {
+                          _clearLoopNote();
+                          unawaited(_computeLoop());
+                        },
+                        onClear: _clearLoopSelection,
+                      ),
+                    ),
+                  ),
+                ),
+              // Die Knöpfe rechts (seit 0.27.0; vorher links, wo jetzt die
+              // Werkzeugleiste und — auf beiden Engines — Maßstab und
+              // Quellenhinweis stehen). Die Glühbirne steht seit 0.75.0 oben
+              // rechts (#180).
+              SafeArea(
+                child: Align(
+                  alignment: Alignment.bottomRight,
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        if (officialOn && official.unavailable)
+                          Card(
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 6,
+                              ),
+                              child: Text(context.l10n.mapOfficialUnavailable),
+                            ),
+                          ),
+                        if (poiUnavailable)
+                          Card(
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 6,
+                              ),
+                              child: Text(context.l10n.mapPoisUnavailable),
+                            ),
+                          ),
+                        // Von oben nach unten (seit 0.75.0, #190): Kartenebenen,
+                        // Offline-Karten, Runde, Position — und unten, am Daumen,
+                        // die Aufnahme.
+                        const SizedBox(height: 4),
+                        // Die Knopfspalte als EIN Anker (#132): Die Tour spart
+                        // sie ganz aus und legt den Ring auf den gemeinten Knopf.
+                        // Mit dem fünften Knopf (0.72.0) passt sie auf einem
+                        // kleinen Telefon QUER (360 px hoch) nicht mehr: Dort
+                        // skaliert sie herunter, statt unten abgeschnitten zu
+                        // werden — hochkant bleiben es 44 px (`map_shell_test`).
+                        // `Flexible` gibt der FittedBox die Höhe, die übrig ist;
+                        // ohne sie bekäme sie „unendlich" und skalierte nie.
+                        Flexible(
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: Alignment.bottomRight,
+                            child: CoachAnchor(
+                              id: MapCoach.buttons,
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  // Kartenebenen (#190): EIN Blatt, direkt — welche
+                                  // Trails, offizielle Trails, Orte. Es liegt über
+                                  // jeder Leiste und ändert an ihr nichts.
+                                  CoachAnchor(
+                                    id: MapCoach.layers,
+                                    child: MapRoundButton(
+                                      key: const ValueKey('layers-button'),
+                                      tooltip: context.l10n.mapLayersTooltip,
+                                      icon: Icons.layers_outlined,
+                                      onPressed: () =>
+                                          showMapLayersSheet(context),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 10),
+                                  // Offline-Karten: die Leiste links mit den
+                                  // Werkzeugen für Bereiche. Öffnet und schließt sie —
+                                  // dasselbe wie ihr X und die Zurück-Taste. Offen:
+                                  // Rand in der Marke, die Leiste gehört zu diesem Knopf.
+                                  CoachAnchor(
+                                    id: MapCoach.offline,
+                                    child: MapRoundButton(
+                                      key: const ValueKey('offline-button'),
+                                      tooltip: context.l10n.mapOfflineTooltip,
+                                      icon: Icons.download_for_offline_outlined,
+                                      active: toolsOpen,
+                                      onPressed: toolsOpen
+                                          ? _closeTools
+                                          : () {
+                                              if (loop.open) {
+                                                _closeLoopPlanner();
+                                              }
+                                              _openTools();
+                                            },
+                                    ),
+                                  ),
+                                  const SizedBox(height: 10),
+                                  // Der Rundenplaner (#158 Schritt 5): eigener Knopf,
+                                  // nicht die Glühbirne (Entscheidung 8.7).
+                                  CoachAnchor(
+                                    id: MapCoach.loop,
+                                    child: MapRoundButton(
+                                      key: const ValueKey('loop-button'),
+                                      tooltip: context.l10n.mapLoopTooltip,
+                                      icon: Icons.alt_route,
+                                      // Öffnet und schließt den Planer — wie der
+                                      // Knopf „Offline-Karten" seine Leiste.
+                                      active: loop.open,
+                                      onPressed: () => loop.open
+                                          ? _closeLoopPlanner()
+                                          : unawaited(
+                                              _openLoopPlanner(entry: true),
+                                            ),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 10),
+                                  CoachAnchor(
+                                    id: MapCoach.locate,
+                                    child: MapRoundButton(
+                                      key: const ValueKey('locate-button'),
+                                      tooltip: context.l10n.mapLocateTooltip,
+                                      icon: Icons.my_location,
+                                      onPressed: _locateMe,
+                                    ),
+                                  ),
+                                  // Die Marke über der Aufnahme, nur während einer
+                                  // Fahrt (#105, E12): Fahne für „beginnt",
+                                  // Zielflagge für „endet"; läuft ein markierter
+                                  // Trail, Rand in der Marke.
+                                  // Bildschirm an während der Fahrt (#445): aus ab
+                                  // Werk, gemerkt; derselbe Knopf wie in der Navigation.
+                                  if (canRecord &&
+                                      ride != null &&
+                                      _screen.supported) ...[
+                                    const SizedBox(height: 14),
+                                    MapRoundButton(
+                                      key: const ValueKey('ride-screen-button'),
+                                      tooltip:
+                                          ref.watch(rideKeepScreenOnProvider)
+                                          ? context.l10n.navScreenOffTooltip
+                                          : context.l10n.navScreenTitle,
+                                      icon: ref.watch(rideKeepScreenOnProvider)
+                                          ? Icons.light_mode
+                                          : Icons.light_mode_outlined,
+                                      active: ref.watch(
+                                        rideKeepScreenOnProvider,
+                                      ),
+                                      onPressed: () => ref
+                                          .read(
+                                            rideKeepScreenOnProvider.notifier,
+                                          )
+                                          .set(
+                                            !ref.read(rideKeepScreenOnProvider),
+                                          ),
+                                    ),
+                                  ],
+                                  // Live mit Buddys (#519): je Fahrt, ab Werk aus.
+                                  if (canRecord && ride != null)
+                                    const LiveShareButton(),
+                                  if (canRecord && ride != null) ...[
+                                    const SizedBox(height: 14),
+                                    MapRoundButton(
+                                      key: const ValueKey('ride-mark-button'),
+                                      tooltip: markedTrailOpen(ride.marks)
+                                          ? context.l10n.rideMarkEndTooltip
+                                          : context.l10n.rideMarkStartTooltip,
+                                      icon: markedTrailOpen(ride.marks)
+                                          ? Icons.sports_score
+                                          : Icons.flag_outlined,
+                                      active: markedTrailOpen(ride.marks),
+                                      onPressed: _toggleMark,
+                                    ),
+                                  ],
+                                  if (canRecord) ...[
+                                    const SizedBox(height: 14),
+                                    CoachAnchor(
+                                      id: MapCoach.record,
+                                      child: RecordButton(
+                                        key: const ValueKey('ride-button'),
+                                        recording: ride != null,
+                                        onPressed: _toggleRide,
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               ),
-            ),
-          ),
+            ],
           ],
-        ],
-      ),
+        ),
       ),
     );
   }
@@ -2301,7 +2748,9 @@ class _CachedNoticeState extends ConsumerState<_CachedNotice> {
   Widget build(BuildContext context) {
     final cachedAt = ref.watch(trailsCachedAtProvider);
     if (cachedAt == null) return const SizedBox.shrink();
-    final offline = ref.watch(noConnectivityProvider) || !ref.watch(trailsAwaitNetworkProvider);
+    final offline =
+        ref.watch(noConnectivityProvider) ||
+        !ref.watch(trailsAwaitNetworkProvider);
     if (!offline && !_slowShown) return const SizedBox.shrink();
     final at = formatCachedAt(cachedAt);
     return Card(
@@ -2309,8 +2758,14 @@ class _CachedNoticeState extends ConsumerState<_CachedNotice> {
       margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
       child: ListTile(
         dense: true,
-        leading: Icon(offline ? Icons.cloud_off_outlined : Icons.hourglass_empty),
-        title: Text(offline ? context.l10n.mapCachedOffline(at) : context.l10n.mapCachedSlow(at)),
+        leading: Icon(
+          offline ? Icons.cloud_off_outlined : Icons.hourglass_empty,
+        ),
+        title: Text(
+          offline
+              ? context.l10n.mapCachedOffline(at)
+              : context.l10n.mapCachedSlow(at),
+        ),
       ),
     );
   }
@@ -2327,7 +2782,8 @@ class _OutboxBanner extends ConsumerWidget {
     // Wo man über Abgelehntes entscheidet: Trail-Aufträge in der Liste,
     // Feedback (#218) bei der Glühbirne — es hängt an keinem Trail.
     final rejected = [
-      for (final j in ref.watch(outboxJobsProvider).valueOrNull ?? const <OutboxJob>[])
+      for (final j
+          in ref.watch(outboxJobsProvider).valueOrNull ?? const <OutboxJob>[])
         if (j.failure != null) j,
     ];
     final l = context.l10n;
@@ -2336,8 +2792,8 @@ class _OutboxBanner extends ConsumerWidget {
     final decide = decideTrails && decideFeedback
         ? l.outboxDecideBoth
         : decideFeedback
-            ? l.outboxDecideFeedback
-            : l.outboxDecideTrails;
+        ? l.outboxDecideFeedback
+        : l.outboxDecideTrails;
     final waiting = count - failed;
     // Nur im Browser (#153): Er darf seinen Speicher unter Druck räumen,
     // und anders als bei der Kopie des Netzes wäre hier das Original weg.
@@ -2374,8 +2830,13 @@ class _OutboxBanner extends ConsumerWidget {
             onTap: () async {
               final messenger = ScaffoldMessenger.of(context);
               final r = await ref.read(trailsProvider.notifier).sendOutbox();
-              messenger.showSnackBar(SnackBar(
-                  content: Text(r.sent > 0 ? l.outboxSent(r.sent) : l.outboxNoNetwork)));
+              messenger.showSnackBar(
+                SnackBar(
+                  content: Text(
+                    r.sent > 0 ? l.outboxSent(r.sent) : l.outboxNoNetwork,
+                  ),
+                ),
+              );
             },
           ),
         ),
@@ -2388,7 +2849,11 @@ class _OutboxBanner extends ConsumerWidget {
 /// #154): Eine Karte, die still ausblendet, sieht aus, als fehlten
 /// Trails. Das X setzt ihn zurück — für Liste und Karte.
 class _TrailFilterBanner extends ConsumerWidget {
-  const _TrailFilterBanner({required this.filter, required this.shown, required this.total});
+  const _TrailFilterBanner({
+    required this.filter,
+    required this.shown,
+    required this.total,
+  });
 
   final TrailListFilter filter;
   final int shown;
@@ -2396,21 +2861,24 @@ class _TrailFilterBanner extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) => Card(
-        key: const ValueKey('map-filter-banner'),
-        margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-        child: ListTile(
-          dense: true,
-          leading: const Icon(Icons.filter_alt_outlined),
-          title: Text(context.l10n.mapFilterBannerTitle(filter.describe(context.l10n))),
-          subtitle: Text(context.l10n.mapFilterBannerCount(shown, total)),
-          trailing: IconButton(
-            key: const ValueKey('map-filter-reset'),
-            tooltip: context.l10n.mapFilterReset,
-            icon: const Icon(Icons.close),
-            onPressed: () => ref.read(trailListFilterProvider.notifier).state = const TrailListFilter(),
-          ),
-        ),
-      );
+    key: const ValueKey('map-filter-banner'),
+    margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+    child: ListTile(
+      dense: true,
+      leading: const Icon(Icons.filter_alt_outlined),
+      title: Text(
+        context.l10n.mapFilterBannerTitle(filter.describe(context.l10n)),
+      ),
+      subtitle: Text(context.l10n.mapFilterBannerCount(shown, total)),
+      trailing: IconButton(
+        key: const ValueKey('map-filter-reset'),
+        tooltip: context.l10n.mapFilterReset,
+        icon: const Icon(Icons.close),
+        onPressed: () => ref.read(trailListFilterProvider.notifier).state =
+            const TrailListFilter(),
+      ),
+    ),
+  );
 }
 
 /// „28.9., 10:12" — Tag und Uhrzeit des zwischengespeicherten Stands.
@@ -2422,12 +2890,12 @@ String formatCachedAt(DateTime at) {
 
 /// Die Fahrt: Kulisse ohne Kennung — ein Tipp gilt weiter dem Trail.
 MapViewPolyline _ridePolyline(List<RidePoint> points) => MapViewPolyline(
-      points: [for (final p in thinnedRide(points)) LatLng(p.lat, p.lng)],
-      color: AppColors.mapLines.ride.withValues(alpha: 0.75),
-      width: 4,
-      borderColor: AppColors.mapLines.halo,
-      borderWidth: AppColors.mapLines.haloBorderWidth,
-    );
+  points: [for (final p in thinnedRide(points)) LatLng(p.lat, p.lng)],
+  color: AppColors.mapLines.ride.withValues(alpha: 0.75),
+  width: 4,
+  borderColor: AppColors.mapLines.halo,
+  borderWidth: AppColors.mapLines.haloBorderWidth,
+);
 
 /// „Fahrt läuft · 1,2 km · 12 min" — die Rückmeldung, dass aufgezeichnet
 /// wird, auch wenn die Linie noch kurz ist.
@@ -2447,9 +2915,18 @@ class _RideStatusCard extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.fiber_manual_record, size: 14, color: AppColors.mapLines.warning),
+            Icon(
+              Icons.fiber_manual_record,
+              size: 14,
+              color: AppColors.mapLines.warning,
+            ),
             const SizedBox(width: 8),
-            Text(context.l10n.rideRunningStatus(formatMeters(length), rideDurationLabel(duration))),
+            Text(
+              context.l10n.rideRunningStatus(
+                formatMeters(length),
+                rideDurationLabel(duration),
+              ),
+            ),
           ],
         ),
       ),
@@ -2465,22 +2942,28 @@ class _FocusRideCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) => Card(
-        key: const ValueKey('focus-ride'),
-        child: Padding(
-          padding: const EdgeInsets.only(left: 12),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(context.l10n.rideFocusStatus(formatMeters(ride.lengthM), rideDurationLabel(ride.duration))),
-              IconButton(
-                tooltip: context.l10n.rideFocusHide,
-                icon: const Icon(Icons.close, size: 18),
-                onPressed: () => ref.read(mapFocusRideProvider.notifier).state = null,
-              ),
-            ],
+    key: const ValueKey('focus-ride'),
+    child: Padding(
+      padding: const EdgeInsets.only(left: 12),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            context.l10n.rideFocusStatus(
+              formatMeters(ride.lengthM),
+              rideDurationLabel(ride.duration),
+            ),
           ),
-        ),
-      );
+          IconButton(
+            tooltip: context.l10n.rideFocusHide,
+            icon: const Icon(Icons.close, size: 18),
+            onPressed: () =>
+                ref.read(mapFocusRideProvider.notifier).state = null,
+          ),
+        ],
+      ),
+    ),
+  );
 }
 
 /// Leuchten um den ausgewählten Trail (#178, #195): 16 px Lime unter der
@@ -2514,9 +2997,14 @@ class _PositionDot extends StatelessWidget {
       ),
     );
     return Semantics(
-      label: pulsing ? context.l10n.mapPositionDotRecording : context.l10n.mapPositionDot,
+      label: pulsing
+          ? context.l10n.mapPositionDotRecording
+          : context.l10n.mapPositionDot,
       child: pulsing
-          ? Stack(alignment: Alignment.center, children: [const RidePulse(), dot])
+          ? Stack(
+              alignment: Alignment.center,
+              children: [const RidePulse(), dot],
+            )
           : dot,
     );
   }
@@ -2535,8 +3023,12 @@ class RidePulse extends StatefulWidget {
   State<RidePulse> createState() => _RidePulseState();
 }
 
-class _RidePulseState extends State<RidePulse> with SingleTickerProviderStateMixin {
-  late final _controller = AnimationController(vsync: this, duration: RidePulse.period);
+class _RidePulseState extends State<RidePulse>
+    with SingleTickerProviderStateMixin {
+  late final _controller = AnimationController(
+    vsync: this,
+    duration: RidePulse.period,
+  );
 
   @override
   void didChangeDependencies() {
@@ -2558,12 +3050,12 @@ class _RidePulseState extends State<RidePulse> with SingleTickerProviderStateMix
 
   @override
   Widget build(BuildContext context) => RepaintBoundary(
-        child: SizedBox.square(
-          key: const ValueKey('ride-pulse'),
-          dimension: kRidePulseExtent,
-          child: CustomPaint(painter: _PulsePainter(_controller)),
-        ),
-      );
+    child: SizedBox.square(
+      key: const ValueKey('ride-pulse'),
+      dimension: kRidePulseExtent,
+      child: CustomPaint(painter: _PulsePainter(_controller)),
+    ),
+  );
 }
 
 /// Radius und Deckkraft des Rings bei [t] (0…1), `ease-out` wie im
@@ -2581,8 +3073,11 @@ class _PulsePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final r = ridePulseAt(animation.value);
-    canvas.drawCircle(size.center(Offset.zero), 11 * r.scale,
-        Paint()..color = AppColors.mapLines.ride.withValues(alpha: r.opacity));
+    canvas.drawCircle(
+      size.center(Offset.zero),
+      11 * r.scale,
+      Paint()..color = AppColors.mapLines.ride.withValues(alpha: r.opacity),
+    );
   }
 
   @override
@@ -2604,29 +3099,32 @@ class _EmptyHint extends StatelessWidget {
         child: CoachAnchor(
           id: MapCoach.empty,
           child: Card(
-          key: const ValueKey('map-empty-hint'),
-          margin: const EdgeInsets.all(16),
-          clipBehavior: Clip.antiAlias,
-          child: InkWell(
-            onTap: () => context.push('/profile/help'),
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(12, 12, 8, 12),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      context.l10n.mapEmptyHint,
-                      style: theme.textTheme.bodyMedium,
+            key: const ValueKey('map-empty-hint'),
+            margin: const EdgeInsets.all(16),
+            clipBehavior: Clip.antiAlias,
+            child: InkWell(
+              onTap: () => context.push('/profile/help'),
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(12, 12, 8, 12),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        context.l10n.mapEmptyHint,
+                        style: theme.textTheme.bodyMedium,
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  Icon(Icons.help_outline, color: AppPalette.of(context).accentText,
-                      semanticLabel: context.l10n.mapQuickGuide),
-                ],
+                    const SizedBox(width: 8),
+                    Icon(
+                      Icons.help_outline,
+                      color: AppPalette.of(context).accentText,
+                      semanticLabel: context.l10n.mapQuickGuide,
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
-        ),
         ),
       ),
     );

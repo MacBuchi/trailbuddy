@@ -15,7 +15,11 @@ import '../keep_alive/keep_alive.dart';
 abstract interface class RideService {
   /// Startet den Service mit dem Mess-Takt [every]; läuft er schon,
   /// werden nur die Texte erneuert.
-  Future<void> start({required String title, required String text, required Duration every});
+  Future<void> start({
+    required String title,
+    required String text,
+    required Duration every,
+  });
 
   Future<void> stop();
 }
@@ -41,8 +45,17 @@ class CoordinatedRideService implements RideService {
   final KeepAliveCoordinator _coordinator;
 
   @override
-  Future<void> start({required String title, required String text, required Duration every}) async {
-    await _coordinator.start(_key, text, title: title, types: const {KeepAliveType.location});
+  Future<void> start({
+    required String title,
+    required String text,
+    required Duration every,
+  }) async {
+    await _coordinator.start(
+      _key,
+      text,
+      title: title,
+      types: const {KeepAliveType.location},
+    );
     await _coordinator.setRepeat(_key, every);
   }
 
@@ -55,4 +68,5 @@ class CoordinatedRideService implements RideService {
 
 /// Tests überschreiben den Provider (`FakeRideService`).
 final rideServiceProvider = Provider<RideService>(
-    (ref) => CoordinatedRideService(ref.watch(keepAliveCoordinatorProvider)));
+  (ref) => CoordinatedRideService(ref.watch(keepAliveCoordinatorProvider)),
+);

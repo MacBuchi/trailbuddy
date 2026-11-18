@@ -30,7 +30,8 @@ class SeenTile {
   final Uint8List bytes;
   final bool gzip;
 
-  Uint8List decoded() => gzip ? Uint8List.fromList(GZipDecoder().decodeBytes(bytes)) : bytes;
+  Uint8List decoded() =>
+      gzip ? Uint8List.fromList(GZipDecoder().decodeBytes(bytes)) : bytes;
 }
 
 abstract class SeenTileStore {
@@ -79,9 +80,12 @@ class _Entry {
 /// Neuladen, und beide räumen nach ihrem Stand. Das kostet höchstens eine
 /// Kachel, nie eine falsche.
 class IdbSeenTileStore implements SeenTileStore {
-  IdbSeenTileStore(IdbFactory factory, {this.capBytes = kSeenTilesCacheBytes, DateTime Function()? now})
-      : _db = BrowserDb(factory),
-        _now = now ?? DateTime.now;
+  IdbSeenTileStore(
+    IdbFactory factory, {
+    this.capBytes = kSeenTilesCacheBytes,
+    DateTime Function()? now,
+  }) : _db = BrowserDb(factory),
+       _now = now ?? DateTime.now;
 
   final BrowserDb _db;
   final int capBytes;
@@ -97,8 +101,10 @@ class IdbSeenTileStore implements SeenTileStore {
 
   Future<Map<String, _Entry>?> _load() async {
     try {
-      final (keys, values) = await _db.readStore(kSeenTileIndexStore,
-          (s) async => (await s.getAllKeys(), await s.getAll()));
+      final (keys, values) = await _db.readStore(
+        kSeenTileIndexStore,
+        (s) async => (await s.getAllKeys(), await s.getAll()),
+      );
       final index = <String, _Entry>{};
       for (var i = 0; i < keys.length && i < values.length; i++) {
         final entry = _Entry.decode(values[i]);
@@ -119,8 +125,13 @@ class IdbSeenTileStore implements SeenTileStore {
     final entry = index?[key];
     if (entry == null) return null;
     try {
-      final value = await _db.readStore(kSeenTileStore, (s) => s.getObject(key));
-      final bytes = value is Uint8List ? value : (value is List<int> ? Uint8List.fromList(value) : null);
+      final value = await _db.readStore(
+        kSeenTileStore,
+        (s) => s.getObject(key),
+      );
+      final bytes = value is Uint8List
+          ? value
+          : (value is List<int> ? Uint8List.fromList(value) : null);
       if (bytes == null) {
         // Index ohne Bytes (ein anderer Tab hat geräumt): vergessen.
         index!.remove(key);
@@ -130,9 +141,14 @@ class IdbSeenTileStore implements SeenTileStore {
       final now = _now().millisecondsSinceEpoch;
       if (now - entry.at > kSeenTileTouchInterval.inMilliseconds) {
         entry.at = now;
-        unawaited(_db
-            .writeStore(kSeenTileIndexStore, (s) => s.put(entry.encode(), key))
-            .then((_) {}, onError: (Object _) {}));
+        unawaited(
+          _db
+              .writeStore(
+                kSeenTileIndexStore,
+                (s) => s.put(entry.encode(), key),
+              )
+              .then((_) {}, onError: (Object _) {}),
+        );
       }
       return SeenTile(bytes, gzip: entry.gzip);
     } catch (_) {
@@ -147,9 +163,16 @@ class IdbSeenTileStore implements SeenTileStore {
     final index = await _loaded();
     if (index == null) return;
     try {
-      final entry = _Entry(tile.bytes.length, _now().millisecondsSinceEpoch, tile.gzip);
+      final entry = _Entry(
+        tile.bytes.length,
+        _now().millisecondsSinceEpoch,
+        tile.gzip,
+      );
       await _db.writeStore(kSeenTileStore, (s) => s.put(tile.bytes, key));
-      await _db.writeStore(kSeenTileIndexStore, (s) => s.put(entry.encode(), key));
+      await _db.writeStore(
+        kSeenTileIndexStore,
+        (s) => s.put(entry.encode(), key),
+      );
       final before = index[key];
       if (before != null) _total -= before.bytes;
       index[key] = entry;
@@ -162,7 +185,8 @@ class IdbSeenTileStore implements SeenTileStore {
   }
 
   Future<void> _evict(Map<String, _Entry> index) async {
-    final oldest = index.entries.toList()..sort((a, b) => a.value.at.compareTo(b.value.at));
+    final oldest = index.entries.toList()
+      ..sort((a, b) => a.value.at.compareTo(b.value.at));
     final target = (capBytes * kSeenTileEvictTo).floor();
     final gone = <String>[];
     for (final e in oldest) {
@@ -197,8 +221,8 @@ class SeenTilesVectorTileProvider extends VectorTileProvider {
     required this.online,
     required int minZoom,
     required int maxZoom,
-  })  : _minZoom = minZoom,
-        _maxZoom = maxZoom;
+  }) : _minZoom = minZoom,
+       _maxZoom = maxZoom;
 
   /// Der Dateiname des Archivs — der erste Teil jedes Schlüssels.
   final String archive;

@@ -19,11 +19,17 @@ class SeenCoachTours extends Notifier<Set<String>> {
     if (state.contains(id)) return;
     final next = {...state, id};
     state = next;
-    unawaited(ref
-        .read(settingsProvider)
-        .setSeenCoachTours(next)
-        .catchError((Object e, StackTrace s) => logError('Tour merken', e, s)));
+    unawaited(
+      ref
+          .read(settingsProvider)
+          .setSeenCoachTours(next)
+          .catchError(
+            (Object e, StackTrace s) => logError('Tour merken', e, s),
+          ),
+    );
   }
 }
 
-final seenCoachToursProvider = NotifierProvider<SeenCoachTours, Set<String>>(SeenCoachTours.new);
+final seenCoachToursProvider = NotifierProvider<SeenCoachTours, Set<String>>(
+  SeenCoachTours.new,
+);

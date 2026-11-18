@@ -10,28 +10,35 @@ import 'package:trailbuddy/models/trail.dart';
 /// 1 200 m nach Norden, schnurgerade, aber gewellt (±5 m): 2D bleiben
 /// zwei Punkte, 3D (seit 0.3.0) viele.
 List<TrackPoint> wavy() => [
-      for (var i = 0; i <= 60; i++)
-        TrackPoint(48.0 + i * 20 / 111320.0, 9.0,
-            ele: 600 - i * 1.5 + (i.isEven ? 5 : -5)),
-    ];
+  for (var i = 0; i <= 60; i++)
+    TrackPoint(
+      48.0 + i * 20 / 111320.0,
+      9.0,
+      ele: 600 - i * 1.5 + (i.isEven ? 5 : -5),
+    ),
+];
 
-List<TrackPoint> withoutEle(List<TrackPoint> pts) =>
-    [for (final p in pts) TrackPoint(p.lat, p.lon, time: p.time)];
+List<TrackPoint> withoutEle(List<TrackPoint> pts) => [
+  for (final p in pts) TrackPoint(p.lat, p.lon, time: p.time),
+];
 
-TrailRecording rec(List<TrackPoint> pts, {String id = 'r1', List<double>? ele}) =>
-    TrailRecording(
-      id: id,
-      trailId: 't1',
-      userId: 'me',
-      source: RecordingSource.import,
-      recordedAt: null,
-      reversed: false,
-      quality: 0.4,
-      createdAt: DateTime(2026),
-      points: [for (final p in pts) LatLng(p.lat, p.lon)],
-      lengthM: trackLengthM(pts),
-      ele: ele,
-    );
+TrailRecording rec(
+  List<TrackPoint> pts, {
+  String id = 'r1',
+  List<double>? ele,
+}) => TrailRecording(
+  id: id,
+  trailId: 't1',
+  userId: 'me',
+  source: RecordingSource.import,
+  recordedAt: null,
+  reversed: false,
+  quality: 0.4,
+  createdAt: DateTime(2026),
+  points: [for (final p in pts) LatLng(p.lat, p.lon)],
+  lengthM: trackLengthM(pts),
+  ele: ele,
+);
 
 void main() {
   final raw = wavy();
@@ -50,8 +57,11 @@ void main() {
     expect(found.last.ele, raw.last.ele);
 
     final mid = [raw[0], raw[30], raw[60]];
-    expect(storedLineInTrack(rec(mid).points, raw)!.map((p) => p.ele),
-        [raw[0].ele, raw[30].ele, raw[60].ele]);
+    expect(storedLineInTrack(rec(mid).points, raw)!.map((p) => p.ele), [
+      raw[0].ele,
+      raw[30].ele,
+      raw[60].ele,
+    ]);
   });
 
   test('ein eigenes Teilstück ist nicht die ganze Datei', () {
@@ -77,11 +87,14 @@ void main() {
   });
 
   test('schon mit Höhen, oder die Datei hat keine ⇒ nichts nachzutragen', () {
-    final withHeights = findOwnRecording(GpxTrack(name: 'W', points: raw),
-        [rec(old, ele: [1, 2])])!;
+    final withHeights = findOwnRecording(GpxTrack(name: 'W', points: raw), [
+      rec(old, ele: [1, 2]),
+    ])!;
     expect(withHeights.canBackfill, isFalse);
     final noEle = findOwnRecording(
-        GpxTrack(name: 'W', points: withoutEle(raw)), [rec(old)])!;
+      GpxTrack(name: 'W', points: withoutEle(raw)),
+      [rec(old)],
+    )!;
     expect(noEle.canBackfill, isFalse);
   });
 
@@ -89,7 +102,9 @@ void main() {
     final other = [
       for (final p in raw) TrackPoint(p.lat, p.lon + 0.01, ele: p.ele),
     ];
-    expect(findOwnRecording(GpxTrack(name: 'X', points: other), [rec(old)]),
-        isNull);
+    expect(
+      findOwnRecording(GpxTrack(name: 'X', points: other), [rec(old)]),
+      isNull,
+    );
   });
 }

@@ -43,15 +43,20 @@ class FlatProjection {
   final double _k;
 
   math.Point<double> xy(LatLng p) => math.Point(
-      p.longitude * math.pi / 180 * _earthRadiusM * _k,
-      p.latitude * math.pi / 180 * _earthRadiusM);
+    p.longitude * math.pi / 180 * _earthRadiusM * _k,
+    p.latitude * math.pi / 180 * _earthRadiusM,
+  );
 
-  List<math.Point<double>> line(Iterable<LatLng> points) => [for (final p in points) xy(p)];
+  List<math.Point<double>> line(Iterable<LatLng> points) => [
+    for (final p in points) xy(p),
+  ];
 
   /// Die Umkehrung von [xy] — für Proben entlang einer Linie, die eine
   /// Höhe brauchen (`height_tiles.dart`), wie `climb_along` im Werkzeug.
   LatLng latLng(math.Point<double> p) => LatLng(
-      p.y / _earthRadiusM * 180 / math.pi, p.x / (_earthRadiusM * _k) * 180 / math.pi);
+    p.y / _earthRadiusM * 180 / math.pi,
+    p.x / (_earthRadiusM * _k) * 180 / math.pi,
+  );
 }
 
 /// Ein Rahmen in Grad, für den groben Vorfilter vor jeder Rechnung.
@@ -77,7 +82,10 @@ class LatBox {
   bool near(LatBox o, double marginM) {
     final dLat = marginM / 111320.0;
     final dLon = marginM / (111320.0 * math.cos((s + n) / 2 * math.pi / 180));
-    return !(n + dLat < o.s || o.n + dLat < s || e + dLon < o.w || o.e + dLon < w);
+    return !(n + dLat < o.s ||
+        o.n + dLat < s ||
+        e + dLon < o.w ||
+        o.e + dLon < w);
   }
 }
 
@@ -114,12 +122,16 @@ class SegmentGrid {
       for (var i = 1; i < l.length; i++) {
         final a = l[i - 1], b = l[i];
         final seg = (a, b);
-        for (var cx = (math.min(a.x, b.x) / cell).floor();
-            cx <= (math.max(a.x, b.x) / cell).floor();
-            cx++) {
-          for (var cy = (math.min(a.y, b.y) / cell).floor();
-              cy <= (math.max(a.y, b.y) / cell).floor();
-              cy++) {
+        for (
+          var cx = (math.min(a.x, b.x) / cell).floor();
+          cx <= (math.max(a.x, b.x) / cell).floor();
+          cx++
+        ) {
+          for (
+            var cy = (math.min(a.y, b.y) / cell).floor();
+            cy <= (math.max(a.y, b.y) / cell).floor();
+            cy++
+          ) {
             (_cells[(cx, cy)] ??= []).add(seg);
           }
         }
@@ -137,7 +149,8 @@ class SegmentGrid {
     final reach = (d / cell).ceil();
     for (var dx = -reach; dx <= reach; dx++) {
       for (var dy = -reach; dy <= reach; dy++) {
-        for (final (a, b) in _cells[(cx + dx, cy + dy)] ?? const <LineSegment>[]) {
+        for (final (a, b)
+            in _cells[(cx + dx, cy + dy)] ?? const <LineSegment>[]) {
           if (pointSegmentDistance(p, a, b) <= d) return true;
         }
       }
@@ -147,7 +160,11 @@ class SegmentGrid {
 }
 
 /// Anteil der [samples], die näher als [d] an [grid] liegen.
-double coverageWithin(List<math.Point<double>> samples, SegmentGrid grid, double d) {
+double coverageWithin(
+  List<math.Point<double>> samples,
+  SegmentGrid grid,
+  double d,
+) {
   if (samples.isEmpty) return 0;
   var inside = 0;
   for (final p in samples) {
@@ -156,7 +173,11 @@ double coverageWithin(List<math.Point<double>> samples, SegmentGrid grid, double
   return inside / samples.length;
 }
 
-double pointSegmentDistance(math.Point<double> p, math.Point<double> a, math.Point<double> b) {
+double pointSegmentDistance(
+  math.Point<double> p,
+  math.Point<double> a,
+  math.Point<double> b,
+) {
   final dx = b.x - a.x, dy = b.y - a.y;
   final len2 = dx * dx + dy * dy;
   if (len2 == 0) return p.distanceTo(a);

@@ -39,8 +39,7 @@ void main() {
       expect(isApkAsset('trailbuddy-v1.2.3.aab'), isFalse);
     });
 
-    test('nimmt aus der Release-Liste den ersten veröffentlichten Stand',
-        () {
+    test('nimmt aus der Release-Liste den ersten veröffentlichten Stand', () {
       final release = firstPublishedRelease([
         {'tag_name': 'v2.0.0', 'draft': true},
         'kein Release',
@@ -63,12 +62,17 @@ void main() {
     await openProfilePage(tester, 'about');
   }
 
-  testWidgets('Ein verfügbares Update steht in der Statuszeile',
-      (tester) async {
+  testWidgets('Ein verfügbares Update steht in der Statuszeile', (
+    tester,
+  ) async {
     final (backend, _) = loggedInBackend();
-    await pumpApp(tester, backend, extraOverrides: [
-      updateInfoProvider.overrideWith((ref) => Future.value(_info)),
-    ]);
+    await pumpApp(
+      tester,
+      backend,
+      extraOverrides: [
+        updateInfoProvider.overrideWith((ref) => Future.value(_info)),
+      ],
+    );
 
     await openAbout(tester);
     expect(find.textContaining('Neueste Version: v9.9.9'), findsOneWidget);
@@ -83,8 +87,9 @@ void main() {
     expect(find.textContaining('auf dem aktuellen Stand'), findsOneWidget);
   });
 
-  testWidgets('Der Schalter „Vorabversionen erhalten" wird gemerkt',
-      (tester) async {
+  testWidgets('Der Schalter „Vorabversionen erhalten" wird gemerkt', (
+    tester,
+  ) async {
     // Im Test gilt Android ohne Play-Flag, also läuft der Update-Weg —
     // und nur dann darf der Schalter überhaupt dastehen.
     final (backend, _) = loggedInBackend();
@@ -99,10 +104,14 @@ void main() {
     await tester.tap(tile);
     await settle(tester);
 
-    expect(settings.prereleaseUpdatesEnabled, isTrue,
-        reason: 'Der Schalter merkt sich selbst — ein zweiter Schritt, den '
-            'man vergessen kann, wäre der Fehler, der erst beim nächsten '
-            'Start auffällt.');
+    expect(
+      settings.prereleaseUpdatesEnabled,
+      isTrue,
+      reason:
+          'Der Schalter merkt sich selbst — ein zweiter Schritt, den '
+          'man vergessen kann, wäre der Fehler, der erst beim nächsten '
+          'Start auffällt.',
+    );
     expect(tester.widget<SwitchListTile>(tile).value, isTrue);
 
     // Und der Neustart liest ihn wieder.

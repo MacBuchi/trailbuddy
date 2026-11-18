@@ -70,11 +70,13 @@ Future<Position?> _platformFix() async {
 /// `watchPosition` beantwortet Chromium `getCurrentPosition` erst mit der
 /// nächsten NEUEN Position — wer stillsteht, bekommt keine, und nach 30 s
 /// hieß es „Position nicht verfügbar" unter dem eigenen Punkt.
-final currentPositionProvider = Provider<PositionFix>((ref) => () async {
-      final known = ref.read(positionStreamProvider).valueOrNull;
-      if (known != null) return known;
-      return ref.read(positionFixProvider)();
-    });
+final currentPositionProvider = Provider<PositionFix>(
+  (ref) => () async {
+    final known = ref.read(positionStreamProvider).valueOrNull;
+    if (known != null) return known;
+    return ref.read(positionFixProvider)();
+  },
+);
 
 /// So lange wartet der Fix im Browser höchstens.
 const kWebFixTimeout = Duration(seconds: 30);
@@ -91,7 +93,8 @@ const kWebFixTimeout = Duration(seconds: 30);
 ///   Knopf so ohne jede Antwort. Das Limit setzt deshalb Dart selbst.
 Future<Position?> _webFix() async {
   try {
-    if (await Geolocator.checkPermission() == LocationPermission.deniedForever) {
+    if (await Geolocator.checkPermission() ==
+        LocationPermission.deniedForever) {
       return null;
     }
     return await Geolocator.getCurrentPosition(
@@ -112,12 +115,15 @@ Future<Position?> _webFix() async {
 /// des Browsers immer nein: Dort nennt die Meldung die App-Einstellungen.
 typedef LocationBlockedCheck = Future<bool> Function();
 
-final locationBlockedProvider = Provider<LocationBlockedCheck>((ref) => kIsWeb
-    ? () async {
-        try {
-          return await Geolocator.checkPermission() == LocationPermission.deniedForever;
-        } catch (_) {
-          return false;
+final locationBlockedProvider = Provider<LocationBlockedCheck>(
+  (ref) => kIsWeb
+      ? () async {
+          try {
+            return await Geolocator.checkPermission() ==
+                LocationPermission.deniedForever;
+          } catch (_) {
+            return false;
+          }
         }
-      }
-    : () async => false);
+      : () async => false,
+);

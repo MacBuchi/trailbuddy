@@ -16,7 +16,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 /// dort kommt er so höchstens doppelt, und das ist kein Wechsel.
 final connectivityProvider = StreamProvider<List<ConnectivityResult>>((ref) {
   final connectivity = Connectivity();
-  return startingWith(connectivity.checkConnectivity(), connectivity.onConnectivityChanged);
+  return startingWith(
+    connectivity.checkConnectivity(),
+    connectivity.onConnectivityChanged,
+  );
 });
 
 /// [changes], vorneweg [current] — es sei denn, ein Wechsel war schneller:
@@ -30,10 +33,14 @@ Stream<T> startingWith<T>(Future<T> current, Stream<T> changes) {
   var changed = false;
   out = StreamController<T>(
     onListen: () {
-      sub = changes.listen((v) {
-        changed = true;
-        out.add(v);
-      }, onError: out.addError, onDone: out.close);
+      sub = changes.listen(
+        (v) {
+          changed = true;
+          out.add(v);
+        },
+        onError: out.addError,
+        onDone: out.close,
+      );
       current.then((v) {
         if (!changed && !out.isClosed) out.add(v);
       }, onError: (Object _) {});
@@ -65,5 +72,7 @@ final noConnectivityProvider = Provider<bool>((ref) {
 final onMobileDataProvider = Provider<bool>((ref) {
   final results = ref.watch(connectivityProvider).valueOrNull ?? const [];
   return results.contains(ConnectivityResult.mobile) &&
-      !results.any((r) => r == ConnectivityResult.wifi || r == ConnectivityResult.ethernet);
+      !results.any(
+        (r) => r == ConnectivityResult.wifi || r == ConnectivityResult.ethernet,
+      );
 });

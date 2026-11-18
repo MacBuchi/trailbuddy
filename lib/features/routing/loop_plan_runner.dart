@@ -28,7 +28,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
 
 import 'graph_input.dart';
-import 'loop_plan_runner_web.dart' if (dart.library.io) 'loop_plan_runner_io.dart';
+import 'loop_plan_runner_web.dart'
+    if (dart.library.io) 'loop_plan_runner_io.dart';
 import 'loop_planner.dart';
 import 'plan_progress.dart';
 import 'road_graph.dart';
@@ -82,60 +83,65 @@ class LoopRequest implements GraphJob<LoopPlan> {
   /// Dieselbe Rechnung für einen Stand der Leiste — mit den Eingaben der
   /// gezeigten Planung, wie [withTune].
   LoopRequest withState(List<String> order) => LoopRequest(
-      start: start,
-      profile: profile,
-      budget: budget,
-      pool: pool,
-      returnToStart: returnToStart,
-      end: end,
-      searchBudget: searchBudget,
-      waypoints: waypoints,
-      bare: bare,
-      state: order);
+    start: start,
+    profile: profile,
+    budget: budget,
+    pool: pool,
+    returnToStart: returnToStart,
+    end: end,
+    searchBudget: searchBudget,
+    waypoints: waypoints,
+    bare: bare,
+    state: order,
+  );
 
   /// Dieselbe Rechnung ohne Höhenmeter-Grenze, für „Auch über dem Limit"
   /// (#549) — mit den Eingaben der gezeigten Planung.
   LoopRequest withOverLimit() => LoopRequest(
-      start: start,
-      profile: profile,
-      budget: budget,
-      pool: pool,
-      returnToStart: returnToStart,
-      end: end,
-      searchBudget: searchBudget,
-      waypoints: waypoints,
-      bare: bare,
-      overLimit: true);
+    start: start,
+    profile: profile,
+    budget: budget,
+    pool: pool,
+    returnToStart: returnToStart,
+    end: end,
+    searchBudget: searchBudget,
+    waypoints: waypoints,
+    bare: bare,
+    overLimit: true,
+  );
 
   /// Dieselbe Rechnung mit fester Folge — das Tunen (#234) braucht genau
   /// die Eingaben der gezeigten Planung, nicht die, die jetzt eingestellt
   /// sind.
   LoopRequest withTune(LoopTune tune) => LoopRequest(
-      start: start,
-      profile: profile,
-      budget: budget,
-      pool: pool,
-      returnToStart: returnToStart,
-      end: end,
-      searchBudget: searchBudget,
-      tune: tune,
-      waypoints: waypoints,
-      bare: bare);
+    start: start,
+    profile: profile,
+    budget: budget,
+    pool: pool,
+    returnToStart: returnToStart,
+    end: end,
+    searchBudget: searchBudget,
+    tune: tune,
+    waypoints: waypoints,
+    bare: bare,
+  );
 
-  LoopPlan planOn(RoadGraph g, {LoopSearchCache? cache}) => planLoop(g,
-      start: start,
-      profile: profile,
-      budget: budget,
-      pool: pool,
-      returnToStart: returnToStart,
-      end: end,
-      searchBudget: searchBudget,
-      cache: cache,
-      tune: tune,
-      waypoints: waypoints,
-      bare: bare,
-      state: state,
-      overLimit: overLimit);
+  LoopPlan planOn(RoadGraph g, {LoopSearchCache? cache}) => planLoop(
+    g,
+    start: start,
+    profile: profile,
+    budget: budget,
+    pool: pool,
+    returnToStart: returnToStart,
+    end: end,
+    searchBudget: searchBudget,
+    cache: cache,
+    tune: tune,
+    waypoints: waypoints,
+    bare: bare,
+    state: state,
+    overLimit: overLimit,
+  );
 
   @override
   LoopPlan runOn(RoadGraph g, LoopSearchCache cache) => planOn(g, cache: cache);
@@ -145,7 +151,10 @@ abstract interface class LoopPlanRunner {
   /// Baut den Graphen aus [input] und behält ihn — der vorige ist damit
   /// weg, samt gemerkten Suchen. Wirft, wenn der Bau scheitert.
   /// [onProgress] bekommt den Fortschritt (0…1).
-  Future<GraphReport> build(GraphInput input, {void Function(double value)? onProgress});
+  Future<GraphReport> build(
+    GraphInput input, {
+    void Function(double value)? onProgress,
+  });
 
   /// Ein Graph liegt bereit. Falsch vor dem ersten [build] und nachdem
   /// der Isolate verloren ging — dann baut der Aufrufer neu.
@@ -153,7 +162,10 @@ abstract interface class LoopPlanRunner {
 
   /// Rechnet [request] auf dem gebauten Graphen — [run] für die Runde,
   /// mit Fortschritt an [onProgress].
-  Future<LoopPlan> plan(LoopRequest request, {void Function(double value)? onProgress});
+  Future<LoopPlan> plan(
+    LoopRequest request, {
+    void Function(double value)? onProgress,
+  });
 
   /// Rechnet [job] auf dem gebauten Graphen, drüben. Ohne Graph ein
   /// [StateError].
@@ -173,7 +185,10 @@ class InlineLoopPlanRunner implements LoopPlanRunner {
   var _cache = LoopSearchCache();
 
   @override
-  Future<GraphReport> build(GraphInput input, {void Function(double value)? onProgress}) async {
+  Future<GraphReport> build(
+    GraphInput input, {
+    void Function(double value)? onProgress,
+  }) async {
     BuiltGraph go() => buildGraphFrom(input, builtIn: 'inline');
     final built = onProgress == null ? go() : PlanProgress.run(onProgress, go);
     _graph = built.graph;
@@ -185,7 +200,10 @@ class InlineLoopPlanRunner implements LoopPlanRunner {
   bool get hasGraph => _graph != null;
 
   @override
-  Future<LoopPlan> plan(LoopRequest request, {void Function(double value)? onProgress}) async {
+  Future<LoopPlan> plan(
+    LoopRequest request, {
+    void Function(double value)? onProgress,
+  }) async {
     if (onProgress == null) return run(request);
     final g = _graph;
     if (g == null) throw StateError('kein Graph gebaut');
@@ -211,4 +229,6 @@ class InlineLoopPlanRunner implements LoopPlanRunner {
 /// Der Runner für den Planer: auf dem Telefon ein Rechen-Isolate, im
 /// Browser an Ort und Stelle. Eine Fabrik, weil der Controller ihn mit
 /// dem Modus anlegt und beim Schließen freigibt.
-final loopPlanRunnerFactoryProvider = Provider<LoopPlanRunner Function()>((ref) => createLoopPlanRunner);
+final loopPlanRunnerFactoryProvider = Provider<LoopPlanRunner Function()>(
+  (ref) => createLoopPlanRunner,
+);

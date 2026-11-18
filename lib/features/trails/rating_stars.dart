@@ -8,7 +8,12 @@ import '../../models/trail.dart';
 /// zeigt die verblassten Sterne eines eigenen, noch nicht bewerteten
 /// Trails (Rework E4) — oder eines unbestätigten Werts.
 class RatingStars extends StatelessWidget {
-  const RatingStars(this.value, {super.key, this.size = 16, this.faded = false});
+  const RatingStars(
+    this.value, {
+    super.key,
+    this.size = 16,
+    this.faded = false,
+  });
 
   final int? value;
   final double size;
@@ -18,13 +23,18 @@ class RatingStars extends StatelessWidget {
   Widget build(BuildContext context) {
     final palette = AppPalette.of(context);
     final full = value ?? 0;
-    final color = faded ? palette.muted.withValues(alpha: 0.5) : palette.accentText;
+    final color = faded
+        ? palette.muted.withValues(alpha: 0.5)
+        : palette.accentText;
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         for (var i = 1; i <= kRatingMax; i++)
-          Icon(i <= full ? Icons.star_rounded : Icons.star_outline_rounded,
-              size: size, color: color),
+          Icon(
+            i <= full ? Icons.star_rounded : Icons.star_outline_rounded,
+            size: size,
+            color: color,
+          ),
       ],
     );
   }
@@ -62,9 +72,13 @@ class RatingPicker extends StatelessWidget {
             key: ValueKey('$keyPrefix-$i'),
             visualDensity: VisualDensity.compact,
             tooltip: context.l10n.ratingStarTooltip(i, kRatingMax),
-            onPressed: onChanged == null ? null : () => onChanged!(value == i ? null : i),
+            onPressed: onChanged == null
+                ? null
+                : () => onChanged!(value == i ? null : i),
             icon: Icon(
-              value != null && i <= value! ? Icons.star_rounded : Icons.star_outline_rounded,
+              value != null && i <= value!
+                  ? Icons.star_rounded
+                  : Icons.star_outline_rounded,
               size: size,
               color: color,
             ),

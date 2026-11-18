@@ -19,21 +19,21 @@ String _changelog([String asset = changelogAsset]) {
 
 String _pubspecVersion() {
   final pubspec = File('pubspec.yaml').readAsStringSync();
-  final version =
-      RegExp(r'^version:\s*([0-9]+\.[0-9]+\.[0-9]+)', multiLine: true)
-          .firstMatch(pubspec)
-          ?.group(1);
+  final version = RegExp(
+    r'^version:\s*([0-9]+\.[0-9]+\.[0-9]+)',
+    multiLine: true,
+  ).firstMatch(pubspec)?.group(1);
   expect(version, isNotNull, reason: 'version fehlt in pubspec.yaml');
   return version!;
 }
 
 /// Alle Versionen aus den Metazeilen ab [since].
 Set<String> _versionsSince(String markdown, String since) => {
-      for (final line in parseChangelog(markdown))
-        if (line.kind == ChangelogLineKind.meta)
-          for (final v in metaVersions(line.text))
-            if (compareVersions(v, since) >= 0) v,
-    };
+  for (final line in parseChangelog(markdown))
+    if (line.kind == ChangelogLineKind.meta)
+      for (final v in metaVersions(line.text))
+        if (compareVersions(v, since) >= 0) v,
+};
 
 void main() {
   group('Parser', () {
@@ -64,7 +64,10 @@ zwei Zeilen umgebrochen ist.
       expect(lines[2].text, '2. August 2026 · Version 1.33.0');
       // Umbruch innerhalb des Absatzes wird zusammengefasst, sonst bräche
       // der Text auf dem Handy an den Stellen der Datei statt am Rand.
-      expect(lines[3].text, 'Ein Absatz, der über zwei Zeilen umgebrochen ist.');
+      expect(
+        lines[3].text,
+        'Ein Absatz, der über zwei Zeilen umgebrochen ist.',
+      );
       expect(lines[5].text, 'Noch einer');
     });
 
@@ -84,12 +87,15 @@ zwei Zeilen umgebrochen ist.
       expect(compareVersions('0.99.0', '0.100.0'), lessThan(0));
       expect(compareVersions('0.120.0', '0.120.0'), 0);
       expect(compareVersions('1.0.0', '0.200.9'), greaterThan(0));
-      expect(metaVersions('Versionen 0.117.0 bis 0.117.5, 2026-10-13'),
-          ['0.117.0', '0.117.5']);
+      expect(metaVersions('Versionen 0.117.0 bis 0.117.5, 2026-10-13'), [
+        '0.117.0',
+        '0.117.5',
+      ]);
     });
 
     test('blocksBefore nimmt nur Blöcke ganz unter der Version', () {
-      final body = changelogBody(parseChangelog('''
+      final body = changelogBody(
+        parseChangelog('''
 # Titel
 
 ## Neu
@@ -113,9 +119,13 @@ zwei Zeilen umgebrochen ist.
 ## Unter der Haube
 
 - ohne Versionen
-'''));
-      expect(blocksBefore(body, '0.120.0').map((l) => l.text),
-          ['Alt', 'Version 0.119.0, 2026-10-13', 'alt']);
+'''),
+      );
+      expect(blocksBefore(body, '0.120.0').map((l) => l.text), [
+        'Alt',
+        'Version 0.119.0, 2026-10-13',
+        'alt',
+      ]);
     });
 
     test('hält eine fett beginnende Zeile nicht für die Metazeile', () {
@@ -126,61 +136,82 @@ zwei Zeilen umgebrochen ist.
   });
 
   for (final asset in [changelogAsset, changelogAssetEn]) {
-  group('Die ausgelieferte Datei $asset', () {
-    test('besteht aus Themenblöcken mit Datums- und Versionszeile', () {
-      final lines = parseChangelog(_changelog(asset));
-      final sections = lines
-          .where((l) => l.kind == ChangelogLineKind.section)
-          .toList();
-      expect(sections, isNotEmpty,
-          reason: 'Die Liste soll nach Themen gegliedert sein');
+    group('Die ausgelieferte Datei $asset', () {
+      test('besteht aus Themenblöcken mit Datums- und Versionszeile', () {
+        final lines = parseChangelog(_changelog(asset));
+        final sections = lines
+            .where((l) => l.kind == ChangelogLineKind.section)
+            .toList();
+        expect(
+          sections,
+          isNotEmpty,
+          reason: 'Die Liste soll nach Themen gegliedert sein',
+        );
 
-      // Jeder Block außer „Unter der Haube" (ohne Versionen) nennt Datum
-      // und Versionen — ohne die lässt sich ein Eintrag keiner
-      // installierten App zuordnen.
-      for (var i = 0; i < lines.length - 1; i++) {
-        if (lines[i].kind != ChangelogLineKind.section) continue;
-        if (lines[i].text == 'Unter der Haube') continue;
-        expect(lines[i + 1].kind, ChangelogLineKind.meta,
-            reason: 'Block „${lines[i].text}" hat keine Datums-/Versionszeile');
-      }
-    });
+        // Jeder Block außer „Unter der Haube" (ohne Versionen) nennt Datum
+        // und Versionen — ohne die lässt sich ein Eintrag keiner
+        // installierten App zuordnen.
+        for (var i = 0; i < lines.length - 1; i++) {
+          if (lines[i].kind != ChangelogLineKind.section) continue;
+          if (lines[i].text == 'Unter der Haube') continue;
+          expect(
+            lines[i + 1].kind,
+            ChangelogLineKind.meta,
+            reason: 'Block „${lines[i].text}" hat keine Datums-/Versionszeile',
+          );
+        }
+      });
 
-    test('enthält keine Markdown-Links', () {
-      // Die App rendert nur Überschriften, Aufzählungen und **fett** — ein
-      // `[Text](URL)` stünde dort roh auf dem Bildschirm.
-      expect(RegExp(r'\[[^\]]+\]\([^)]+\)').hasMatch(_changelog(asset)),
+      test('enthält keine Markdown-Links', () {
+        // Die App rendert nur Überschriften, Aufzählungen und **fett** — ein
+        // `[Text](URL)` stünde dort roh auf dem Bildschirm.
+        expect(
+          RegExp(r'\[[^\]]+\]\([^)]+\)').hasMatch(_changelog(asset)),
           isFalse,
-          reason: 'Nackte URL schreiben statt [Text](URL)');
-    });
+          reason: 'Nackte URL schreiben statt [Text](URL)',
+        );
+      });
 
-    test('nennt die aktuelle Version aus pubspec.yaml', () {
-      // Wer die Version hochsetzt, trägt sie hier ein — entweder als neuer
-      // Block oder indem er den obersten Block darauf erweitert. Ohne
-      // diesen Test fällt eine vergessene Zeile erst auf, wenn jemand in
-      // der App nachsieht.
-      final version = _pubspecVersion();
-      expect(_changelog(asset), contains(version),
-          reason: 'Version $version steht in pubspec.yaml, aber nicht in '
+      test('nennt die aktuelle Version aus pubspec.yaml', () {
+        // Wer die Version hochsetzt, trägt sie hier ein — entweder als neuer
+        // Block oder indem er den obersten Block darauf erweitert. Ohne
+        // diesen Test fällt eine vergessene Zeile erst auf, wenn jemand in
+        // der App nachsieht.
+        final version = _pubspecVersion();
+        expect(
+          _changelog(asset),
+          contains(version),
+          reason:
+              'Version $version steht in pubspec.yaml, aber nicht in '
               '$asset. Neuen Block anlegen oder den obersten Block '
-              'auf diese Version erweitern.');
+              'auf diese Version erweitern.',
+        );
+      });
     });
-  });
   }
 
-  test('ab $changelogEnglishSince nennen beide Sprachen dieselben Versionen',
-      () {
-    // Betreiber 2026-10-13 (#209): Ab der englischen Liste schreibt jeder PR
-    // seinen Block in beiden Sprachen. Fehlt einer, sähe die englische App
-    // die Neuerung nie — sie liest die deutschen Blöcke erst unterhalb von
-    // changelogEnglishSince.
-    final de = _versionsSince(_changelog(), changelogEnglishSince);
-    final en = _versionsSince(_changelog(changelogAssetEn), changelogEnglishSince);
-    expect(en, de,
-        reason: 'CHANGELOG.md und $changelogAssetEn nennen ab '
-            '$changelogEnglishSince verschiedene Versionen');
-    expect(de, contains(changelogEnglishSince));
-  });
+  test(
+    'ab $changelogEnglishSince nennen beide Sprachen dieselben Versionen',
+    () {
+      // Betreiber 2026-10-13 (#209): Ab der englischen Liste schreibt jeder PR
+      // seinen Block in beiden Sprachen. Fehlt einer, sähe die englische App
+      // die Neuerung nie — sie liest die deutschen Blöcke erst unterhalb von
+      // changelogEnglishSince.
+      final de = _versionsSince(_changelog(), changelogEnglishSince);
+      final en = _versionsSince(
+        _changelog(changelogAssetEn),
+        changelogEnglishSince,
+      );
+      expect(
+        en,
+        de,
+        reason:
+            'CHANGELOG.md und $changelogAssetEn nennen ab '
+            '$changelogEnglishSince verschiedene Versionen',
+      );
+      expect(de, contains(changelogEnglishSince));
+    },
+  );
 
   group('Die Seite', () {
     // rootBundle merkt sich das Future je Datei — eins aus einem früheren
@@ -188,43 +219,54 @@ zwei Zeilen umgebrochen ist.
     setUp(rootBundle.clear);
 
     Future<void> pumpIn(WidgetTester tester, Locale locale) async {
-      await tester.pumpWidget(MaterialApp(
-        localizationsDelegates: AppLocalizations.localizationsDelegates,
-        supportedLocales: AppLocalizations.supportedLocales,
-        locale: locale,
-        home: const ChangelogScreen(),
-      ));
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: locale,
+          home: const ChangelogScreen(),
+        ),
+      );
       // rootBundle liest echt von der Platte — außerhalb der Fake-Zeit
       // warten, bis die Liste steht.
-      for (var i = 0; i < 200 && find.byType(ListView).evaluate().isEmpty; i++) {
+      for (
+        var i = 0;
+        i < 200 && find.byType(ListView).evaluate().isEmpty;
+        i++
+      ) {
         await tester.runAsync(
-            () => Future<void>.delayed(const Duration(milliseconds: 20)));
+          () => Future<void>.delayed(const Duration(milliseconds: 20)),
+        );
         await tester.pump();
       }
       expect(find.byType(ListView), findsOneWidget);
     }
 
-    String firstSection(String asset) => changelogBody(
-            parseChangelog(_changelog(asset)))
-        .first
-        .text;
+    String firstSection(String asset) =>
+        changelogBody(parseChangelog(_changelog(asset))).first.text;
 
-    testWidgets('auf Englisch: oben der neueste englische Block',
-        (tester) async {
+    testWidgets('auf Englisch: oben der neueste englische Block', (
+      tester,
+    ) async {
       await pumpIn(tester, const Locale('en'));
       expect(find.text(firstSection(changelogAssetEn)), findsOneWidget);
-      expect(find.text(firstSection(changelogAsset)), findsNothing,
-          reason: 'Der neueste deutsche Block hat ein englisches Gegenstück');
+      expect(
+        find.text(firstSection(changelogAsset)),
+        findsNothing,
+        reason: 'Der neueste deutsche Block hat ein englisches Gegenstück',
+      );
     });
 
-    test('auf Englisch: nach den englischen Blöcken Hinweis und die alten',
-        () {
+    test('auf Englisch: nach den englischen Blöcken Hinweis und die alten', () {
       final en = changelogBody(parseChangelog(_changelog(changelogAssetEn)));
       final de = changelogBody(parseChangelog(_changelog()));
-      final texts = withOlderBlocks(en, de,
-              since: changelogEnglishSince, title: 'T', note: 'N')
-          .map((l) => l.text)
-          .toList();
+      final texts = withOlderBlocks(
+        en,
+        de,
+        since: changelogEnglishSince,
+        title: 'T',
+        note: 'N',
+      ).map((l) => l.text).toList();
       final title = texts.indexOf('T');
       expect(title, en.length);
       expect(texts[title + 1], 'N');
@@ -232,13 +274,16 @@ zwei Zeilen umgebrochen ist.
       final firstOld = texts[title + 2];
       expect(en.map((l) => l.text), isNot(contains(firstOld)));
       expect(texts, contains('Trails ohne Namen'));
-      expect(texts.where((t) => t == 'Datenschutz und Impressum auf Englisch'),
-          isEmpty,
-          reason: 'Blöcke ab $changelogEnglishSince stehen nur englisch da');
+      expect(
+        texts.where((t) => t == 'Datenschutz und Impressum auf Englisch'),
+        isEmpty,
+        reason: 'Blöcke ab $changelogEnglishSince stehen nur englisch da',
+      );
     });
 
-    testWidgets('auf Deutsch: nur die deutsche Liste, kein Hinweis',
-        (tester) async {
+    testWidgets('auf Deutsch: nur die deutsche Liste, kein Hinweis', (
+      tester,
+    ) async {
       await pumpIn(tester, const Locale('de'));
       expect(find.text(firstSection(changelogAsset)), findsOneWidget);
       expect(find.text('Frühere Versionen'), findsNothing);

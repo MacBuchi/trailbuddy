@@ -21,7 +21,11 @@ import 'trail_traits.dart';
 /// Sternen — derselbe Weg wie im Zerlege-Blatt, für Trails, deren Beitrag
 /// noch am Namen eines Buddys hängt.
 Future<void> showTrailDetailsDialog(
-    BuildContext context, WidgetRef ref, Trail trail, {bool takeOver = false}) async {
+  BuildContext context,
+  WidgetRef ref,
+  Trail trail, {
+  bool takeOver = false,
+}) async {
   final current = takeOver
       ? takeOverDetails(trail)
       : trail.myDetails ?? TrailDetails(trailId: trail.id, userId: trail.myId);
@@ -33,15 +37,16 @@ Future<void> showTrailDetailsDialog(
   final messenger = ScaffoldMessenger.of(context);
   final l = context.l10n;
   try {
-    final outcome = await ref
-        .read(trailsProvider.notifier)
-        .saveDetails(result);
-    messenger.showSnackBar(SnackBar(
+    final outcome = await ref.read(trailsProvider.notifier).saveDetails(result);
+    messenger.showSnackBar(
+      SnackBar(
         content: Text(switch (outcome) {
-      WriteOutcome.done => l.detailsSaved,
-      WriteOutcome.doneStale => l.staleAfterWrite(l.detailsSaved),
-      WriteOutcome.queued => l.queuedHint,
-    })));
+          WriteOutcome.done => l.detailsSaved,
+          WriteOutcome.doneStale => l.staleAfterWrite(l.detailsSaved),
+          WriteOutcome.queued => l.queuedHint,
+        }),
+      ),
+    );
   } catch (e, st) {
     logError('Trail-Beitrag speichern', e, st);
     messenger.showSnackBar(SnackBar(content: Text(friendlyError(l, e))));
@@ -59,10 +64,15 @@ class _DetailsDialog extends StatefulWidget {
 
 class _DetailsDialogState extends State<_DetailsDialog> {
   late final _name = TextEditingController(text: widget.initial.name ?? '');
-  late final _description =
-      TextEditingController(text: widget.initial.description ?? '');
-  late final _link =
-      TextEditingController(text: switch (widget.initial.link) { final l? => linkForDisplay(l), _ => '' });
+  late final _description = TextEditingController(
+    text: widget.initial.description ?? '',
+  );
+  late final _link = TextEditingController(
+    text: switch (widget.initial.link) {
+      final l? => linkForDisplay(l),
+      _ => '',
+    },
+  );
   String? _linkError;
   late int? _grade = widget.initial.grade;
   late int? _rating = widget.initial.rating;
@@ -113,12 +123,17 @@ class _DetailsDialogState extends State<_DetailsDialog> {
                     isExpanded: true,
                     decoration: InputDecoration(labelText: l.detailsGrade),
                     items: [
-                      DropdownMenuItem<int?>(value: null, child: Text(l.detailsNoGrade)),
+                      DropdownMenuItem<int?>(
+                        value: null,
+                        child: Text(l.detailsNoGrade),
+                      ),
                       for (final g in kSingletrailScale)
                         DropdownMenuItem<int?>(
                           value: g.value,
-                          child: Text('${g.label} · ${g.short(l)}',
-                              overflow: TextOverflow.ellipsis),
+                          child: Text(
+                            '${g.label} · ${g.short(l)}',
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
                     ],
                     onChanged: (v) => setState(() => _grade = v),
@@ -132,7 +147,10 @@ class _DetailsDialogState extends State<_DetailsDialog> {
             // Was jedes Merkmal heißt, steht direkt am Chip.
             Align(
               alignment: Alignment.centerLeft,
-              child: Text(l.detailsTraits, style: Theme.of(context).textTheme.bodySmall),
+              child: Text(
+                l.detailsTraits,
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
             ),
             const SizedBox(height: 4),
             Wrap(
@@ -144,7 +162,8 @@ class _DetailsDialogState extends State<_DetailsDialog> {
                     t,
                     key: ValueKey('trait-${t.db}'),
                     selected: _traits.contains(t),
-                    onSelected: (v) => setState(() => v ? _traits.add(t) : _traits.remove(t)),
+                    onSelected: (v) =>
+                        setState(() => v ? _traits.add(t) : _traits.remove(t)),
                   ),
               ],
             ),
@@ -153,7 +172,10 @@ class _DetailsDialogState extends State<_DetailsDialog> {
             // Ein zweiter Tipp auf denselben Stern nimmt sie zurück.
             Align(
               alignment: Alignment.centerLeft,
-              child: Text(l.detailsRating, style: Theme.of(context).textTheme.bodySmall),
+              child: Text(
+                l.detailsRating,
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
             ),
             Row(
               children: [
@@ -162,10 +184,13 @@ class _DetailsDialogState extends State<_DetailsDialog> {
                     key: ValueKey('details-rating-$i'),
                     tooltip: l.ratingStarTooltip(i, kRatingMax),
                     visualDensity: VisualDensity.compact,
-                    onPressed: () => setState(() => _rating = _rating == i ? null : i),
-                    icon: Icon(_rating != null && i <= _rating!
-                        ? Icons.star_rounded
-                        : Icons.star_outline_rounded),
+                    onPressed: () =>
+                        setState(() => _rating = _rating == i ? null : i),
+                    icon: Icon(
+                      _rating != null && i <= _rating!
+                          ? Icons.star_rounded
+                          : Icons.star_outline_rounded,
+                    ),
                   ),
               ],
             ),
@@ -221,31 +246,37 @@ class _DetailsDialogState extends State<_DetailsDialog> {
         FilledButton(
           key: const ValueKey('details-save'),
           // Übernehmen heißt bewerten (Rework E2).
-          onPressed: widget.takeOver && _rating == null ? null : () {
-            final linkText = _link.text.trim();
-            final link = sanitizeLink(linkText);
-            if (linkText.isNotEmpty && link == null) {
-              setState(() => _linkError = l.detailsLinkError);
-              return;
-            }
-            // Jedes Feld mit: Wer hier eines vergisst, löscht es beim
-            // Speichern still (Lehre aus #113).
-            Navigator.of(context).pop(TrailDetails(
-              trailId: widget.initial.trailId,
-              userId: widget.initial.userId,
-              username: widget.initial.username,
-              name: _name.text.trim().isEmpty ? null : _name.text.trim(),
-              description: _description.text.trim().isEmpty
-                  ? null
-                  : _description.text.trim(),
-              grade: _grade,
-              traits: {..._traits},
-              rating: _rating,
-              twoWay: _twoWay,
-              link: link,
-              visibility: _visibility,
-            ));
-          },
+          onPressed: widget.takeOver && _rating == null
+              ? null
+              : () {
+                  final linkText = _link.text.trim();
+                  final link = sanitizeLink(linkText);
+                  if (linkText.isNotEmpty && link == null) {
+                    setState(() => _linkError = l.detailsLinkError);
+                    return;
+                  }
+                  // Jedes Feld mit: Wer hier eines vergisst, löscht es beim
+                  // Speichern still (Lehre aus #113).
+                  Navigator.of(context).pop(
+                    TrailDetails(
+                      trailId: widget.initial.trailId,
+                      userId: widget.initial.userId,
+                      username: widget.initial.username,
+                      name: _name.text.trim().isEmpty
+                          ? null
+                          : _name.text.trim(),
+                      description: _description.text.trim().isEmpty
+                          ? null
+                          : _description.text.trim(),
+                      grade: _grade,
+                      traits: {..._traits},
+                      rating: _rating,
+                      twoWay: _twoWay,
+                      link: link,
+                      visibility: _visibility,
+                    ),
+                  );
+                },
           child: Text(l.commonSave),
         ),
       ],

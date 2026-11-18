@@ -35,7 +35,12 @@ const kWatchFixApartM = 200.0;
 /// meldete oder eine alte Uhr-App keine Koordinate schickt. [watchOffM] ist
 /// der Abstand, den die Uhr selbst zu ihrer Linie sieht.
 class WatchPresence {
-  const WatchPresence({this.connected = false, this.record = WatchRecord.idle, this.watchFix, this.watchOffM});
+  const WatchPresence({
+    this.connected = false,
+    this.record = WatchRecord.idle,
+    this.watchFix,
+    this.watchOffM,
+  });
 
   static const none = WatchPresence();
 
@@ -67,9 +72,11 @@ class WatchPresenceNotifier extends Notifier<WatchPresence> {
     _messages = bridge.messages.listen(_onMessage);
     _connected = bridge.connected.listen((_) => _note(true, state.record));
     // Die erste Frage startet das SDK; eine Antwort ist ein Fund.
-    unawaited(bridge.status().then((s) {
-      if (s.canShow) _note(true, state.record);
-    }));
+    unawaited(
+      bridge.status().then((s) {
+        if (s.canShow) _note(true, state.record);
+      }),
+    );
     return WatchPresence.none;
   }
 
@@ -78,7 +85,11 @@ class WatchPresenceNotifier extends Notifier<WatchPresence> {
     final fix = watchFixOf(message);
     if (fix != null) {
       state = WatchPresence(
-          connected: true, record: state.record, watchFix: fix, watchOffM: state.watchOffM);
+        connected: true,
+        record: state.record,
+        watchFix: fix,
+        watchOffM: state.watchOffM,
+      );
       return;
     }
     // #500: Die Uhr meldet ihren Stand, wenn sie über ihre Sicht hinaus von
@@ -87,10 +98,11 @@ class WatchPresenceNotifier extends Notifier<WatchPresence> {
     final drift = watchDriftOf(message);
     if (drift != null) {
       state = WatchPresence(
-          connected: true,
-          record: state.record,
-          watchFix: drift.at,
-          watchOffM: drift.offM);
+        connected: true,
+        record: state.record,
+        watchFix: drift.at,
+        watchOffM: drift.offM,
+      );
       return;
     }
     final record = watchRecordOf(message);
@@ -111,11 +123,15 @@ class WatchPresenceNotifier extends Notifier<WatchPresence> {
   void _note(bool connected, WatchRecord record) {
     if (!connected && record == WatchRecord.idle) return;
     state = WatchPresence(
-        connected: connected || state.connected,
-        record: record,
-        watchFix: state.watchFix,
-        watchOffM: state.watchOffM);
+      connected: connected || state.connected,
+      record: record,
+      watchFix: state.watchFix,
+      watchOffM: state.watchOffM,
+    );
   }
 }
 
-final watchPresenceProvider = NotifierProvider<WatchPresenceNotifier, WatchPresence>(WatchPresenceNotifier.new);
+final watchPresenceProvider =
+    NotifierProvider<WatchPresenceNotifier, WatchPresence>(
+      WatchPresenceNotifier.new,
+    );

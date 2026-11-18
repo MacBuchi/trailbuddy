@@ -58,7 +58,11 @@ const kNavReplanFallbackM = 1000.0;
 /// Wo das neue Stück die alte Route wieder trifft, in Reihenfolge der
 /// Versuche: der Kopf des nächsten Trails voraus (ohne: das Ende), dann
 /// [kNavReplanFallbackM] voraus, wenn das davor liegt. Meter ab Start.
-List<double> replanTargetsOf(NavRoute route, NavSections sections, double alongM) {
+List<double> replanTargetsOf(
+  NavRoute route,
+  NavSections sections,
+  double alongM,
+) {
   final next = sections.nextFrom(alongM);
   final head = math.min(next?.startM ?? route.lengthM, route.lengthM);
   final out = <double>[head];
@@ -85,13 +89,21 @@ enum ReplanOutcome { ok, startOffNetwork, targetOffNetwork, noPath }
 
 /// Der neue Weg von [from] nach [target] auf [g]. [courseDeg] ist der
 /// letzte GPS-Kurs (null: unbekannt — dann gibt es kein „zurück").
-ReplanPlan planReplanRoute(RoadGraph g, LatLng from, double? courseDeg, LatLng target, RiderParams p) {
+ReplanPlan planReplanRoute(
+  RoadGraph g,
+  LatLng from,
+  double? courseDeg,
+  LatLng target,
+  RiderParams p,
+) {
   final src = g.attach(from);
   if (src == null) return const ReplanPlan(ReplanOutcome.startOffNetwork);
   final dst = g.attach(target);
   if (dst == null) return const ReplanPlan(ReplanOutcome.targetOffNetwork);
   if (src == dst) return ReplanPlan(ReplanOutcome.ok, points: [from, target]);
-  final back = courseDeg == null ? const <int>{} : backEdgesAt(g, src, courseDeg);
+  final back = courseDeg == null
+      ? const <int>{}
+      : backEdgesAt(g, src, courseDeg);
   final t = g.nodes[dst];
   final vMax = p.vDownKmh / 3.6;
   // Mal [kTrailConnectorFactor]: Ein Verbinder ist billiger als seine Zeit.
@@ -100,9 +112,17 @@ ReplanPlan planReplanRoute(RoadGraph g, LatLng from, double? courseDeg, LatLng t
   var path = free.pathTo(dst);
   var turnedBack = path != null && path.isNotEmpty && back.contains(path.first);
   if (turnedBack) {
-    final ahead = dijkstra(g, src, p, target: dst, heuristic: h, allow: (e) => !back.contains(e.index));
+    final ahead = dijkstra(
+      g,
+      src,
+      p,
+      target: dst,
+      heuristic: h,
+      allow: (e) => !back.contains(e.index),
+    );
     final aheadPath = ahead.pathTo(dst);
-    if (aheadPath != null && ahead.costTo(dst)! <= free.costTo(dst)! + kNavReplanTurnBackS) {
+    if (aheadPath != null &&
+        ahead.costTo(dst)! <= free.costTo(dst)! + kNavReplanTurnBackS) {
       path = aheadPath;
       turnedBack = false;
     }
@@ -110,7 +130,11 @@ ReplanPlan planReplanRoute(RoadGraph g, LatLng from, double? courseDeg, LatLng t
   if (path == null) return const ReplanPlan(ReplanOutcome.noPath);
   final summary = summarizePath(g, path, src, p);
   final line = summary.points.isEmpty ? [g.nodeLatLng[src]] : summary.points;
-  return ReplanPlan(ReplanOutcome.ok, points: [from, ...line, target], turnedBack: turnedBack);
+  return ReplanPlan(
+    ReplanOutcome.ok,
+    points: [from, ...line, target],
+    turnedBack: turnedBack,
+  );
 }
 
 /// Die Kanten an [node], die gegen [courseDeg] führen — gemessen über
@@ -121,17 +145,29 @@ Set<int> backEdgesAt(RoadGraph g, int node, double courseDeg) {
   for (var s = g.adjFirst(node); s >= 0; s = g.adjNext(s)) {
     final ei = s >> 1;
     final e = g.edges[ei];
-    final pts = e.a == node ? e.points.toList() : e.points.toList().reversed.toList();
+    final pts = e.a == node
+        ? e.points.toList()
+        : e.points.toList().reversed.toList();
     var probe = pts.last;
     var walked = 0.0;
     for (var i = 1; i < pts.length; i++) {
-      walked += geo.distanceMeters(pts[i - 1].latitude, pts[i - 1].longitude, pts[i].latitude, pts[i].longitude);
+      walked += geo.distanceMeters(
+        pts[i - 1].latitude,
+        pts[i - 1].longitude,
+        pts[i].latitude,
+        pts[i].longitude,
+      );
       if (walked >= kNavReplanBearingM) {
         probe = pts[i];
         break;
       }
     }
-    final bearing = geo.bearingDegrees(at.latitude, at.longitude, probe.latitude, probe.longitude);
+    final bearing = geo.bearingDegrees(
+      at.latitude,
+      at.longitude,
+      probe.latitude,
+      probe.longitude,
+    );
     final diff = ((bearing - courseDeg) % 360 + 360) % 360;
     if (math.min(diff, 360 - diff) > kNavReplanBackDeg) out.add(ei);
   }
@@ -148,7 +184,8 @@ class ReplanJob implements GraphJob<ReplanPlan> {
   final RiderParams profile;
 
   @override
-  ReplanPlan runOn(RoadGraph g, LoopSearchCache cache) => planReplanRoute(g, from, courseDeg, target, profile);
+  ReplanPlan runOn(RoadGraph g, LoopSearchCache cache) =>
+      planReplanRoute(g, from, courseDeg, target, profile);
 }
 
 /// Die neue Route: [line] (vom Standort bis zum Punkt [targetAlongM] der
@@ -156,11 +193,17 @@ class ReplanJob implements GraphJob<ReplanPlan> {
 /// Ziel rücken mit, die davor fallen weg — gefahren werden sie auf dieser
 /// Route nicht mehr.
 ({List<LatLng> points, NavSections sections}) spliceReplan(
-    NavRoute route, NavSections sections, List<LatLng> line, double targetAlongM) {
+  NavRoute route,
+  NavSections sections,
+  List<LatLng> line,
+  double targetAlongM,
+) {
   final (_, rest) = route.splitAt(targetAlongM);
   final points = <LatLng>[...line];
   // Das Ziel steht am Ende der Linie und am Anfang des Rests: einmal.
-  for (final p in rest.skip(points.isNotEmpty && rest.isNotEmpty && points.last == rest.first ? 1 : 0)) {
+  for (final p in rest.skip(
+    points.isNotEmpty && rest.isNotEmpty && points.last == rest.first ? 1 : 0,
+  )) {
     points.add(p);
   }
   final lineM = cumulativeM(line).last;
@@ -172,7 +215,8 @@ class ReplanJob implements GraphJob<ReplanPlan> {
   return (
     points: points,
     sections: NavSections([
-      for (var i = 0; i < kept.length; i++) kept[i].shifted(shift, newApproach: i == 0),
+      for (var i = 0; i < kept.length; i++)
+        kept[i].shifted(shift, newApproach: i == 0),
     ]),
   );
 }

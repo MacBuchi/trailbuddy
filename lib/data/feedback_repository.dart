@@ -34,8 +34,12 @@ class FeedbackRepository {
   /// Mal an und nur die Antwort nicht, meldet der Server beim Nachholen
   /// `23505` — das heißt „stand schon" und ist kein Fehler. Die einzigen
   /// eindeutigen Spalten sind `id` (vom Server) und `client_id`.
-  Future<void> submit(FeedbackType type, String message,
-      {String? appVersion, String? clientId}) async {
+  Future<void> submit(
+    FeedbackType type,
+    String message, {
+    String? appVersion,
+    String? clientId,
+  }) async {
     try {
       await _client.from('feedback').insert({
         'user_id': _client.requireUid,

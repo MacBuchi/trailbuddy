@@ -192,9 +192,9 @@ extension CoachScriptSteps on CoachScript {
   /// Die Schritte ohne Startseite — für Vorführungen, die einen Teil
   /// einer Tour übernehmen und selbst keine Startseite brauchen.
   List<CoachStep> get tourSteps => [
-        for (final s in steps)
-          if (!s.isIntro) s,
-      ];
+    for (final s in steps)
+      if (!s.isIntro) s,
+  ];
 }
 
 /// Öffnet eine Szene und gibt zurück, wie sie wieder zu schließen ist.
@@ -281,9 +281,12 @@ class _CoachAnchorState extends ConsumerState<CoachAnchor> {
 
 /// Ein laufender Ablauf.
 class CoachRun {
-  const CoachRun(this.script, this.index,
-      {List<int>? shown, this.chained = false})
-      : _shown = shown;
+  const CoachRun(
+    this.script,
+    this.index, {
+    List<int>? shown,
+    this.chained = false,
+  }) : _shown = shown;
   final CoachScript script;
   final int index;
 
@@ -343,8 +346,12 @@ class CoachNotifier extends Notifier<CoachRun?> {
   /// [onDecline] läuft stattdessen, wenn auf der Startseite „Nicht
   /// jetzt" (bzw. „Später") gewählt wird. In TrailBuddy merken die Touren
   /// auch das als gesehen (#417), aber ohne [onDone]s Folgen (die Kette).
-  void start(CoachScript script,
-      {VoidCallback? onDone, VoidCallback? onDecline, bool chained = false}) {
+  void start(
+    CoachScript script, {
+    VoidCallback? onDone,
+    VoidCallback? onDecline,
+    bool chained = false,
+  }) {
     if (_reserved > 0) _reserved--;
     _setScene(null);
     _onDone = onDone;
@@ -419,8 +426,7 @@ class CoachNotifier extends Notifier<CoachRun?> {
       for (var i = 0; i < steps.length; i++)
         if (i == index || (i != index && _runs(steps[i]))) i,
     ];
-    final next =
-        CoachRun(run.script, index, shown: shown, chained: _chained);
+    final next = CoachRun(run.script, index, shown: shown, chained: _chained);
     _setScene(next.step.scene);
     state = next;
   }
@@ -461,10 +467,12 @@ class CoachNotifier extends Notifier<CoachRun?> {
     if (opener == null) return;
     final scene = _OpenScene(id);
     _open.add(scene);
-    unawaited(opener().then((close) {
-      scene.opened(close);
-      if (!scene.closed) _openMissing();
-    }));
+    unawaited(
+      opener().then((close) {
+        scene.opened(close);
+        if (!scene.closed) _openMissing();
+      }),
+    );
   }
 
   /// Je Bild aus der Überlagerung — siehe [_openMissing].
@@ -496,12 +504,15 @@ class _OpenScene {
   }
 }
 
-final coachProvider =
-    NotifierProvider<CoachNotifier, CoachRun?>(CoachNotifier.new);
+final coachProvider = NotifierProvider<CoachNotifier, CoachRun?>(
+  CoachNotifier.new,
+);
 
 /// Soll ein Reiter gerade Beispiele zeigen ([CoachScript.examples])?
-final coachExamplesProvider = Provider<bool>((ref) =>
-    ref.watch(coachProvider.select((run) => run?.script.examples ?? false)));
+final coachExamplesProvider = Provider<bool>(
+  (ref) =>
+      ref.watch(coachProvider.select((run) => run?.script.examples ?? false)),
+);
 
 /// Blendet [child] für den Bildschirmleser aus, solange eine Tour läuft.
 ///
@@ -517,9 +528,9 @@ class CoachSemanticsGate extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) => ExcludeSemantics(
-        excluding: ref.watch(coachProvider) != null,
-        child: child,
-      );
+    excluding: ref.watch(coachProvider) != null,
+    child: child,
+  );
 }
 
 /// Die Überlagerung. Gehört ÜBER den Navigator (`app.dart`).
@@ -644,8 +655,12 @@ class _CoachOverlayState extends ConsumerState<CoachOverlay>
           box.size.isEmpty) {
         continue;
       }
-      out.add(MatrixUtils.transformRect(
-          box.getTransformTo(overlay), Offset.zero & box.size));
+      out.add(
+        MatrixUtils.transformRect(
+          box.getTransformTo(overlay),
+          Offset.zero & box.size,
+        ),
+      );
     }
     return out;
   }
@@ -657,7 +672,8 @@ class _CoachOverlayState extends ConsumerState<CoachOverlay>
     final step = run.step;
     final lit = _rectsOf(step.lit);
     final ring = step.ring == null ? lit : _rectsOf(step.ring!);
-    final complete = lit.length == step.lit.length &&
+    final complete =
+        lit.length == step.lit.length &&
         (step.ring == null || ring.length == step.ring!.length);
     if (!complete && step.scrollIn != null && _missingFrames.isEven) {
       _scrollOn(step.scrollIn!);
@@ -701,8 +717,12 @@ class _CoachOverlayState extends ConsumerState<CoachOverlay>
     final position = list?.position;
     if (position == null || !position.hasContentDimensions) return;
     if (position.pixels >= position.maxScrollExtent) return;
-    position.jumpTo(math.min(position.maxScrollExtent,
-        position.pixels + position.viewportDimension * 0.9));
+    position.jumpTo(
+      math.min(
+        position.maxScrollExtent,
+        position.pixels + position.viewportDimension * 0.9,
+      ),
+    );
   }
 
   /// Holt ein Ziel ins Bild, das in seiner Liste außerhalb liegt — im
@@ -726,8 +746,13 @@ class _CoachOverlayState extends ConsumerState<CoachOverlay>
       }
       if (context == null || scrollable == null) continue;
       // Weit oben, damit darunter Platz für die Blase bleibt.
-      unawaited(Scrollable.ensureVisible(context,
-          alignment: 0.15, duration: const Duration(milliseconds: 300)));
+      unawaited(
+        Scrollable.ensureVisible(
+          context,
+          alignment: 0.15,
+          duration: const Duration(milliseconds: 300),
+        ),
+      );
     }
   }
 
@@ -736,7 +761,10 @@ class _CoachOverlayState extends ConsumerState<CoachOverlay>
     final box = scrollable?.context.findRenderObject();
     final overlay = _box.currentContext?.findRenderObject();
     if (box is! RenderBox || !box.hasSize || overlay is! RenderBox) return null;
-    return MatrixUtils.transformRect(box.getTransformTo(overlay), Offset.zero & box.size);
+    return MatrixUtils.transformRect(
+      box.getTransformTo(overlay),
+      Offset.zero & box.size,
+    );
   }
 
   static bool _same(List<Rect> a, List<Rect> b) {
@@ -807,8 +835,12 @@ class _CoachOverlayState extends ConsumerState<CoachOverlay>
                   ),
                 ),
                 if (measured && run.step.gesture != CoachGesture.none)
-                  _finger(run.step.gesture, ring.isNotEmpty ? ring : lit,
-                      constraints.biggest, still: still),
+                  _finger(
+                    run.step.gesture,
+                    ring.isNotEmpty ? ring : lit,
+                    constraints.biggest,
+                    still: still,
+                  ),
                 if (run.step.isIntro)
                   _intro(context, run, still: still)
                 else
@@ -821,8 +853,12 @@ class _CoachOverlayState extends ConsumerState<CoachOverlay>
     );
   }
 
-  Widget _finger(CoachGesture gesture, List<Rect> rects, Size size,
-      {required bool still}) {
+  Widget _finger(
+    CoachGesture gesture,
+    List<Rect> rects,
+    Size size, {
+    required bool still,
+  }) {
     final target = rects.isEmpty
         ? size.center(Offset.zero)
         : rects.reduce((a, b) => a.expandToInclude(b)).center;
@@ -836,8 +872,9 @@ class _CoachOverlayState extends ConsumerState<CoachOverlay>
           // Bei „Animationen entfernen" steht die Hand im Moment, der
           // die Geste ausmacht — dasselbe Bild wie in „Entdecken".
           painter: FingerPainter(
-              gesture: gesture,
-              t: still ? gestureStillFrame(gesture) : _clock.value),
+            gesture: gesture,
+            t: still ? gestureStillFrame(gesture) : _clock.value,
+          ),
         ),
       ),
     );
@@ -848,8 +885,7 @@ class _CoachOverlayState extends ConsumerState<CoachOverlay>
     final theme = Theme.of(context);
     final step = run.step;
     final notifier = ref.read(coachProvider.notifier);
-    final title =
-        run.chained ? (step.chainTitle ?? step.title) : step.title;
+    final title = run.chained ? (step.chainTitle ?? step.title) : step.title;
     return Positioned.fill(
       child: SafeArea(
         child: Center(
@@ -864,8 +900,9 @@ class _CoachOverlayState extends ConsumerState<CoachOverlay>
                 clipBehavior: Clip.antiAlias,
                 color: AppPalette.of(context).surface,
                 shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(24),
-                    side: BorderSide(color: AppPalette.of(context).line)),
+                  borderRadius: BorderRadius.circular(24),
+                  side: BorderSide(color: AppPalette.of(context).line),
+                ),
                 child: Semantics(
                   container: true,
                   liveRegion: true,
@@ -885,25 +922,30 @@ class _CoachOverlayState extends ConsumerState<CoachOverlay>
                                 // den Text zu verdrängen. „Animationen
                                 // entfernen": Es steht still.
                                 SizedBox(
-                                  height: (MediaQuery.sizeOf(context).height *
-                                          0.2)
-                                      .clamp(80.0, 150.0),
+                                  height:
+                                      (MediaQuery.sizeOf(context).height * 0.2)
+                                          .clamp(80.0, 150.0),
                                   child: FittedBox(
                                     child: TickerMode(
                                       enabled: !still,
                                       child: ExcludeSemantics(
-                                          child: step.art!(context)),
+                                        child: step.art!(context),
+                                      ),
                                     ),
                                   ),
                                 ),
                                 const SizedBox(height: 16),
-                                Text(title,
-                                    textAlign: TextAlign.center,
-                                    style: theme.textTheme.headlineSmall),
+                                Text(
+                                  title,
+                                  textAlign: TextAlign.center,
+                                  style: theme.textTheme.headlineSmall,
+                                ),
                                 const SizedBox(height: 10),
-                                Text(step.text,
-                                    textAlign: TextAlign.center,
-                                    style: theme.textTheme.bodyLarge),
+                                Text(
+                                  step.text,
+                                  textAlign: TextAlign.center,
+                                  style: theme.textTheme.bodyLarge,
+                                ),
                               ],
                             ),
                           ),
@@ -917,16 +959,21 @@ class _CoachOverlayState extends ConsumerState<CoachOverlay>
                             TextButton(
                               key: const ValueKey('coach-intro-later'),
                               onPressed: () => _guarded(notifier.decline),
-                              child: Text(run.chained
-                                  ? context.l10n.coachLater
-                                  : context.l10n.coachNotNow),
+                              child: Text(
+                                run.chained
+                                    ? context.l10n.coachLater
+                                    : context.l10n.coachNotNow,
+                              ),
                             ),
                             FilledButton(
                               key: const ValueKey('coach-intro-start'),
                               onPressed: () => _guarded(notifier.next),
-                              child: Text(run.chained
-                                  ? context.l10n.coachNext
-                                  : step.startLabel ?? context.l10n.coachShowMe),
+                              child: Text(
+                                run.chained
+                                    ? context.l10n.coachNext
+                                    : step.startLabel ??
+                                          context.l10n.coachShowMe,
+                              ),
                             ),
                           ],
                         ),
@@ -942,10 +989,17 @@ class _CoachOverlayState extends ConsumerState<CoachOverlay>
     );
   }
 
-  Widget _bubble(BuildContext context, CoachRun run, List<Rect> lit,
-      List<Rect> ring, Size size) {
+  Widget _bubble(
+    BuildContext context,
+    CoachRun run,
+    List<Rect> lit,
+    List<Rect> ring,
+    Size size,
+  ) {
     final all = [...lit, ...ring];
-    final union = all.isEmpty ? null : all.reduce((a, b) => a.expandToInclude(b));
+    final union = all.isEmpty
+        ? null
+        : all.reduce((a, b) => a.expandToInclude(b));
     // Auf die andere Seite des Hervorgehobenen: Eine Sprechblase über dem,
     // was sie erklärt, ist eine Sprechblase über nichts. Bei einer Geste
     // bleibt dazu Platz für den Finger.
@@ -968,9 +1022,8 @@ class _CoachOverlayState extends ConsumerState<CoachOverlay>
     // gesehen, als er prüfte, dass die Blase im Bild liegt).
     final leftRoom = union == null ? 0.0 : union.left - 24;
     final rightRoom = union == null ? 0.0 : size.width - union.right - 24;
-    final side = union != null &&
-            free < minRoom &&
-            math.max(leftRoom, rightRoom) >= 200
+    final side =
+        union != null && free < minRoom && math.max(leftRoom, rightRoom) >= 200
         ? (leftRoom >= rightRoom ? AxisDirection.left : AxisDirection.right)
         : null;
     final room = side != null ? size.height : math.max(free, minRoom);
@@ -1004,15 +1057,17 @@ class _CoachOverlayState extends ConsumerState<CoachOverlay>
                     up: below,
                     // Die Flächenfarbe der Blase, sonst hätte der Pfeil
                     // einen anderen Ton (TrailBuddy: `surface`).
-                    colour: AppPalette.of(context).surface),
+                    colour: AppPalette.of(context).surface,
+                  ),
             child: Card(
               key: const ValueKey('coach-bubble'),
               elevation: 6,
               margin: EdgeInsets.zero,
               color: AppPalette.of(context).surface,
               shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  side: BorderSide(color: AppPalette.of(context).line)),
+                borderRadius: BorderRadius.circular(12),
+                side: BorderSide(color: AppPalette.of(context).line),
+              ),
               child: Semantics(
                 // Ein neuer Schritt wird angesagt — der Bildschirmleser
                 // liest sonst nur, was man antippt, und die Blase kommt
@@ -1020,77 +1075,87 @@ class _CoachOverlayState extends ConsumerState<CoachOverlay>
                 container: true,
                 liveRegion: true,
                 child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(step.title,
-                        style: Theme.of(context).textTheme.titleLarge),
-                    const SizedBox(height: 6),
-                    // Nur der Text scrollt, Zähler und Knöpfe bleiben
-                    // immer sichtbar (so schon in der alten Tour).
-                    Flexible(
-                      child: SingleChildScrollView(
-                          child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(step.text),
-                          if (step.illustration != null) ...[
-                            const SizedBox(height: 10),
-                            step.illustration!,
-                          ],
-                        ],
-                      )),
-                    ),
-                    if (_targetLost) ...[
-                      const SizedBox(height: 8),
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
                       Text(
-                        context.l10n.coachTargetLost,
-                        key: const ValueKey('coach-target-lost'),
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: Theme.of(context).colorScheme.error),
+                        step.title,
+                        style: Theme.of(context).textTheme.titleLarge,
                       ),
-                    ],
-                    const SizedBox(height: 12),
-                    Text(context.l10n.coachPosition(run.position, run.count),
-                        style: AppFonts.numbers(Theme.of(context)
-                                .textTheme
-                                .bodySmall)
-                            .copyWith(color: AppPalette.of(context).muted)),
-                    const SizedBox(height: 4),
-                    // `Wrap`, keine `Row`: Deutsche Beschriftungen sind
-                    // lang (in der alten Tour 50–81 px Überlauf gemessen).
-                    Wrap(
-                      alignment: WrapAlignment.end,
-                      spacing: 8,
-                      children: [
-                        if (link != null)
-                          TextButton(
-                            onPressed: () => _guarded(() {
-                              ref.read(coachProvider.notifier).finish();
-                              widget.onNavigate(link.$2);
-                            }),
-                            child: Text(link.$1),
-                          )
-                        else if (!run.isLast)
-                          TextButton(
-                            onPressed: () => _guarded(
-                                ref.read(coachProvider.notifier).finish),
-                            child: Text(context.l10n.coachSkip),
+                      const SizedBox(height: 6),
+                      // Nur der Text scrollt, Zähler und Knöpfe bleiben
+                      // immer sichtbar (so schon in der alten Tour).
+                      Flexible(
+                        child: SingleChildScrollView(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(step.text),
+                              if (step.illustration != null) ...[
+                                const SizedBox(height: 10),
+                                step.illustration!,
+                              ],
+                            ],
                           ),
-                        FilledButton(
-                          onPressed: () =>
-                              _guarded(ref.read(coachProvider.notifier).next),
-                          child: Text(run.isLast
-                              ? context.l10n.coachDone
-                              : context.l10n.coachNext),
+                        ),
+                      ),
+                      if (_targetLost) ...[
+                        const SizedBox(height: 8),
+                        Text(
+                          context.l10n.coachTargetLost,
+                          key: const ValueKey('coach-target-lost'),
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(
+                                color: Theme.of(context).colorScheme.error,
+                              ),
                         ),
                       ],
-                    ),
-                  ],
+                      const SizedBox(height: 12),
+                      Text(
+                        context.l10n.coachPosition(run.position, run.count),
+                        style: AppFonts.numbers(
+                          Theme.of(context).textTheme.bodySmall,
+                        ).copyWith(color: AppPalette.of(context).muted),
+                      ),
+                      const SizedBox(height: 4),
+                      // `Wrap`, keine `Row`: Deutsche Beschriftungen sind
+                      // lang (in der alten Tour 50–81 px Überlauf gemessen).
+                      Wrap(
+                        alignment: WrapAlignment.end,
+                        spacing: 8,
+                        children: [
+                          if (link != null)
+                            TextButton(
+                              onPressed: () => _guarded(() {
+                                ref.read(coachProvider.notifier).finish();
+                                widget.onNavigate(link.$2);
+                              }),
+                              child: Text(link.$1),
+                            )
+                          else if (!run.isLast)
+                            TextButton(
+                              onPressed: () => _guarded(
+                                ref.read(coachProvider.notifier).finish,
+                              ),
+                              child: Text(context.l10n.coachSkip),
+                            ),
+                          FilledButton(
+                            onPressed: () =>
+                                _guarded(ref.read(coachProvider.notifier).next),
+                            child: Text(
+                              run.isLast
+                                  ? context.l10n.coachDone
+                                  : context.l10n.coachNext,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
-              )),
+              ),
             ),
           ),
         ),
@@ -1115,7 +1180,10 @@ class CoachPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     canvas.saveLayer(Offset.zero & size, Paint());
-    canvas.drawRect(Offset.zero & size, Paint()..color = const Color(0xA6000000));
+    canvas.drawRect(
+      Offset.zero & size,
+      Paint()..color = const Color(0xA6000000),
+    );
     final clear = Paint()..blendMode = BlendMode.clear;
     for (final r in lit) {
       // Knapp um das Element, nicht vergrößert: Mehr Rand griffe in den
@@ -1128,17 +1196,19 @@ class CoachPainter extends CustomPainter {
     final grow = 3 + 4 * math.sin(pulse * math.pi);
     final rrect = RRect.fromRectAndRadius(r.inflate(grow), radius);
     canvas.drawRRect(
-        rrect,
-        Paint()
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 5
-          ..color = Colors.white.withValues(alpha: 0.9));
+      rrect,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 5
+        ..color = Colors.white.withValues(alpha: 0.9),
+    );
     canvas.drawRRect(
-        rrect,
-        Paint()
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 3
-          ..color = AppColors.brand);
+      rrect,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 3
+        ..color = AppColors.brand,
+    );
   }
 
   @override
@@ -1194,36 +1264,37 @@ class FingerMotion {
     final lift = t < down
         ? 1 - _in(_seg(t, 0, down))
         : t < up
-            ? 0.0
-            : _in(_seg(t, up, math.min(1, up + 0.2)));
+        ? 0.0
+        : _in(_seg(t, up, math.min(1, up + 0.2)));
     final opacity = _seg(t, 0, 0.1) * (1 - _seg(t, 0.88, 1));
     return switch (gesture) {
       CoachGesture.tap => FingerMotion(
-          tipShift: Offset.zero,
-          lift: lift,
-          pressed: t >= down && t < up,
-          // Die Welle läuft über das Loslassen hinaus aus.
-          progress: _seg(t, down, 0.75),
-          opacity: opacity,
-        ),
+        tipShift: Offset.zero,
+        lift: lift,
+        pressed: t >= down && t < up,
+        // Die Welle läuft über das Loslassen hinaus aus.
+        progress: _seg(t, down, 0.75),
+        opacity: opacity,
+      ),
       CoachGesture.swipe => FingerMotion(
-          // Von rechts nach links, wie man durch Bilder blättert.
-          tipShift: Offset(
-              swipeReach -
-                  2 * swipeReach * Curves.easeInOut.transform(_seg(t, 0.25, up)),
-              0),
-          lift: lift,
-          pressed: t >= down && t < up,
-          progress: _seg(t, 0.25, up),
-          opacity: opacity,
+        // Von rechts nach links, wie man durch Bilder blättert.
+        tipShift: Offset(
+          swipeReach -
+              2 * swipeReach * Curves.easeInOut.transform(_seg(t, 0.25, up)),
+          0,
         ),
+        lift: lift,
+        pressed: t >= down && t < up,
+        progress: _seg(t, 0.25, up),
+        opacity: opacity,
+      ),
       _ => FingerMotion(
-          tipShift: Offset.zero,
-          lift: lift,
-          pressed: t >= down && t < up,
-          progress: _seg(t, down, up),
-          opacity: opacity,
-        ),
+        tipShift: Offset.zero,
+        lift: lift,
+        pressed: t >= down && t < up,
+        progress: _seg(t, down, up),
+        opacity: opacity,
+      ),
     };
   }
 }
@@ -1241,9 +1312,9 @@ class GesturePreview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => SizedBox.square(
-        dimension: size,
-        child: CustomPaint(painter: _GesturePreviewPainter(gesture)),
-      );
+    dimension: size,
+    child: CustomPaint(painter: _GesturePreviewPainter(gesture)),
+  );
 }
 
 /// Der Moment, der eine Geste ausmacht — für das stehende Bild in
@@ -1251,10 +1322,10 @@ class GesturePreview extends StatelessWidget {
 /// entfernen" an ist: beim Tipp die Welle, beim langen Druck der halb
 /// volle Kreis, beim Wischen die halbe Strecke.
 double gestureStillFrame(CoachGesture gesture) => switch (gesture) {
-      CoachGesture.longPress => 0.6,
-      CoachGesture.swipe => 0.55,
-      _ => 0.4,
-    };
+  CoachGesture.longPress => 0.6,
+  CoachGesture.swipe => 0.55,
+  _ => 0.4,
+};
 
 class _GesturePreviewPainter extends CustomPainter {
   const _GesturePreviewPainter(this.gesture);
@@ -1307,8 +1378,10 @@ class FingerPainter extends CustomPainter {
     final tip = target + motion.tipShift;
     _paintTrace(canvas, target, tip, motion);
 
-    canvas.saveLayer(null,
-        Paint()..color = Colors.white.withValues(alpha: motion.opacity));
+    canvas.saveLayer(
+      null,
+      Paint()..color = Colors.white.withValues(alpha: motion.opacity),
+    );
     // Abgehoben schwebt die Hand zum Betrachter hin: etwas größer, etwas
     // weiter weg vom Ziel, mit längerem Schatten. Gedrückt wird sie eine
     // Spur kleiner — daran sieht man die Berührung.
@@ -1322,43 +1395,53 @@ class FingerPainter extends CustomPainter {
 
   /// Was die Geste auf dem Schirm hinterlässt — UNTER der Hand.
   void _paintTrace(
-      Canvas canvas, Offset target, Offset tip, FingerMotion motion) {
+    Canvas canvas,
+    Offset target,
+    Offset tip,
+    FingerMotion motion,
+  ) {
     final p = motion.progress;
     final dot = Paint()..color = AppColors.brand;
     switch (gesture) {
       case CoachGesture.longPress when motion.pressed:
         // Der Kreis füllt sich — so lange dauert „lange".
         canvas.drawCircle(
-            tip, 26, Paint()..color = Colors.white.withValues(alpha: 0.35));
+          tip,
+          26,
+          Paint()..color = Colors.white.withValues(alpha: 0.35),
+        );
         canvas.drawArc(
-            Rect.fromCircle(center: tip, radius: 26),
-            -math.pi / 2,
-            2 * math.pi * p,
-            false,
-            Paint()
-              ..style = PaintingStyle.stroke
-              ..strokeWidth = 5
-              ..strokeCap = StrokeCap.round
-              ..color = AppColors.brand);
+          Rect.fromCircle(center: tip, radius: 26),
+          -math.pi / 2,
+          2 * math.pi * p,
+          false,
+          Paint()
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 5
+            ..strokeCap = StrokeCap.round
+            ..color = AppColors.brand,
+        );
         canvas.drawCircle(tip, 7, dot);
       case CoachGesture.tap when p > 0 && p < 1:
         canvas.drawCircle(
-            tip,
-            10 + 26 * p,
-            Paint()
-              ..style = PaintingStyle.stroke
-              ..strokeWidth = 4
-              ..color = Colors.white.withValues(alpha: 0.7 * (1 - p)));
+          tip,
+          10 + 26 * p,
+          Paint()
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 4
+            ..color = Colors.white.withValues(alpha: 0.7 * (1 - p)),
+        );
         if (motion.pressed) canvas.drawCircle(tip, 7, dot);
       case CoachGesture.swipe when motion.pressed:
         final start = target + const Offset(FingerMotion.swipeReach, 0);
         canvas.drawLine(
-            start,
-            tip,
-            Paint()
-              ..strokeWidth = 12
-              ..strokeCap = StrokeCap.round
-              ..color = Colors.white.withValues(alpha: 0.4));
+          start,
+          tip,
+          Paint()
+            ..strokeWidth = 12
+            ..strokeCap = StrokeCap.round
+            ..color = Colors.white.withValues(alpha: 0.4),
+        );
         canvas.drawCircle(tip, 7, dot);
       default:
         break;
@@ -1393,7 +1476,8 @@ class FingerPainter extends CustomPainter {
     // Der Daumen steht links schräg nach oben ab, mit einer Kerbe zum
     // Zeigefinger — nicht quer über der Hand.
     final thumb = (Path()..addRRect(box(-7, -34, 7, 6, 7))).transform(
-        (Matrix4.translationValues(-6, 80, 0)..rotateZ(-0.36)).storage);
+      (Matrix4.translationValues(-6, 80, 0)..rotateZ(-0.36)).storage,
+    );
     final palm = Path()..addRRect(box(-11, 55, 43, 94, 14));
     final cuff = box(-10, 84, 42, 102, 6);
 
@@ -1419,10 +1503,11 @@ class FingerPainter extends CustomPainter {
       ..color = _edge.withValues(alpha: 0.45);
 
     canvas.drawShadow(
-        Path.combine(PathOperation.union, outline, Path()..addRRect(cuff)),
-        Colors.black,
-        elevation,
-        false);
+      Path.combine(PathOperation.union, outline, Path()..addRRect(cuff)),
+      Colors.black,
+      elevation,
+      false,
+    );
     // Der Ärmel ganz hinten — die Hand liegt darauf, sichtbar bleibt der
     // Bund.
     canvas.drawRRect(cuff, Paint()..color = AppColors.brand);
@@ -1490,10 +1575,10 @@ class _BubbleLayout extends SingleChildLayoutDelegate {
   static const _gap = 8.0;
 
   double _width(Size size) => switch ((side, target)) {
-        (AxisDirection.left, final t?) => t.left - _margin - _gap,
-        (AxisDirection.right, final t?) => size.width - t.right - _margin - _gap,
-        _ => size.width - 2 * _margin,
-      };
+    (AxisDirection.left, final t?) => t.left - _margin - _gap,
+    (AxisDirection.right, final t?) => size.width - t.right - _margin - _gap,
+    _ => size.width - 2 * _margin,
+  };
 
   @override
   BoxConstraints getConstraintsForChild(BoxConstraints constraints) {
@@ -1501,8 +1586,10 @@ class _BubbleLayout extends SingleChildLayoutDelegate {
     return BoxConstraints(
       minWidth: width,
       maxWidth: width,
-      maxHeight:
-          math.max(0, constraints.maxHeight - insets.vertical - 2 * _margin),
+      maxHeight: math.max(
+        0,
+        constraints.maxHeight - insets.vertical - 2 * _margin,
+      ),
     );
   }
 
@@ -1510,8 +1597,10 @@ class _BubbleLayout extends SingleChildLayoutDelegate {
   Offset getPositionForChild(Size size, Size child) {
     final t = target;
     final lowest = insets.top + _margin;
-    final highest =
-        math.max(lowest, size.height - insets.bottom - _margin - child.height);
+    final highest = math.max(
+      lowest,
+      size.height - insets.bottom - _margin - child.height,
+    );
     if (side != null && t != null) {
       // Auf Höhe dessen, was gemeint ist; ohne Pfeil, der zeigt nur
       // senkrecht.
@@ -1525,8 +1614,8 @@ class _BubbleLayout extends SingleChildLayoutDelegate {
     final wanted = t == null
         ? size.height / 3
         : below
-            ? t.bottom + pad
-            : t.top - pad - child.height;
+        ? t.bottom + pad
+        : t.top - pad - child.height;
     final y = wanted.clamp(lowest, highest);
     placement.shifted = (y - wanted).abs() > 0.5;
     return Offset(_margin, y);

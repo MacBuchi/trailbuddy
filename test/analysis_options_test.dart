@@ -36,9 +36,13 @@ void main() {
       '- prefer_const_constructors',
       '- prefer_final_locals',
     ]) {
-      expect(options, contains(rule),
-          reason: '$rule fehlt in analysis_options.yaml — eine Regel '
-              'verschwindet still, `flutter analyze` bleibt grün');
+      expect(
+        options,
+        contains(rule),
+        reason:
+            '$rule fehlt in analysis_options.yaml — eine Regel '
+            'verschwindet still, `flutter analyze` bleibt grün',
+      );
     }
   });
 }

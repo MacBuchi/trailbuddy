@@ -9,19 +9,39 @@ import 'package:trailbuddy/core/push_messaging.dart';
 
 void main() {
   test('beide Formen der fehlenden Konfiguration werden erkannt', () {
-    expect(isMissingFirebaseConfig(FirebaseException(plugin: 'core', code: 'no-app')), isTrue);
+    expect(
+      isMissingFirebaseConfig(
+        FirebaseException(plugin: 'core', code: 'no-app'),
+      ),
+      isTrue,
+    );
     // Die native Form, wörtlich aus FlutterFirebaseCorePlugin.kt.
     expect(
-        isMissingFirebaseConfig(PlatformException(
-            code: 'java.lang.Exception',
-            message: 'Failed to load FirebaseOptions from resource. '
-                'Check that you have defined values.xml correctly.')),
-        isTrue);
+      isMissingFirebaseConfig(
+        PlatformException(
+          code: 'java.lang.Exception',
+          message:
+              'Failed to load FirebaseOptions from resource. '
+              'Check that you have defined values.xml correctly.',
+        ),
+      ),
+      isTrue,
+    );
   });
 
   test('echte Fehler bleiben Fehler', () {
-    expect(isMissingFirebaseConfig(FirebaseException(plugin: 'messaging', code: 'unknown')), isFalse);
-    expect(isMissingFirebaseConfig(PlatformException(code: 'network', message: 'timeout')), isFalse);
+    expect(
+      isMissingFirebaseConfig(
+        FirebaseException(plugin: 'messaging', code: 'unknown'),
+      ),
+      isFalse,
+    );
+    expect(
+      isMissingFirebaseConfig(
+        PlatformException(code: 'network', message: 'timeout'),
+      ),
+      isFalse,
+    );
     expect(isMissingFirebaseConfig(StateError('kaputt')), isFalse);
   });
 }

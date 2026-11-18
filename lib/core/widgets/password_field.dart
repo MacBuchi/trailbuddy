@@ -58,10 +58,12 @@ class _PasswordFieldState extends State<PasswordField> {
         labelText: widget.label,
         border: const OutlineInputBorder(),
         suffixIcon: IconButton(
-          icon: Icon(_hidden
-              ? Icons.visibility_outlined
-              : Icons.visibility_off_outlined),
-          tooltip: _hidden ? context.l10n.passwordShow : context.l10n.passwordHide,
+          icon: Icon(
+            _hidden ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+          ),
+          tooltip: _hidden
+              ? context.l10n.passwordShow
+              : context.l10n.passwordHide,
           onPressed: () => setState(() => _hidden = !_hidden),
         ),
       ),
@@ -108,10 +110,9 @@ class PasswordMatchHint extends StatelessWidget {
               matches
                   ? context.l10n.passwordsMatch
                   : context.l10n.passwordsDontMatch,
-              style: Theme.of(context)
-                  .textTheme
-                  .bodySmall
-                  ?.copyWith(color: color),
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: color),
             ),
           ),
         ],

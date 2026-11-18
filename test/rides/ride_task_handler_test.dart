@@ -15,8 +15,17 @@ void main() {
 
   final at = DateTime.utc(2026, 9, 28, 10);
   Position positionAt() => Position(
-      latitude: 47.2, longitude: 11.4, timestamp: at, accuracy: 6, altitude: 812,
-      altitudeAccuracy: 3, heading: 0, headingAccuracy: 0, speed: 4, speedAccuracy: 1);
+    latitude: 47.2,
+    longitude: 11.4,
+    timestamp: at,
+    accuracy: 6,
+    altitude: 812,
+    altitudeAccuracy: 3,
+    heading: 0,
+    headingAccuracy: 0,
+    speed: 4,
+    speedAccuracy: 1,
+  );
 
   /// Die Brücke liegt in SharedPreferences — `saveData`/`getData` lesen
   /// sie in BEIDEN Isolaten, deshalb ist sie hier mockbar.
@@ -32,7 +41,10 @@ void main() {
     await bridge(active: true);
     final store = FakeRideStore();
     await store.begin(uid: 'me', startedAt: at);
-    final point = await recordRideTick(fix: () async => positionAt(), storeFor: (_) => store);
+    final point = await recordRideTick(
+      fix: () async => positionAt(),
+      storeFor: (_) => store,
+    );
     expect(point, isNotNull);
     expect(point!.accuracyM, 6);
     expect(point.altM, 812);
@@ -45,11 +57,12 @@ void main() {
     final store = FakeRideStore();
     var asked = 0;
     final point = await recordRideTick(
-        fix: () async {
-          asked++;
-          return positionAt();
-        },
-        storeFor: (_) => store);
+      fix: () async {
+        asked++;
+        return positionAt();
+      },
+      storeFor: (_) => store,
+    );
     expect(point, isNull);
     expect(store.points, isEmpty);
     expect(asked, 0);
@@ -58,18 +71,30 @@ void main() {
   test('ohne Pfad in der Brücke passiert nichts', () async {
     await bridge(active: true, dir: '');
     final store = FakeRideStore();
-    expect(await recordRideTick(fix: () async => positionAt(), storeFor: (_) => store), isNull);
+    expect(
+      await recordRideTick(
+        fix: () async => positionAt(),
+        storeFor: (_) => store,
+      ),
+      isNull,
+    );
     expect(store.points, isEmpty);
   });
 
   test('kein Fix ist kein Fehler, ein werfender Fix beendet nichts', () async {
     await bridge(active: true);
     final store = FakeRideStore();
-    expect(await recordRideTick(fix: () async => null, storeFor: (_) => store), isNull);
     expect(
-        await recordRideTick(
-            fix: () async => throw Exception('GPS weg'), storeFor: (_) => store),
-        isNull);
+      await recordRideTick(fix: () async => null, storeFor: (_) => store),
+      isNull,
+    );
+    expect(
+      await recordRideTick(
+        fix: () async => throw Exception('GPS weg'),
+        storeFor: (_) => store,
+      ),
+      isNull,
+    );
     expect(store.points, isEmpty);
   });
 }

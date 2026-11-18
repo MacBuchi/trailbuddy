@@ -29,32 +29,44 @@ class BuddiesNearbyNotifier extends Notifier<bool?> {
 
   void set(bool value) {
     state = value;
-    unawaited(ref
-        .read(settingsProvider)
-        .setBuddiesNearby(value)
-        .catchError((Object e, StackTrace s) => logError('„Buddys unterwegs" merken', e, s)));
+    unawaited(
+      ref
+          .read(settingsProvider)
+          .setBuddiesNearby(value)
+          .catchError(
+            (Object e, StackTrace s) =>
+                logError('„Buddys unterwegs" merken', e, s),
+          ),
+    );
   }
 }
 
-final buddiesNearbyProvider =
-    NotifierProvider<BuddiesNearbyNotifier, bool?>(BuddiesNearbyNotifier.new);
+final buddiesNearbyProvider = NotifierProvider<BuddiesNearbyNotifier, bool?>(
+  BuddiesNearbyNotifier.new,
+);
 
 /// „Zuhause", nur auf dem Gerät.
 class NearbyHomeNotifier extends Notifier<NearbyPoint?> {
   @override
-  NearbyPoint? build() => parseNearbyHome(ref.read(settingsProvider).nearbyHome);
+  NearbyPoint? build() =>
+      parseNearbyHome(ref.read(settingsProvider).nearbyHome);
 
   void set(NearbyPoint? value) {
     state = value;
-    unawaited(ref
-        .read(settingsProvider)
-        .setNearbyHome(value == null ? null : encodeNearbyHome(value))
-        .catchError((Object e, StackTrace s) => logError('„Zuhause" merken', e, s)));
+    unawaited(
+      ref
+          .read(settingsProvider)
+          .setNearbyHome(value == null ? null : encodeNearbyHome(value))
+          .catchError(
+            (Object e, StackTrace s) => logError('„Zuhause" merken', e, s),
+          ),
+    );
   }
 }
 
-final nearbyHomeProvider =
-    NotifierProvider<NearbyHomeNotifier, NearbyPoint?>(NearbyHomeNotifier.new);
+final nearbyHomeProvider = NotifierProvider<NearbyHomeNotifier, NearbyPoint?>(
+  NearbyHomeNotifier.new,
+);
 
 /// Ist die App gerade vorne? Gesetzt von `NearbyHost`
 /// (`AppLifecycleListener`); ab Werk ja.
@@ -65,8 +77,9 @@ class AppForegroundNotifier extends Notifier<bool> {
   void set(bool value) => state = value;
 }
 
-final appForegroundProvider =
-    NotifierProvider<AppForegroundNotifier, bool>(AppForegroundNotifier.new);
+final appForegroundProvider = NotifierProvider<AppForegroundNotifier, bool>(
+  AppForegroundNotifier.new,
+);
 
 /// Die eigene Position, ohne Fix null.
 final nearbyPositionProvider = Provider<NearbyPoint?>((ref) {
@@ -91,7 +104,9 @@ final nearbyPauseProvider = Provider<NearbyPause?>((ref) {
     home: ref.watch(nearbyHomeProvider),
     // Läuft die Fahrt, aber ohne Punkt: der erste Kilometer ab dem
     // nächsten Fix — bis dahin nicht teilen.
-    rideStart: ride != null && start == null ? ref.watch(nearbyPositionProvider) : start,
+    rideStart: ride != null && start == null
+        ? ref.watch(nearbyPositionProvider)
+        : start,
     foreground: ref.watch(appForegroundProvider),
   );
 });
@@ -115,7 +130,9 @@ class NearbyPrefsNotifier extends AsyncNotifier<Map<String, NearbyPref>>
 }
 
 final nearbyPrefsProvider =
-    AsyncNotifierProvider<NearbyPrefsNotifier, Map<String, NearbyPref>>(NearbyPrefsNotifier.new);
+    AsyncNotifierProvider<NearbyPrefsNotifier, Map<String, NearbyPref>>(
+      NearbyPrefsNotifier.new,
+    );
 
 /// „Live mit Buddys" (#519, E4) — je Fahrt, ab Werk aus, und mit dem
 /// Ende der Fahrt vorbei: Der Zustand hängt am Beginn der Aufzeichnung,
@@ -133,7 +150,9 @@ class LiveShareNotifier extends Notifier<bool> {
   }
 }
 
-final liveShareProvider = NotifierProvider<LiveShareNotifier, bool>(LiveShareNotifier.new);
+final liveShareProvider = NotifierProvider<LiveShareNotifier, bool>(
+  LiveShareNotifier.new,
+);
 
 /// Was ich gerade von den Buddys weiß — gesetzt von `NearbyHost` aus der
 /// Engine, nur im Speicher.
@@ -152,7 +171,9 @@ class BuddySightingsNotifier extends Notifier<List<BuddySighting>> {
 }
 
 final buddySightingsProvider =
-    NotifierProvider<BuddySightingsNotifier, List<BuddySighting>>(BuddySightingsNotifier.new);
+    NotifierProvider<BuddySightingsNotifier, List<BuddySighting>>(
+      BuddySightingsNotifier.new,
+    );
 
 /// Wer hat mich als Homie gewählt (Patch 032)? Ohne Empfang niemand —
 /// dann zeigt die Karte eben keine Zelle.
@@ -164,13 +185,17 @@ final homieOwnersProvider = FutureProvider<Set<String>>((ref) async {
 
 /// Die Uhr der Karte: alle 30 s, damit „zuletzt vor …" weiterzählt und
 /// Altes verschwindet. Nur, solange jemand zu sehen ist.
-final buddyMapClockProvider = StreamProvider.autoDispose<DateTime>((ref) async* {
+final buddyMapClockProvider = StreamProvider.autoDispose<DateTime>((
+  ref,
+) async* {
   yield DateTime.now();
   yield* Stream.periodic(const Duration(seconds: 30), (_) => DateTime.now());
 });
 
 /// Was die Karte zeigt — [buddyMapEntries] auf dem aktuellen Stand.
-final buddyMapEntriesProvider = Provider.autoDispose<List<BuddyMapEntry>>((ref) {
+final buddyMapEntriesProvider = Provider.autoDispose<List<BuddyMapEntry>>((
+  ref,
+) {
   final sightings = ref.watch(buddySightingsProvider);
   if (sightings.isEmpty) return const [];
   return buddyMapEntries(
@@ -189,8 +214,12 @@ final buddyMapEntriesProvider = Provider.autoDispose<List<BuddyMapEntry>>((ref) 
 /// ([BuddySighting]: Zelle, Live, genaue Position) und hält die
 /// Paarkanäle — mit genau den Buddys, die [livePairsFor] nennt.
 class NearbyEngine {
-  NearbyEngine(this._repo, {required this.onNotice, this.onSightings, DateTime Function()? clock})
-      : _clock = clock ?? DateTime.now {
+  NearbyEngine(
+    this._repo, {
+    required this.onNotice,
+    this.onSightings,
+    DateTime Function()? clock,
+  }) : _clock = clock ?? DateTime.now {
     _sub = _repo.cells.listen(_onCell);
     _posSub = _repo.positions.listen(_onPosition);
   }
@@ -237,6 +266,7 @@ class NearbyEngine {
   DateTime? _pairedAt;
   NearbyPoint? _liveSentAt;
   DateTime? _liveSentTime;
+
   /// null, solange die Schalter je Buddy nicht geladen sind — dann wird
   /// niemand gemeldet (ein stummer Buddy käme sonst beim Start durch).
   Set<String>? _muted;
@@ -255,12 +285,21 @@ class NearbyEngine {
     bool live = false,
     NearbyPoint? position,
   }) {
-    _chain = _chain.then((_) => _sync(mine, buddies, muted, session, live && mine != null, position));
+    _chain = _chain.then(
+      (_) =>
+          _sync(mine, buddies, muted, session, live && mine != null, position),
+    );
     return _chain;
   }
 
   Future<void> _sync(
-      NearbyCell? mine, Set<String> buddies, Set<String>? muted, Object? session, bool live, NearbyPoint? position) async {
+    NearbyCell? mine,
+    Set<String> buddies,
+    Set<String>? muted,
+    Object? session,
+    bool live,
+    NearbyPoint? position,
+  ) async {
     if (_closed) return;
     _mine = mine;
     _muted = muted;
@@ -289,7 +328,9 @@ class NearbyEngine {
     }
     final want = mine == null ? const <String>{} : buddies;
     if (!setEquals(want, _listened) ||
-        (want.isNotEmpty && (_listenedAt == null || now.difference(_listenedAt!) >= relisten))) {
+        (want.isNotEmpty &&
+            (_listenedAt == null ||
+                now.difference(_listenedAt!) >= relisten))) {
       _listened = Set.of(want);
       _listenedAt = now;
       try {
@@ -314,10 +355,14 @@ class NearbyEngine {
     final want = livePairsFor(
       mine: _mine,
       myLive: _live,
-      sightings: [for (final s in _sightings.values) if (_listened.contains(s.buddyId)) s],
+      sightings: [
+        for (final s in _sightings.values)
+          if (_listened.contains(s.buddyId)) s,
+      ],
     );
     if (!setEquals(want, _pairs) ||
-        (want.isNotEmpty && (_pairedAt == null || now.difference(_pairedAt!) >= relisten))) {
+        (want.isNotEmpty &&
+            (_pairedAt == null || now.difference(_pairedAt!) >= relisten))) {
       final dropped = _pairs.difference(want);
       _pairs = Set.of(want);
       _pairedAt = now;
@@ -330,7 +375,13 @@ class NearbyEngine {
       // mehr — und ich zeige seine genaue Position nicht weiter.
       for (final id in dropped) {
         final s = _sightings[id];
-        if (s != null) _sightings[id] = s.copyWith(position: () => null, positionAt: () => null, positionPresent: false);
+        if (s != null) {
+          _sightings[id] = s.copyWith(
+            position: () => null,
+            positionAt: () => null,
+            positionPresent: false,
+          );
+        }
       }
       if (dropped.isNotEmpty) _emit();
     }
@@ -341,8 +392,12 @@ class NearbyEngine {
       return;
     }
     final last = _liveSentAt;
-    final moved = last == null ? double.infinity : distanceMeters(last.lat, last.lon, pos.lat, pos.lon);
-    if (moved >= liveMoveMeters || _liveSentTime == null || now.difference(_liveSentTime!) >= liveEvery) {
+    final moved = last == null
+        ? double.infinity
+        : distanceMeters(last.lat, last.lon, pos.lat, pos.lon);
+    if (moved >= liveMoveMeters ||
+        _liveSentTime == null ||
+        now.difference(_liveSentTime!) >= liveEvery) {
       _liveSentAt = pos;
       _liveSentTime = now;
       try {
@@ -365,7 +420,12 @@ class NearbyEngine {
       );
     } else {
       _sightings[e.buddyId] = (old ?? BuddySighting(buddyId: e.buddyId))
-          .copyWith(cell: () => cell, cellPresent: true, cellGoneAt: () => null, live: e.live);
+          .copyWith(
+            cell: () => cell,
+            cellPresent: true,
+            cellGoneAt: () => null,
+            live: e.live,
+          );
       _check(e.buddyId);
     }
     _emit();
@@ -396,7 +456,12 @@ class NearbyEngine {
   void _check(String id) {
     final mine = _mine;
     final theirs = _sightings[id];
-    if (mine == null || theirs == null || !theirs.cellPresent || theirs.cell == null) return;
+    if (mine == null ||
+        theirs == null ||
+        !theirs.cellPresent ||
+        theirs.cell == null) {
+      return;
+    }
     final muted = _muted;
     if (muted == null || !_listened.contains(id) || muted.contains(id)) return;
     if (!mine.isNearTo(theirs.cell!)) return;

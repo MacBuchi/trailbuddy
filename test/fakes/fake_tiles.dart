@@ -21,9 +21,13 @@ typedef RoadLine = ({
 
 const kTileExtent = 4096;
 
-RoadLine road(List<(int, int)> px, String kind,
-        {String? kindDetail, String layer = 'roads', Map<String, Object> extra = const {}}) =>
-    (px: px, kind: kind, kindDetail: kindDetail, layer: layer, extra: extra);
+RoadLine road(
+  List<(int, int)> px,
+  String kind, {
+  String? kindDetail,
+  String layer = 'roads',
+  Map<String, Object> extra = const {},
+}) => (px: px, kind: kind, kindDetail: kindDetail, layer: layer, extra: extra);
 
 /// Kodiert die Linien je Ebene in EINE Kachel.
 Uint8List mvtTile(List<RoadLine> lines) {
@@ -43,11 +47,13 @@ Uint8List mvtTile(List<RoadLine> lines) {
 
     final values = <raw.VectorTile_Value>[];
     int valueIndex(Object v) {
-      final i = values.indexWhere((x) => switch (v) {
-            final String s => x.hasStringValue() && x.stringValue == s,
-            final bool b => x.hasBoolValue() && x.boolValue == b,
-            _ => false,
-          });
+      final i = values.indexWhere(
+        (x) => switch (v) {
+          final String s => x.hasStringValue() && x.stringValue == s,
+          final bool b => x.hasBoolValue() && x.boolValue == b,
+          _ => false,
+        },
+      );
       if (i >= 0) return i;
       values.add(switch (v) {
         final String s => raw.VectorTile_Value(stringValue: s),
@@ -57,7 +63,11 @@ Uint8List mvtTile(List<RoadLine> lines) {
       return values.length - 1;
     }
 
-    final layer = raw.VectorTile_Layer(name: entry.key, extent: kTileExtent, version: 2);
+    final layer = raw.VectorTile_Layer(
+      name: entry.key,
+      extent: kTileExtent,
+      version: 2,
+    );
     for (final l in entry.value) {
       final tags = <int>[0, valueIndex(l.kind)];
       if (l.kindDetail != null) tags.addAll([1, valueIndex(l.kindDetail!)]);
@@ -78,8 +88,13 @@ Uint8List mvtTile(List<RoadLine> lines) {
         x = px;
         y = py;
       }
-      layer.features.add(raw.VectorTile_Feature(
-          type: raw.VectorTile_GeomType.LINESTRING, tags: tags, geometry: geometry));
+      layer.features.add(
+        raw.VectorTile_Feature(
+          type: raw.VectorTile_GeomType.LINESTRING,
+          tags: tags,
+          geometry: geometry,
+        ),
+      );
     }
     layer.keys.addAll(keys);
     layer.values.addAll(values);
@@ -107,7 +122,9 @@ Uint8List waysTile(List<({int k, int? u, List<(int, int)> px})> lines) {
     out.addAll(bytes);
   }
 
-  final numbers = <int>{for (final l in lines) ...[l.k, ?l.u]}.toList()..sort();
+  final numbers = <int>{
+    for (final l in lines) ...[l.k, ?l.u],
+  }.toList()..sort();
   final layer = <int>[];
   varint(layer, (15 << 3) | 0);
   varint(layer, 2);

@@ -11,27 +11,27 @@ import 'package:trailbuddy/models/trail.dart';
 import '../fakes/l10n_de.dart';
 
 Trail trailWith(List<Set<TrailTrait>> contributions) => Trail(
-      id: 't',
-      myId: 'me',
-      recordings: [
-        TrailRecording(
-          id: 'r',
-          trailId: 't',
-          userId: 'me',
-          source: RecordingSource.import,
-          recordedAt: null,
-          reversed: false,
-          quality: 0.5,
-          createdAt: DateTime(2026, 9, 1),
-          points: const [LatLng(48, 9), LatLng(48.01, 9)],
-          lengthM: 1000,
-        ),
-      ],
-      details: [
-        for (var i = 0; i < contributions.length; i++)
-          TrailDetails(trailId: 't', userId: 'u$i', traits: contributions[i]),
-      ],
-    );
+  id: 't',
+  myId: 'me',
+  recordings: [
+    TrailRecording(
+      id: 'r',
+      trailId: 't',
+      userId: 'me',
+      source: RecordingSource.import,
+      recordedAt: null,
+      reversed: false,
+      quality: 0.5,
+      createdAt: DateTime(2026, 9, 1),
+      points: const [LatLng(48, 9), LatLng(48.01, 9)],
+      lengthM: 1000,
+    ),
+  ],
+  details: [
+    for (var i = 0; i < contributions.length; i++)
+      TrailDetails(trailId: 't', userId: 'u$i', traits: contributions[i]),
+  ],
+);
 
 void main() {
   group('Zeile ↔ Merkmale', () {
@@ -46,26 +46,56 @@ void main() {
     });
 
     test('traits gewinnt; fehlt die Spalte, zählt die alte Art', () {
-      Map<String, dynamic> row(Map<String, dynamic> extra) =>
-          {'trail_id': 't', 'user_id': 'u', ...extra};
-      expect(TrailDetails.fromJson(row({'traits': ['rocky', 'steep'], 'kind': 'flow'})).traits,
-          {TrailTrait.rocky, TrailTrait.steep},
-          reason: 'die neue Spalte ist die Wahrheit, auch wenn kind noch dasteht');
-      expect(TrailDetails.fromJson(row({'traits': <String>[], 'kind': 'flow'})).traits, isEmpty,
-          reason: 'leer heißt: bewusst nichts gewählt');
-      expect(TrailDetails.fromJson(row({'kind': 'tech'})).traits, {TrailTrait.rocky},
-          reason: 'Zwischenspeicher/Ausgangskorb von vor 0.34.0');
-      expect(TrailDetails.fromJson(row({'traits': ['flowy', 'bogus']})).traits, {TrailTrait.flowy},
-          reason: 'ein Merkmal, das diese Fassung nicht kennt, fällt weg statt zu werfen');
+      Map<String, dynamic> row(Map<String, dynamic> extra) => {
+        'trail_id': 't',
+        'user_id': 'u',
+        ...extra,
+      };
+      expect(
+        TrailDetails.fromJson(
+          row({
+            'traits': ['rocky', 'steep'],
+            'kind': 'flow',
+          }),
+        ).traits,
+        {TrailTrait.rocky, TrailTrait.steep},
+        reason: 'die neue Spalte ist die Wahrheit, auch wenn kind noch dasteht',
+      );
+      expect(
+        TrailDetails.fromJson(
+          row({'traits': <String>[], 'kind': 'flow'}),
+        ).traits,
+        isEmpty,
+        reason: 'leer heißt: bewusst nichts gewählt',
+      );
+      expect(TrailDetails.fromJson(row({'kind': 'tech'})).traits, {
+        TrailTrait.rocky,
+      }, reason: 'Zwischenspeicher/Ausgangskorb von vor 0.34.0');
+      expect(
+        TrailDetails.fromJson(
+          row({
+            'traits': ['flowy', 'bogus'],
+          }),
+        ).traits,
+        {TrailTrait.flowy},
+        reason:
+            'ein Merkmal, das diese Fassung nicht kennt, fällt weg statt zu werfen',
+      );
     });
 
     test('toRow schreibt traits in fester Reihenfolge und kein kind mehr', () {
       final row = const TrailDetails(
-              trailId: 't', userId: 'u', traits: {TrailTrait.steep, TrailTrait.flowy})
-          .toRow();
+        trailId: 't',
+        userId: 'u',
+        traits: {TrailTrait.steep, TrailTrait.flowy},
+      ).toRow();
       expect(row['traits'], ['flowy', 'steep']);
-      expect(row.containsKey('kind'), isFalse,
-          reason: 'sonst überschriebe ein neuer Client die Art, die ein alter noch liest');
+      expect(
+        row.containsKey('kind'),
+        isFalse,
+        reason:
+            'sonst überschriebe ein neuer Client die Art, die ein alter noch liest',
+      );
     });
   });
 
@@ -76,7 +106,11 @@ void main() {
         {TrailTrait.rocky},
         {TrailTrait.flowy, TrailTrait.steep, TrailTrait.rocky},
       ]);
-      expect(t.traitCounts, {TrailTrait.rocky: 3, TrailTrait.steep: 2, TrailTrait.flowy: 1});
+      expect(t.traitCounts, {
+        TrailTrait.rocky: 3,
+        TrailTrait.steep: 2,
+        TrailTrait.flowy: 1,
+      });
       expect(t.topTraits, [TrailTrait.rocky, TrailTrait.steep]);
     });
 
@@ -95,8 +129,12 @@ void main() {
     });
 
     test('jedes Merkmal hat Beschreibung und Symbol, keine zwei dasselbe', () {
-      expect({for (final t in TrailTrait.values) t.icon}, hasLength(TrailTrait.values.length));
-      expect({for (final t in TrailTrait.values) t.label(l10nDe)}, hasLength(TrailTrait.values.length));
+      expect({
+        for (final t in TrailTrait.values) t.icon,
+      }, hasLength(TrailTrait.values.length));
+      expect({
+        for (final t in TrailTrait.values) t.label(l10nDe),
+      }, hasLength(TrailTrait.values.length));
       for (final t in TrailTrait.values) {
         expect(t.description(l10nDe), isNotEmpty, reason: t.db);
       }
@@ -123,17 +161,35 @@ void main() {
     });
 
     test('mehrere Merkmale: alle müssen passen', () {
-      const both = TrailListFilter(traits: {TrailTrait.flowy, TrailTrait.jumps});
+      const both = TrailListFilter(
+        traits: {TrailTrait.flowy, TrailTrait.jumps},
+      );
       expect(passesTrailFilter(flowJump, both), isTrue);
-      expect(passesTrailFilter(trailWith([{TrailTrait.flowy}]), both), isFalse);
+      expect(
+        passesTrailFilter(
+          trailWith([
+            {TrailTrait.flowy},
+          ]),
+          both,
+        ),
+        isFalse,
+      );
     });
 
     test('describe, isActive und Gleichheit', () {
       const f = TrailListFilter(traits: {TrailTrait.jumps, TrailTrait.flowy});
       expect(f.describe(l10nDe), 'Flowig · Jump-Line');
       expect(f.isActive, isTrue);
-      expect(f, const TrailListFilter(traits: {TrailTrait.flowy, TrailTrait.jumps}));
-      expect(f.hashCode, const TrailListFilter(traits: {TrailTrait.flowy, TrailTrait.jumps}).hashCode);
+      expect(
+        f,
+        const TrailListFilter(traits: {TrailTrait.flowy, TrailTrait.jumps}),
+      );
+      expect(
+        f.hashCode,
+        const TrailListFilter(
+          traits: {TrailTrait.flowy, TrailTrait.jumps},
+        ).hashCode,
+      );
       expect(f == const TrailListFilter(traits: {TrailTrait.flowy}), isFalse);
     });
   });

@@ -27,10 +27,10 @@ enum TrailOwnerFilter {
 
   /// Der Name im Umschalter (#209: aus den ARB-Dateien).
   String label(AppLocalizations l) => switch (this) {
-        all => l.filterOwnerAll,
-        mine => l.filterOwnerMine,
-        buddies => l.filterOwnerBuddies,
-      };
+    all => l.filterOwnerAll,
+    mine => l.filterOwnerMine,
+    buddies => l.filterOwnerBuddies,
+  };
 }
 
 enum TrailSort {
@@ -50,13 +50,13 @@ enum TrailSort {
 
   /// Der Name im Sortier-Menü (#209: aus den ARB-Dateien).
   String label(AppLocalizations l) => switch (this) {
-        recent => l.listSortRecent,
-        name => l.listSortName,
-        length => l.listSortLength,
-        descent => l.listSortDescent,
-        grade => l.listSortGrade,
-        rating => l.listSortRating,
-      };
+    recent => l.listSortRecent,
+    name => l.listSortName,
+    length => l.listSortLength,
+    descent => l.listSortDescent,
+    grade => l.listSortGrade,
+    rating => l.listSortRating,
+  };
 }
 
 /// Die Grenzen der Singletrail-Skala, S0 bis S5 — der Bereich, den der
@@ -94,8 +94,12 @@ class TrailListFilter {
   /// „S0–S5", wenn er nichts einschränkt.
   String gradeText(AppLocalizations l) {
     if (minGrade == maxGrade) return l.filterGradeOnly(gradeLabel(minGrade));
-    if (minGrade == kMinGrade && maxGrade < kMaxGrade) return l.filterGradeUpTo(gradeLabel(maxGrade));
-    if (maxGrade == kMaxGrade && minGrade > kMinGrade) return l.filterGradeFrom(gradeLabel(minGrade));
+    if (minGrade == kMinGrade && maxGrade < kMaxGrade) {
+      return l.filterGradeUpTo(gradeLabel(maxGrade));
+    }
+    if (maxGrade == kMaxGrade && minGrade > kMinGrade) {
+      return l.filterGradeFrom(gradeLabel(minGrade));
+    }
     return l.filterGradeRange(gradeLabel(minGrade), gradeLabel(maxGrade));
   }
 
@@ -130,15 +134,15 @@ class TrailListFilter {
 
   /// Was gefiltert ist, in Worten — für die Zeile auf der Karte.
   String describe(AppLocalizations l) => [
-        if (owner != TrailOwnerFilter.all) owner.label(l),
-        if (gradeActive) gradeText(l),
-        if (freshNotesOnly) l.filterDescribeFreshNote,
-        if (reportedOnly) l.filterDescribeReported,
-        if (ratingOpenOnly) l.filterDescribeRatingOpen,
-        if (stillValidOnly) l.filterDescribeStillValid,
-        for (final t in TrailTrait.values)
-          if (traits.contains(t)) t.label(l),
-      ].join(' · ');
+    if (owner != TrailOwnerFilter.all) owner.label(l),
+    if (gradeActive) gradeText(l),
+    if (freshNotesOnly) l.filterDescribeFreshNote,
+    if (reportedOnly) l.filterDescribeReported,
+    if (ratingOpenOnly) l.filterDescribeRatingOpen,
+    if (stillValidOnly) l.filterDescribeStillValid,
+    for (final t in TrailTrait.values)
+      if (traits.contains(t)) t.label(l),
+  ].join(' · ');
 
   TrailListFilter copyWith({
     TrailOwnerFilter? owner,
@@ -149,17 +153,16 @@ class TrailListFilter {
     bool? ratingOpenOnly,
     bool? stillValidOnly,
     Set<TrailTrait>? traits,
-  }) =>
-      TrailListFilter(
-        owner: owner ?? this.owner,
-        minGrade: minGrade ?? this.minGrade,
-        maxGrade: maxGrade ?? this.maxGrade,
-        freshNotesOnly: freshNotesOnly ?? this.freshNotesOnly,
-        reportedOnly: reportedOnly ?? this.reportedOnly,
-        ratingOpenOnly: ratingOpenOnly ?? this.ratingOpenOnly,
-        stillValidOnly: stillValidOnly ?? this.stillValidOnly,
-        traits: traits ?? this.traits,
-      );
+  }) => TrailListFilter(
+    owner: owner ?? this.owner,
+    minGrade: minGrade ?? this.minGrade,
+    maxGrade: maxGrade ?? this.maxGrade,
+    freshNotesOnly: freshNotesOnly ?? this.freshNotesOnly,
+    reportedOnly: reportedOnly ?? this.reportedOnly,
+    ratingOpenOnly: ratingOpenOnly ?? this.ratingOpenOnly,
+    stillValidOnly: stillValidOnly ?? this.stillValidOnly,
+    traits: traits ?? this.traits,
+  );
 
   @override
   bool operator ==(Object other) =>
@@ -174,8 +177,16 @@ class TrailListFilter {
       setEquals(other.traits, traits);
 
   @override
-  int get hashCode => Object.hash(owner, minGrade, maxGrade, freshNotesOnly, reportedOnly,
-      ratingOpenOnly, stillValidOnly, Object.hashAllUnordered(traits));
+  int get hashCode => Object.hash(
+    owner,
+    minGrade,
+    maxGrade,
+    freshNotesOnly,
+    reportedOnly,
+    ratingOpenOnly,
+    stillValidOnly,
+    Object.hashAllUnordered(traits),
+  );
 }
 
 /// Was die Liste zeigt.
@@ -199,11 +210,11 @@ typedef TrailListResult = ({
 /// Treffer für „Baum", und die Suche fände Trails über Sätze statt über
 /// Namen.
 List<String> trailSearchTexts(Trail t) => [
-      ?t.name,
-      ...t.otherNames,
-      for (final d in t.details)
-        if (d.userId != t.myId && d.username != null) d.username!,
-    ];
+  ?t.name,
+  ...t.otherNames,
+  for (final d in t.details)
+    if (d.userId != t.myId && d.username != null) d.username!,
+];
 
 /// Wann zuletzt etwas an diesem Trail passiert ist, das ich sehen kann.
 DateTime lastActivity(Trail t) {
@@ -228,18 +239,32 @@ DateTime lastActivity(Trail t) {
 }
 
 /// Lässt [filter] diesen Trail durch? Die EINE Regel für Liste und Karte.
-bool passesTrailFilter(Trail t, TrailListFilter filter,
-    {Set<String> seenNotes = const {}, DateTime? now, Map<String, DateTime> snoozed = const {}}) {
+bool passesTrailFilter(
+  Trail t,
+  TrailListFilter filter, {
+  Set<String> seenNotes = const {},
+  DateTime? now,
+  Map<String, DateTime> snoozed = const {},
+}) {
   if (filter.owner == TrailOwnerFilter.mine && !t.isOwn) return false;
   if (filter.owner == TrailOwnerFilter.buddies && t.isOwn) return false;
-  if (filter.freshNotesOnly && !t.hasFreshNote(now: now, seen: seenNotes)) return false;
+  if (filter.freshNotesOnly && !t.hasFreshNote(now: now, seen: seenNotes)) {
+    return false;
+  }
   if (filter.reportedOnly && !t.status.warns) return false;
   if (filter.ratingOpenOnly && !t.ratingOpen) return false;
   if (filter.stillValidOnly &&
-      stillValidQuestionsOf(t, now: now ?? DateTime.now(), snoozed: snoozed).isEmpty) {
+      stillValidQuestionsOf(
+        t,
+        now: now ?? DateTime.now(),
+        snoozed: snoozed,
+      ).isEmpty) {
     return false;
   }
-  if (filter.traits.isNotEmpty && !t.topTraits.toSet().containsAll(filter.traits)) return false;
+  if (filter.traits.isNotEmpty &&
+      !t.topTraits.toSet().containsAll(filter.traits)) {
+    return false;
+  }
   if (filter.gradeActive) {
     final g = t.grade;
     if (g == null || g < filter.minGrade || g > filter.maxGrade) return false;
@@ -250,12 +275,22 @@ bool passesTrailFilter(Trail t, TrailListFilter filter,
 /// Fällt [t] NUR deshalb heraus, weil der Grad-Bereich eingeschränkt ist
 /// und niemand ihn eingeschätzt hat? Die Liste zählt diese, damit der
 /// Filter nicht stumm verschluckt, was die App bloß nicht weiß.
-bool hiddenOnlyForMissingGrade(Trail t, TrailListFilter filter,
-        {Set<String> seenNotes = const {}, DateTime? now, Map<String, DateTime> snoozed = const {}}) =>
+bool hiddenOnlyForMissingGrade(
+  Trail t,
+  TrailListFilter filter, {
+  Set<String> seenNotes = const {},
+  DateTime? now,
+  Map<String, DateTime> snoozed = const {},
+}) =>
     filter.gradeActive &&
     t.grade == null &&
-    passesTrailFilter(t, filter.copyWith(minGrade: kMinGrade, maxGrade: kMaxGrade),
-        seenNotes: seenNotes, now: now, snoozed: snoozed);
+    passesTrailFilter(
+      t,
+      filter.copyWith(minGrade: kMinGrade, maxGrade: kMaxGrade),
+      seenNotes: seenNotes,
+      now: now,
+      snoozed: snoozed,
+    );
 
 /// Liegt ein Stück von [t] im Ausschnitt [b]? Ein Punkt darin genügt —
 /// oder eine Strecke, die ihn quert: Eine vereinfachte Linie hat lange
@@ -318,10 +353,21 @@ TrailListResult trailListOf(
   final candidates = <Trail>[];
   for (final t in trails) {
     if (onMap != null && !trailInBounds(t, onMap)) continue;
-    if (passesTrailFilter(t, filter, seenNotes: seenNotes, now: now, snoozed: snoozed)) {
+    if (passesTrailFilter(
+      t,
+      filter,
+      seenNotes: seenNotes,
+      now: now,
+      snoozed: snoozed,
+    )) {
       candidates.add(t);
-    } else if (hiddenOnlyForMissingGrade(t, filter,
-        seenNotes: seenNotes, now: now, snoozed: snoozed)) {
+    } else if (hiddenOnlyForMissingGrade(
+      t,
+      filter,
+      seenNotes: seenNotes,
+      now: now,
+      snoozed: snoozed,
+    )) {
       hiddenUngraded++;
     }
   }
@@ -332,14 +378,19 @@ TrailListResult trailListOf(
   if (needle.isNotEmpty) {
     found = [
       for (final t in candidates)
-        if (trailSearchTexts(t).any((s) => foldSearchText(s).contains(needle))) t,
+        if (trailSearchTexts(t).any((s) => foldSearchText(s).contains(needle)))
+          t,
     ];
     if (found.isEmpty) {
       isGuess = true;
       found = _closest(candidates, needle);
     }
   }
-  return (trails: sortTrails(found, sort), isGuess: isGuess, hiddenUngraded: hiddenUngraded);
+  return (
+    trails: sortTrails(found, sort),
+    isGuess: isGuess,
+    hiddenUngraded: hiddenUngraded,
+  );
 }
 
 /// Der Tippfehler-Ausgleich: nur der GERINGSTE gefundene Abstand — wer
@@ -367,11 +418,16 @@ List<Trail> _closest(List<Trail> candidates, String needle) {
 
 /// Sortiert; bei Gleichstand nach Name, damit die Liste nicht springt.
 List<Trail> sortTrails(List<Trail> trails, TrailSort sort) {
-  int byName(Trail a, Trail b) =>
-      foldSearchText(a.name ?? '\u{10FFFF}').compareTo(foldSearchText(b.name ?? '\u{10FFFF}'));
+  int byName(Trail a, Trail b) => foldSearchText(
+    a.name ?? '\u{10FFFF}',
+  ).compareTo(foldSearchText(b.name ?? '\u{10FFFF}'));
   // Fehlende Werte (keine Höhen, keine Einschätzung) immer ans Ende,
   // gleich in welche Richtung sortiert wird.
-  int nullsLast<T extends Comparable<T>>(T? a, T? b, {bool descending = false}) {
+  int nullsLast<T extends Comparable<T>>(
+    T? a,
+    T? b, {
+    bool descending = false,
+  }) {
     if (a == null && b == null) return 0;
     if (a == null) return 1;
     if (b == null) return -1;
@@ -382,23 +438,38 @@ List<Trail> sortTrails(List<Trail> trails, TrailSort sort) {
     TrailSort.recent => (a, b) => lastActivity(b).compareTo(lastActivity(a)),
     TrailSort.name => (a, b) => 0,
     TrailSort.length => (a, b) => b.lengthM.compareTo(a.lengthM),
-    TrailSort.descent => (a, b) =>
-        nullsLast(a.elevation?.lossM, b.elevation?.lossM, descending: true),
+    TrailSort.descent => (a, b) => nullsLast(
+      a.elevation?.lossM,
+      b.elevation?.lossM,
+      descending: true,
+    ),
     TrailSort.grade => (a, b) => nullsLast(a.grade, b.grade),
-    TrailSort.rating => (a, b) => nullsLast(a.rating, b.rating, descending: true),
+    TrailSort.rating => (a, b) => nullsLast(
+      a.rating,
+      b.rating,
+      descending: true,
+    ),
   };
-  return List.of(trails)
-    ..sort((a, b) {
-      final c = primary(a, b);
-      return c != 0 ? c : byName(a, b);
-    });
+  return List.of(trails)..sort((a, b) {
+    final c = primary(a, b);
+    return c != 0 ? c : byName(a, b);
+  });
 }
 
 /// Welche Art Wort eine Zeile trägt — die Farbe wählt die Oberfläche.
 /// [unconfirmed] ist eine Meldung „zu bestätigen" (#101), gedämpft;
 /// [condition] der Zustand 1–2 als Wort — ohne eigene Farbe, die gehört
 /// der Schwierigkeit (Rework E9).
-enum TrailRowTagKind { pending, failure, warning, unconfirmed, note, condition, mine, buddy }
+enum TrailRowTagKind {
+  pending,
+  failure,
+  warning,
+  unconfirmed,
+  note,
+  condition,
+  mine,
+  buddy,
+}
 
 /// Ab diesem Zustand (und schlechter) steht er als Wort in der Liste
 /// (Rework E9: „ABGEROCKT", „KAUM FAHRBAR").
@@ -433,25 +504,40 @@ List<({String text, TrailRowTagKind kind})> trailRowTags(
   final tags = <({String text, TrailRowTagKind kind})>[
     if (t.pendingDetails)
       (
-        text: t.sendingDetails ? l.listTagDetailsSending : l.listTagDetailsPending,
-        kind: TrailRowTagKind.pending
+        text: t.sendingDetails
+            ? l.listTagDetailsSending
+            : l.listTagDetailsPending,
+        kind: TrailRowTagKind.pending,
       ),
-    if (t.status.warns) (text: t.status.label(l).toUpperCase(), kind: TrailRowTagKind.warning),
+    if (t.status.warns)
+      (text: t.status.label(l).toUpperCase(), kind: TrailRowTagKind.warning),
     // Eine jüngere unbestätigte Meldung, die etwas anderes sagt als die
     // bestätigte: gedämpft, mit Fragezeichen („GESPERRT?").
     if (unconfirmed != null && unconfirmed != t.status)
-      (text: '${unconfirmed.label(l).toUpperCase()}?', kind: TrailRowTagKind.unconfirmed),
+      (
+        text: '${unconfirmed.label(l).toUpperCase()}?',
+        kind: TrailRowTagKind.unconfirmed,
+      ),
     if (freshNote) (text: l.listTagFreshNote, kind: TrailRowTagKind.note),
     // Der Zustand hinter Meldung und Hinweis, nur wenn er schlecht ist —
     // „Gut" in jeder Zeile wäre Lärm.
     if (condition != null && condition <= kConditionWordMax)
-      (text: trailConditionLabel(l, condition).toUpperCase(), kind: TrailRowTagKind.condition),
+      (
+        text: trailConditionLabel(l, condition).toUpperCase(),
+        kind: TrailRowTagKind.condition,
+      ),
   ];
   if (tags.isNotEmpty) return tags;
 
   final buddies = [
     for (final id in t.buddyIds)
-      nameOf(id, t.details.where((d) => d.userId == id && d.username != null).firstOrNull?.username),
+      nameOf(
+        id,
+        t.details
+            .where((d) => d.userId == id && d.username != null)
+            .firstOrNull
+            ?.username,
+      ),
   ];
   if (t.isOwn) {
     final n = buddies.length;

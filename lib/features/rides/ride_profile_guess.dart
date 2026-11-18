@@ -29,7 +29,8 @@ const kProfileGuessBand = 0.10;
 
 /// Die Bezugsrate eines Profils in Hm/h: das geometrische Mittel aus
 /// Forstweg und Pfad — eine Fahrt ohne Wegegraph mischt beides.
-double profileClimbRate(RiderParams p) => math.sqrt(p.climbTrackMPerH * p.climbPathMPerH);
+double profileClimbRate(RiderParams p) =>
+    math.sqrt(p.climbTrackMPerH * p.climbPathMPerH);
 
 /// Der Median der Steigraten (Hm/h) aller Aufstiege der Spur, oder null.
 double? rideClimbRate(List<RidePoint> pts) {
@@ -53,8 +54,11 @@ double? rideClimbRate(List<RidePoint> pts) {
 /// Bio oder E-Bike nach der Steigrate, oder null (siehe oben). [bio] und
 /// [ebike] sind die Profile, mit denen die Planer rechnen — gelernt, wo
 /// gelernt ist; so verschiebt sich die Grenze mit dem Fahrer.
-RiderProfile? guessRideProfile(List<RidePoint> pts,
-    {RiderParams bio = RiderProfile.bio, RiderParams ebike = RiderProfile.ebike}) {
+RiderProfile? guessRideProfile(
+  List<RidePoint> pts, {
+  RiderParams bio = RiderProfile.bio,
+  RiderParams ebike = RiderProfile.ebike,
+}) {
   final rate = rideClimbRate(pts);
   if (rate == null) return null;
   final b = profileClimbRate(bio), e = profileClimbRate(ebike);

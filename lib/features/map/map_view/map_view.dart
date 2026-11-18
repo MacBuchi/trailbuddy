@@ -11,8 +11,7 @@ import 'flutter_map_view.dart';
 import 'map_hit_test.dart';
 // Web darf `package:maplibre` nie sehen — der Stub liefert dieselbe
 // Signatur, die Engine-Wahl unten verzweigt dank `!kIsWeb` nie dorthin.
-import 'maplibre_view_stub.dart'
-    if (dart.library.io) 'maplibre_map_view.dart';
+import 'maplibre_view_stub.dart' if (dart.library.io) 'maplibre_map_view.dart';
 
 /// Engine-neutrale Fassade der Kartenansicht (#31, PilzBuddy-Muster).
 ///
@@ -306,7 +305,12 @@ const kLineArrowGlyph = '\u203A';
 /// Fahrtrichtung versetzt — auf einem Stück, das hin und zurück gefahren
 /// wird, stehen so beide Richtungen nebeneinander statt übereinander.
 class LineArrows {
-  const LineArrows({required this.color, this.spacing = 90, this.offset = 0, this.size = 14});
+  const LineArrows({
+    required this.color,
+    this.spacing = 90,
+    this.offset = 0,
+    this.size = 14,
+  });
 
   final Color color;
   final double spacing;
@@ -388,7 +392,11 @@ class MapViewLayers {
 /// setzt die Zahlen selbst entlang der Linie; flutter_map nimmt [labels]
 /// (Punkt und Winkel), weil es keinen Text entlang einer Linie kann.
 class MapViewContours {
-  const MapViewContours({required this.key, required this.lines, this.labels = const []});
+  const MapViewContours({
+    required this.key,
+    required this.lines,
+    this.labels = const [],
+  });
 
   /// Ändert sich nur mit Fenster, Äquidistanz oder Maßstab — die
   /// MapLibre-Seite überträgt die Linien nur dann neu.
@@ -409,7 +417,12 @@ abstract class MapViewCameraDelegate {
   /// damit ein 200-m-Trail nicht auf Hausnummern-Maßstab landet.
   /// [bottomInset]: so viele Pixel unten sind verdeckt (ein Blatt über
   /// der Karte) — eingepasst wird in die Fläche darüber (`cameraToFit`).
-  void fit(List<LatLng> points, {required double padding, required double maxZoom, double bottomInset = 0});
+  void fit(
+    List<LatLng> points, {
+    required double padding,
+    required double maxZoom,
+    double bottomInset = 0,
+  });
   LatLng get center;
   double get zoom;
 }
@@ -424,20 +437,26 @@ class MapViewController {
   MapViewController({
     required LatLng initialCenter,
     required double initialZoom,
-  })  : _center = initialCenter,
-        _zoom = initialZoom;
+  }) : _center = initialCenter,
+       _zoom = initialZoom;
 
   MapViewCameraDelegate? _delegate;
   LatLng _center;
   double _zoom;
-  ({List<LatLng> points, double padding, double maxZoom, double bottomInset})? _pendingFit;
+  ({List<LatLng> points, double padding, double maxZoom, double bottomInset})?
+  _pendingFit;
 
   void attach(MapViewCameraDelegate delegate) {
     _delegate = delegate;
     final fit = _pendingFit;
     if (fit != null) {
       _pendingFit = null;
-      delegate.fit(fit.points, padding: fit.padding, maxZoom: fit.maxZoom, bottomInset: fit.bottomInset);
+      delegate.fit(
+        fit.points,
+        padding: fit.padding,
+        maxZoom: fit.maxZoom,
+        bottomInset: fit.bottomInset,
+      );
     }
   }
 
@@ -461,14 +480,29 @@ class MapViewController {
     delegate.move(center, zoom, bearing: bearing);
   }
 
-  void fit(List<LatLng> points, {double padding = 40, double maxZoom = 15, double bottomInset = 0}) {
+  void fit(
+    List<LatLng> points, {
+    double padding = 40,
+    double maxZoom = 15,
+    double bottomInset = 0,
+  }) {
     if (points.isEmpty) return;
     final delegate = _delegate;
     if (delegate == null) {
-      _pendingFit = (points: points, padding: padding, maxZoom: maxZoom, bottomInset: bottomInset);
+      _pendingFit = (
+        points: points,
+        padding: padding,
+        maxZoom: maxZoom,
+        bottomInset: bottomInset,
+      );
       return;
     }
-    delegate.fit(points, padding: padding, maxZoom: maxZoom, bottomInset: bottomInset);
+    delegate.fit(
+      points,
+      padding: padding,
+      maxZoom: maxZoom,
+      bottomInset: bottomInset,
+    );
   }
 
   LatLng get center => _delegate?.center ?? _center;
@@ -476,11 +510,12 @@ class MapViewController {
 }
 
 /// Baut die Kartenansicht einer konkreten Engine.
-typedef MapViewBuilder = Widget Function(
-  MapViewConfig config,
-  MapViewController controller,
-  MapViewLayers layers,
-);
+typedef MapViewBuilder =
+    Widget Function(
+      MapViewConfig config,
+      MapViewController controller,
+      MapViewLayers layers,
+    );
 
 /// Die Engine-Wahl: **Android MapLibre, Web flutter_map.** `kIsWeb` ist
 /// eine Kompilierzeit-Konstante, die Verzweigung also in jedem Build
@@ -498,7 +533,10 @@ typedef MapViewBuilder = Widget Function(
 final mapViewBuilderProvider = Provider<MapViewBuilder>((ref) {
   if (!kIsWeb) {
     return (config, controller, layers) => createMapLibreMapView(
-        config: config, controller: controller, layers: layers);
+      config: config,
+      controller: controller,
+      layers: layers,
+    );
   }
   return (config, controller, layers) =>
       FlutterMapView(config: config, controller: controller, layers: layers);

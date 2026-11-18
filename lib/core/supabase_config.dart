@@ -12,8 +12,12 @@
 /// Vorgaben aus dieser Datei — die Form `String.fromEnvironment(…,
 /// defaultValue: '…')` muss deshalb bleiben.
 class SupabaseConfig {
-  static const url = String.fromEnvironment('SUPABASE_URL',
-      defaultValue: 'https://ibxrjgvwouuoydhdkfmf.supabase.co');
-  static const publishableKey = String.fromEnvironment('SUPABASE_KEY',
-      defaultValue: 'sb_publishable_aMBpsLzdggO9Sx-q6dCuDw_rMRca4kT');
+  static const url = String.fromEnvironment(
+    'SUPABASE_URL',
+    defaultValue: 'https://ibxrjgvwouuoydhdkfmf.supabase.co',
+  );
+  static const publishableKey = String.fromEnvironment(
+    'SUPABASE_KEY',
+    defaultValue: 'sb_publishable_aMBpsLzdggO9Sx-q6dCuDw_rMRca4kT',
+  );
 }

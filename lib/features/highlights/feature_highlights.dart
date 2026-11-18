@@ -34,11 +34,11 @@ enum HighlightTab {
 
   /// Wie der Reiter in der Reiterleiste heißt (#209).
   String label(AppLocalizations l) => switch (this) {
-        HighlightTab.map => l.tabMap,
-        HighlightTab.trails => l.tabTrails,
-        HighlightTab.buddys => l.tabBuddys,
-        HighlightTab.profile => l.tabProfile,
-      };
+    HighlightTab.map => l.tabMap,
+    HighlightTab.trails => l.tabTrails,
+    HighlightTab.buddys => l.tabBuddys,
+    HighlightTab.profile => l.tabProfile,
+  };
 }
 
 /// Ein Eintrag.
@@ -971,7 +971,8 @@ HighlightPlan planHighlights({
   if (current == null || !_isVersion(current)) return const HighlightNothing();
   final shipped = [
     for (final h in entries)
-      if (h.kind == HighlightKind.highlight && !isNewerVersion(h.since, current))
+      if (h.kind == HighlightKind.highlight &&
+          !isNewerVersion(h.since, current))
         h,
   ];
   if (seenVersion == null) {
@@ -979,8 +980,7 @@ HighlightPlan planHighlights({
     // es vorher nie gab, wäre keiner.
     if (!mapTourSeen) return HighlightRecord(current);
     final lead = [
-      for (final id in recapLead)
-        ...shipped.where((h) => h.id == id),
+      for (final id in recapLead) ...shipped.where((h) => h.id == id),
     ];
     final pages = [
       ...lead,
@@ -998,15 +998,16 @@ HighlightPlan planHighlights({
   // Rückschritt vom Vorabkanal): nichts zeigen und vor allem nichts
   // ZURÜCKschreiben — sonst käme alles dazwischen noch einmal.
   if (!isNewerVersion(current, seenVersion)) return const HighlightNothing();
-  final pending = shipped
-      .where((h) => isNewerVersion(h.since, seenVersion))
-      .toList()
-    // Jüngste zuerst; bei gleicher Version bleibt die Reihenfolge der
-    // Liste (`sort` ist in Dart nicht stabil, daher der Index).
-    ..sort((a, b) {
-      if (a.since == b.since) return entries.indexOf(a) - entries.indexOf(b);
-      return isNewerVersion(a.since, b.since) ? -1 : 1;
-    });
+  final pending =
+      shipped.where((h) => isNewerVersion(h.since, seenVersion)).toList()
+        // Jüngste zuerst; bei gleicher Version bleibt die Reihenfolge der
+        // Liste (`sort` ist in Dart nicht stabil, daher der Index).
+        ..sort((a, b) {
+          if (a.since == b.since) {
+            return entries.indexOf(a) - entries.indexOf(b);
+          }
+          return isNewerVersion(a.since, b.since) ? -1 : 1;
+        });
   if (pending.isEmpty) return HighlightRecord(current);
   final pages = pending.take(kHighlightSheetMax).toList();
   return HighlightShow(

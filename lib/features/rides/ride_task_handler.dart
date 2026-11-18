@@ -53,11 +53,12 @@ RidePoint? decodeRideTick(Object? data) {
   final accuracy = double.tryParse(parts[3]);
   if (lat == null || lng == null || at == null || accuracy == null) return null;
   return RidePoint(
-      lat: lat,
-      lng: lng,
-      at: at.toUtc(),
-      accuracyM: accuracy,
-      altM: double.tryParse(parts[4]));
+    lat: lat,
+    lng: lng,
+    at: at.toUtc(),
+    accuracyM: accuracy,
+    altM: double.tryParse(parts[4]),
+  );
 }
 
 /// Ein Takt der Aufzeichnung: messen, anhängen, melden.
@@ -72,7 +73,9 @@ Future<RidePoint?> recordRideTick({
   ConfirmNotify? notify,
 }) async {
   try {
-    final active = await FlutterForegroundTask.getData<bool>(key: kRideDataActive);
+    final active = await FlutterForegroundTask.getData<bool>(
+      key: kRideDataActive,
+    );
     if (active != true) return null;
     final dir = await FlutterForegroundTask.getData<String>(key: kRideDataDir);
     if (dir == null) return null;
@@ -92,7 +95,12 @@ Future<RidePoint?> recordRideTick({
     // Damit die Karte mitläuft, solange jemand hinsieht. Ist die App weg,
     // geht das ins Leere — und genau dann trägt die Datei allein.
     FlutterForegroundTask.sendDataToMain(encodeRideTick(point));
-    await _confirmTick(point, store: store, dir: dir, notify: notify ?? _notify);
+    await _confirmTick(
+      point,
+      store: store,
+      dir: dir,
+      notify: notify ?? _notify,
+    );
     return point;
   } catch (_) {
     return null;
@@ -102,7 +110,8 @@ Future<RidePoint?> recordRideTick({
 RideStore _storeFor(String dir) => FileRideStore(baseDir: Directory(dir));
 
 /// Zeigt die Frage zu einem Trail; die Naht für den Test.
-typedef ConfirmNotify = Future<void> Function(ConfirmTarget target, {required String payload});
+typedef ConfirmNotify =
+    Future<void> Function(ConfirmTarget target, {required String payload});
 
 Future<void> _notify(ConfirmTarget target, {required String payload}) =>
     showConfirmNotice(target, payload: payload);
@@ -113,19 +122,30 @@ Future<void> _notify(ConfirmTarget target, {required String payload}) =>
 /// geht es weiter).
 RideConfirmWatcher? _watcher;
 
-Future<void> _confirmTick(RidePoint point,
-    {required RideStore store, required String dir, required ConfirmNotify notify}) async {
+Future<void> _confirmTick(
+  RidePoint point, {
+  required RideStore store,
+  required String dir,
+  required ConfirmNotify notify,
+}) async {
   try {
     final uid = await FlutterForegroundTask.getData<String>(key: kRideDataUid);
     final started = DateTime.tryParse(
-        await FlutterForegroundTask.getData<String>(key: kRideDataStartedAt) ?? '');
+      await FlutterForegroundTask.getData<String>(key: kRideDataStartedAt) ??
+          '',
+    );
     if (uid == null || started == null) return;
     final watcher = _watcher;
-    final current = watcher != null &&
+    final current =
+        watcher != null &&
             watcher.uid == uid &&
             watcher.rideStartedAt.isAtSameMomentAs(started)
         ? watcher
-        : _watcher = RideConfirmWatcher(uid: uid, rideStartedAt: started.toUtc(), dir: dir);
+        : _watcher = RideConfirmWatcher(
+            uid: uid,
+            rideStartedAt: started.toUtc(),
+            dir: dir,
+          );
     await current.onPoint(point, store: store, notify: notify);
   } catch (_) {
     // Die Frage ist ein Zusatz; die Fahrt läuft weiter.
@@ -135,7 +155,11 @@ Future<void> _confirmTick(RidePoint point,
 /// Fragt je Trail und Fahrt höchstens einmal (#116). Die Ziele liest er
 /// aus der Datei, die die App schreibt — neu nur, wenn sie sich ändert.
 class RideConfirmWatcher {
-  RideConfirmWatcher({required this.uid, required this.rideStartedAt, required this.dir});
+  RideConfirmWatcher({
+    required this.uid,
+    required this.rideStartedAt,
+    required this.dir,
+  });
 
   final String uid;
   final DateTime rideStartedAt;
@@ -146,11 +170,16 @@ class RideConfirmWatcher {
   List<ConfirmTarget> _targets = const [];
   Object? _version = const Object();
 
-  Future<void> onPoint(RidePoint point,
-      {required RideStore store, required ConfirmNotify notify}) async {
+  Future<void> onPoint(
+    RidePoint point, {
+    required RideStore store,
+    required ConfirmNotify notify,
+  }) async {
     final previous = _previous;
     _previous = point;
-    final version = store is FileRideStore ? await store.confirmTargetsModified() : null;
+    final version = store is FileRideStore
+        ? await store.confirmTargetsModified()
+        : null;
     if (version != _version || store is! FileRideStore) {
       _version = version;
       _targets = await store.readConfirmTargets(uid: uid);
@@ -160,17 +189,27 @@ class RideConfirmWatcher {
       for (final e in await store.activeConfirmEvents(uid: uid))
         if (e is ConfirmAsked) e.trailId,
     };
-    final target =
-        confirmPromptFor(targets: _targets, previous: previous, current: point, asked: asked);
+    final target = confirmPromptFor(
+      targets: _targets,
+      previous: previous,
+      current: point,
+      asked: asked,
+    );
     if (target == null) return;
     asked.add(target.trailId);
     // Erst ins Protokoll, dann fragen: Die Antwort braucht die Frage
     // (was bestätigt wird, steht dort), und ein Neustart des Isolates
     // soll nicht noch einmal fragen.
     await store.appendConfirmEvent(ConfirmAsked.of(target, at: point.at));
-    await notify(target,
-        payload: encodeConfirmPayload(
-            (dir: dir, uid: uid, rideStartedAt: rideStartedAt, trailId: target.trailId)));
+    await notify(
+      target,
+      payload: encodeConfirmPayload((
+        dir: dir,
+        uid: uid,
+        rideStartedAt: rideStartedAt,
+        trailId: target.trailId,
+      )),
+    );
   }
 }
 
@@ -194,8 +233,10 @@ Future<Position?> _fix() async {
 /// läuft. Wirft nie.
 Future<void> serviceTick({Future<Position?> Function()? fix}) async {
   try {
-    final recording = await FlutterForegroundTask.getData<bool>(key: kRideDataActive) == true;
-    final navigating = await FlutterForegroundTask.getData<bool>(key: kNavDataActive) == true;
+    final recording =
+        await FlutterForegroundTask.getData<bool>(key: kRideDataActive) == true;
+    final navigating =
+        await FlutterForegroundTask.getData<bool>(key: kNavDataActive) == true;
     if (!recording && !navigating) {
       await stopSensorLog();
       return;
@@ -215,7 +256,9 @@ Future<void> serviceTick({Future<Position?> Function()? fix}) async {
     if (navigating) {
       await navTick(fix: shared, recording: recording, voice: voice);
     } else if (voice && point != null) {
-      final dir = await FlutterForegroundTask.getData<String>(key: kRideDataDir);
+      final dir = await FlutterForegroundTask.getData<String>(
+        key: kRideDataDir,
+      );
       if (dir != null) await freeVoiceTick(point, dir: dir);
     }
   } catch (_) {
@@ -245,7 +288,8 @@ class RideTaskHandler extends TaskHandler {
   /// Der Tipp öffnet die App von selbst (Launch-Intent des Pakets); läuft
   /// sie noch, soll sie die Karte zeigen, nicht den letzten Reiter.
   @override
-  void onNotificationPressed() => FlutterForegroundTask.sendDataToMain(kNavMessageOpen);
+  void onNotificationPressed() =>
+      FlutterForegroundTask.sendDataToMain(kNavMessageOpen);
 
   @override
   Future<void> onDestroy(DateTime timestamp, bool isTimeout) => stopSensorLog();

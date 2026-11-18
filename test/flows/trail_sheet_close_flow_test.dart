@@ -18,7 +18,10 @@ void main() {
     backend = FakeBackend();
     final anna = backend.addUser(username: 'anna');
     backend.signInAs(anna.id);
-    trails = FakeTrailRepository(myId: () => backend.currentUserId ?? '', areFriends: backend.areFriends);
+    trails = FakeTrailRepository(
+      myId: () => backend.currentUserId ?? '',
+      areFriends: backend.areFriends,
+    );
     trails.seedTrail(anna.id, name: 'Hexentanz', grade: 2);
   });
 
@@ -64,23 +67,33 @@ void main() {
     expect(title, findsNothing);
   });
 
-  testWidgets('Karte: Zurück schließt das Blatt, dann die Auswahl', (tester) async {
+  testWidgets('Karte: Zurück schließt das Blatt, dann die Auswahl', (
+    tester,
+  ) async {
     await openFromMap(tester);
     expect(await back(tester), isTrue);
     expect(title, findsNothing);
-    expect(find.byKey(const ValueKey('trail-quick-card')), findsOneWidget, reason: 'erst das Blatt');
+    expect(
+      find.byKey(const ValueKey('trail-quick-card')),
+      findsOneWidget,
+      reason: 'erst das Blatt',
+    );
     expect(await back(tester), isTrue);
     expect(find.byKey(const ValueKey('trail-quick-card')), findsNothing);
   });
 
-  testWidgets('Karte: nach unten ziehen auf dem Inhalt schließt das Blatt', (tester) async {
+  testWidgets('Karte: nach unten ziehen auf dem Inhalt schließt das Blatt', (
+    tester,
+  ) async {
     await openFromMap(tester);
     await tester.fling(title, const Offset(0, 600), 2000);
     await settle(tester, frames: 30);
     expect(title, findsNothing);
   });
 
-  testWidgets('Liste: X, Zurück und Ziehen schließen das Blatt', (tester) async {
+  testWidgets('Liste: X, Zurück und Ziehen schließen das Blatt', (
+    tester,
+  ) async {
     await openFromList(tester);
     await tester.tap(find.byKey(const ValueKey('trail-sheet-close')));
     await settle(tester);

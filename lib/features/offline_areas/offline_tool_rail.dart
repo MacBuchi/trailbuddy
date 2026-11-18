@@ -32,7 +32,9 @@ import 'area_trim.dart';
 /// Kachelzahl kurz, für den Platz unter dem Speichern-Symbol.
 String compactCount(int n) {
   if (n < 1000) return '$n';
-  if (n < 10000) return '${(n / 1000).toStringAsFixed(1).replaceAll('.', ',')} k';
+  if (n < 10000) {
+    return '${(n / 1000).toStringAsFixed(1).replaceAll('.', ',')} k';
+  }
   return '${(n / 1000).round()} k';
 }
 
@@ -56,14 +58,21 @@ class OfflineToolRail extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final draft = ref.watch(areaDraftProvider);
     final notifier = ref.read(areaDraftProvider.notifier);
-    final maxZoom = ref.watch(mapManifestProvider).valueOrNull?.maxZoom ?? kAreaShapeZoom;
+    final maxZoom =
+        ref.watch(mapManifestProvider).valueOrNull?.maxZoom ?? kAreaShapeZoom;
     final empty = draft == null || draft.isEmpty;
     // Kacheln über alle Zoomstufen, wie sie geladen bzw. frei werden.
-    final adds = draft == null || draft.adds.isEmpty ? 0 : draft.addShape.countTiles(maxZoom: maxZoom);
-    final removes = draft == null || draft.removes.isEmpty ? 0 : draft.removeShape.countTiles(maxZoom: maxZoom);
+    final adds = draft == null || draft.adds.isEmpty
+        ? 0
+        : draft.addShape.countTiles(maxZoom: maxZoom);
+    final removes = draft == null || draft.removes.isEmpty
+        ? 0
+        : draft.removeShape.countTiles(maxZoom: maxZoom);
     final tooLarge = adds > kAreaMaxTiles;
     final p = AppPalette.of(context);
-    final countStyle = AppFonts.numbers(Theme.of(context).textTheme.labelMedium);
+    final countStyle = AppFonts.numbers(
+      Theme.of(context).textTheme.labelMedium,
+    );
     final l = context.l10n;
 
     // Aktives Werkzeug = helle Fläche (auf Hell: die dunkle — immer die
@@ -72,38 +81,53 @@ class OfflineToolRail extends ConsumerWidget {
     // Jeder Knopf ist ein Anker der Karten-Tour (#132), generisch aus
     // seinem Schlüssel: `map.rail.<key>` — ein neuer Knopf bekommt ihn
     // von selbst.
-    Widget button(String key, String tip, Widget icon, VoidCallback? onPressed,
-            {bool selected = false, bool primary = false}) =>
-        CoachAnchor(
-          id: MapCoach.railButton(key),
-          child: IconButton(
-          key: ValueKey(key),
-          tooltip: tip,
-          isSelected: selected,
-          iconSize: 22,
-          padding: EdgeInsets.zero,
-          constraints: const BoxConstraints.tightFor(width: kMapButtonSize, height: kMapButtonSize),
-          style: IconButton.styleFrom(
-            backgroundColor: selected
-                ? p.text
-                : primary && onPressed != null
-                    ? AppColors.brand
-                    : null,
-            foregroundColor: selected
-                ? p.ground
-                : primary && onPressed != null
-                    ? AppColors.onBrand
-                    : p.text,
-            // 44 ist schon die Trefferfläche (Handschuh); Material
-            // polsterte sonst auf 48 auf, und die Leiste würde länger.
-            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-          ),
-          onPressed: onPressed,
-          icon: icon,
-        ));
+    Widget button(
+      String key,
+      String tip,
+      Widget icon,
+      VoidCallback? onPressed, {
+      bool selected = false,
+      bool primary = false,
+    }) => CoachAnchor(
+      id: MapCoach.railButton(key),
+      child: IconButton(
+        key: ValueKey(key),
+        tooltip: tip,
+        isSelected: selected,
+        iconSize: 22,
+        padding: EdgeInsets.zero,
+        constraints: const BoxConstraints.tightFor(
+          width: kMapButtonSize,
+          height: kMapButtonSize,
+        ),
+        style: IconButton.styleFrom(
+          backgroundColor: selected
+              ? p.text
+              : primary && onPressed != null
+              ? AppColors.brand
+              : null,
+          foregroundColor: selected
+              ? p.ground
+              : primary && onPressed != null
+              ? AppColors.onBrand
+              : p.text,
+          // 44 ist schon die Trefferfläche (Handschuh); Material
+          // polsterte sonst auf 48 auf, und die Leiste würde länger.
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        ),
+        onPressed: onPressed,
+        icon: icon,
+      ),
+    );
 
     Widget tool(AreaDrawTool t, String key, String tip, IconData icon) =>
-        button(key, tip, Icon(icon), () => notifier.arm(t), selected: draft?.tool == t);
+        button(
+          key,
+          tip,
+          Icon(icon),
+          () => notifier.arm(t),
+          selected: draft?.tool == t,
+        );
 
     // Gruppen durch Luft statt Trennlinien.
     const gap = SizedBox(height: 8);
@@ -116,26 +140,61 @@ class OfflineToolRail extends ConsumerWidget {
         color: p.surface,
         borderRadius: BorderRadius.circular(kRailWidth / 2),
         border: Border.all(color: p.line),
-        boxShadow: const [BoxShadow(blurRadius: 8, offset: Offset(0, 2), color: Color(0x33000000))],
+        boxShadow: const [
+          BoxShadow(
+            blurRadius: 8,
+            offset: Offset(0, 2),
+            color: Color(0x33000000),
+          ),
+        ],
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          button('rail-snapshot', l.areaRailSnapshot, const Icon(Icons.crop_free), onSnapshot),
-          tool(AreaDrawTool.add, 'area-draw-add', l.areaRailAdd, Icons.add_circle_outline),
-          tool(AreaDrawTool.remove, 'area-draw-remove', l.areaRailRemove, Icons.remove_circle_outline),
-          button('area-draw-trails', l.areaRailTrails, const Icon(Icons.route_outlined), onTrails),
-          button('area-draw-undo', l.commonUndo, const Icon(Icons.undo),
-              draft == null || draft.history.isEmpty ? null : notifier.undo),
+          button(
+            'rail-snapshot',
+            l.areaRailSnapshot,
+            const Icon(Icons.crop_free),
+            onSnapshot,
+          ),
+          tool(
+            AreaDrawTool.add,
+            'area-draw-add',
+            l.areaRailAdd,
+            Icons.add_circle_outline,
+          ),
+          tool(
+            AreaDrawTool.remove,
+            'area-draw-remove',
+            l.areaRailRemove,
+            Icons.remove_circle_outline,
+          ),
+          button(
+            'area-draw-trails',
+            l.areaRailTrails,
+            const Icon(Icons.route_outlined),
+            onTrails,
+          ),
+          button(
+            'area-draw-undo',
+            l.commonUndo,
+            const Icon(Icons.undo),
+            draft == null || draft.history.isEmpty ? null : notifier.undo,
+          ),
           gap,
-          button('manage-areas', l.areaRailManage, const _ManageIcon(), onManage),
+          button(
+            'manage-areas',
+            l.areaRailManage,
+            const _ManageIcon(),
+            onManage,
+          ),
           button(
             'area-draw-save',
             tooLarge
                 ? l.areaRailSaveTooLarge(adds, kAreaMaxTiles)
                 : empty
-                    ? l.areaRailSaveEmpty
-                    : l.areaRailSave(adds, removes),
+                ? l.areaRailSaveEmpty
+                : l.areaRailSave(adds, removes),
             const Icon(Icons.save_outlined),
             empty || tooLarge
                 ? null
@@ -151,7 +210,9 @@ class OfflineToolRail extends ConsumerWidget {
           Text(
             adds == 0 ? (removes == 0 ? '–' : '') : '+${compactCount(adds)}',
             key: const ValueKey('area-draw-count'),
-            style: countStyle.copyWith(color: tooLarge ? Theme.of(context).colorScheme.error : p.text),
+            style: countStyle.copyWith(
+              color: tooLarge ? Theme.of(context).colorScheme.error : p.text,
+            ),
           ),
           if (removes > 0)
             Text(
@@ -160,7 +221,12 @@ class OfflineToolRail extends ConsumerWidget {
               style: countStyle.copyWith(color: p.muted),
             ),
           gap,
-          button('offline-maps-close', l.commonClose, const Icon(Icons.close), onClose),
+          button(
+            'offline-maps-close',
+            l.commonClose,
+            const Icon(Icons.close),
+            onClose,
+          ),
         ],
       ),
     );
@@ -176,20 +242,25 @@ class _ManageIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => SizedBox(
-        width: 22,
-        height: 22,
-        child: Stack(children: [
-          const Icon(Icons.map_outlined, size: 20),
-          Positioned(
-            right: -1,
-            bottom: -1,
-            child: DecoratedBox(
-              decoration: BoxDecoration(color: AppPalette.of(context).surface, shape: BoxShape.circle),
-              child: const Icon(Icons.settings, size: 13),
+    width: 22,
+    height: 22,
+    child: Stack(
+      children: [
+        const Icon(Icons.map_outlined, size: 20),
+        Positioned(
+          right: -1,
+          bottom: -1,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              color: AppPalette.of(context).surface,
+              shape: BoxShape.circle,
             ),
+            child: const Icon(Icons.settings, size: 13),
           ),
-        ]),
-      );
+        ),
+      ],
+    ),
+  );
 }
 
 /// „Entwurf verwerfen?" — true heißt verwerfen.
@@ -241,8 +312,13 @@ class _SaveDraftDialogState extends ConsumerState<_SaveDraftDialog> {
   // Erst beim ersten Bauen: Der Vorschlag braucht die Sprache (#209).
   TextEditingController? _nameController;
   TextEditingController get _name => _nameController ??= TextEditingController(
-      text: context.l10n.areaSaveDefaultName(
-          DateFormat(context.l10n.areaSaveDatePattern, context.l10n.localeName).format(DateTime.now())));
+    text: context.l10n.areaSaveDefaultName(
+      DateFormat(
+        context.l10n.areaSaveDatePattern,
+        context.l10n.localeName,
+      ).format(DateTime.now()),
+    ),
+  );
   AreaPlan? _plan;
   TrimPlan? _trim;
   String? _error;
@@ -272,22 +348,32 @@ class _SaveDraftDialogState extends ConsumerState<_SaveDraftDialog> {
   Future<void> _measure() async {
     try {
       if (_hasRemoves) {
-        final trim = await ref.read(storedAreasProvider.notifier).planTrim(widget.draft.removes);
+        final trim = await ref
+            .read(storedAreasProvider.notifier)
+            .planTrim(widget.draft.removes);
         if (mounted) setState(() => _trim = trim);
       }
       if (_hasAdds) {
-        final plan = await ref.read(areaDownloadProvider.notifier).plan(widget.draft.addShape);
+        final plan = await ref
+            .read(areaDownloadProvider.notifier)
+            .plan(widget.draft.addShape);
         if (mounted) setState(() => _plan = plan);
       }
     } on AreaTooLarge catch (e) {
-      if (mounted) setState(() => _error = context.l10n.areaSaveTooLarge(e.tiles, kAreaMaxTiles));
+      if (mounted) {
+        setState(
+          () => _error = context.l10n.areaSaveTooLarge(e.tiles, kAreaMaxTiles),
+        );
+      }
     } on OutsideRegions catch (e) {
       if (mounted) setState(() => _error = e.message(context.l10n));
     } catch (e) {
       if (!mounted) return;
-      setState(() => _error = looksOffline(e) || e is StateError
-          ? context.l10n.areaSaveOffline
-          : context.l10n.areaSaveMeasureFailed);
+      setState(
+        () => _error = looksOffline(e) || e is StateError
+            ? context.l10n.areaSaveOffline
+            : context.l10n.areaSaveMeasureFailed,
+      );
     } finally {
       if (mounted) setState(() => _measuring = false);
     }
@@ -296,7 +382,9 @@ class _SaveDraftDialogState extends ConsumerState<_SaveDraftDialog> {
   bool get _ready =>
       !_measuring &&
       _error == null &&
-      (!_hasAdds || (_plan != null && _plan!.hasMap) || (_hasRemoves && _plan != null)) &&
+      (!_hasAdds ||
+          (_plan != null && _plan!.hasMap) ||
+          (_hasRemoves && _plan != null)) &&
       (!_hasRemoves || _trim != null);
 
   Future<void> _save() async {
@@ -321,9 +409,13 @@ class _SaveDraftDialogState extends ConsumerState<_SaveDraftDialog> {
     }
     final plan = _plan;
     if (plan != null && plan.hasMap) {
-      final name = _name.text.trim().isEmpty ? context.l10n.areaSaveFallbackName : _name.text.trim();
+      final name = _name.text.trim().isEmpty
+          ? context.l10n.areaSaveFallbackName
+          : _name.text.trim();
       final trimmedNotLoaded = context.l10n.areaSaveTrimmedNotLoaded;
-      final area = await ref.read(areaDownloadProvider.notifier).start(plan, name: name);
+      final area = await ref
+          .read(areaDownloadProvider.notifier)
+          .start(plan, name: name);
       if (area == null) {
         // Gescheitert oder abgebrochen: Der Fehler steht im Dialog. Das
         // Entfernen ist schon gespeichert — der Entwurf behält es nicht.
@@ -344,7 +436,10 @@ class _SaveDraftDialogState extends ConsumerState<_SaveDraftDialog> {
       AreaPhase.pois => l.areaProgressPlaces(p.done, p.total),
       AreaPhase.heights => l.areaProgressHeights(p.done, p.total),
       AreaPhase.ways => l.areaProgressWays(p.done, p.total),
-      AreaPhase.overview => l.areaProgressOverview(formatBytes(p.done), formatBytes(p.total)),
+      AreaPhase.overview => l.areaProgressOverview(
+        formatBytes(p.done),
+        formatBytes(p.total),
+      ),
       AreaPhase.writing => l.areaProgressWriting,
     };
   }
@@ -356,77 +451,104 @@ class _SaveDraftDialogState extends ConsumerState<_SaveDraftDialog> {
     final plan = _plan;
     final trim = _trim;
     final running = download.phase == AreaDownloadPhase.running;
-    final errorStyle = text.bodyMedium?.copyWith(color: Theme.of(context).colorScheme.error);
+    final errorStyle = text.bodyMedium?.copyWith(
+      color: Theme.of(context).colorScheme.error,
+    );
     final l = context.l10n;
 
     final Widget body;
     if (running || _trimming) {
-      body = Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(_trimming ? l.areaSaveTrimming : l.areasSaving(download.name ?? '')),
-        const SizedBox(height: 8),
-        LinearProgressIndicator(value: _trimming ? null : download.progress?.fraction),
-        if (!_trimming) ...[
-          const SizedBox(height: 4),
-          Text(download.waiting ? l.areasWaiting : _progressLine(l, download.progress),
-              style: text.bodySmall),
+      body = Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            _trimming ? l.areaSaveTrimming : l.areasSaving(download.name ?? ''),
+          ),
+          const SizedBox(height: 8),
+          LinearProgressIndicator(
+            value: _trimming ? null : download.progress?.fraction,
+          ),
+          if (!_trimming) ...[
+            const SizedBox(height: 4),
+            Text(
+              download.waiting
+                  ? l.areasWaiting
+                  : _progressLine(l, download.progress),
+              style: text.bodySmall,
+            ),
+          ],
         ],
-      ]);
+      );
     } else if (_measuring) {
-      body = Row(children: [
-        const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)),
-        const SizedBox(width: 12),
-        Expanded(child: Text(l.areaSaveMeasuring)),
-      ]);
+      body = Row(
+        children: [
+          const SizedBox(
+            width: 16,
+            height: 16,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
+          const SizedBox(width: 12),
+          Expanded(child: Text(l.areaSaveMeasuring)),
+        ],
+      );
     } else {
       final pois = plan?.poiCount;
-      body = Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-        if (plan != null)
-          Text(
-            !plan.hasMap
-                ? l.areaSaveOutsideRegions
-                : plan.nothingToFetch
-                    // Lädt nur, was fehlt (#229): Alles liegt schon, der
-                    // neue Bereich ist ein Verweis darauf.
-                    ? l.areaSaveNothingToFetch(plan.map.covered)
-                    : '${l.areasLoads(formatBytes(plan.totalBytes), plan.tiles.length)}'
-                    '${plan.map.stored == 0 ? '' : ' ${l.areasAlreadyStored(plan.map.stored)}'}'
-                    ' · ${pois == null ? l.areaSaveNoPlaces : l.areaSavePlaces(pois)}'
-                    ' · ${plan.hasHeights ? l.areaSaveHeights : l.areaSaveNoHeights}'
-                    // Ohne Wege-Kachel nichts: Einem kleinen Bereich, in
-                    // dem OSM nichts weiß, fehlt nichts.
-                    '${plan.hasWays ? ' · ${l.areaSaveWays}' : ''}'
-                    // Die Übersicht der Region kommt mit dem ersten Bereich
-                    // dort (#220 Schritt 4) — mit Größe, sie ist der größte
-                    // Posten eines kleinen Bereichs.
-                    '${plan.overview == null ? '' : ' · ${l.areaSaveOverview(formatBytes(plan.overviewBytes))}'}',
-            key: const ValueKey('area-size'),
-            style: text.titleMedium,
-          ),
-        if (trim != null)
-          Text(
-            '${l.areaSaveFrees(formatBytes(trim.freedBytes), trim.freedTiles)}'
-            '${trim.trims.where((t) => t.shape == null).isEmpty ? '' : ' · ${l.areaSaveWholeAreas(trim.trims.where((t) => t.shape == null).length)}'}',
-            key: const ValueKey('area-free'),
-            style: text.titleMedium?.copyWith(color: AppPalette.of(context).muted),
-          ),
-        if (_error != null) ...[
-          const SizedBox(height: 8),
-          Text(_error!, style: errorStyle),
+      body = Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (plan != null)
+            Text(
+              !plan.hasMap
+                  ? l.areaSaveOutsideRegions
+                  : plan.nothingToFetch
+                  // Lädt nur, was fehlt (#229): Alles liegt schon, der
+                  // neue Bereich ist ein Verweis darauf.
+                  ? l.areaSaveNothingToFetch(plan.map.covered)
+                  : '${l.areasLoads(formatBytes(plan.totalBytes), plan.tiles.length)}'
+                        '${plan.map.stored == 0 ? '' : ' ${l.areasAlreadyStored(plan.map.stored)}'}'
+                        ' · ${pois == null ? l.areaSaveNoPlaces : l.areaSavePlaces(pois)}'
+                        ' · ${plan.hasHeights ? l.areaSaveHeights : l.areaSaveNoHeights}'
+                        // Ohne Wege-Kachel nichts: Einem kleinen Bereich, in
+                        // dem OSM nichts weiß, fehlt nichts.
+                        '${plan.hasWays ? ' · ${l.areaSaveWays}' : ''}'
+                        // Die Übersicht der Region kommt mit dem ersten Bereich
+                        // dort (#220 Schritt 4) — mit Größe, sie ist der größte
+                        // Posten eines kleinen Bereichs.
+                        '${plan.overview == null ? '' : ' · ${l.areaSaveOverview(formatBytes(plan.overviewBytes))}'}',
+              key: const ValueKey('area-size'),
+              style: text.titleMedium,
+            ),
+          if (trim != null)
+            Text(
+              '${l.areaSaveFrees(formatBytes(trim.freedBytes), trim.freedTiles)}'
+              '${trim.trims.where((t) => t.shape == null).isEmpty ? '' : ' · ${l.areaSaveWholeAreas(trim.trims.where((t) => t.shape == null).length)}'}',
+              key: const ValueKey('area-free'),
+              style: text.titleMedium?.copyWith(
+                color: AppPalette.of(context).muted,
+              ),
+            ),
+          if (_error != null) ...[
+            const SizedBox(height: 8),
+            Text(_error!, style: errorStyle),
+          ],
+          if (plan != null && plan.hasMap) ...[
+            const SizedBox(height: 12),
+            TextField(
+              key: const ValueKey('area-name'),
+              controller: _name,
+              decoration: InputDecoration(labelText: l.areaSaveNameLabel),
+              textCapitalization: TextCapitalization.sentences,
+            ),
+          ],
+          if (download.phase == AreaDownloadPhase.failed &&
+              download.error != null) ...[
+            const SizedBox(height: 8),
+            Text(download.error!, style: errorStyle),
+          ],
         ],
-        if (plan != null && plan.hasMap) ...[
-          const SizedBox(height: 12),
-          TextField(
-            key: const ValueKey('area-name'),
-            controller: _name,
-            decoration: InputDecoration(labelText: l.areaSaveNameLabel),
-            textCapitalization: TextCapitalization.sentences,
-          ),
-        ],
-        if (download.phase == AreaDownloadPhase.failed && download.error != null) ...[
-          const SizedBox(height: 8),
-          Text(download.error!, style: errorStyle),
-        ],
-      ]);
+      );
     }
 
     return AlertDialog(
@@ -442,7 +564,9 @@ class _SaveDraftDialogState extends ConsumerState<_SaveDraftDialog> {
         else ...[
           TextButton(
             key: const ValueKey('area-save-cancel'),
-            onPressed: _trimming ? null : () => Navigator.of(context).pop(false),
+            onPressed: _trimming
+                ? null
+                : () => Navigator.of(context).pop(false),
             child: Text(l.commonCancel),
           ),
           FilledButton(

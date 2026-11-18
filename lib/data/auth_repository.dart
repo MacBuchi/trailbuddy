@@ -68,7 +68,8 @@ class AuthRepository {
         StreamTransformer.fromHandlers(
           handleData: (_, _) {},
           handleError: (error, _, sink) {
-            if (isProviderReturnError(error) && _reportedReturnErrors.add(error)) {
+            if (isProviderReturnError(error) &&
+                _reportedReturnErrors.add(error)) {
               sink.add(error as AuthException);
             }
           },
@@ -150,10 +151,12 @@ class AuthRepository {
   /// fremden Antwort bleibt die Menge leer — dann gibt es nur die
   /// E-Mail, wie vor #398.
   Future<Set<SignInProvider>> enabledProviders() async {
-    final response = await http.get(
-      Uri.parse('${SupabaseConfig.url}/auth/v1/settings'),
-      headers: {'apikey': SupabaseConfig.publishableKey},
-    ).timeout(const Duration(seconds: 10));
+    final response = await http
+        .get(
+          Uri.parse('${SupabaseConfig.url}/auth/v1/settings'),
+          headers: {'apikey': SupabaseConfig.publishableKey},
+        )
+        .timeout(const Duration(seconds: 10));
     if (response.statusCode != 200) return const {};
     return parseEnabledProviders(jsonDecode(response.body));
   }
@@ -293,8 +296,10 @@ class AuthRepository {
     if (email == null) {
       throw const AuthException('Keine angemeldete Sitzung.');
     }
-    await _client.auth
-        .signInWithPassword(email: email, password: currentPassword);
+    await _client.auth.signInWithPassword(
+      email: email,
+      password: currentPassword,
+    );
     await _client.auth.updateUser(UserAttributes(password: newPassword));
   }
 
@@ -319,8 +324,10 @@ class AuthRepository {
     if (email == null) {
       throw const AuthException('Keine angemeldete Sitzung.');
     }
-    await _client.auth
-        .signInWithPassword(email: email, password: currentPassword);
+    await _client.auth.signInWithPassword(
+      email: email,
+      password: currentPassword,
+    );
     await _client.auth.updateUser(UserAttributes(email: newEmail));
   }
 

@@ -30,18 +30,21 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:trailbuddy/core/line_geometry.dart';
 import 'package:trailbuddy/features/offline_areas/height_tiles.dart';
-import 'package:trailbuddy/features/rides/ride_split.dart' show kSplitSmoothWindow, smoothElevation;
+import 'package:trailbuddy/features/rides/ride_split.dart'
+    show kSplitSmoothWindow, smoothElevation;
 import 'package:trailbuddy/features/routing/graph_input.dart';
 import 'package:trailbuddy/features/routing/loop_planner.dart';
 import 'package:trailbuddy/features/routing/road_graph_loader.dart';
 import 'package:trailbuddy/features/routing/route_profile.dart';
 import 'package:trailbuddy/features/routing/routing_tile.dart';
-import 'package:trailbuddy/features/routing/trail_head_route.dart' show kTrailHeadMarginM;
+import 'package:trailbuddy/features/routing/trail_head_route.dart'
+    show kTrailHeadMarginM;
 import 'package:trailbuddy/features/routing/trail_overlay.dart';
 import 'package:trailbuddy/features/trails/gpx.dart';
 import 'package:trailbuddy/features/trails/trail_geometry.dart' show haversineM;
 
-double _dist(LatLng a, LatLng b) => haversineM(a.latitude, a.longitude, b.latitude, b.longitude);
+double _dist(LatLng a, LatLng b) =>
+    haversineM(a.latitude, a.longitude, b.latitude, b.longitude);
 
 const _z = 13;
 
@@ -74,11 +77,18 @@ void main() {
   test('Runde vorschlagen: eigenes Netz gegen eigene Runden', () {
     if (dir == null || trailsDir == null || ridesDir == null) {
       // ignore: avoid_print
-      print('TB_TILES_DIR / TB_TRAILS_DIR / TB_RIDES_DIR fehlen — siehe Kopf der Datei.');
+      print(
+        'TB_TILES_DIR / TB_TRAILS_DIR / TB_RIDES_DIR fehlen — siehe Kopf der Datei.',
+      );
       return;
     }
-    final meta = jsonDecode(File('$dir/frame.json').readAsStringSync()) as Map<String, dynamic>;
-    final tiles = [for (final t in meta['tiles'] as List) ((t as List)[0] as int, t[1] as int)];
+    final meta =
+        jsonDecode(File('$dir/frame.json').readAsStringSync())
+            as Map<String, dynamic>;
+    final tiles = [
+      for (final t in meta['tiles'] as List)
+        ((t as List)[0] as int, t[1] as int),
+    ];
     Uint8List? bytes(String kind, (int, int) t, String ext) {
       final f = File('$dir/$kind/${t.$1}_${t.$2}.$ext');
       return f.existsSync() ? f.readAsBytesSync() : null;
@@ -86,17 +96,20 @@ void main() {
 
     final heights = HeightTiles({
       for (final t in tiles)
-        if (bytes('heights', t, 'bin') case final b?) HeightTiles.keyOf(t.$1, t.$2): HeightTile.decode(b),
+        if (bytes('heights', t, 'bin') case final b?)
+          HeightTiles.keyOf(t.$1, t.$2): HeightTile.decode(b),
     });
     final pieces = {
       for (final p in bakeTiles(
         roads: [
           for (final t in tiles)
-            if (bytes('roads', t, 'mvt') case final b?) (tile: (z: _z, x: t.$1, y: t.$2), bytes: b),
+            if (bytes('roads', t, 'mvt') case final b?)
+              (tile: (z: _z, x: t.$1, y: t.$2), bytes: b),
         ],
         ways: [
           for (final t in tiles)
-            if (bytes('ways', t, 'mvt') case final b?) (tile: (z: _z, x: t.$1, y: t.$2), bytes: b),
+            if (bytes('ways', t, 'mvt') case final b?)
+              (tile: (z: _z, x: t.$1, y: t.$2), bytes: b),
         ],
         heights: heights,
       ))
@@ -113,50 +126,72 @@ void main() {
     // die höchste Fahrt, abgerundet auf den Schritt, nie unter der Vorgabe.
     double raised(RiderProfile p) => rides
         .where((r) => r.profile == p)
-        .map((r) => (r.climbM / LoopPrefs.climbStep).floor() * LoopPrefs.climbStep)
+        .map(
+          (r) => (r.climbM / LoopPrefs.climbStep).floor() * LoopPrefs.climbStep,
+        )
         .fold(p.budgetClimbM, math.max)
         .clamp(LoopPrefs.minClimb, LoopPrefs.maxClimb)
         .toDouble();
     // ignore: avoid_print
-    print('Trails ${trails.length}, Fahrten ${rides.length}, Limit Bio ${RiderProfile.bio.budgetClimbM.round()} → '
-        '${raised(RiderProfile.bio).round()}, E ${RiderProfile.ebike.budgetClimbM.round()} → '
-        '${raised(RiderProfile.ebike).round()}');
+    print(
+      'Trails ${trails.length}, Fahrten ${rides.length}, Limit Bio ${RiderProfile.bio.budgetClimbM.round()} → '
+      '${raised(RiderProfile.bio).round()}, E ${RiderProfile.ebike.budgetClimbM.round()} → '
+      '${raised(RiderProfile.ebike).round()}',
+    );
 
     final loops = [
       for (final r in rides)
-        if (_dist(r.points.first, r.points.last) <= _loopCloseM && r.climbM >= _minRideClimbM) r,
+        if (_dist(r.points.first, r.points.last) <= _loopCloseM &&
+            r.climbM >= _minRideClimbM)
+          r,
     ];
     // ignore: avoid_print
-    print('| Runde | Rad | gefahren: Zeit, hm, Trail-Anteil | Fall | Pool | Trails | Schätzung | Anteil | hm / Limit '
-        '| davon in dieser Runde | davon je gefahren | anders als A |');
+    print(
+      '| Runde | Rad | gefahren: Zeit, hm, Trail-Anteil | Fall | Pool | Trails | Schätzung | Anteil | hm / Limit '
+      '| davon in dieser Runde | davon je gefahren | anders als A |',
+    );
     var n = 0;
     for (final ride in loops) {
       final start = ride.points.first;
-      final hours = ((ride.movingS / 3600) / LoopPrefs.hoursStep).round() * LoopPrefs.hoursStep;
+      final hours =
+          ((ride.movingS / 3600) / LoopPrefs.hoursStep).round() *
+          LoopPrefs.hoursStep;
       final h = hours.clamp(LoopPrefs.minHours, LoopPrefs.maxHours).toDouble();
       final reachM = loopSuggestReachM(h);
       final inReach = [
         for (final t in trails)
-          if (_dist(start, t.points.first) <= reachM && _dist(start, t.points.last) <= reachM) t,
+          if (_dist(start, t.points.first) <= reachM &&
+              _dist(start, t.points.last) <= reachM)
+            t,
       ];
       final box = LatBox.of([start, for (final t in inReach) ...t.points]);
       final frame = roadGraphTiles(box, kTrailHeadMarginM);
-      final missing = frame.where((t) => !pieces.containsKey((t.x, t.y))).length;
+      final missing = frame
+          .where((t) => !pieces.containsKey((t.x, t.y)))
+          .length;
       n++;
       if (missing > 0) {
         // ignore: avoid_print
         print('| L$n | – | Rahmen nicht geladen ($missing Kacheln fehlen) |');
         continue;
       }
-      final built = buildGraphFrom(GraphInput(
-        roads: const [],
-        pieces: [for (final t in frame) ?pieces[(t.x, t.y)]],
-        bake: true,
-        trails: [
-          for (final t in inReach) GraphTrail(id: t.id, name: t.name, points: t.points, role: TrailRole.downhill),
-        ],
-        lat0: start.latitude,
-      ));
+      final built = buildGraphFrom(
+        GraphInput(
+          roads: const [],
+          pieces: [for (final t in frame) ?pieces[(t.x, t.y)]],
+          bake: true,
+          trails: [
+            for (final t in inReach)
+              GraphTrail(
+                id: t.id,
+                name: t.name,
+                points: t.points,
+                role: TrailRole.downhill,
+              ),
+          ],
+          lat0: start.latitude,
+        ),
+      );
       // Fahrten je Trail aus den anderen Fahrten (die Runde selbst kennt
       // der Planer vor ihr nicht).
       final counts = <String, int>{};
@@ -191,11 +226,17 @@ void main() {
           ),
       ];
       double suggestClimb(double limit) =>
-          ((limit * math.min(h, kBudgetHours) / kBudgetHours / LoopPrefs.climbStep).round() * LoopPrefs.climbStep)
+          ((limit *
+                          math.min(h, kBudgetHours) /
+                          kBudgetHours /
+                          LoopPrefs.climbStep)
+                      .round() *
+                  LoopPrefs.climbStep)
               .clamp(LoopPrefs.minClimb, math.max(LoopPrefs.minClimb, limit))
               .toDouble();
       final rideTrailM = ride.ridden.fold(0.0, (s, id) => s + trailM[id]!);
-      String hm(double sec) => '${sec ~/ 3600} h ${((sec % 3600) / 60).round().toString().padLeft(2, '0')}';
+      String hm(double sec) =>
+          '${sec ~/ 3600} h ${((sec % 3600) / 60).round().toString().padLeft(2, '0')}';
       Set<String>? baseIds;
       for (final (label, pool, limit, windowS) in [
         ('A', inReach, ride.profile.budgetClimbM, loopWindowFor(h * 3600)),
@@ -205,16 +246,24 @@ void main() {
         ('E', strong, ride.profile.budgetClimbM, loopWindowFor(h * 3600)),
       ]) {
         final climb = suggestClimb(limit);
-        final plan = planLoop(built.graph,
-            start: start,
-            profile: ride.profile,
-            budget: LoopBudget(timeS: h * 3600, climbM: climb, hikingM: kBudgetHikingKm * 1000, windowS: windowS),
-            pool: pool);
+        final plan = planLoop(
+          built.graph,
+          start: start,
+          profile: ride.profile,
+          budget: LoopBudget(
+            timeS: h * 3600,
+            climbM: climb,
+            hikingM: kBudgetHikingKm * 1000,
+            windowS: windowS,
+          ),
+          pool: pool,
+        );
         final s = plan.summary;
         final ids = {for (final st in plan.stops) st.trail.id};
         baseIds ??= ids;
-        double metresOn(bool Function(String) f) =>
-            plan.stops.where((st) => f(st.trail.id)).fold(0.0, (a, st) => a + st.trail.lengthM);
+        double metresOn(bool Function(String) f) => plan.stops
+            .where((st) => f(st.trail.id))
+            .fold(0.0, (a, st) => a + st.trail.lengthM);
         final all = metresOn((_) => true);
         String pct(double x) => all == 0 ? '–' : '${(x / all * 100).round()} %';
         final why = <LoopExclusion, int>{};
@@ -223,13 +272,15 @@ void main() {
         }
         final share = s == null || s.lengthM == 0 ? null : s.trailM / s.lengthM;
         // ignore: avoid_print
-        print('| ${label == 'A' ? 'L$n' : ''} | ${label == 'A' ? ride.profile.name : ''} '
-            '| ${label == 'A' ? '${hm(ride.movingS)} · ${ride.climbM.round()} hm · ${(rideTrailM / ride.lengthM * 100).round()} %' : ''} '
-            '| $label | ${inReach.length} | ${plan.stops.length} '
-            '| ${s == null ? '${plan.outcome.name} (${why.entries.map((e) => '${e.key.name} ${e.value}').join(', ')})' : hm(s.timeS)} | ${share == null ? '–' : '${(share * 100).round()} %'} '
-            '| ${s == null ? '–' : '${s.gainM.round()} / ${climb.round()}'} '
-            '| ${pct(metresOn(ride.ridden.contains))} | ${pct(metresOn((id) => (counts[id] ?? 0) > 0))} '
-            '| ${label == 'A' ? '' : '${ids.difference(baseIds).length + baseIds.difference(ids).length}'} |');
+        print(
+          '| ${label == 'A' ? 'L$n' : ''} | ${label == 'A' ? ride.profile.name : ''} '
+          '| ${label == 'A' ? '${hm(ride.movingS)} · ${ride.climbM.round()} hm · ${(rideTrailM / ride.lengthM * 100).round()} %' : ''} '
+          '| $label | ${inReach.length} | ${plan.stops.length} '
+          '| ${s == null ? '${plan.outcome.name} (${why.entries.map((e) => '${e.key.name} ${e.value}').join(', ')})' : hm(s.timeS)} | ${share == null ? '–' : '${(share * 100).round()} %'} '
+          '| ${s == null ? '–' : '${s.gainM.round()} / ${climb.round()}'} '
+          '| ${pct(metresOn(ride.ridden.contains))} | ${pct(metresOn((id) => (counts[id] ?? 0) > 0))} '
+          '| ${label == 'A' ? '' : '${ids.difference(baseIds).length + baseIds.difference(ids).length}'} |',
+        );
       }
     }
   }, timeout: const Timeout(Duration(minutes: 30)));
@@ -239,8 +290,13 @@ void main() {
 /// Höhenkacheln, sonst aus der Datei), Höhenmeter entlang, ohne Grad und
 /// Sterne (die Sammlung trägt keine).
 List<PoolTrail> _trails(String dir, HeightTiles heights) {
-  final files = Directory(dir).listSync().whereType<File>().where((f) => f.path.endsWith('.gpx')).toList()
-    ..sort((a, b) => a.path.compareTo(b.path));
+  final files =
+      Directory(dir)
+          .listSync()
+          .whereType<File>()
+          .where((f) => f.path.endsWith('.gpx'))
+          .toList()
+        ..sort((a, b) => a.path.compareTo(b.path));
   final out = <PoolTrail>[];
   for (final f in files) {
     final List<GpxTrack> tracks;
@@ -253,7 +309,8 @@ List<PoolTrail> _trails(String dir, HeightTiles heights) {
       var pts = [for (final p in t.points) LatLng(p.lat, p.lon)];
       if (pts.length < 2) continue;
       var ele = [
-        for (final (i, p) in pts.indexed) heights.heightAt(p) ?? t.points[i].ele ?? double.nan,
+        for (final (i, p) in pts.indexed)
+          heights.heightAt(p) ?? t.points[i].ele ?? double.nan,
       ];
       if (ele.first.isFinite && ele.last.isFinite && ele.last > ele.first) {
         pts = pts.reversed.toList();
@@ -265,9 +322,20 @@ List<PoolTrail> _trails(String dir, HeightTiles heights) {
       }
       final finite = ele.every((e) => e.isFinite);
       final gain = finite ? hysteresisClimb(ele, kClimbHysteresisM).$1 : 0.0;
-      final loss = finite ? hysteresisClimb(ele.reversed.toList(), kClimbHysteresisM).$1 : 0.0;
+      final loss = finite
+          ? hysteresisClimb(ele.reversed.toList(), kClimbHysteresisM).$1
+          : 0.0;
       final k = out.length;
-      out.add(PoolTrail(id: 't$k', name: 't$k', points: pts, lengthM: len, gainM: gain, lossM: loss));
+      out.add(
+        PoolTrail(
+          id: 't$k',
+          name: 't$k',
+          points: pts,
+          lengthM: len,
+          gainM: gain,
+          lossM: loss,
+        ),
+      );
     }
   }
   return out;
@@ -278,11 +346,19 @@ List<PoolTrail> _trails(String dir, HeightTiles heights) {
 /// nicht), Anstieg wie am Ende der Fahrt (Median, Hysterese).
 List<_Ride> _rides(String dir) {
   final out = <_Ride>[];
-  for (final (sub, profile) in [('bio', RiderProfile.bio), ('ebike', RiderProfile.ebike)]) {
+  for (final (sub, profile) in [
+    ('bio', RiderProfile.bio),
+    ('ebike', RiderProfile.ebike),
+  ]) {
     final d = Directory('$dir/$sub');
     if (!d.existsSync()) continue;
-    final files = d.listSync().whereType<File>().where((f) => f.path.endsWith('.gpx')).toList()
-      ..sort((a, b) => a.path.compareTo(b.path));
+    final files =
+        d
+            .listSync()
+            .whereType<File>()
+            .where((f) => f.path.endsWith('.gpx'))
+            .toList()
+          ..sort((a, b) => a.path.compareTo(b.path));
     for (final f in files) {
       final tracks = parseGpx(f.readAsStringSync());
       final tp = [for (final t in tracks) ...t.points];
@@ -297,7 +373,10 @@ List<_Ride> _rides(String dir) {
         final dt = b.difference(a).inMilliseconds / 1000;
         if (dt > 0 && dt <= 60 && dm / dt >= 1.0) moving += dt;
       }
-      final climb = hysteresisClimb(smoothElevation([for (final p in tp) p.ele!], kSplitSmoothWindow), kClimbHysteresisM).$1;
+      final climb = hysteresisClimb(
+        smoothElevation([for (final p in tp) p.ele!], kSplitSmoothWindow),
+        kClimbHysteresisM,
+      ).$1;
       out.add(_Ride(profile, pts, moving, climb, len));
     }
   }
@@ -310,7 +389,8 @@ Set<String> _riddenBy(List<LatLng> ride, List<PoolTrail> trails) {
   const cell = 50.0;
   final lat0 = ride.first.latitude;
   final kx = 111320 * math.cos(lat0 * math.pi / 180), ky = 111320.0;
-  (int, int) key(LatLng p) => ((p.longitude * kx / cell).floor(), (p.latitude * ky / cell).floor());
+  (int, int) key(LatLng p) =>
+      ((p.longitude * kx / cell).floor(), (p.latitude * ky / cell).floor());
   final grid = <(int, int), List<LatLng>>{};
   for (final p in ride) {
     (grid[key(p)] ??= []).add(p);

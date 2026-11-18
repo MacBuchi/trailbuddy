@@ -12,7 +12,11 @@ void main() {
 
   /// Ein Aufstieg über [gainM] mit [rateMPerH], alle 10 s ein Punkt, dann
   /// 60 m hinab (beendet den Abschnitt).
-  List<RidePoint> climb(double rateMPerH, {double gainM = 300, bool withAlt = true}) {
+  List<RidePoint> climb(
+    double rateMPerH, {
+    double gainM = 300,
+    bool withAlt = true,
+  }) {
     final secs = gainM / rateMPerH * 3600;
     final n = (secs / 10).round();
     return [
@@ -22,7 +26,9 @@ void main() {
           lng: 11,
           at: t0.add(Duration(seconds: 10 * i)),
           accuracyM: 0,
-          altM: !withAlt ? null : (i <= n ? 800 + gainM * i / n : 800 + gainM - 2.0 * (i - n)),
+          altM: !withAlt
+              ? null
+              : (i <= n ? 800 + gainM * i / n : 800 + gainM - 2.0 * (i - n)),
         ),
     ];
   }
@@ -41,24 +47,35 @@ void main() {
     expect(guessRideProfile(climb(760)), RiderProfile.ebike);
   });
 
-  test('im Zweifel kein Vorschlag: nahe der Grenze, kein Aufstieg, keine Höhen', () {
-    // Grenze √(396,9 · 743,3) ≈ 543 Hm/h, ±10 %.
-    expect(guessRideProfile(climb(545)), isNull);
-    expect(guessRideProfile(climb(400, gainM: 60)), isNull, reason: 'unter 100 Hm am Stück');
-    expect(guessRideProfile(climb(760, withAlt: false)), isNull);
-    expect(guessRideProfile(const []), isNull);
-  });
+  test(
+    'im Zweifel kein Vorschlag: nahe der Grenze, kein Aufstieg, keine Höhen',
+    () {
+      // Grenze √(396,9 · 743,3) ≈ 543 Hm/h, ±10 %.
+      expect(guessRideProfile(climb(545)), isNull);
+      expect(
+        guessRideProfile(climb(400, gainM: 60)),
+        isNull,
+        reason: 'unter 100 Hm am Stück',
+      );
+      expect(guessRideProfile(climb(760, withAlt: false)), isNull);
+      expect(guessRideProfile(const []), isNull);
+    },
+  );
 
   test('gelernte Werte verschieben die Grenze', () {
     // 620 Hm/h ist nach den Vorgaben E-Bike — für einen schnellen
     // Bio-Fahrer (700/600 gelernt) aber Bio.
     expect(guessRideProfile(climb(620)), RiderProfile.ebike);
     const fastBio = CalibratedRider(
-        RiderProfile.bio, RiderCalibration(climbTrackMPerH: 700, climbPathMPerH: 600, sections: 5));
+      RiderProfile.bio,
+      RiderCalibration(climbTrackMPerH: 700, climbPathMPerH: 600, sections: 5),
+    );
     expect(guessRideProfile(climb(620), bio: fastBio), RiderProfile.bio);
     // Gelernt schneller als das E-Bike: die Rate unterscheidet nichts mehr.
     const fasterBio = CalibratedRider(
-        RiderProfile.bio, RiderCalibration(climbTrackMPerH: 900, climbPathMPerH: 800, sections: 5));
+      RiderProfile.bio,
+      RiderCalibration(climbTrackMPerH: 900, climbPathMPerH: 800, sections: 5),
+    );
     expect(guessRideProfile(climb(380), bio: fasterBio), isNull);
   });
 

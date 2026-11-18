@@ -65,11 +65,13 @@ class AirtimeLiveState {
   final FusionLive? now;
   final int nowAtUs;
 
-  bool _fresh(int nowUs) => now != null && nowUs - nowAtUs <= kAirtimeNowFreshUs;
+  bool _fresh(int nowUs) =>
+      now != null && nowUs - nowAtUs <= kAirtimeNowFreshUs;
 
   /// Wie weit das Gezeigte zur Uhrzeit [nowUs] hinter der Uhr liegt — das
   /// „Verzug" im Fenster.
-  int shownLagUs(int nowUs) => _fresh(nowUs) ? math.max(0, nowAtUs - now!.tUs) : lagUs;
+  int shownLagUs(int nowUs) =>
+      _fresh(nowUs) ? math.max(0, nowAtUs - now!.tUs) : lagUs;
 
   /// Älteste zuerst.
   final List<FusionEvent> pending;
@@ -101,38 +103,49 @@ class AirtimeLiveState {
     return shown ?? (ticks.isEmpty ? null : ticks.first);
   }
 
-  AirtimeLiveState copyWith(
-          {List<FusionLive>? ticks,
-          int? lagUs,
-          FusionLive? now,
-          int? nowAtUs,
-          List<FusionEvent>? pending,
-          AirtimeLog? log,
-          bool? collapsed,
-          bool? pocket,
-          bool? pocketDeclared}) =>
-      AirtimeLiveState(
-          file: file,
-          ticks: ticks ?? this.ticks,
-          lagUs: lagUs ?? this.lagUs,
-          now: now ?? this.now,
-          nowAtUs: nowAtUs ?? this.nowAtUs,
-          pending: pending ?? this.pending,
-          log: log ?? this.log,
-          collapsed: collapsed ?? this.collapsed,
-          pocket: pocket ?? this.pocket,
-          pocketDeclared: pocketDeclared ?? this.pocketDeclared);
+  AirtimeLiveState copyWith({
+    List<FusionLive>? ticks,
+    int? lagUs,
+    FusionLive? now,
+    int? nowAtUs,
+    List<FusionEvent>? pending,
+    AirtimeLog? log,
+    bool? collapsed,
+    bool? pocket,
+    bool? pocketDeclared,
+  }) => AirtimeLiveState(
+    file: file,
+    ticks: ticks ?? this.ticks,
+    lagUs: lagUs ?? this.lagUs,
+    now: now ?? this.now,
+    nowAtUs: nowAtUs ?? this.nowAtUs,
+    pending: pending ?? this.pending,
+    log: log ?? this.log,
+    collapsed: collapsed ?? this.collapsed,
+    pocket: pocket ?? this.pocket,
+    pocketDeclared: pocketDeclared ?? this.pocketDeclared,
+  );
 }
 
 /// Die Uhr der Ansicht in µs seit 1970 — dieselbe Achse wie die Zeiten der
 /// Sensoren. Tests drehen sie selbst.
-final airtimeClockProvider = Provider<int Function()>((ref) => () => DateTime.now().microsecondsSinceEpoch);
+final airtimeClockProvider = Provider<int Function()>(
+  (ref) =>
+      () => DateTime.now().microsecondsSinceEpoch,
+);
 
-typedef AirtimeAnswer = Future<void> Function(
-    {required String actionId, required String file, int? startUs, int? notificationId});
+typedef AirtimeAnswer =
+    Future<void> Function({
+      required String actionId,
+      required String file,
+      int? startUs,
+      int? notificationId,
+    });
 
 /// Schreibt eine Antwort in die Rohdaten. Tests sammeln sie.
-final airtimeAnswerProvider = Provider<AirtimeAnswer>((ref) => answerAirtimeInApp);
+final airtimeAnswerProvider = Provider<AirtimeAnswer>(
+  (ref) => answerAirtimeInApp,
+);
 
 class AirtimeLiveNotifier extends Notifier<AirtimeLiveState> {
   @override
@@ -147,7 +160,9 @@ class AirtimeLiveNotifier extends Notifier<AirtimeLiveState> {
   /// `true`, wenn [data] eine Nachricht der Erkennung war.
   bool accept(Object? data) {
     final message = decodeAirtimeMessage(data);
-    if (message == null) return data is String && data.startsWith(kAirtimeMessagePrefix);
+    if (message == null) {
+      return data is String && data.startsWith(kAirtimeMessagePrefix);
+    }
     var current = state;
     if (current.file != message.file) {
       current = AirtimeLiveState(file: message.file);
@@ -164,17 +179,26 @@ class AirtimeLiveNotifier extends Notifier<AirtimeLiveState> {
             ? need
             : current.lagUs - ((current.lagUs - need) ~/ 10);
         final keepFrom = now - lag - 1000000;
-        final all = [...current.ticks.where((t) => t.tUs >= keepFrom), ...ticks];
+        final all = [
+          ...current.ticks.where((t) => t.tUs >= keepFrom),
+          ...ticks,
+        ];
         current = current.copyWith(ticks: all, lagUs: lag);
       case AirtimeNowMessage(:final tick):
-        current = current.copyWith(now: tick, nowAtUs: ref.read(airtimeClockProvider)());
+        current = current.copyWith(
+          now: tick,
+          nowAtUs: ref.read(airtimeClockProvider)(),
+        );
       case AirtimePocketMessage(:final pocket, :final declared):
         current = current.copyWith(pocket: pocket, pocketDeclared: declared);
       case AirtimeEventMessage(:final event):
         final pending = [...current.pending, event];
         current = current.copyWith(
-            pending: pending.sublist(math.max(0, pending.length - kAirtimePendingMax)),
-            log: current.log.withEvent(event));
+          pending: pending.sublist(
+            math.max(0, pending.length - kAirtimePendingMax),
+          ),
+          log: current.log.withEvent(event),
+        );
     }
     state = current;
     return true;
@@ -184,7 +208,9 @@ class AirtimeLiveNotifier extends Notifier<AirtimeLiveState> {
   Future<void> _loadLog(String file) async {
     final name = file.split('/').last;
     if (!name.endsWith('.csv')) return;
-    final saved = await ref.read(rideStoreProvider).airtimeLog(name.substring(0, name.length - 4));
+    final saved = await ref
+        .read(rideStoreProvider)
+        .airtimeLog(name.substring(0, name.length - 4));
     if (saved.isEmpty || state.file != file) return;
     state = state.copyWith(log: saved.merge(state.log));
   }
@@ -195,16 +221,30 @@ class AirtimeLiveNotifier extends Notifier<AirtimeLiveState> {
   Future<void> answer(FusionEvent event, {required bool yes}) async {
     final file = state.file;
     state = state.copyWith(
-        pending: [...state.pending.where((e) => !identical(e, event))],
-        log: state.log.withAnswer(event, yes: yes));
+      pending: [...state.pending.where((e) => !identical(e, event))],
+      log: state.log.withAnswer(event, yes: yes),
+    );
     if (file == null) return;
     final (actionId, id) = switch (event) {
-      WheelieEvent() => (yes ? kWheelieYes : kWheelieNo, wheelieNotificationId(event.startUs)),
-      JumpEvent() => (yes ? kJumpYes : kJumpNo, jumpNotificationId(event.startUs)),
-      StoppieEvent() => (yes ? kStoppieYes : kStoppieNo, stoppieNotificationId(event.startUs)),
+      WheelieEvent() => (
+        yes ? kWheelieYes : kWheelieNo,
+        wheelieNotificationId(event.startUs),
+      ),
+      JumpEvent() => (
+        yes ? kJumpYes : kJumpNo,
+        jumpNotificationId(event.startUs),
+      ),
+      StoppieEvent() => (
+        yes ? kStoppieYes : kStoppieNo,
+        stoppieNotificationId(event.startUs),
+      ),
     };
     await ref.read(airtimeAnswerProvider)(
-        actionId: actionId, file: file, startUs: event.startUs, notificationId: id);
+      actionId: actionId,
+      file: file,
+      startUs: event.startUs,
+      notificationId: id,
+    );
   }
 
   /// „… verpasst" — [actionId] ist [kWheelieMissed], [kJumpMissed] oder
@@ -216,4 +256,7 @@ class AirtimeLiveNotifier extends Notifier<AirtimeLiveState> {
   }
 }
 
-final airtimeLiveProvider = NotifierProvider<AirtimeLiveNotifier, AirtimeLiveState>(AirtimeLiveNotifier.new);
+final airtimeLiveProvider =
+    NotifierProvider<AirtimeLiveNotifier, AirtimeLiveState>(
+      AirtimeLiveNotifier.new,
+    );

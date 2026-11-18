@@ -20,7 +20,10 @@ import 'trail_providers.dart';
 
 /// Die Partner für „Ist ein Duplikat von …" — neu gerechnet, wenn sich das
 /// Netz ändert, nicht bei jedem Aufbau des Blatts.
-final mergeCandidatesProvider = Provider.family<List<MergeCandidate>, String>((ref, trailId) {
+final mergeCandidatesProvider = Provider.family<List<MergeCandidate>, String>((
+  ref,
+  trailId,
+) {
   final trail = ref.watch(trailByIdProvider(trailId));
   final all = ref.watch(trailsProvider).valueOrNull;
   if (trail == null || all == null) return const [];
@@ -43,23 +46,34 @@ class TrailMergeSection extends ConsumerWidget {
     final theme = Theme.of(context);
     final l = context.l10n;
     String who(String userId) => names.of(
-        userId, trail.details.where((d) => d.userId == userId).firstOrNull?.username);
+      userId,
+      trail.details.where((d) => d.userId == userId).firstOrNull?.username,
+    );
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
         // „Sind das dieselben?" (#107 Schritt 3) — zuoberst, es ist eine Frage.
-        for (final p in proposals) MergeProposalCard(proposal: p, fromSheet: true),
+        for (final p in proposals)
+          MergeProposalCard(proposal: p, fromSheet: true),
         for (final m in trail.mergedFrom)
           Row(
             key: ValueKey('trail-merged-${m.id}'),
             children: [
-              Icon(Icons.merge_type, size: 18, color: theme.colorScheme.onSurfaceVariant),
+              Icon(
+                Icons.merge_type,
+                size: 18,
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
               const SizedBox(width: 6),
               Expanded(
                 child: Text(
-                  l.mergeMergedFrom(m.name ?? l.mergeUnnamedTrail,
-                      m.byMe ? l.mergeByMe : l.mergeByUsers(m.byUsers.map(who).join(', '))),
+                  l.mergeMergedFrom(
+                    m.name ?? l.mergeUnnamedTrail,
+                    m.byMe
+                        ? l.mergeByMe
+                        : l.mergeByUsers(m.byUsers.map(who).join(', ')),
+                  ),
                   style: theme.textTheme.bodySmall,
                 ),
               ),
@@ -89,7 +103,11 @@ class TrailMergeSection extends ConsumerWidget {
 
 /// „Ist ein Duplikat …": Partner wählen, dann festlegen, welcher bleibt,
 /// dann zusammenführen.
-Future<void> declareDuplicate(BuildContext context, WidgetRef ref, Trail trail) async {
+Future<void> declareDuplicate(
+  BuildContext context,
+  WidgetRef ref,
+  Trail trail,
+) async {
   final candidates = ref.read(mergeCandidatesProvider(trail.id));
   if (candidates.isEmpty) return;
   final other = await showModalBottomSheet<Trail>(
@@ -97,7 +115,8 @@ Future<void> declareDuplicate(BuildContext context, WidgetRef ref, Trail trail) 
     useSafeArea: true,
     showDragHandle: true,
     isScrollControlled: true,
-    builder: (sheetContext) => _CandidateList(trail: trail, candidates: candidates),
+    builder: (sheetContext) =>
+        _CandidateList(trail: trail, candidates: candidates),
   );
   if (other == null || !context.mounted) return;
   await mergePair(context, ref, trail, other, closeSheet: true);
@@ -108,8 +127,14 @@ Future<void> declareDuplicate(BuildContext context, WidgetRef ref, Trail trail) 
 /// aus dem Trail-Blatt, das danach zugeht — wie nach dem Löschen; stand es
 /// für das Duplikat, gibt es den Trail bei mir nicht mehr. Gibt zurück, ob
 /// zusammengeführt wurde.
-Future<bool> mergePair(BuildContext context, WidgetRef ref, Trail a, Trail b,
-    {Trail? preset, bool closeSheet = false}) async {
+Future<bool> mergePair(
+  BuildContext context,
+  WidgetRef ref,
+  Trail a,
+  Trail b, {
+  Trail? preset,
+  bool closeSheet = false,
+}) async {
   final keep = await showDialog<Trail>(
     context: context,
     builder: (_) => _KeepDialog(a: a, b: b, preset: preset),
@@ -120,10 +145,17 @@ Future<bool> mergePair(BuildContext context, WidgetRef ref, Trail a, Trail b,
   final navigator = Navigator.of(context);
   final l = context.l10n;
   try {
-    final result = await ref.read(trailsProvider.notifier).mergeInto(duplicate.id, keep.id);
+    final result = await ref
+        .read(trailsProvider.notifier)
+        .mergeInto(duplicate.id, keep.id);
     if (closeSheet) navigator.pop();
-    messenger.showSnackBar(SnackBar(
-        content: Text(doneOrStale(l, l.mergeDone(keep.displayName(l)), fresh: result.fresh))));
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text(
+          doneOrStale(l, l.mergeDone(keep.displayName(l)), fresh: result.fresh),
+        ),
+      ),
+    );
     return true;
   } on MergeRejectedException catch (e) {
     // Kein Fehlerbericht: Der Server hat entschieden, nichts ist kaputt.
@@ -136,7 +168,11 @@ Future<bool> mergePair(BuildContext context, WidgetRef ref, Trail a, Trail b,
 }
 
 /// „Trennen": die eigene Zuordnung lösen.
-Future<void> unmergeTrail(BuildContext context, WidgetRef ref, MergedTrail m) async {
+Future<void> unmergeTrail(
+  BuildContext context,
+  WidgetRef ref,
+  MergedTrail m,
+) async {
   final l = context.l10n;
   final ok = await showDialog<bool>(
     context: context,
@@ -161,7 +197,8 @@ Future<void> unmergeTrail(BuildContext context, WidgetRef ref, MergedTrail m) as
   try {
     final fresh = await ref.read(trailsProvider.notifier).unmerge(m.id);
     messenger.showSnackBar(
-        SnackBar(content: Text(doneOrStale(l, l.mergeUnmerged, fresh: fresh))));
+      SnackBar(content: Text(doneOrStale(l, l.mergeUnmerged, fresh: fresh))),
+    );
   } catch (e, st) {
     logError('Zusammenführung lösen', e, st);
     messenger.showSnackBar(SnackBar(content: Text(friendlyError(l, e))));
@@ -185,7 +222,10 @@ class _CandidateList extends StatelessWidget {
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 0, 20, 4),
-            child: Text(l.mergeCandidatesTitle, style: theme.textTheme.titleMedium),
+            child: Text(
+              l.mergeCandidatesTitle,
+              style: theme.textTheme.titleMedium,
+            ),
           ),
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
@@ -202,8 +242,13 @@ class _CandidateList extends StatelessWidget {
                   ListTile(
                     key: ValueKey('merge-candidate-${c.trail.id}'),
                     title: Text(c.trail.displayName(l)),
-                    subtitle: Text(l.mergeCandidateSubtitle(formatMeters(c.trail.lengthM),
-                        (c.share * 100).round(), _contributors(l, c.trail))),
+                    subtitle: Text(
+                      l.mergeCandidateSubtitle(
+                        formatMeters(c.trail.lengthM),
+                        (c.share * 100).round(),
+                        _contributors(l, c.trail),
+                      ),
+                    ),
                     onTap: () => Navigator.of(context).pop(c.trail),
                   ),
               ],
@@ -238,9 +283,14 @@ class _KeepDialogState extends State<_KeepDialog> {
   @override
   Widget build(BuildContext context) {
     final duplicate = _keep.id == widget.a.id ? widget.b : widget.a;
-    final buddiesSee = duplicate.recordings.any((r) => r.userId != duplicate.myId);
+    final buddiesSee = duplicate.recordings.any(
+      (r) => r.userId != duplicate.myId,
+    );
     final l = context.l10n;
-    final body = l.mergeKeepBody(duplicate.displayName(l), _keep.displayName(l));
+    final body = l.mergeKeepBody(
+      duplicate.displayName(l),
+      _keep.displayName(l),
+    );
     return AlertDialog(
       title: Text(l.mergeKeepTitle),
       content: SingleChildScrollView(
@@ -250,7 +300,9 @@ class _KeepDialogState extends State<_KeepDialog> {
           children: [
             RadioGroup<String>(
               groupValue: _keep.id,
-              onChanged: (id) => setState(() => _keep = id == widget.a.id ? widget.a : widget.b),
+              onChanged: (id) => setState(
+                () => _keep = id == widget.a.id ? widget.a : widget.b,
+              ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [

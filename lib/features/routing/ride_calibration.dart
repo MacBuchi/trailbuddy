@@ -68,8 +68,12 @@ const kCalibFlatRange = (8.0, 30.0);
 typedef AscentSection = ({int start, int top, double gainM});
 
 /// Die Aufstiegsabschnitte in [ele] — Spiegel von `ride_sections`.
-List<AscentSection> ascentSections(List<double> ele,
-    {double minGainM = kCalibMinGainM, double dropEndM = kCalibDropEndM, int window = kCalibWindow}) {
+List<AscentSection> ascentSections(
+  List<double> ele, {
+  double minGainM = kCalibMinGainM,
+  double dropEndM = kCalibDropEndM,
+  int window = kCalibWindow,
+}) {
   if (ele.length < window) return const [];
   final sm = smoothElevation(ele, window);
   final out = <AscentSection>[];
@@ -112,7 +116,9 @@ Map<WayClass?, double> classMixAlong(RoadGraph g, List<LatLng> pts) {
     var d = carry;
     while (d <= seg) {
       final t = seg == 0 ? 0.0 : d / seg;
-      final p = g.proj.latLng(math.Point(a.x + t * (b.x - a.x), a.y + t * (b.y - a.y)));
+      final p = g.proj.latLng(
+        math.Point(a.x + t * (b.x - a.x), a.y + t * (b.y - a.y)),
+      );
       final hit = g.nearest(p, kCalibCorridorM);
       final cls = hit == null ? null : g.edges[hit.edge].cls;
       mix[cls] = (mix[cls] ?? 0) + kCalibSampleM;
@@ -127,19 +133,17 @@ Map<WayClass?, double> classMixAlong(RoadGraph g, List<LatLng> pts) {
 enum CalibGroup { track, path, push }
 
 CalibGroup? calibGroupOf(WayClass? cls) => switch (cls) {
-      null => null,
-      WayClass.stufen => CalibGroup.push,
-      WayClass.wanderweg || WayClass.fussweg => CalibGroup.path,
-      _ => CalibGroup.track,
-    };
+  null => null,
+  WayClass.stufen => CalibGroup.push,
+  WayClass.wanderweg || WayClass.fussweg => CalibGroup.path,
+  _ => CalibGroup.track,
+};
 
 /// Eine Messung aus einer Fahrt: ein Aufstieg (Rate) oder ein flaches
 /// Stück (Geschwindigkeit), schon einer Gruppe zugeordnet.
 class CalibSample {
   const CalibSample.climb(this.group, this.value) : flat = false;
-  const CalibSample.flat(this.value)
-      : group = CalibGroup.track,
-        flat = true;
+  const CalibSample.flat(this.value) : group = CalibGroup.track, flat = true;
 
   final CalibGroup group;
 
@@ -162,20 +166,28 @@ List<CalibSample> calibSamplesOf(Ride ride, RoadGraph? g) {
   for (final s in sections) {
     final secs = pts[s.top].at.difference(pts[s.start].at).inSeconds.toDouble();
     if (secs <= kCalibMinSectionS) continue;
-    final mix = classMixAlong(g, [for (var i = s.start; i <= s.top; i++) LatLng(pts[i].lat, pts[i].lng)]);
+    final mix = classMixAlong(g, [
+      for (var i = s.start; i <= s.top; i++) LatLng(pts[i].lat, pts[i].lng),
+    ]);
     final group = calibGroupOf(_dominant(mix));
     if (group == null) continue;
     out.add(CalibSample.climb(group, s.gainM / (secs / 3600)));
   }
   // Flache Stücke zwischen den Aufstiegen.
   final sm = smoothElevation(heights, kCalibWindow);
-  final bounds = <int>[0, for (final s in sections) ...[s.start, s.top], pts.length - 1];
+  final bounds = <int>[
+    0,
+    for (final s in sections) ...[s.start, s.top],
+    pts.length - 1,
+  ];
   for (var k = 0; k + 1 < bounds.length; k += 2) {
     final a = bounds[k], b = bounds[k + 1];
     if (b - a < 2) continue;
     var length = 0.0, gain = 0.0, loss = 0.0;
     for (var i = a + 1; i <= b; i++) {
-      length += g.proj.xy(LatLng(pts[i - 1].lat, pts[i - 1].lng)).distanceTo(g.proj.xy(LatLng(pts[i].lat, pts[i].lng)));
+      length += g.proj
+          .xy(LatLng(pts[i - 1].lat, pts[i - 1].lng))
+          .distanceTo(g.proj.xy(LatLng(pts[i].lat, pts[i].lng)));
       final d = sm[i] - sm[i - 1];
       if (d > 0) {
         gain += d;
@@ -183,10 +195,16 @@ List<CalibSample> calibSamplesOf(Ride ride, RoadGraph? g) {
         loss -= d;
       }
     }
-    if (length < kCalibFlatMinM || gain > kCalibFlatMaxGrade * length || loss > kCalibFlatMaxGrade * length) continue;
+    if (length < kCalibFlatMinM ||
+        gain > kCalibFlatMaxGrade * length ||
+        loss > kCalibFlatMaxGrade * length) {
+      continue;
+    }
     final secs = pts[b].at.difference(pts[a].at).inSeconds.toDouble();
     if (secs <= 60) continue;
-    final mix = classMixAlong(g, [for (var i = a; i <= b; i++) LatLng(pts[i].lat, pts[i].lng)]);
+    final mix = classMixAlong(g, [
+      for (var i = a; i <= b; i++) LatLng(pts[i].lat, pts[i].lng),
+    ]);
     if (calibGroupOf(_dominant(mix)) != CalibGroup.track) continue;
     out.add(CalibSample.flat(length / 1000 / (secs / 3600)));
   }
@@ -201,7 +219,8 @@ class CalibJob implements GraphJob<List<CalibSample>> {
   final Ride ride;
 
   @override
-  List<CalibSample> runOn(RoadGraph g, LoopSearchCache cache) => calibSamplesOf(ride, g);
+  List<CalibSample> runOn(RoadGraph g, LoopSearchCache cache) =>
+      calibSamplesOf(ride, g);
 }
 
 WayClass? _dominant(Map<WayClass?, double> mix) {
@@ -241,22 +260,27 @@ class RiderCalibration {
   final int sections;
   final DateTime? at;
 
-  bool get isEmpty => climbTrackMPerH == null && climbPathMPerH == null && pushRateMPerH == null && vFlatKmh == null;
+  bool get isEmpty =>
+      climbTrackMPerH == null &&
+      climbPathMPerH == null &&
+      pushRateMPerH == null &&
+      vFlatKmh == null;
 
   Map<String, dynamic> toJson() => {
-        if (climbTrackMPerH != null) 'track': climbTrackMPerH,
-        if (climbPathMPerH != null) 'path': climbPathMPerH,
-        if (pushRateMPerH != null) 'push': pushRateMPerH,
-        if (vFlatKmh != null) 'flat': vFlatKmh,
-        'rides': rides,
-        'sections': sections,
-        if (at != null) 'at': at!.toUtc().toIso8601String(),
-      };
+    if (climbTrackMPerH != null) 'track': climbTrackMPerH,
+    if (climbPathMPerH != null) 'path': climbPathMPerH,
+    if (pushRateMPerH != null) 'push': pushRateMPerH,
+    if (vFlatKmh != null) 'flat': vFlatKmh,
+    'rides': rides,
+    'sections': sections,
+    if (at != null) 'at': at!.toUtc().toIso8601String(),
+  };
 
   /// Was außerhalb der plausiblen Spanne steht, gilt als nicht gelernt
   /// (#356): Eine gespeicherte 0 teilte im Zeitmodell durch null, die
   /// Zeit wurde unendlich, und `.round()` warf beim Bauen des Blatts.
-  static RiderCalibration fromJson(Map<String, dynamic> json) => RiderCalibration(
+  static RiderCalibration fromJson(Map<String, dynamic> json) =>
+      RiderCalibration(
         climbTrackMPerH: _inRange(json['track'], kCalibClimbRange),
         climbPathMPerH: _inRange(json['path'], kCalibClimbRange),
         pushRateMPerH: _inRange(json['push'], kCalibClimbRange),
@@ -276,20 +300,29 @@ class RiderCalibration {
 /// Rechnet aus den Messungen eines Profils die gelernten Werte: Median je
 /// Gruppe, nur ab [kCalibMinSections] Messungen und in der plausiblen
 /// Spanne; [rides] ist die Zahl der Fahrten, die Messungen geliefert haben.
-RiderCalibration calibrateFrom(List<CalibSample> samples, {required int rides, DateTime? now}) {
+RiderCalibration calibrateFrom(
+  List<CalibSample> samples, {
+  required int rides,
+  DateTime? now,
+}) {
   double? median(Iterable<double> values, (double, double) range) {
-    final v = values.where((x) => x >= range.$1 && x <= range.$2).toList()..sort();
+    final v = values.where((x) => x >= range.$1 && x <= range.$2).toList()
+      ..sort();
     if (v.length < kCalibMinSections) return null;
     final m = v.length ~/ 2;
     return v.length.isOdd ? v[m] : (v[m - 1] + v[m]) / 2;
   }
 
-  Iterable<double> climbs(CalibGroup g) => samples.where((s) => !s.flat && s.group == g).map((s) => s.value);
+  Iterable<double> climbs(CalibGroup g) =>
+      samples.where((s) => !s.flat && s.group == g).map((s) => s.value);
   return RiderCalibration(
     climbTrackMPerH: median(climbs(CalibGroup.track), kCalibClimbRange),
     climbPathMPerH: median(climbs(CalibGroup.path), kCalibClimbRange),
     pushRateMPerH: median(climbs(CalibGroup.push), kCalibClimbRange),
-    vFlatKmh: median(samples.where((s) => s.flat).map((s) => s.value), kCalibFlatRange),
+    vFlatKmh: median(
+      samples.where((s) => s.flat).map((s) => s.value),
+      kCalibFlatRange,
+    ),
     rides: rides,
     sections: samples.where((s) => !s.flat).length,
     at: now ?? DateTime.now().toUtc(),
@@ -308,11 +341,14 @@ class RiderCalibrations {
   RiderCalibrations withProfile(RiderProfile p, RiderCalibration c) =>
       RiderCalibrations({..._byProfile, p: c});
 
-  RiderCalibrations without(RiderProfile p) => RiderCalibrations({..._byProfile}..remove(p));
+  RiderCalibrations without(RiderProfile p) =>
+      RiderCalibrations({..._byProfile}..remove(p));
 
   bool get isEmpty => _byProfile.values.every((c) => c.isEmpty);
 
-  String encode() => jsonEncode({for (final e in _byProfile.entries) e.key.name: e.value.toJson()});
+  String encode() => jsonEncode({
+    for (final e in _byProfile.entries) e.key.name: e.value.toJson(),
+  });
 
   static RiderCalibrations parse(String? raw) {
     if (raw == null || raw.isEmpty) return const RiderCalibrations();
@@ -322,7 +358,9 @@ class RiderCalibrations {
       final out = <RiderProfile, RiderCalibration>{};
       for (final p in RiderProfile.values) {
         final entry = json[p.name];
-        if (entry is Map<String, dynamic>) out[p] = RiderCalibration.fromJson(entry);
+        if (entry is Map<String, dynamic>) {
+          out[p] = RiderCalibration.fromJson(entry);
+        }
       }
       return RiderCalibrations(out);
     } catch (_) {
@@ -345,11 +383,14 @@ class CalibratedRider implements RiderParams {
   RoutePrefs get prefs => const RoutePrefs();
 
   @override
-  double get climbTrackMPerH => calibration.climbTrackMPerH ?? profile.climbTrackMPerH;
+  double get climbTrackMPerH =>
+      calibration.climbTrackMPerH ?? profile.climbTrackMPerH;
   @override
-  double get climbPathMPerH => calibration.climbPathMPerH ?? profile.climbPathMPerH;
+  double get climbPathMPerH =>
+      calibration.climbPathMPerH ?? profile.climbPathMPerH;
   @override
-  double get pushRateMPerH => calibration.pushRateMPerH ?? profile.pushRateMPerH;
+  double get pushRateMPerH =>
+      calibration.pushRateMPerH ?? profile.pushRateMPerH;
   @override
   double get vFlatKmh => calibration.vFlatKmh ?? profile.vFlatKmh;
   @override

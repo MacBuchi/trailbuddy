@@ -59,14 +59,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   void initState() {
     super.initState();
     _settings = ref.read(settingsProvider);
-    _providerErrors =
-        ref.read(authRepositoryProvider).providerReturnErrors.listen((error) {
-      if (!mounted) return;
-      setState(() {
-        _notice = providerReturnErrorMessage(context.l10n, error);
-        _noticeTone = NoticeTone.error;
-      });
-    });
+    _providerErrors = ref
+        .read(authRepositoryProvider)
+        .providerReturnErrors
+        .listen((error) {
+          if (!mounted) return;
+          setState(() {
+            _notice = providerReturnErrorMessage(context.l10n, error);
+            _noticeTone = NoticeTone.error;
+          });
+        });
     final pending = PendingCode.read(_settings, PendingCodeKind.reset);
     if (pending != null) {
       _mode = _Mode.code;
@@ -101,21 +103,23 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   void _switchTo(_Mode mode) => setState(() {
-        // Zurück zur Anmeldung heißt: auf diesen Code wartet niemand mehr.
-        if (mode == _Mode.signIn) PendingCode.forget(_settings, PendingCodeKind.reset);
-        _mode = mode;
-        _notice = null;
-        _codeController.clear();
-        _newPasswordController.clear();
-        _repeatController.clear();
-      });
+    // Zurück zur Anmeldung heißt: auf diesen Code wartet niemand mehr.
+    if (mode == _Mode.signIn) {
+      PendingCode.forget(_settings, PendingCodeKind.reset);
+    }
+    _mode = mode;
+    _notice = null;
+    _codeController.clear();
+    _newPasswordController.clear();
+    _repeatController.clear();
+  });
 
   /// Hinweis samt Tonfall setzen. Erfolg und Fehlschlag sahen in der
   /// Urfassung gleich aus — ein blankes `Text` unter dem Formular.
   void _setNotice(String message, NoticeTone tone) => setState(() {
-        _notice = message;
-        _noticeTone = tone;
-      });
+    _notice = message;
+    _noticeTone = tone;
+  });
 
   /// Sieht das nach einer Adresse aus?
   ///
@@ -210,7 +214,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       return;
     }
     if (_newPasswordController.text.length < minPasswordLength) {
-      _setNotice(l.loginNewPasswordTooShort(minPasswordLength), NoticeTone.error);
+      _setNotice(
+        l.loginNewPasswordTooShort(minPasswordLength),
+        NoticeTone.error,
+      );
       return;
     }
     if (_newPasswordController.text != _repeatController.text) {
@@ -219,7 +226,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     }
     setState(() => _busy = true);
     try {
-      await ref.read(authRepositoryProvider).resetPasswordWithCode(
+      await ref
+          .read(authRepositoryProvider)
+          .resetPasswordWithCode(
             email: _emailController.text.trim(),
             code: code,
             newPassword: _newPasswordController.text,
@@ -255,7 +264,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final l = context.l10n;
     setState(() => _busy = true);
     try {
-      await ref.read(authRepositoryProvider).signIn(
+      await ref
+          .read(authRepositoryProvider)
+          .signIn(
             email: _emailController.text.trim(),
             password: _passwordController.text,
           );
@@ -263,14 +274,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       TextInput.finishAutofillContext();
     } on AuthException catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(loginErrorMessage(l, e))));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(loginErrorMessage(l, e))));
       }
     } catch (e, stackTrace) {
       logError('Login', e, stackTrace);
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(friendlyError(l, e))));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(friendlyError(l, e))));
       }
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -278,16 +291,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   String _primaryLabel(AppLocalizations l) => switch (_mode) {
-        _Mode.signIn => l.loginSignIn,
-        _Mode.forgot => l.loginRequestCode,
-        _Mode.code => l.loginSaveNewPassword,
-      };
+    _Mode.signIn => l.loginSignIn,
+    _Mode.forgot => l.loginRequestCode,
+    _Mode.code => l.loginSaveNewPassword,
+  };
 
   VoidCallback get _primaryAction => switch (_mode) {
-        _Mode.signIn => _signIn,
-        _Mode.forgot => _sendResetCode,
-        _Mode.code => _resetPassword,
-      };
+    _Mode.signIn => _signIn,
+    _Mode.forgot => _sendResetCode,
+    _Mode.code => _resetPassword,
+  };
 
   @override
   Widget build(BuildContext context) {
@@ -313,9 +326,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   child: TrailBuddyWordmark(),
                 ),
                 const SizedBox(height: 8),
-                Text(l.loginTagline,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant)),
+                Text(
+                  l.loginTagline,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                ),
                 const SizedBox(height: 40),
                 // Ohne AutofillGroup registrieren sich die Felder nicht beim
                 // Autofill-Dienst — Passwortmanager sehen das Formular sonst
@@ -386,12 +402,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 FilledButton(
                   onPressed: _busy ? null : _primaryAction,
                   style: FilledButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 16)),
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                  ),
                   child: _busy
                       ? const SizedBox(
                           width: 20,
                           height: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2))
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
                       : Text(_primaryLabel(l)),
                 ),
                 if (_mode == _Mode.signIn) ...[

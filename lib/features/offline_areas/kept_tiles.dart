@@ -91,13 +91,17 @@ Future<List<TileXYZ>> staleKeptTiles({
   if (covered == null) return const [];
   final mine = [
     for (final t in frame)
-      if (holder.keptUse.containsKey(TileSetShape.keyOf(t.x, t.y, kAreaShapeZoom)) &&
+      if (holder.keptUse.containsKey(
+            TileSetShape.keyOf(t.x, t.y, kAreaShapeZoom),
+          ) &&
           !covered.contains(TileSetShape.keyOf(t.x, t.y, kAreaShapeZoom)))
         t,
   ];
   if (mine.isEmpty) return const [];
   try {
-    final builds = await tiles.builds(region, TileLayer.map, [for (final t in mine) tileIdOf(t)]);
+    final builds = await tiles.builds(region, TileLayer.map, [
+      for (final t in mine) tileIdOf(t),
+    ]);
     return [
       for (final t in mine)
         if (builds[tileIdOf(t)] case final b? when b.compareTo(mapBuild) < 0) t,
@@ -130,23 +134,29 @@ Future<({bool relist, int evicted})> keepOnlineTiles({
 }) async {
   final all = await areas.list();
   final holder = keptAreaIn(all, region);
-  final usedNow = {for (final k in used) if (holder?.keptUse.containsKey(k) ?? false) k};
+  final usedNow = {
+    for (final k in used)
+      if (holder?.keptUse.containsKey(k) ?? false) k,
+  };
   if (fetched.isEmpty && usedNow.isEmpty) return (relist: false, evicted: 0);
 
   if (fetched.isNotEmpty) {
     await tiles.put(region, TileLayer.map, [
-      for (final f in fetched) StoreTile(kAreaShapeZoom, f.x, f.y, f.map, builds.map),
+      for (final f in fetched)
+        StoreTile(kAreaShapeZoom, f.x, f.y, f.map, builds.map),
     ]);
     final hb = builds.heights;
     final heights = [
       for (final f in fetched)
-        if (f.heights case final h? when hb != null) StoreTile(kAreaShapeZoom, f.x, f.y, h, hb),
+        if (f.heights case final h? when hb != null)
+          StoreTile(kAreaShapeZoom, f.x, f.y, h, hb),
     ];
     if (heights.isNotEmpty) await tiles.put(region, TileLayer.heights, heights);
     final wb = builds.ways;
     final ways = [
       for (final f in fetched)
-        if (f.ways case final w? when wb != null) StoreTile(kAreaShapeZoom, f.x, f.y, w, wb),
+        if (f.ways case final w? when wb != null)
+          StoreTile(kAreaShapeZoom, f.x, f.y, w, wb),
     ];
     if (ways.isNotEmpty) await tiles.put(region, TileLayer.ways, ways);
   }
@@ -160,7 +170,9 @@ Future<({bool relist, int evicted})> keepOnlineTiles({
   for (final f in fetched) {
     final old = use.remove(f.key);
     // Neu geholt ohne Höhen: die liegenden Höhen bleiben und zählen mit.
-    use[f.key] = f.heights == null && old != null && old > f.bytes ? old : f.bytes;
+    use[f.key] = f.heights == null && old != null && old > f.bytes
+        ? old
+        : f.bytes;
   }
 
   final mine = {...usedNow, for (final f in fetched) f.key};
@@ -177,7 +189,11 @@ Future<({bool relist, int evicted})> keepOnlineTiles({
     final ids = [
       for (final k in gone)
         if (covered != null && !covered.contains(k))
-          tileIdOf((z: kAreaShapeZoom, x: k >> kAreaShapeZoom, y: k & ((1 << kAreaShapeZoom) - 1))),
+          tileIdOf((
+            z: kAreaShapeZoom,
+            x: k >> kAreaShapeZoom,
+            y: k & ((1 << kAreaShapeZoom) - 1),
+          )),
     ];
     if (ids.isNotEmpty) {
       for (final layer in TileLayer.values) {
@@ -189,8 +205,12 @@ Future<({bool relist, int evicted})> keepOnlineTiles({
   final at = now ?? DateTime.now();
   final shape = TileSetShape(zoom: kAreaShapeZoom, keys: use.keys.toSet());
   String newer(String? a, String b) => a != null && a.compareTo(b) > 0 ? a : b;
-  final hasHeights = (holder?.hasHeights ?? false) || (builds.heights != null && fetched.any((f) => f.heights != null));
-  final hasWays = (holder?.hasWays ?? false) || (builds.ways != null && fetched.any((f) => f.ways != null));
+  final hasHeights =
+      (holder?.hasHeights ?? false) ||
+      (builds.heights != null && fetched.any((f) => f.heights != null));
+  final hasWays =
+      (holder?.hasWays ?? false) ||
+      (builds.ways != null && fetched.any((f) => f.ways != null));
   final next = StoredArea(
     id: keptAreaId(region),
     name: 'kept',
@@ -205,15 +225,26 @@ Future<({bool relist, int evicted})> keepOnlineTiles({
     // Was „hat Höhen/Wege" an einem Bereich heißt — die Leser fragen den
     // Speicher der Region nur dann; eine fehlende Kachel ist dort „nichts".
     heightTiles: hasHeights ? use.length : 0,
-    heightsBuild: builds.heights == null ? holder?.heightsBuild : newer(holder?.heightsBuild, builds.heights!),
+    heightsBuild: builds.heights == null
+        ? holder?.heightsBuild
+        : newer(holder?.heightsBuild, builds.heights!),
     wayTiles: hasWays ? use.length : 0,
-    waysBuild: builds.ways == null ? holder?.waysBuild : newer(holder?.waysBuild, builds.ways!),
+    waysBuild: builds.ways == null
+        ? holder?.waysBuild
+        : newer(holder?.waysBuild, builds.ways!),
     region: region,
     format: kStoredAreaFormat,
     keptUse: use,
   );
   final i = all.indexWhere((a) => a.id == next.id);
-  await areas.saveIndex(i < 0 ? [...all, next] : [...all.sublist(0, i), next, ...all.sublist(i + 1)]);
-  final relist = holder == null || holder.hasHeights != next.hasHeights || holder.hasWays != next.hasWays;
+  await areas.saveIndex(
+    i < 0
+        ? [...all, next]
+        : [...all.sublist(0, i), next, ...all.sublist(i + 1)],
+  );
+  final relist =
+      holder == null ||
+      holder.hasHeights != next.hasHeights ||
+      holder.hasWays != next.hasWays;
   return (relist: relist, evicted: gone.length);
 }

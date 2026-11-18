@@ -25,7 +25,8 @@ import 'dart:math' as math;
 import 'dart:typed_data';
 
 import 'package:latlong2/latlong.dart';
-import 'package:vector_map_tiles/vector_map_tiles.dart' show ProviderException, TileIdentity;
+import 'package:vector_map_tiles/vector_map_tiles.dart'
+    show ProviderException, TileIdentity;
 
 import '../../core/line_geometry.dart';
 import '../../core/stall_watch.dart';
@@ -128,12 +129,14 @@ class RoadTilesRead {
   RoadCoverage get coverage => tilesFound == 0
       ? RoadCoverage.none
       : tilesFound < tilesNeeded
-          ? RoadCoverage.partial
-          : RoadCoverage.complete;
+      ? RoadCoverage.partial
+      : RoadCoverage.complete;
 
   /// Die gefundenen Kacheln als Höhenkacheln (gleicher Zoom, gleiche
   /// Nummern) — für [HeightTiles.read].
-  Iterable<({int x, int y})> get heightTiles => [for (final r in roads) (x: r.tile.x, y: r.tile.y)];
+  Iterable<({int x, int y})> get heightTiles => [
+    for (final r in roads) (x: r.tile.x, y: r.tile.y),
+  ];
 }
 
 /// Der Rahmen in Grad, mit [marginM] Metern Rand — EINE Rechnung für
@@ -150,8 +153,11 @@ AreaBounds roadGraphBounds(LatBox box, double marginM) {
 
 /// Die z13-Kacheln des Rahmens [box] mit [marginM] Rand — EINE Rechnung
 /// für den Lader und die Suche nach vorgebackenen Stücken (#380).
-List<TileXYZ> roadGraphTiles(LatBox box, double marginM) =>
-    tilesCovering(roadGraphBounds(box, marginM), minZoom: kRoadGraphZoom, maxZoom: kRoadGraphZoom);
+List<TileXYZ> roadGraphTiles(LatBox box, double marginM) => tilesCovering(
+  roadGraphBounds(box, marginM),
+  minZoom: kRoadGraphZoom,
+  maxZoom: kRoadGraphZoom,
+);
 
 /// Liest die Bytes aller z13-Kacheln, die [box] (mit [marginM] Rand)
 /// berührt, aus [areas] — und, wo keiner sie hat, über [fetchOnline] vom
@@ -189,7 +195,11 @@ Future<RoadTilesRead> readRoadTiles({
       if (only == null || only.contains((t.x, t.y))) t,
   ];
   if (maxTiles != null && tiles.length > maxTiles) {
-    return RoadTilesRead(tilesNeeded: tiles.length, roads: const [], tooLarge: true);
+    return RoadTilesRead(
+      tilesNeeded: tiles.length,
+      roads: const [],
+      tooLarge: true,
+    );
   }
   // Seit #229 haben alle Bereiche einer Region EINE Quelle ([sourceKey]).
   final inBox = [
@@ -238,7 +248,9 @@ Future<RoadTilesRead> readRoadTiles({
     }
   }
   if (fetchOnline != null && missing.isNotEmpty) {
-    missing.sort((a, b) => _distanceToCenter(a, box).compareTo(_distanceToCenter(b, box)));
+    missing.sort(
+      (a, b) => _distanceToCenter(a, box).compareTo(_distanceToCenter(b, box)),
+    );
     capped = missing.length > maxOnline;
     for (final t in missing.take(maxOnline)) {
       final Uint8List? bytes;
@@ -271,7 +283,12 @@ Future<RoadTilesRead> readRoadTiles({
   final ways = roads.isEmpty || (openWays == null && fetchWaysOnline == null)
       ? const <RoadTileBytes>[]
       : await _wayTiles(
-          tiles: covered.isEmpty ? tiles : [for (final t in tiles) if (nearRead(t)) t],
+          tiles: covered.isEmpty
+              ? tiles
+              : [
+                  for (final t in tiles)
+                    if (nearRead(t)) t,
+                ],
           areas: distinctSources([
             for (final a in inBox)
               if (a.hasWays) a,
@@ -292,7 +309,12 @@ Future<RoadTilesRead> readRoadTiles({
 }
 
 /// Was [buildRoadGraphFrom] gebaut hat.
-typedef RoadGraphBuilt = ({RoadGraph graph, int joins, int crossings, int edgesWithoutHeights});
+typedef RoadGraphBuilt = ({
+  RoadGraph graph,
+  int joins,
+  int crossings,
+  int edgesWithoutHeights,
+});
 
 /// Dekodiert [roads] und baut den Graphen (Zuschnitt, tote Enden,
 /// Kreuzungen — [buildRoadGraph]), liest die Steigungen aus [heights]
@@ -308,31 +330,55 @@ RoadGraphBuilt buildRoadGraphFrom({
   // Pixel (docs/routing-messung.md, #356): Kreuzungen und Güte sind die
   // großen Brocken.
   final lines = <WayLine>[];
-  PlanProgress.part(0, 0.06, () => StallWatch.mark('graph.decode', () {
-        for (var i = 0; i < roads.length; i++) {
-          final r = roads[i];
-          lines.addAll(wayLinesFromTile(r.bytes, z: r.tile.z, x: r.tile.x, y: r.tile.y));
-          PlanProgress.steps(i + 1, roads.length);
-        }
-      }));
-  final build = PlanProgress.part(0.06, 0.6, () => buildRoadGraph(lines, lat0: lat0));
+  PlanProgress.part(
+    0,
+    0.06,
+    () => StallWatch.mark('graph.decode', () {
+      for (var i = 0; i < roads.length; i++) {
+        final r = roads[i];
+        lines.addAll(
+          wayLinesFromTile(r.bytes, z: r.tile.z, x: r.tile.x, y: r.tile.y),
+        );
+        PlanProgress.steps(i + 1, roads.length);
+      }
+    }),
+  );
+  final build = PlanProgress.part(
+    0.06,
+    0.6,
+    () => buildRoadGraph(lines, lat0: lat0),
+  );
   if (heights != null) {
-    PlanProgress.part(0.6, 0.7, () => StallWatch.mark('graph.climbs', () => addClimbsFrom(build.graph, heights)));
+    PlanProgress.part(
+      0.6,
+      0.7,
+      () => StallWatch.mark(
+        'graph.climbs',
+        () => addClimbsFrom(build.graph, heights),
+      ),
+    );
   }
   if (ways.isNotEmpty) {
     PlanProgress.part(0.7, 1, () {
       final grades = <WayGradeLine>[];
       for (final w in ways) {
-        grades.addAll(wayGradeLinesFromTile(w.bytes, z: w.tile.z, x: w.tile.x, y: w.tile.y));
+        grades.addAll(
+          wayGradeLinesFromTile(w.bytes, z: w.tile.z, x: w.tile.x, y: w.tile.y),
+        );
       }
-      StallWatch.mark('graph.wayQuality', () => addWayQuality(build.graph, grades));
+      StallWatch.mark(
+        'graph.wayQuality',
+        () => addWayQuality(build.graph, grades),
+      );
     });
   }
   return (
     graph: build.graph,
     joins: build.joins,
     crossings: build.crossings,
-    edgesWithoutHeights: heights == null ? build.graph.edges.length : build.graph.edgesWithoutHeights,
+    edgesWithoutHeights: heights == null
+        ? build.graph.edges.length
+        : build.graph.edgesWithoutHeights,
   );
 }
 
@@ -386,21 +432,30 @@ Future<RoadGraphLoadResult> loadRoadGraph({
     sourceKey: sourceKey,
   );
   RoadGraphLoadResult none(RoadCoverage c) => (
-        graph: null,
-        coverage: c,
-        tilesNeeded: read.tilesNeeded,
-        tilesFound: read.tilesFound,
-        joins: 0,
-        crossings: 0,
-        edgesWithoutHeights: 0,
-        tilesOnline: read.tilesOnline,
-        onlineCapped: read.onlineCapped,
-        onlineBroken: read.onlineBroken,
-      );
+    graph: null,
+    coverage: c,
+    tilesNeeded: read.tilesNeeded,
+    tilesFound: read.tilesFound,
+    joins: 0,
+    crossings: 0,
+    edgesWithoutHeights: 0,
+    tilesOnline: read.tilesOnline,
+    onlineCapped: read.onlineCapped,
+    onlineBroken: read.onlineBroken,
+  );
   if (read.tilesFound == 0) return none(RoadCoverage.none);
-  if (read.coverage == RoadCoverage.partial && requireComplete) return none(RoadCoverage.partial);
-  final tiles = heights == null ? null : await HeightTiles.read(heights, read.heightTiles);
-  final built = buildRoadGraphFrom(roads: read.roads, ways: read.ways, heights: tiles, lat0: (box.s + box.n) / 2);
+  if (read.coverage == RoadCoverage.partial && requireComplete) {
+    return none(RoadCoverage.partial);
+  }
+  final tiles = heights == null
+      ? null
+      : await HeightTiles.read(heights, read.heightTiles);
+  final built = buildRoadGraphFrom(
+    roads: read.roads,
+    ways: read.ways,
+    heights: tiles,
+    lat0: (box.s + box.n) / 2,
+  );
   return (
     graph: built.graph,
     coverage: read.coverage,
@@ -421,7 +476,8 @@ Future<RoadGraphLoadResult> loadRoadGraph({
 Future<List<RoadTileBytes>> _wayTiles({
   required List<TileXYZ> tiles,
   required List<StoredArea> areas,
-  required Future<ClosableVectorTileProvider?> Function(StoredArea area)? openWays,
+  required Future<ClosableVectorTileProvider?> Function(StoredArea area)?
+  openWays,
   required List<TileXYZ> fromHost,
   required OnlineTileFetcher? fetchWaysOnline,
 }) async {
@@ -442,7 +498,10 @@ Future<List<RoadTileBytes>> _wayTiles({
       for (final t in tiles) {
         for (final p in opened) {
           try {
-            out.add((tile: t, bytes: await p.provide(TileIdentity(t.z, t.x, t.y))));
+            out.add((
+              tile: t,
+              bytes: await p.provide(TileIdentity(t.z, t.x, t.y)),
+            ));
             break;
           } on ProviderException {
             continue;
@@ -495,11 +554,19 @@ Set<(int, int)> tilesAlong(List<LatLng> points, double marginM) {
   add(points.first);
   for (var i = 1; i < points.length; i++) {
     final a = points[i - 1], b = points[i];
-    final span = math.max((b.latitude - a.latitude).abs(), (b.longitude - a.longitude).abs());
+    final span = math.max(
+      (b.latitude - a.latitude).abs(),
+      (b.longitude - a.longitude).abs(),
+    );
     final steps = (span / halfTileDeg).ceil();
     for (var k = 1; k < steps; k++) {
       final t = k / steps;
-      add(LatLng(a.latitude + t * (b.latitude - a.latitude), a.longitude + t * (b.longitude - a.longitude)));
+      add(
+        LatLng(
+          a.latitude + t * (b.latitude - a.latitude),
+          a.longitude + t * (b.longitude - a.longitude),
+        ),
+      );
     }
     add(b);
   }

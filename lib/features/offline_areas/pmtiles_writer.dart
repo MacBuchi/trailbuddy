@@ -180,9 +180,13 @@ Uint8List writePmTiles({
       var leafLength = 0;
       for (var start = 0; start < entries.length; start += size) {
         final chunk = entries.sublist(
-            start, start + size > entries.length ? entries.length : start + size);
+          start,
+          start + size > entries.length ? entries.length : start + size,
+        );
         final serialized = _serializeDirectory(chunk);
-        rootEntries.add(_Entry(chunk.first.tileId, 0, leafLength, serialized.length));
+        rootEntries.add(
+          _Entry(chunk.first.tileId, 0, leafLength, serialized.length),
+        );
         leafBuilder.add(serialized);
         leafLength += serialized.length;
       }
@@ -200,7 +204,8 @@ Uint8List writePmTiles({
   }
 
   final metadataBytes = Uint8List.fromList(
-      utf8.encode(jsonEncode(metadata ?? const {'vector_layers': <Object>[]})));
+    utf8.encode(jsonEncode(metadata ?? const {'vector_layers': <Object>[]})),
+  );
 
   final rootOffset = kPmTilesHeaderLength;
   final metadataOffset = rootOffset + root.length;
@@ -231,6 +236,7 @@ Uint8List writePmTiles({
     header.setUint32(at, value & 0xFFFFFFFF, Endian.little);
     header.setUint32(at + 4, value ~/ 0x100000000, Endian.little);
   }
+
   u64(0x08, rootOffset);
   u64(0x10, root.length);
   u64(0x18, metadataOffset);
@@ -273,7 +279,8 @@ int _fnv(Uint8List bytes) {
   var h = 0x811c9dc5;
   for (final b in bytes) {
     h ^= b;
-    h = ((h & 0xFFFF) * 16777619 + ((((h >> 16) * 16777619) & 0xFFFF) << 16)) &
+    h =
+        ((h & 0xFFFF) * 16777619 + ((((h >> 16) * 16777619) & 0xFFFF) << 16)) &
         0xFFFFFFFF;
   }
   return h ^ bytes.length;

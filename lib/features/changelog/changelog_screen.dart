@@ -58,7 +58,9 @@ class ChangelogScreen extends StatelessWidget {
   }
 
   static List<ChangelogLine> _lines(
-      BuildContext context, ({String de, String? en}) files) {
+    BuildContext context,
+    ({String de, String? en}) files,
+  ) {
     final de = changelogBody(parseChangelog(files.de));
     final en = files.en;
     if (en == null) return de;
@@ -104,8 +106,9 @@ class _ChangelogLineView extends StatelessWidget {
           padding: const EdgeInsets.only(top: 24, bottom: 2),
           child: Text(
             line.text,
-            style: theme.textTheme.titleMedium
-                ?.copyWith(color: AppPalette.of(context).accentText),
+            style: theme.textTheme.titleMedium?.copyWith(
+              color: AppPalette.of(context).accentText,
+            ),
           ),
         );
       case ChangelogLineKind.meta:
@@ -161,7 +164,7 @@ class _Message extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.all(24),
-        child: Text(text, style: Theme.of(context).textTheme.bodyMedium),
-      );
+    padding: const EdgeInsets.all(24),
+    child: Text(text, style: Theme.of(context).textTheme.bodyMedium),
+  );
 }

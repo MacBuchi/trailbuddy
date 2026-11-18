@@ -60,7 +60,9 @@ class StoreTile {
 final _regionId = RegExp(r'^[a-z]{2,8}$');
 
 String checkStoreRegion(String region) {
-  if (!_regionId.hasMatch(region)) throw ArgumentError.value(region, 'region', 'keine Region');
+  if (!_regionId.hasMatch(region)) {
+    throw ArgumentError.value(region, 'region', 'keine Region');
+  }
   return region;
 }
 
@@ -76,7 +78,11 @@ abstract interface class TileStore {
   /// Der Bau der Kacheln mit diesen Ids, soweit sie liegen — für wenige
   /// Kacheln, ohne den ganzen [index] einer Region zu lesen (der Planer
   /// fragt je Planung die Kacheln seines Rahmens, #380).
-  Future<Map<int, String>> builds(String region, TileLayer layer, Iterable<int> tileIds);
+  Future<Map<int, String>> builds(
+    String region,
+    TileLayer layer,
+    Iterable<int> tileIds,
+  );
 
   /// Legt [tiles] ab, ersetzt liegende mit derselben Id — in EINER
   /// Transaktion: Ein Abbruch lässt den Block ganz oder gar nicht da.
@@ -92,33 +98,48 @@ abstract interface class TileStore {
 
 /// Ob die Bytes gzip sind (Protomaps schreibt gzip; MapLibre und der
 /// Leser hier erkennen es an denselben zwei Bytes).
-bool isGzip(Uint8List bytes) => bytes.length >= 2 && bytes[0] == 0x1f && bytes[1] == 0x8b;
+bool isGzip(Uint8List bytes) =>
+    bytes.length >= 2 && bytes[0] == 0x1f && bytes[1] == 0x8b;
 
 /// Die Kachel ausgepackt, wie Renderer und Höhenleser sie brauchen.
-Uint8List unpackStoredTile(Uint8List bytes) =>
-    isGzip(bytes) ? Uint8List.fromList(GZipDecoder().decodeBytes(bytes)) : bytes;
+Uint8List unpackStoredTile(Uint8List bytes) => isGzip(bytes)
+    ? Uint8List.fromList(GZipDecoder().decodeBytes(bytes))
+    : bytes;
 
 /// Im Speicher — für Tests und als Rückfall.
 class MemoryTileStore implements TileStore {
   final _tiles = <String, Map<int, ({Uint8List bytes, String build})>>{};
 
-  static String _key(String region, TileLayer layer) => '${checkStoreRegion(region)}/${layer.name}';
+  static String _key(String region, TileLayer layer) =>
+      '${checkStoreRegion(region)}/${layer.name}';
 
   /// Wie oft [put] gerufen wurde — für Tests, die Blöcke zählen.
   int puts = 0;
 
   @override
-  Future<Map<int, StoredTileInfo>> index(String region, TileLayer layer) async => {
-        for (final e in (_tiles[_key(region, layer)] ?? const {}).entries)
-          e.key: StoredTileInfo(e.value.bytes.length, e.value.build),
-      };
+  Future<Map<int, StoredTileInfo>> index(
+    String region,
+    TileLayer layer,
+  ) async => {
+    for (final e in (_tiles[_key(region, layer)] ?? const {}).entries)
+      e.key: StoredTileInfo(e.value.bytes.length, e.value.build),
+  };
 
   @override
-  Future<Uint8List?> read(String region, TileLayer layer, int z, int x, int y) async =>
-      _tiles[_key(region, layer)]?[ZXY(z, x, y).toTileId()]?.bytes;
+  Future<Uint8List?> read(
+    String region,
+    TileLayer layer,
+    int z,
+    int x,
+    int y,
+  ) async => _tiles[_key(region, layer)]?[ZXY(z, x, y).toTileId()]?.bytes;
 
   @override
-  Future<Map<int, String>> builds(String region, TileLayer layer, Iterable<int> tileIds) async {
+  Future<Map<int, String>> builds(
+    String region,
+    TileLayer layer,
+    Iterable<int> tileIds,
+  ) async {
     final m = _tiles[_key(region, layer)] ?? const {};
     return {
       for (final id in tileIds)
@@ -127,7 +148,11 @@ class MemoryTileStore implements TileStore {
   }
 
   @override
-  Future<void> put(String region, TileLayer layer, List<StoreTile> tiles) async {
+  Future<void> put(
+    String region,
+    TileLayer layer,
+    List<StoreTile> tiles,
+  ) async {
     puts++;
     final m = _tiles.putIfAbsent(_key(region, layer), () => {});
     for (final t in tiles) {
@@ -136,7 +161,11 @@ class MemoryTileStore implements TileStore {
   }
 
   @override
-  Future<void> remove(String region, TileLayer layer, Iterable<int> tileIds) async {
+  Future<void> remove(
+    String region,
+    TileLayer layer,
+    Iterable<int> tileIds,
+  ) async {
     final m = _tiles[_key(region, layer)];
     if (m == null) return;
     for (final id in tileIds) {

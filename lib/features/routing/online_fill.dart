@@ -30,7 +30,8 @@ import 'dart:typed_data';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pmtiles/pmtiles.dart';
-import 'package:vector_map_tiles/vector_map_tiles.dart' show ProviderException, TileIdentity;
+import 'package:vector_map_tiles/vector_map_tiles.dart'
+    show ProviderException, TileIdentity;
 
 import '../../core/errors.dart';
 import '../../core/line_geometry.dart';
@@ -39,7 +40,8 @@ import '../map/online_map.dart';
 import '../map/pmtiles_tile_provider.dart';
 import '../map/way_layer.dart' show WaysManifest;
 import '../offline_areas/area_plan.dart';
-import '../offline_areas/area_providers.dart' show areaSourceOpenerProvider, areaWaysManifestLoaderProvider;
+import '../offline_areas/area_providers.dart'
+    show areaSourceOpenerProvider, areaWaysManifestLoaderProvider;
 import '../offline_areas/height_tiles.dart';
 import '../offline_areas/kept_tiles.dart';
 
@@ -71,15 +73,18 @@ class OnlineTileCache {
 
   bool hasRoads(TileXYZ t) => _roads.containsKey(_key(t.x, t.y));
   Uint8List? roads(TileXYZ t) => _roads[_key(t.x, t.y)];
-  void putRoads(TileXYZ t, Uint8List? bytes) => _put(_roads, _key(t.x, t.y), bytes);
+  void putRoads(TileXYZ t, Uint8List? bytes) =>
+      _put(_roads, _key(t.x, t.y), bytes);
 
   bool hasHeights(int x, int y) => _heights.containsKey(_key(x, y));
   HeightTile? heights(int x, int y) => _heights[_key(x, y)];
-  void putHeights(int x, int y, HeightTile? tile) => _put(_heights, _key(x, y), tile);
+  void putHeights(int x, int y, HeightTile? tile) =>
+      _put(_heights, _key(x, y), tile);
 
   bool hasWays(TileXYZ t) => _ways.containsKey(_key(t.x, t.y));
   Uint8List? ways(TileXYZ t) => _ways[_key(t.x, t.y)];
-  void putWays(TileXYZ t, Uint8List? bytes) => _put(_ways, _key(t.x, t.y), bytes);
+  void putWays(TileXYZ t, Uint8List? bytes) =>
+      _put(_ways, _key(t.x, t.y), bytes);
 
   int get length => _roads.length + _heights.length + _ways.length;
 
@@ -92,7 +97,9 @@ class OnlineTileCache {
   }
 }
 
-final onlineTileCacheProvider = Provider<OnlineTileCache>((ref) => OnlineTileCache());
+final onlineTileCacheProvider = Provider<OnlineTileCache>(
+  (ref) => OnlineTileCache(),
+);
 
 /// Höhenkacheln vom Host, über den Sitzungsspeicher — für die Planung
 /// ([allow], darüber hinaus [maxRequests]) und für das Profil
@@ -245,7 +252,13 @@ class OnlineFill {
   List<KeptFetch> takeKept() {
     final out = [
       for (final MapEntry(key: (x, y), value: map) in _rawRoads.entries)
-        KeptFetch(x, y, map: map, heights: _rawHeights[(x, y)], ways: _rawWays[(x, y)]),
+        KeptFetch(
+          x,
+          y,
+          map: map,
+          heights: _rawHeights[(x, y)],
+          ways: _rawWays[(x, y)],
+        ),
     ];
     _rawRoads.clear();
     _rawWays.clear();
@@ -270,7 +283,9 @@ class OnlineFill {
     Uint8List? bytes;
     roadRequests++;
     try {
-      final raw = await archive.rawTile(TileIdentity(t.z, t.x, t.y)).timeout(timeout);
+      final raw = await archive
+          .rawTile(TileIdentity(t.z, t.x, t.y))
+          .timeout(timeout);
       _rawRoads[(t.x, t.y)] = raw.bytes;
       bytes = raw.decoded();
     } on ProviderException catch (e) {
@@ -290,7 +305,9 @@ class OnlineFill {
   /// bei Netzfehler oder Frist.
   Future<Uint8List?> fetchWays(TileXYZ t) async {
     // Neu geholte Wege einer neu geholten Kachel nicht aus dem Speicher.
-    if (cache.hasWays(t) && !_rawRoads.containsKey((t.x, t.y))) return cache.ways(t);
+    if (cache.hasWays(t) && !_rawRoads.containsKey((t.x, t.y))) {
+      return cache.ways(t);
+    }
     final open = openWays;
     if (open == null) return null;
     final archive = await (_ways ??= open().timeout(timeout));
@@ -298,7 +315,9 @@ class OnlineFill {
     Uint8List? bytes;
     wayRequests++;
     try {
-      final raw = await archive.rawTile(TileIdentity(t.z, t.x, t.y)).timeout(timeout);
+      final raw = await archive
+          .rawTile(TileIdentity(t.z, t.x, t.y))
+          .timeout(timeout);
       _rawWays[(t.x, t.y)] = raw.bytes;
       bytes = raw.decoded();
     } on ProviderException catch (e) {
@@ -363,63 +382,83 @@ class RegionHeights implements HeightTileSource {
 }
 
 /// Öffnet das Höhenarchiv einer Region über ihr Manifest; null ohne.
-Future<PmTilesArchive?> Function() _openHostHeights(Ref ref, MapRegion region) => () async {
-      final manifest = await ref.read(regionHeightsManifestProvider(region).future);
-      if (manifest == null) return null;
-      return ref.read(areaSourceOpenerProvider)(manifest.archiveUri);
-    };
+Future<PmTilesArchive?> Function() _openHostHeights(
+  Ref ref,
+  MapRegion region,
+) => () async {
+  final manifest = await ref.read(regionHeightsManifestProvider(region).future);
+  if (manifest == null) return null;
+  return ref.read(areaSourceOpenerProvider)(manifest.archiveUri);
+};
 
 /// Baut das Nachladen für eine Planung im Rahmen [box] aus den
 /// Manifesten des Hosts — die Naht, die Tests ersetzen. Die Region ist
 /// die, deren Rahmen [box] schneidet (#220); außerhalb aller gibt es
 /// nichts nachzuladen.
-final onlineFillFactoryProvider = Provider<OnlineFill Function(LatBox box)>((ref) => (box) {
-      Future<MapRegion?> region() async => regionFor(await ref.read(mapRegionsProvider.future), box);
-      Future<WaysManifest?> waysManifest(MapRegion r) async => r.isDach
-          ? await ref.read(areaWaysManifestLoaderProvider)()
-          : await RegionManifests(ref.read(regionManifestLoaderProvider), r).ways();
-      return OnlineFill(
-        keep: () async {
-          final r = await region();
-          if (r == null) return null;
-          final map = await ref.read(regionMapManifestProvider(r).future);
-          if (map == null) return null;
-          String? heights, ways;
-          try {
-            heights = (await ref.read(regionHeightsManifestProvider(r).future))?.build;
-            ways = (await waysManifest(r))?.build;
-          } catch (_) {
-            // Ohne Bau einer Seite bleibt nur sie bei der Sitzung.
-          }
-          return (region: r.id, builds: (map: map.sourceBuild, heights: heights, ways: ways));
-        },
-        openRoads: () async {
-          final r = await region();
-          if (r == null) return null;
-          final manifest = await ref.read(regionMapManifestProvider(r).future);
-          if (manifest == null) return null;
-          return ref.read(onlineArchiveOpenerProvider)(manifest.archiveUri);
-        },
-        openHeights: () async {
-          final r = await region();
-          return r == null ? null : _openHostHeights(ref, r)();
-        },
-        openWays: () async {
-          // Unabhängig vom Schalter der Ebene, wie die Bereiche (#212 PR 3).
-          final r = await region();
-          if (r == null) return null;
-          final manifest = await waysManifest(r);
-          if (manifest == null) return null;
-          return ref.read(onlineArchiveOpenerProvider)(manifest.archiveUri);
-        },
-        cache: ref.read(onlineTileCacheProvider),
-      );
-    });
+final onlineFillFactoryProvider = Provider<OnlineFill Function(LatBox box)>(
+  (ref) => (box) {
+    Future<MapRegion?> region() async =>
+        regionFor(await ref.read(mapRegionsProvider.future), box);
+    Future<WaysManifest?> waysManifest(MapRegion r) async => r.isDach
+        ? await ref.read(areaWaysManifestLoaderProvider)()
+        : await RegionManifests(
+            ref.read(regionManifestLoaderProvider),
+            r,
+          ).ways();
+    return OnlineFill(
+      keep: () async {
+        final r = await region();
+        if (r == null) return null;
+        final map = await ref.read(regionMapManifestProvider(r).future);
+        if (map == null) return null;
+        String? heights, ways;
+        try {
+          heights = (await ref.read(
+            regionHeightsManifestProvider(r).future,
+          ))?.build;
+          ways = (await waysManifest(r))?.build;
+        } catch (_) {
+          // Ohne Bau einer Seite bleibt nur sie bei der Sitzung.
+        }
+        return (
+          region: r.id,
+          builds: (map: map.sourceBuild, heights: heights, ways: ways),
+        );
+      },
+      openRoads: () async {
+        final r = await region();
+        if (r == null) return null;
+        final manifest = await ref.read(regionMapManifestProvider(r).future);
+        if (manifest == null) return null;
+        return ref.read(onlineArchiveOpenerProvider)(manifest.archiveUri);
+      },
+      openHeights: () async {
+        final r = await region();
+        return r == null ? null : _openHostHeights(ref, r)();
+      },
+      openWays: () async {
+        // Unabhängig vom Schalter der Ebene, wie die Bereiche (#212 PR 3).
+        final r = await region();
+        if (r == null) return null;
+        final manifest = await waysManifest(r);
+        if (manifest == null) return null;
+        return ref.read(onlineArchiveOpenerProvider)(manifest.archiveUri);
+      },
+      cache: ref.read(onlineTileCacheProvider),
+    );
+  },
+);
 
 /// Höhen vom Host für jede Kachel (#186) — dieselbe Naht für Tests. Der
 /// Aufrufer schließt die Quelle nach Gebrauch. Je Region ihr Archiv
 /// (#220, [RegionHeights]).
-final onlineHeightsFactoryProvider = Provider<HeightTileSource Function()>((ref) => () => RegionHeights(
-      regions: () => ref.read(mapRegionsProvider.future),
-      open: (region) => OnlineHeights(open: _openHostHeights(ref, region), cache: ref.read(onlineTileCacheProvider)),
-    ));
+final onlineHeightsFactoryProvider = Provider<HeightTileSource Function()>(
+  (ref) =>
+      () => RegionHeights(
+        regions: () => ref.read(mapRegionsProvider.future),
+        open: (region) => OnlineHeights(
+          open: _openHostHeights(ref, region),
+          cache: ref.read(onlineTileCacheProvider),
+        ),
+      ),
+);

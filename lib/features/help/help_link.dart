@@ -13,12 +13,12 @@ class HelpLinkButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Align(
-        alignment: Alignment.centerLeft,
-        child: TextButton.icon(
-          key: const ValueKey('help-link'),
-          onPressed: () => context.push('/profile/help'),
-          icon: const Icon(Icons.help_outline),
-          label: Text(context.l10n.helpTitle),
-        ),
-      );
+    alignment: Alignment.centerLeft,
+    child: TextButton.icon(
+      key: const ValueKey('help-link'),
+      onPressed: () => context.push('/profile/help'),
+      icon: const Icon(Icons.help_outline),
+      label: Text(context.l10n.helpTitle),
+    ),
+  );
 }

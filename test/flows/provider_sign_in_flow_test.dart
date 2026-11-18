@@ -25,8 +25,9 @@ Future<void> _tap(WidgetTester tester, Finder finder) async {
 }
 
 void main() {
-  testWidgets('Ohne freigegebenen Anbieter sieht der Login aus wie zuvor',
-      (tester) async {
+  testWidgets('Ohne freigegebenen Anbieter sieht der Login aus wie zuvor', (
+    tester,
+  ) async {
     await pumpApp(tester, FakeBackend());
 
     expect(find.text('oder weiter mit'), findsNothing);
@@ -48,8 +49,10 @@ void main() {
     expect(_button(SignInProvider.facebook), findsNothing);
     expect(find.byTooltip('Weiter mit Google'), findsOneWidget);
     // Reihenfolge wie im Enum, nicht wie in der Antwort: Google vor GitHub.
-    expect(tester.getTopLeft(_button(SignInProvider.google)).dx,
-        lessThan(tester.getTopLeft(_button(SignInProvider.github)).dx));
+    expect(
+      tester.getTopLeft(_button(SignInProvider.google)).dx,
+      lessThan(tester.getTopLeft(_button(SignInProvider.github)).dx),
+    );
 
     await _tap(tester, find.text('Noch kein Konto? Registrieren'));
     expect(_button(SignInProvider.google), findsOneWidget);
@@ -70,7 +73,10 @@ void main() {
       'Konto kein Passwort', (tester) async {
     final backend = FakeBackend()
       ..enabledSignInProviders = {SignInProvider.google}
-      ..providerMetadata = {'full_name': 'Erika Muster', 'name': 'Erika Muster'};
+      ..providerMetadata = {
+        'full_name': 'Erika Muster',
+        'name': 'Erika Muster',
+      };
     final settings = FakeSettings();
     await pumpApp(tester, backend, settings: settings);
 
@@ -78,12 +84,19 @@ void main() {
 
     expect(backend.providerSignIns, [SignInProvider.google]);
     expect(find.byType(UsernameStep), findsOneWidget);
-    expect(find.byType(MapScreen), findsNothing,
-        reason: 'vor der Karte, also auch vor Hinweis und Tour');
+    expect(
+      find.byType(MapScreen),
+      findsNothing,
+      reason: 'vor der Karte, also auch vor Hinweis und Tour',
+    );
     expect(find.byType(NavigationBar), findsNothing);
-    expect(tester.widget<TextField>(_field).controller!.text, isEmpty,
-        reason: 'Der Klarname des Anbieters wird nie vorgeschlagen — der '
-            'Benutzername ist öffentlich.');
+    expect(
+      tester.widget<TextField>(_field).controller!.text,
+      isEmpty,
+      reason:
+          'Der Klarname des Anbieters wird nie vorgeschlagen — der '
+          'Benutzername ist öffentlich.',
+    );
 
     await tester.enterText(_field, 'erika');
     await settle(tester);
@@ -98,16 +111,23 @@ void main() {
     expect(find.byType(AccountScreen), findsOneWidget);
     expect(find.text('Angemeldet über Google'), findsOneWidget);
     expect(find.textContaining('neu@example.org'), findsOneWidget);
-    expect(find.text('Passwort ändern'), findsNothing,
-        reason: 'Ein Konto über einen Anbieter hat kein Passwort — der '
-            'Dialog verlangte das aktuelle und käme nie durch.');
+    expect(
+      find.text('Passwort ändern'),
+      findsNothing,
+      reason:
+          'Ein Konto über einen Anbieter hat kein Passwort — der '
+          'Dialog verlangte das aktuelle und käme nie durch.',
+    );
   });
 
   testWidgets('Der Nutzername bei GitHub steht vorbelegt, die Adresse von '
       'Microsoft nicht', (tester) async {
     final backend = FakeBackend()
       ..enabledSignInProviders = {SignInProvider.github}
-      ..providerMetadata = {'user_name': 'trailfox', 'full_name': 'Erika Muster'};
+      ..providerMetadata = {
+        'user_name': 'trailfox',
+        'full_name': 'Erika Muster',
+      };
     await pumpApp(tester, backend);
     await _tap(tester, _button(SignInProvider.github));
     expect(tester.widget<TextField>(_field).controller!.text, 'trailfox');
@@ -118,12 +138,16 @@ void main() {
       ..providerMetadata = {'preferred_username': 'erika@example.org'};
     await pumpApp(tester, backend2);
     await _tap(tester, _button(SignInProvider.microsoft));
-    expect(tester.widget<TextField>(_field).controller!.text, isEmpty,
-        reason: 'eine Adresse als öffentlicher Name — usernameProblem');
+    expect(
+      tester.widget<TextField>(_field).controller!.text,
+      isEmpty,
+      reason: 'eine Adresse als öffentlicher Name — usernameProblem',
+    );
   });
 
-  testWidgets('Ein vergebener Name sagt es am Schritt, die Karte bleibt zu',
-      (tester) async {
+  testWidgets('Ein vergebener Name sagt es am Schritt, die Karte bleibt zu', (
+    tester,
+  ) async {
     final backend = FakeBackend()
       ..addUser(username: 'trailfox', email: 'fox@example.org')
       ..enabledSignInProviders = {SignInProvider.github}
@@ -133,7 +157,10 @@ void main() {
 
     await _tap(tester, find.text('Weiter'));
 
-    expect(find.text('Dieser Benutzername ist schon vergeben.'), findsOneWidget);
+    expect(
+      find.text('Dieser Benutzername ist schon vergeben.'),
+      findsOneWidget,
+    );
     expect(find.byType(UsernameStep), findsOneWidget);
     expect(find.byType(MapScreen), findsNothing);
   });
@@ -159,8 +186,9 @@ void main() {
     expect(find.byType(MapScreen), findsOneWidget);
   });
 
-  testWidgets('Ohne Entscheidung kommt der Schritt beim Neustart wieder',
-      (tester) async {
+  testWidgets('Ohne Entscheidung kommt der Schritt beim Neustart wieder', (
+    tester,
+  ) async {
     final backend = FakeBackend()
       ..enabledSignInProviders = {SignInProvider.discord};
     final settings = FakeSettings();
@@ -174,8 +202,9 @@ void main() {
     expect(find.byType(UsernameStep), findsOneWidget);
   });
 
-  testWidgets('Dieselbe Adresse wie ein E-Mail-Konto landet in diesem Konto',
-      (tester) async {
+  testWidgets('Dieselbe Adresse wie ein E-Mail-Konto landet in diesem Konto', (
+    tester,
+  ) async {
     final backend = FakeBackend()
       ..addUser(username: 'testrail', email: 'testrail@example.org')
       ..enabledSignInProviders = {SignInProvider.microsoft}
@@ -186,8 +215,11 @@ void main() {
 
     expect(backend.users, hasLength(1), reason: 'kein zweites Konto');
     expect(backend.currentUserId, backend.users.single.id);
-    expect(find.byType(UsernameStep), findsNothing,
-        reason: 'den Namen hat der Nutzer selbst gewählt');
+    expect(
+      find.byType(UsernameStep),
+      findsNothing,
+      reason: 'den Namen hat der Nutzer selbst gewählt',
+    );
     expect(find.byType(MapScreen), findsOneWidget);
   });
 
@@ -199,35 +231,51 @@ void main() {
 
     await _tap(tester, _button(SignInProvider.discord));
 
-    expect(find.text('Die Anmeldeseite von Discord ließ sich nicht öffnen. '
-        'Versuch es noch einmal.'), findsOneWidget);
+    expect(
+      find.text(
+        'Die Anmeldeseite von Discord ließ sich nicht öffnen. '
+        'Versuch es noch einmal.',
+      ),
+      findsOneWidget,
+    );
     expect(backend.currentUserId, isNull);
   });
 
-  testWidgets('Ein gescheiterter Rücksprung sagt auf dem Login, warum',
-      (tester) async {
+  testWidgets('Ein gescheiterter Rücksprung sagt auf dem Login, warum', (
+    tester,
+  ) async {
     final backend = FakeBackend()
       ..enabledSignInProviders = {SignInProvider.github};
     await pumpApp(tester, backend);
 
     // So kam es bei der Einrichtung 2026-10-29 zurück: ein GitHub-Konto mit
     // den Adressen zweier TrailBuddy-Konten.
-    backend.failProviderReturn('Multiple accounts with the same email '
-        'address in the same linking domain detected: default');
+    backend.failProviderReturn(
+      'Multiple accounts with the same email '
+      'address in the same linking domain detected: default',
+    );
     await settle(tester);
-    expect(find.textContaining('Adressen mehrerer TrailBuddy-Konten'),
-        findsOneWidget);
+    expect(
+      find.textContaining('Adressen mehrerer TrailBuddy-Konten'),
+      findsOneWidget,
+    );
 
     backend.failProviderReturn('OAuth state has expired');
     await settle(tester);
-    expect(find.text('Die Anmeldung beim Anbieter hat zu lange gedauert. '
-        'Versuch es noch einmal.'), findsOneWidget);
+    expect(
+      find.text(
+        'Die Anmeldung beim Anbieter hat zu lange gedauert. '
+        'Versuch es noch einmal.',
+      ),
+      findsOneWidget,
+    );
 
-    backend.failProviderReturn('The user denied access',
-        code: 'access_denied');
+    backend.failProviderReturn('The user denied access', code: 'access_denied');
     await settle(tester);
-    expect(find.text('Die Anmeldung beim Anbieter wurde abgebrochen.'),
-        findsOneWidget);
+    expect(
+      find.text('Die Anmeldung beim Anbieter wurde abgebrochen.'),
+      findsOneWidget,
+    );
     expect(find.byType(MapScreen), findsNothing);
   });
 }

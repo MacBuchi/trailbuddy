@@ -30,7 +30,11 @@ abstract interface class RideStore {
   /// erst zu Hause auffliegt.
   /// [profile] ist das Fahrerprofil beim Start (`RiderProfile.name`,
   /// seit 0.70.0) und steht im Kopf der Datei.
-  Future<void> begin({required String uid, required DateTime startedAt, String? profile});
+  Future<void> begin({
+    required String uid,
+    required DateTime startedAt,
+    String? profile,
+  });
 
   /// Hängt einen Punkt an. **Wirft nie** — ein verlorener Fix ist ein
   /// verlorener Fix, kein Grund, die laufende Fahrt abzubrechen.
@@ -41,7 +45,10 @@ abstract interface class RideStore {
   /// auf eine Benachrichtigung kann eintreffen, wenn die Fahrt längst
   /// beendet und eine neue begonnen ist. Gibt zurück, ob geschrieben
   /// wurde. **Wirft nie.**
-  Future<bool> appendConfirmEvent(ConfirmEvent event, {DateTime? rideStartedAt});
+  Future<bool> appendConfirmEvent(
+    ConfirmEvent event, {
+    DateTime? rideStartedAt,
+  });
 
   /// Hängt eine Marke „Trail beginnt/endet" (#105) an die laufende Fahrt.
   /// Geschrieben aus dem Main-Isolate — getippt wird dort, und die Marke
@@ -56,12 +63,18 @@ abstract interface class RideStore {
   /// Die Trails, zu denen während der Fahrt gefragt wird (#116). Die App
   /// schreibt, der Service liest. Wirft nie — ohne Datei wird nicht
   /// gefragt, gefahren wird trotzdem.
-  Future<void> writeConfirmTargets({required String uid, required List<ConfirmTarget> targets});
+  Future<void> writeConfirmTargets({
+    required String uid,
+    required List<ConfirmTarget> targets,
+  });
   Future<List<ConfirmTarget>> readConfirmTargets({required String uid});
 
   /// Die Trails für die Ansagen der freien Fahrt (#525, F7) — leer, wenn
   /// die Ansagen aus sind oder die Fahrt endet. Wirft nie.
-  Future<void> writeVoiceTrails({required String uid, required List<VoiceTrail> trails});
+  Future<void> writeVoiceTrails({
+    required String uid,
+    required List<VoiceTrail> trails,
+  });
 
   /// Die laufende Fahrt, oder `null`. Wirft nie.
   Future<RecordedRide?> readActive({required String uid});
@@ -166,86 +179,107 @@ class FileRideStore implements RideStore {
   static String _idFor(DateTime startedAt) => rideIdFor(startedAt);
 
   @override
-  Future<void> begin({required String uid, required DateTime startedAt, String? profile}) =>
-      _serialized(() async {
-        final file = await _active();
-        await file.writeAsString(
-          '${jsonEncode({
-                'uid': uid,
-                'startedAt': startedAt.toUtc().toIso8601String(),
-                'profile': ?profile,
-              })}\n',
-          flush: true,
-        );
-      });
+  Future<void> begin({
+    required String uid,
+    required DateTime startedAt,
+    String? profile,
+  }) => _serialized(() async {
+    final file = await _active();
+    await file.writeAsString(
+      '${jsonEncode({'uid': uid, 'startedAt': startedAt.toUtc().toIso8601String(), 'profile': ?profile})}\n',
+      flush: true,
+    );
+  });
 
   @override
   Future<void> appendPoint(RidePoint point) => _serialized(() async {
-        try {
-          final file = await _active();
-          await file.writeAsString('${jsonEncode(point.toJson())}\n',
-              mode: FileMode.append, flush: true);
-        } catch (e, stackTrace) {
-          // Gemeldet, nicht geschluckt: Das ist echter Datenverlust —
-          // aber einer, der die Fahrt weiterlaufen lässt.
-          logError('Fahrt-Punkt anhängen', e, stackTrace);
-        }
-      });
+    try {
+      final file = await _active();
+      await file.writeAsString(
+        '${jsonEncode(point.toJson())}\n',
+        mode: FileMode.append,
+        flush: true,
+      );
+    } catch (e, stackTrace) {
+      // Gemeldet, nicht geschluckt: Das ist echter Datenverlust —
+      // aber einer, der die Fahrt weiterlaufen lässt.
+      logError('Fahrt-Punkt anhängen', e, stackTrace);
+    }
+  });
 
   @override
-  Future<bool> appendConfirmEvent(ConfirmEvent event, {DateTime? rideStartedAt}) =>
-      _serialized(() async {
-        try {
-          final file = await _active();
-          if (!await file.exists()) return false;
-          if (rideStartedAt != null) {
-            final head = await _head(file);
-            if (head == null || !head.startedAt.isAtSameMomentAs(rideStartedAt)) return false;
-          }
-          await file.writeAsString('${jsonEncode(event.toJson())}\n',
-              mode: FileMode.append, flush: true);
-          return true;
-        } catch (e, stackTrace) {
-          logError('Fahrt: Frage oder Antwort anhängen', e, stackTrace);
+  Future<bool> appendConfirmEvent(
+    ConfirmEvent event, {
+    DateTime? rideStartedAt,
+  }) => _serialized(() async {
+    try {
+      final file = await _active();
+      if (!await file.exists()) return false;
+      if (rideStartedAt != null) {
+        final head = await _head(file);
+        if (head == null || !head.startedAt.isAtSameMomentAs(rideStartedAt)) {
           return false;
         }
-      });
+      }
+      await file.writeAsString(
+        '${jsonEncode(event.toJson())}\n',
+        mode: FileMode.append,
+        flush: true,
+      );
+      return true;
+    } catch (e, stackTrace) {
+      logError('Fahrt: Frage oder Antwort anhängen', e, stackTrace);
+      return false;
+    }
+  });
 
   @override
   Future<bool> appendMark(RideMark mark) => _serialized(() async {
-        try {
-          final file = await _active();
-          if (!await file.exists()) return false;
-          await file.writeAsString('${jsonEncode(mark.toJson())}\n',
-              mode: FileMode.append, flush: true);
-          return true;
-        } catch (e, stackTrace) {
-          logError('Fahrt: Marke anhängen', e, stackTrace);
-          return false;
-        }
-      });
+    try {
+      final file = await _active();
+      if (!await file.exists()) return false;
+      await file.writeAsString(
+        '${jsonEncode(mark.toJson())}\n',
+        mode: FileMode.append,
+        flush: true,
+      );
+      return true;
+    } catch (e, stackTrace) {
+      logError('Fahrt: Marke anhängen', e, stackTrace);
+      return false;
+    }
+  });
 
   @override
   Future<List<ConfirmEvent>> activeConfirmEvents({required String uid}) =>
-      _serialized(() async => (await _parse(await _active(), uid: uid))?.events ?? const []);
+      _serialized(
+        () async =>
+            (await _parse(await _active(), uid: uid))?.events ?? const [],
+      );
 
   @override
-  Future<void> writeConfirmTargets({required String uid, required List<ConfirmTarget> targets}) =>
+  Future<void> writeConfirmTargets({
+    required String uid,
+    required List<ConfirmTarget> targets,
+  }) =>
       // In der Kette (W44, #428): Zwei Aufrufe kurz nacheinander (Start der
       // Fahrt und das neu geladene Netz) schrieben dieselbe `.part`-Datei;
       // das erste Umbenennen nahm sie mit, das zweite fand nichts mehr.
       _serialized(() async {
-    try {
-      final file = File('${(await _dir()).path}/$_targetsName');
-      final part = File('${file.path}.part');
-      await part.writeAsString(encodeConfirmTargets(uid: uid, targets: targets), flush: true);
-      // Umbenennen statt überschreiben: Der Service liest dieselbe Datei
-      // aus einem anderen Isolate und soll nie eine halbe sehen.
-      await part.rename(file.path);
-    } catch (e, stackTrace) {
-      logError('Fahrt: Trails zum Bestätigen ablegen', e, stackTrace);
-    }
-  });
+        try {
+          final file = File('${(await _dir()).path}/$_targetsName');
+          final part = File('${file.path}.part');
+          await part.writeAsString(
+            encodeConfirmTargets(uid: uid, targets: targets),
+            flush: true,
+          );
+          // Umbenennen statt überschreiben: Der Service liest dieselbe Datei
+          // aus einem anderen Isolate und soll nie eine halbe sehen.
+          await part.rename(file.path);
+        } catch (e, stackTrace) {
+          logError('Fahrt: Trails zum Bestätigen ablegen', e, stackTrace);
+        }
+      });
 
   @override
   Future<List<ConfirmTarget>> readConfirmTargets({required String uid}) async {
@@ -260,8 +294,10 @@ class FileRideStore implements RideStore {
   }
 
   @override
-  Future<void> writeVoiceTrails({required String uid, required List<VoiceTrail> trails}) =>
-      _serialized(() async {
+  Future<void> writeVoiceTrails({
+    required String uid,
+    required List<VoiceTrail> trails,
+  }) => _serialized(() async {
     try {
       final file = File('${(await _dir()).path}/$kVoiceTrailsFileName');
       if (trails.isEmpty) {
@@ -269,7 +305,10 @@ class FileRideStore implements RideStore {
         return;
       }
       final part = File('${file.path}.part');
-      await part.writeAsString(encodeVoiceTrails(uid: uid, trails: trails), flush: true);
+      await part.writeAsString(
+        encodeVoiceTrails(uid: uid, trails: trails),
+        flush: true,
+      );
       await part.rename(file.path);
     } catch (e, stackTrace) {
       logError('Fahrt: Trails für die Ansagen ablegen', e, stackTrace);
@@ -311,7 +350,11 @@ class FileRideStore implements RideStore {
       _serialized(() async {
         final parsed = await _parse(await _active(), uid: uid);
         if (parsed == null) return null;
-        return (startedAt: parsed.startedAt, points: parsed.points, marks: parsed.marks);
+        return (
+          startedAt: parsed.startedAt,
+          points: parsed.points,
+          marks: parsed.marks,
+        );
       });
 
   @override
@@ -327,18 +370,20 @@ class FileRideStore implements RideStore {
           // selbst trägt — der letzte Punkt kann Minuten vor dem
           // Beenden liegen (Funkloch, Pause am Ende).
           await active.writeAsString(
-              '${jsonEncode({'endedAt': endedAt.toUtc().toIso8601String()})}\n',
-              mode: FileMode.append,
-              flush: true);
+            '${jsonEncode({'endedAt': endedAt.toUtc().toIso8601String()})}\n',
+            mode: FileMode.append,
+            flush: true,
+          );
           await active.rename(target.path);
           return Ride(
-              id: id,
-              startedAt: parsed.startedAt,
-              endedAt: endedAt.toUtc(),
-              points: parsed.points,
-              events: parsed.events,
-              marks: parsed.marks,
-              profile: parsed.profile);
+            id: id,
+            startedAt: parsed.startedAt,
+            endedAt: endedAt.toUtc(),
+            points: parsed.points,
+            events: parsed.events,
+            marks: parsed.marks,
+            profile: parsed.profile,
+          );
         } catch (e, stackTrace) {
           logError('Fahrt abschließen', e, stackTrace);
           return null;
@@ -347,15 +392,15 @@ class FileRideStore implements RideStore {
 
   @override
   Future<void> discardActive() => _serialized(() async {
-        try {
-          final file = await _active();
-          if (await file.exists()) await file.delete();
-        } catch (e, stackTrace) {
-          // Bleibt die Datei liegen, böte die App beim nächsten Start
-          // eine Fahrt an, die längst verworfen ist — das gehört gemeldet.
-          logError('Fahrt verwerfen', e, stackTrace);
-        }
-      });
+    try {
+      final file = await _active();
+      if (await file.exists()) await file.delete();
+    } catch (e, stackTrace) {
+      // Bleibt die Datei liegen, böte die App beim nächsten Start
+      // eine Fahrt an, die längst verworfen ist — das gehört gemeldet.
+      logError('Fahrt verwerfen', e, stackTrace);
+    }
+  });
 
   @override
   Future<Ride?> savePlanned({
@@ -365,42 +410,41 @@ class FileRideStore implements RideStore {
     required List<RidePoint> points,
     required Duration duration,
     String? profile,
-  }) =>
-      _serialized(() async {
-        try {
-          final id = _idFor(createdAt);
-          final file = File('${(await _dir()).path}/$id.jsonl');
-          final endedAt = createdAt.add(duration).toUtc();
-          final lines = [
-            jsonEncode({
-              'uid': uid,
-              'startedAt': createdAt.toUtc().toIso8601String(),
-              'planned': true,
-              'name': name,
-              'profile': ?profile,
-            }),
-            for (final p in points) jsonEncode(p.toJson()),
-            jsonEncode({'endedAt': endedAt.toIso8601String()}),
-          ];
-          // Am Stück und über `.part` + `rename`: Eine geplante Fahrt
-          // entsteht in einem Zug, ein halber Plan wäre keiner.
-          final part = File('${file.path}.part');
-          await part.writeAsString('${lines.join('\n')}\n', flush: true);
-          await part.rename(file.path);
-          return Ride(
-            id: id,
-            startedAt: createdAt.toUtc(),
-            endedAt: endedAt,
-            points: points,
-            profile: profile,
-            planned: true,
-            name: name,
-          );
-        } catch (e, stackTrace) {
-          logError('Geplante Fahrt speichern', e, stackTrace);
-          return null;
-        }
-      });
+  }) => _serialized(() async {
+    try {
+      final id = _idFor(createdAt);
+      final file = File('${(await _dir()).path}/$id.jsonl');
+      final endedAt = createdAt.add(duration).toUtc();
+      final lines = [
+        jsonEncode({
+          'uid': uid,
+          'startedAt': createdAt.toUtc().toIso8601String(),
+          'planned': true,
+          'name': name,
+          'profile': ?profile,
+        }),
+        for (final p in points) jsonEncode(p.toJson()),
+        jsonEncode({'endedAt': endedAt.toIso8601String()}),
+      ];
+      // Am Stück und über `.part` + `rename`: Eine geplante Fahrt
+      // entsteht in einem Zug, ein halber Plan wäre keiner.
+      final part = File('${file.path}.part');
+      await part.writeAsString('${lines.join('\n')}\n', flush: true);
+      await part.rename(file.path);
+      return Ride(
+        id: id,
+        startedAt: createdAt.toUtc(),
+        endedAt: endedAt,
+        points: points,
+        profile: profile,
+        planned: true,
+        name: name,
+      );
+    } catch (e, stackTrace) {
+      logError('Geplante Fahrt speichern', e, stackTrace);
+      return null;
+    }
+  });
 
   @override
   Future<ImportSave> saveImported({
@@ -410,91 +454,95 @@ class FileRideStore implements RideStore {
     String? profile,
     String? source,
     List<RideMark> marks = const [],
-  }) =>
-      _serialized(() async {
-        if (points.isEmpty) return ImportSave.failed;
-        try {
-          final startedAt = points.first.at.toUtc();
-          final file = File('${(await _dir()).path}/${_idFor(startedAt)}.jsonl');
-          if (await file.exists()) return ImportSave.exists;
-          final lines = [
-            jsonEncode({
-              'uid': uid,
-              'startedAt': startedAt.toIso8601String(),
-              'imported': true,
-              'name': ?name,
-              'profile': ?profile,
-              'source': ?source,
-            }),
-            for (final p in points) jsonEncode(p.toJson()),
-            // Marken der Uhr (LAP) wie die des Handys als eigene Zeilen.
-            for (final m in marks) jsonEncode(m.toJson()),
-            jsonEncode({'endedAt': points.last.at.toUtc().toIso8601String()}),
-          ];
-          // Am Stück über `.part` + `rename`, wie die geplante Fahrt.
-          final part = File('${file.path}.part');
-          await part.writeAsString('${lines.join('\n')}\n', flush: true);
-          await part.rename(file.path);
-          return ImportSave.saved;
-        } catch (e, stackTrace) {
-          logError('Fahrt aus GPX speichern', e, stackTrace);
-          return ImportSave.failed;
-        }
-      });
+  }) => _serialized(() async {
+    if (points.isEmpty) return ImportSave.failed;
+    try {
+      final startedAt = points.first.at.toUtc();
+      final file = File('${(await _dir()).path}/${_idFor(startedAt)}.jsonl');
+      if (await file.exists()) return ImportSave.exists;
+      final lines = [
+        jsonEncode({
+          'uid': uid,
+          'startedAt': startedAt.toIso8601String(),
+          'imported': true,
+          'name': ?name,
+          'profile': ?profile,
+          'source': ?source,
+        }),
+        for (final p in points) jsonEncode(p.toJson()),
+        // Marken der Uhr (LAP) wie die des Handys als eigene Zeilen.
+        for (final m in marks) jsonEncode(m.toJson()),
+        jsonEncode({'endedAt': points.last.at.toUtc().toIso8601String()}),
+      ];
+      // Am Stück über `.part` + `rename`, wie die geplante Fahrt.
+      final part = File('${file.path}.part');
+      await part.writeAsString('${lines.join('\n')}\n', flush: true);
+      await part.rename(file.path);
+      return ImportSave.saved;
+    } catch (e, stackTrace) {
+      logError('Fahrt aus GPX speichern', e, stackTrace);
+      return ImportSave.failed;
+    }
+  });
 
   @override
   Future<List<Ride>> list({required String uid}) => _serialized(() async {
-        try {
-          final dir = await _dir();
-          final rides = <Ride>[];
-          await for (final entry in dir.list()) {
-            if (entry is! File || !entry.path.endsWith('.jsonl')) continue;
-            final name = entry.uri.pathSegments.last;
-            if (name == _activeName) continue;
-            final parsed = await _parse(entry, uid: uid);
-            if (parsed == null) continue;
-            rides.add(Ride(
-              id: name.substring(0, name.length - '.jsonl'.length),
-              startedAt: parsed.startedAt,
-              // Ohne Ende-Zeile (Absturz beim Umbenennen): der letzte
-              // Punkt, sonst der Start.
-              endedAt: parsed.endedAt ??
-                  (parsed.points.isEmpty ? parsed.startedAt : parsed.points.last.at),
-              points: parsed.points,
-              events: parsed.events,
-              marks: parsed.marks,
-              profile: parsed.profile,
-              planned: parsed.planned,
-              imported: parsed.imported,
-              name: parsed.name,
-              source: parsed.source,
-            ));
-          }
-          rides.sort((a, b) => b.startedAt.compareTo(a.startedAt));
-          return rides;
-        } catch (_) {
-          // Unlesbar heißt „keine Fahrten". Kein `logError`: Das wäre
-          // ein Bericht pro Öffnen der Liste.
-          return const [];
-        }
-      });
+    try {
+      final dir = await _dir();
+      final rides = <Ride>[];
+      await for (final entry in dir.list()) {
+        if (entry is! File || !entry.path.endsWith('.jsonl')) continue;
+        final name = entry.uri.pathSegments.last;
+        if (name == _activeName) continue;
+        final parsed = await _parse(entry, uid: uid);
+        if (parsed == null) continue;
+        rides.add(
+          Ride(
+            id: name.substring(0, name.length - '.jsonl'.length),
+            startedAt: parsed.startedAt,
+            // Ohne Ende-Zeile (Absturz beim Umbenennen): der letzte
+            // Punkt, sonst der Start.
+            endedAt:
+                parsed.endedAt ??
+                (parsed.points.isEmpty
+                    ? parsed.startedAt
+                    : parsed.points.last.at),
+            points: parsed.points,
+            events: parsed.events,
+            marks: parsed.marks,
+            profile: parsed.profile,
+            planned: parsed.planned,
+            imported: parsed.imported,
+            name: parsed.name,
+            source: parsed.source,
+          ),
+        );
+      }
+      rides.sort((a, b) => b.startedAt.compareTo(a.startedAt));
+      return rides;
+    } catch (_) {
+      // Unlesbar heißt „keine Fahrten". Kein `logError`: Das wäre
+      // ein Bericht pro Öffnen der Liste.
+      return const [];
+    }
+  });
 
   @override
   Future<void> delete(String id) => _serialized(() async {
-        // Nur ein Dateiname, kein Pfad: Die Kennung kommt aus der
-        // eigenen Liste, aber ein `../` darf hier trotzdem nichts.
-        if (!RegExp(r'^[0-9TZ]+$').hasMatch(id)) return;
-        try {
-          final file = File('${(await _dir()).path}/$id.jsonl');
-          if (await file.exists()) await file.delete();
-          final sensors = File('${(await _dir()).path}/$kSensorDirName/$id.csv');
-          if (await sensors.exists()) await sensors.delete();
-          final events = File(sensorEventsPath(sensors.path));
-          if (await events.exists()) await events.delete();
-        } catch (e, stackTrace) {
-          logError('Fahrt löschen', e, stackTrace);
-        }
-      });
+    // Nur ein Dateiname, kein Pfad: Die Kennung kommt aus der
+    // eigenen Liste, aber ein `../` darf hier trotzdem nichts.
+    if (!RegExp(r'^[0-9TZ]+$').hasMatch(id)) return;
+    try {
+      final file = File('${(await _dir()).path}/$id.jsonl');
+      if (await file.exists()) await file.delete();
+      final sensors = File('${(await _dir()).path}/$kSensorDirName/$id.csv');
+      if (await sensors.exists()) await sensors.delete();
+      final events = File(sensorEventsPath(sensors.path));
+      if (await events.exists()) await events.delete();
+    } catch (e, stackTrace) {
+      logError('Fahrt löschen', e, stackTrace);
+    }
+  });
 
   @override
   Future<String?> sensorLogPath(String id) async {
@@ -511,7 +559,9 @@ class FileRideStore implements RideStore {
   Future<AirtimeLog> airtimeLog(String id) async {
     if (!RegExp(r'^[0-9TZ]+$').hasMatch(id)) return AirtimeLog.empty;
     try {
-      final file = File(sensorEventsPath('${(await _dir()).path}/$kSensorDirName/$id.csv'));
+      final file = File(
+        sensorEventsPath('${(await _dir()).path}/$kSensorDirName/$id.csv'),
+      );
       if (!await file.exists()) return AirtimeLog.empty;
       return parseAirtimeLog(await file.readAsString());
     } catch (_) {
@@ -532,56 +582,62 @@ class FileRideStore implements RideStore {
 
   @override
   Future<void> writeTrailCounts(String encoded) => _serialized(() async {
-        try {
-          final file = File('${(await _dir()).path}/$_countsName');
-          final part = File('${file.path}.part');
-          await part.writeAsString(encoded, flush: true);
-          await part.rename(file.path);
-        } catch (e, stackTrace) {
-          logError('Fahrt: Zähler je Trail ablegen', e, stackTrace);
-        }
-      });
+    try {
+      final file = File('${(await _dir()).path}/$_countsName');
+      final part = File('${file.path}.part');
+      await part.writeAsString(encoded, flush: true);
+      await part.rename(file.path);
+    } catch (e, stackTrace) {
+      logError('Fahrt: Zähler je Trail ablegen', e, stackTrace);
+    }
+  });
 
   @override
   Future<bool> setProfile(String id, String profile) => _serialized(() async {
-        if (!RegExp(r'^[0-9TZ]+$').hasMatch(id)) return false;
-        try {
-          final file = File('${(await _dir()).path}/$id.jsonl');
-          if (!await file.exists()) return false;
-          final text = await file.readAsString();
-          final cut = text.indexOf('\n');
-          final head = jsonDecode(cut < 0 ? text : text.substring(0, cut));
-          if (head is! Map<String, dynamic> || head['planned'] == true) return false;
-          head['profile'] = profile;
-          // Am Stück über `.part` + `rename`: Ein Abbruch mittendrin lässt
-          // die alte Datei stehen, nie eine halbe.
-          final part = File('${file.path}.part');
-          await part.writeAsString('${jsonEncode(head)}${cut < 0 ? '\n' : text.substring(cut)}', flush: true);
-          await part.rename(file.path);
-          return true;
-        } catch (e, stackTrace) {
-          logError('Fahrerprofil einer Fahrt ändern', e, stackTrace);
-          return false;
-        }
-      });
+    if (!RegExp(r'^[0-9TZ]+$').hasMatch(id)) return false;
+    try {
+      final file = File('${(await _dir()).path}/$id.jsonl');
+      if (!await file.exists()) return false;
+      final text = await file.readAsString();
+      final cut = text.indexOf('\n');
+      final head = jsonDecode(cut < 0 ? text : text.substring(0, cut));
+      if (head is! Map<String, dynamic> || head['planned'] == true) {
+        return false;
+      }
+      head['profile'] = profile;
+      // Am Stück über `.part` + `rename`: Ein Abbruch mittendrin lässt
+      // die alte Datei stehen, nie eine halbe.
+      final part = File('${file.path}.part');
+      await part.writeAsString(
+        '${jsonEncode(head)}${cut < 0 ? '\n' : text.substring(cut)}',
+        flush: true,
+      );
+      await part.rename(file.path);
+      return true;
+    } catch (e, stackTrace) {
+      logError('Fahrerprofil einer Fahrt ändern', e, stackTrace);
+      return false;
+    }
+  });
 
   /// Liest eine Fahrt-Datei: Kopfzeile, Punkte, optional die Ende-Zeile.
   /// `null` bei fremdem Konto oder unlesbarem Kopf; kaputte Punktzeilen
   /// fallen einzeln weg.
   Future<
-          ({
-            DateTime startedAt,
-            DateTime? endedAt,
-            List<RidePoint> points,
-            List<ConfirmEvent> events,
-            List<RideMark> marks,
-            String? profile,
-            bool planned,
-            bool imported,
-            String? name,
-            String? source,
-          })?>
-      _parse(File file, {required String uid}) async {
+    ({
+      DateTime startedAt,
+      DateTime? endedAt,
+      List<RidePoint> points,
+      List<ConfirmEvent> events,
+      List<RideMark> marks,
+      String? profile,
+      bool planned,
+      bool imported,
+      String? name,
+      String? source,
+    })?
+  >
+  _parse(File file, {required String uid}) async {
     try {
       if (!await file.exists()) return null;
       final lines = const LineSplitter()
@@ -607,7 +663,9 @@ class FileRideStore implements RideStore {
           final json = jsonDecode(line);
           if (json is! Map<String, dynamic>) continue;
           if (json.containsKey('endedAt')) {
-            endedAt = DateTime.tryParse(json['endedAt'] as String? ?? '')?.toUtc();
+            endedAt = DateTime.tryParse(
+              json['endedAt'] as String? ?? '',
+            )?.toUtc();
             continue;
           }
           if (RideMark.isMark(json)) {

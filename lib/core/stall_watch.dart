@@ -33,7 +33,11 @@ typedef StallMark = ({String name, int startUs, int endUs});
 /// Der rechnende Teil, ohne Timer und ohne Ausgabe — so lässt er sich im
 /// Test mit einer erfundenen Uhr fahren.
 class StallMonitor {
-  StallMonitor({required this.log, this.reportMs = kStallReportMs, this.tickMs = kStallTickMs});
+  StallMonitor({
+    required this.log,
+    this.reportMs = kStallReportMs,
+    this.tickMs = kStallTickMs,
+  });
 
   final void Function(String line) log;
   final int reportMs;
@@ -62,16 +66,20 @@ class StallMonitor {
     if (gapMs >= reportMs) {
       final inside = [
         for (final m in _marks)
-          if (m.endUs > last && m.startUs < nowUs) '${m.name} ${(m.endUs - m.startUs) ~/ 1000}',
+          if (m.endUs > last && m.startUs < nowUs)
+            '${m.name} ${(m.endUs - m.startUs) ~/ 1000}',
       ];
-      log('TB-STALL gap $gapMs ms${inside.isEmpty ? '' : ' [${inside.join(', ')}]'}');
+      log(
+        'TB-STALL gap $gapMs ms${inside.isEmpty ? '' : ' [${inside.join(', ')}]'}',
+      );
     }
     _marks.removeWhere((m) => m.endUs <= nowUs);
   }
 
   /// Ein Schritt mit `await` ist fertig — immer gemeldet, er ist eine
   /// Zahl für die Budgets, kein Befund.
-  void time(String name, int startUs, int endUs) => log('TB-TIME $name ${(endUs - startUs) ~/ 1000} ms');
+  void time(String name, int startUs, int endUs) =>
+      log('TB-TIME $name ${(endUs - startUs) ~/ 1000} ms');
 }
 
 /// Der Wächter dieses Isolates. Jeder Isolate hat seinen eigenen (Dart
@@ -79,12 +87,14 @@ class StallMonitor {
 /// wurde — im UI-Isolate aus `main`.
 abstract final class StallWatch {
   static final _clock = Stopwatch()..start();
-  static final _monitor = StallMonitor(log: (line) {
-    // Logcat-Tag `flutter`; `print` statt `debugPrint`, das im Release
-    // drosseln kann und hier kein Flutter braucht (auch im Isolate).
-    // ignore: avoid_print
-    print(line);
-  });
+  static final _monitor = StallMonitor(
+    log: (line) {
+      // Logcat-Tag `flutter`; `print` statt `debugPrint`, das im Release
+      // drosseln kann und hier kein Flutter braucht (auch im Isolate).
+      // ignore: avoid_print
+      print(line);
+    },
+  );
   static Timer? _timer;
 
   /// Den Takt im UI-Isolate anwerfen. Ohne [kStallWatch] nichts.

@@ -69,16 +69,16 @@ const _samples = kHeightGrid * kHeightGrid;
 /// Die Metadaten, die ein Höhenarchiv auf dem Gerät trägt — dieselben
 /// Schlüssel wie das Archiv des Hosts (`archive_metadata` im Werkzeug).
 Map<String, dynamic> heightsMetadata(String name, String? build) => {
-      'name': name,
-      'format': kHeightsFormat,
-      'grid': kHeightGrid,
-      'zoom': kHeightTileZoom,
-      'nodata': kHeightNoData,
-      'unit': 'm',
-      'build': ?build,
-      'source': 'Copernicus DEM GLO-90',
-      'attribution': kHeightsAttribution,
-    };
+  'name': name,
+  'format': kHeightsFormat,
+  'grid': kHeightGrid,
+  'zoom': kHeightTileZoom,
+  'nodata': kHeightNoData,
+  'unit': 'm',
+  'build': ?build,
+  'source': 'Copernicus DEM GLO-90',
+  'attribution': kHeightsAttribution,
+};
 
 /// Eine entpackte Höhenkachel.
 class HeightTile {
@@ -92,7 +92,9 @@ class HeightTile {
   /// [FormatException], wenn es nicht genau eine Kachel ist.
   factory HeightTile.decode(List<int> raw) {
     if (raw.length != _samples * 2) {
-      throw FormatException('Höhenkachel: ${raw.length} Byte statt ${_samples * 2}');
+      throw FormatException(
+        'Höhenkachel: ${raw.length} Byte statt ${_samples * 2}',
+      );
     }
     final data = ByteData.sublistView(Uint8List.fromList(raw));
     final out = Int16List(_samples);
@@ -118,7 +120,10 @@ class HeightTile {
     final tc = gx - c0, tr = gy - r0;
     final v00 = valueAt(c0, r0), v01 = valueAt(c0 + 1, r0);
     final v10 = valueAt(c0, r0 + 1), v11 = valueAt(c0 + 1, r0 + 1);
-    if (v00 == kHeightNoData || v01 == kHeightNoData || v10 == kHeightNoData || v11 == kHeightNoData) {
+    if (v00 == kHeightNoData ||
+        v01 == kHeightNoData ||
+        v10 == kHeightNoData ||
+        v11 == kHeightNoData) {
       return null;
     }
     final a = v00 * (1 - tc) + v01 * tc;
@@ -132,8 +137,9 @@ class HeightTile {
 /// Die Kachelbytes, wie sie im Archiv liegen (Delta, dann gzip — die
 /// Kachelkompression des Headers) — für Tests und Fixtures, mit
 /// denselben Regeln wie `encode_tile` im Werkzeug.
-Uint8List encodeHeightTile(List<int> values) =>
-    Uint8List.fromList(GZipEncoder().encode(heightTileDeltas(values), level: 9)!);
+Uint8List encodeHeightTile(List<int> values) => Uint8List.fromList(
+  GZipEncoder().encode(heightTileDeltas(values), level: 9)!,
+);
 
 /// Die rohen Delta-Bytes einer Kachel (vor gzip): was [HeightTile.decode]
 /// liest, und was der Test gegen die Konstanten des Werkzeugs hält.
@@ -158,14 +164,24 @@ Uint8List heightTileDeltas(List<int> values) {
 const _maxMercatorLat = 85.05112878;
 
 /// Welche z13-Kachel ein Punkt trifft, und wo darin (Brüche 0…1).
-({int x, int y, double fx, double fy}) heightTileOf(LatLng p, {int zoom = kHeightTileZoom}) {
+({int x, int y, double fx, double fy}) heightTileOf(
+  LatLng p, {
+  int zoom = kHeightTileZoom,
+}) {
   final n = 1 << zoom;
   final xf = (p.longitude + 180) / 360 * n;
-  final lat = p.latitude.clamp(-_maxMercatorLat, _maxMercatorLat) * math.pi / 180;
-  final yf = (1 - math.log(math.tan(lat) + 1 / math.cos(lat)) / math.pi) / 2 * n;
+  final lat =
+      p.latitude.clamp(-_maxMercatorLat, _maxMercatorLat) * math.pi / 180;
+  final yf =
+      (1 - math.log(math.tan(lat) + 1 / math.cos(lat)) / math.pi) / 2 * n;
   final x = xf.floor().clamp(0, n - 1);
   final y = yf.floor().clamp(0, n - 1);
-  return (x: x, y: y, fx: (xf - x).clamp(0.0, 1.0), fy: (yf - y).clamp(0.0, 1.0));
+  return (
+    x: x,
+    y: y,
+    fx: (xf - x).clamp(0.0, 1.0),
+    fy: (yf - y).clamp(0.0, 1.0),
+  );
 }
 
 /// Woher Höhenkacheln kommen: die Archive der Bereiche, im Test ein
@@ -256,8 +272,11 @@ class HeightReader {
   /// Anstieg und Abstieg entlang [line] — abgetastet alle [sampleM]
   /// Meter, mit Hysterese [hysteresisM]. Null, sobald eine Probe keine
   /// Höhe hat: ein halber Anstieg wäre eine erfundene Zahl.
-  Future<({double gain, double loss})?> climbAlong(List<LatLng> line,
-      {double sampleM = kClimbSampleM, double hysteresisM = kClimbHysteresisM}) async {
+  Future<({double gain, double loss})?> climbAlong(
+    List<LatLng> line, {
+    double sampleM = kClimbSampleM,
+    double hysteresisM = kClimbHysteresisM,
+  }) async {
     if (line.length < 2) return (gain: 0.0, loss: 0.0);
     final profile = await profileAlong(line, sampleM: sampleM);
     if (profile == null) return null;
@@ -269,8 +288,10 @@ class HeightReader {
   /// zwischen aufeinanderfolgenden Proben (Sehnen in der Ebene um den
   /// ersten Punkt) — `profile_along` im Werkzeug. Null, sobald eine Probe
   /// keine Höhe hat.
-  Future<({List<double> heights, List<double> stepsM})?> profileAlong(List<LatLng> line,
-      {double sampleM = kClimbSampleM}) async {
+  Future<({List<double> heights, List<double> stepsM})?> profileAlong(
+    List<LatLng> line, {
+    double sampleM = kClimbSampleM,
+  }) async {
     if (line.length < 2) return (heights: <double>[], stepsM: <double>[]);
     final proj = FlatProjection(line.first.latitude);
     final xy = resampleXy(proj.line(line), sampleM);
@@ -280,7 +301,10 @@ class HeightReader {
       if (h == null) return null;
       heights.add(h);
     }
-    return (heights: heights, stepsM: [for (var i = 1; i < xy.length; i++) xy[i - 1].distanceTo(xy[i])]);
+    return (
+      heights: heights,
+      stepsM: [for (var i = 1; i < xy.length; i++) xy[i - 1].distanceTo(xy[i])],
+    );
   }
 
   Future<void> close() async {
@@ -298,8 +322,16 @@ class HeightReader {
 List<({int x, int y, double fx, double fy})> heightTileCandidates(LatLng p) {
   final t = heightTileOf(p);
   const eps = 1e-9;
-  final xs = [(t.x, t.fx), if (t.fx <= eps) (t.x - 1, 1.0), if (t.fx >= 1 - eps) (t.x + 1, 0.0)];
-  final ys = [(t.y, t.fy), if (t.fy <= eps) (t.y - 1, 1.0), if (t.fy >= 1 - eps) (t.y + 1, 0.0)];
+  final xs = [
+    (t.x, t.fx),
+    if (t.fx <= eps) (t.x - 1, 1.0),
+    if (t.fx >= 1 - eps) (t.x + 1, 0.0),
+  ];
+  final ys = [
+    (t.y, t.fy),
+    if (t.fy <= eps) (t.y - 1, 1.0),
+    if (t.fy >= 1 - eps) (t.y + 1, 0.0),
+  ];
   return [
     (x: t.x, y: t.y, fx: t.fx, fy: t.fy),
     for (final (x, fx) in xs)
@@ -327,7 +359,10 @@ class HeightTiles {
 
   /// Liest die Kacheln [xy] über [reader] — die erste Quelle, die eine
   /// hat, liefert; was keine Quelle hat, fehlt hier.
-  static Future<HeightTiles> read(HeightReader reader, Iterable<({int x, int y})> xy) async {
+  static Future<HeightTiles> read(
+    HeightReader reader,
+    Iterable<({int x, int y})> xy,
+  ) async {
     final out = <int, HeightTile>{};
     for (final t in xy) {
       final key = keyOf(t.x, t.y);
@@ -350,7 +385,10 @@ class HeightTiles {
   }
 
   /// Wie [HeightReader.profileAlong], synchron.
-  ({List<double> heights, List<double> stepsM})? profileAlong(List<LatLng> line, {double sampleM = kClimbSampleM}) {
+  ({List<double> heights, List<double> stepsM})? profileAlong(
+    List<LatLng> line, {
+    double sampleM = kClimbSampleM,
+  }) {
     if (line.length < 2) return (heights: <double>[], stepsM: <double>[]);
     final proj = FlatProjection(line.first.latitude);
     final xy = resampleXy(proj.line(line), sampleM);
@@ -360,7 +398,10 @@ class HeightTiles {
       if (h == null) return null;
       heights.add(h);
     }
-    return (heights: heights, stepsM: [for (var i = 1; i < xy.length; i++) xy[i - 1].distanceTo(xy[i])]);
+    return (
+      heights: heights,
+      stepsM: [for (var i = 1; i < xy.length; i++) xy[i - 1].distanceTo(xy[i])],
+    );
   }
 }
 

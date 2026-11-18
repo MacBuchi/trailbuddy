@@ -11,27 +11,32 @@ import 'keep_alive.dart';
 /// Priorität), für eine Fahrt misst er — solange die Brücke
 /// (`kRideDataActive`) „aktiv" sagt.
 @pragma('vm:entry-point')
-void startKeepAliveService() => FlutterForegroundTask.setTaskHandler(RideTaskHandler());
+void startKeepAliveService() =>
+    FlutterForegroundTask.setTaskHandler(RideTaskHandler());
 
-void initKeepAliveCommunicationImpl() => FlutterForegroundTask.initCommunicationPort();
+void initKeepAliveCommunicationImpl() =>
+    FlutterForegroundTask.initCommunicationPort();
 
 /// Der Manifest-Eintrag, unter dem das Symbol der Meldung steht. Das
 /// Plugin sucht das Drawable NUR über diesen Namen; ein Tippfehler auf
 /// einer Seite liefert stumm die Ressourcen-id 0 — und damit das
 /// Launcher-Icon als weißen Klotz (PilzBuddy #331). Ein Test hält den
 /// Namen hier und im Manifest zusammen.
-const keepAliveNotificationIconMetaData = 'de.mcbuchi.trailbuddy.RIDE_NOTIFICATION_ICON';
+const keepAliveNotificationIconMetaData =
+    'de.mcbuchi.trailbuddy.RIDE_NOTIFICATION_ICON';
 
 class _ForegroundKeepAlive implements KeepAlive {
   static const _serviceId = 2801;
   bool _initialized = false;
 
-  bool get _supported => !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
+  bool get _supported =>
+      !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
 
   /// `allowWakeLock`: Ohne ihn schläft die CPU zwischen den Takten, und
   /// die Fahrt bekäme ihre Messungen gebündelt beim nächsten Aufwachen.
   /// `allowWifiLock` für den Download.
-  static ForegroundTaskOptions _options(Duration? every) => ForegroundTaskOptions(
+  static ForegroundTaskOptions _options(Duration? every) =>
+      ForegroundTaskOptions(
         eventAction: every == null
             ? ForegroundTaskEventAction.nothing()
             : ForegroundTaskEventAction.repeat(every.inMilliseconds),
@@ -59,18 +64,26 @@ class _ForegroundKeepAlive implements KeepAlive {
   }
 
   /// Leer heißt „keine Knöpfe" — `null` ließe dem Paket die alten.
-  static List<NotificationButton> _buttons(List<KeepAliveButton> buttons) =>
-      [for (final b in buttons) NotificationButton(id: b.id, text: b.text)];
+  static List<NotificationButton> _buttons(List<KeepAliveButton> buttons) => [
+    for (final b in buttons) NotificationButton(id: b.id, text: b.text),
+  ];
 
   @override
-  Future<void> start(String title, String text, Set<KeepAliveType> types,
-      {List<KeepAliveButton> buttons = const []}) async {
+  Future<void> start(
+    String title,
+    String text,
+    Set<KeepAliveType> types, {
+    List<KeepAliveButton> buttons = const [],
+  }) async {
     if (!_supported) return;
     try {
       _initOnce();
       if (await FlutterForegroundTask.isRunningService) {
         await FlutterForegroundTask.updateService(
-            notificationTitle: title, notificationText: text, notificationButtons: _buttons(buttons));
+          notificationTitle: title,
+          notificationText: text,
+          notificationButtons: _buttons(buttons),
+        );
         return;
       }
       // Ohne die Berechtigung läuft der Service trotzdem, nur ohne
@@ -93,7 +106,9 @@ class _ForegroundKeepAlive implements KeepAlive {
               KeepAliveType.location => ForegroundServiceTypes.location,
             },
         ],
-        notificationIcon: const NotificationIcon(metaDataName: keepAliveNotificationIconMetaData),
+        notificationIcon: const NotificationIcon(
+          metaDataName: keepAliveNotificationIconMetaData,
+        ),
         notificationTitle: title,
         notificationText: text,
         notificationButtons: _buttons(buttons),
@@ -108,12 +123,19 @@ class _ForegroundKeepAlive implements KeepAlive {
   }
 
   @override
-  Future<void> update(String title, String text, {List<KeepAliveButton> buttons = const []}) async {
+  Future<void> update(
+    String title,
+    String text, {
+    List<KeepAliveButton> buttons = const [],
+  }) async {
     if (!_supported) return;
     try {
       if (!await FlutterForegroundTask.isRunningService) return;
       await FlutterForegroundTask.updateService(
-          notificationTitle: title, notificationText: text, notificationButtons: _buttons(buttons));
+        notificationTitle: title,
+        notificationText: text,
+        notificationButtons: _buttons(buttons),
+      );
     } catch (e, stackTrace) {
       logError('Foreground-Service: Meldung aktualisieren', e, stackTrace);
     }
@@ -126,7 +148,9 @@ class _ForegroundKeepAlive implements KeepAlive {
       if (!await FlutterForegroundTask.isRunningService) return;
       // Anders als die Typen lässt sich der Takt am laufenden Service
       // ändern — deshalb braucht die Fahrt dafür keinen Neustart.
-      await FlutterForegroundTask.updateService(foregroundTaskOptions: _options(every));
+      await FlutterForegroundTask.updateService(
+        foregroundTaskOptions: _options(every),
+      );
     } catch (e, stackTrace) {
       logError('Foreground-Service: Takt setzen', e, stackTrace);
     }

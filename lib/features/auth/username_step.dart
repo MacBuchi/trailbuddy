@@ -57,13 +57,17 @@ class _UsernameGateState extends ConsumerState<UsernameGate> {
     if (!isAssignedUsername(username)) {
       settings
           .addUsernameStepDone(uid)
-          .catchError((Object e, StackTrace s) => logError('Namenswahl merken', e, s));
+          .catchError(
+            (Object e, StackTrace s) => logError('Namenswahl merken', e, s),
+          );
       return widget.child;
     }
-    return UsernameStep(onLater: () async {
-      await settings.addUsernameStepDone(uid);
-      if (mounted) setState(() {});
-    });
+    return UsernameStep(
+      onLater: () async {
+        await settings.addUsernameStepDone(uid);
+        if (mounted) setState(() {});
+      },
+    );
   }
 }
 
@@ -150,9 +154,12 @@ class _UsernameStepState extends ConsumerState<UsernameStep> {
               children: [
                 Text(l.usernameStepTitle, style: theme.textTheme.headlineSmall),
                 const SizedBox(height: 8),
-                Text(l.usernameStepBody,
-                    style: theme.textTheme.bodyMedium
-                        ?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+                Text(
+                  l.usernameStepBody,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
                 const SizedBox(height: 24),
                 TextField(
                   key: const ValueKey('username-step-field'),
@@ -177,7 +184,8 @@ class _UsernameStepState extends ConsumerState<UsernameStep> {
                       ? const SizedBox(
                           width: 20,
                           height: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2))
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
                       : Text(l.usernameStepSave),
                 ),
                 const SizedBox(height: 8),

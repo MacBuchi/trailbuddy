@@ -111,7 +111,11 @@ typedef TrailOverlayResult = ({int edgesOnTrails, int blocked, int addedEdges});
 /// [heights] gibt der eigenen Linie eines Verbinders ihre Höhen je Stück;
 /// ohne (oder wo eine Probe fehlt) gelten die des Trails, nach Länge
 /// geteilt.
-TrailOverlayResult applyTrails(RoadGraph g, List<GraphTrail> trails, {HeightTiles? heights}) {
+TrailOverlayResult applyTrails(
+  RoadGraph g,
+  List<GraphTrail> trails, {
+  HeightTiles? heights,
+}) {
   final prepared = <_Prepared>[];
   for (final t in trails) {
     if (t.points.length < 2) continue;
@@ -126,7 +130,10 @@ TrailOverlayResult applyTrails(RoadGraph g, List<GraphTrail> trails, {HeightTile
     final box = _Box.of(exy);
     // Erst der Rahmen, dann die Proben: Die meisten Kanten liegen weit
     // weg von jedem Trail.
-    final near = [for (final p in prepared) if (p.box.near(box, kMatchCorridorM)) p];
+    final near = [
+      for (final p in prepared)
+        if (p.box.near(box, kMatchCorridorM)) p,
+    ];
     if (near.isEmpty) continue;
     final samples = resampleXy(exy, kMatchSampleStepM);
     _Prepared? best;
@@ -188,7 +195,9 @@ int _addConnectorLine(RoadGraph g, _Prepared p, HeightTiles? heights) {
   final total = p.cum.last;
   final samples = p.samples;
   if (total <= 0 || samples.length < 2) return 0;
-  final hits = [for (final s in samples) g.nearest(g.proj.latLng(s), kMatchCorridorM)];
+  final hits = [
+    for (final s in samples) g.nearest(g.proj.latLng(s), kMatchCorridorM),
+  ];
   double along(int k) => math.min(k * kMatchSampleStepM, total);
   final wanted = <int>{};
   for (var k = 1; k < samples.length - 1; k++) {
@@ -196,7 +205,10 @@ int _addConnectorLine(RoadGraph g, _Prepared p, HeightTiles? heights) {
     if (h != null && before == null) wanted.add(k);
     if (h == null && before != null) wanted.add(k - 1);
     if (h != null && before != null && h.edge != before.edge) wanted.add(k);
-    if (h != null && h.d <= kGapFreeM && (before == null || h.d <= before.d) && (after == null || h.d <= after.d)) {
+    if (h != null &&
+        h.d <= kGapFreeM &&
+        (before == null || h.d <= before.d) &&
+        (after == null || h.d <= after.d)) {
       wanted.add(k);
     }
   }
@@ -206,8 +218,11 @@ int _addConnectorLine(RoadGraph g, _Prepared p, HeightTiles? heights) {
   final junctions = <int>[];
   for (final k in wanted.toList()..sort()) {
     if (along(k) < kGraphAttachM || total - along(k) < kGraphAttachM) continue;
-    if (junctions.isNotEmpty && along(k) - along(junctions.last) < kConnectorJunctionSpacingM) {
-      if (hits[k]!.d < hits[junctions.last]!.d) junctions[junctions.length - 1] = k;
+    if (junctions.isNotEmpty &&
+        along(k) - along(junctions.last) < kConnectorJunctionSpacingM) {
+      if (hits[k]!.d < hits[junctions.last]!.d) {
+        junctions[junctions.length - 1] = k;
+      }
       continue;
     }
     junctions.add(k);
@@ -237,7 +252,8 @@ int _addConnectorLine(RoadGraph g, _Prepared p, HeightTiles? heights) {
     pts.add(g.nodeLatLng[b]);
     if (a == b) continue;
     final ei = g.addEdge(a, b, WayClass.wanderweg, false, pts);
-    final e = g.edges[ei]..trail = EdgeTrail(id: t.id, name: t.name, connector: true);
+    final e = g.edges[ei]
+      ..trail = EdgeTrail(id: t.id, name: t.name, connector: true);
     final hasOwn = heights != null && applyHeightsFrom(e, heights);
     if (!hasOwn && t.gainM != null && t.lossM != null) {
       final share = (at[s] - at[s - 1]) / total;
@@ -258,8 +274,15 @@ int _addConnectorLine(RoadGraph g, _Prepared p, HeightTiles? heights) {
 /// Ende jedes Trails. Nach [applyTrails] UND dem Anheften der Enden
 /// aufrufen: Erst dann sind die Stummel eigene Kanten. Auf der Linie heißt wie dort: ≥ [kMatchCoverage] der
 /// Proben im Korridor. Gibt die Zahl der gesperrten Kanten zurück.
-int blockClosures(RoadGraph g, List<GraphTrail> trails, {List<List<LatLng>> closures = const []}) {
-  final byId = {for (final t in trails) if (t.points.length >= 2) t.id: t};
+int blockClosures(
+  RoadGraph g,
+  List<GraphTrail> trails, {
+  List<List<LatLng>> closures = const [],
+}) {
+  final byId = {
+    for (final t in trails)
+      if (t.points.length >= 2) t.id: t,
+  };
   final prepared = <String, _Prepared>{};
   final lines = [
     for (final c in closures)
@@ -280,7 +303,9 @@ int blockClosures(RoadGraph g, List<GraphTrail> trails, {List<List<LatLng>> clos
       final box = _Box.of(exy);
       if (lineBoxes.any((b) => b.near(box, kMatchCorridorM))) {
         samples = resampleXy(exy, kMatchSampleStepM);
-        block = coverageWithin(samples, linesGrid, kMatchCorridorM) >= kMatchCoverage;
+        block =
+            coverageWithin(samples, linesGrid, kMatchCorridorM) >=
+            kMatchCoverage;
       }
     }
     if (!block) continue;
@@ -292,7 +317,10 @@ int blockClosures(RoadGraph g, List<GraphTrail> trails, {List<List<LatLng>> clos
       samples ??= resampleXy(exy, kMatchSampleStepM);
       final from = p.position(samples.first), to = p.position(samples.last);
       final len = p.cum.last;
-      if (math.max(from, to) <= kClosedEndOpenM || math.min(from, to) >= len - kClosedEndOpenM) continue;
+      if (math.max(from, to) <= kClosedEndOpenM ||
+          math.min(from, to) >= len - kClosedEndOpenM) {
+        continue;
+      }
     }
     e
       ..blockForward = true
@@ -304,7 +332,13 @@ int blockClosures(RoadGraph g, List<GraphTrail> trails, {List<List<LatLng>> clos
 
 _Prepared _prepare(RoadGraph g, GraphTrail t) {
   final xy = g.proj.line(t.points);
-  return _Prepared(t, xy, resampleXy(xy, kMatchSampleStepM), _cumulative(xy), SegmentGrid([xy], 50));
+  return _Prepared(
+    t,
+    xy,
+    resampleXy(xy, kMatchSampleStepM),
+    _cumulative(xy),
+    SegmentGrid([xy], 50),
+  );
 }
 
 List<double> _cumulative(List<math.Point<double>> xy) {
@@ -319,7 +353,10 @@ class _Box {
   _Box(this.minX, this.minY, this.maxX, this.maxY);
 
   factory _Box.of(List<math.Point<double>> pts) {
-    var minX = double.infinity, minY = double.infinity, maxX = -double.infinity, maxY = -double.infinity;
+    var minX = double.infinity,
+        minY = double.infinity,
+        maxX = -double.infinity,
+        maxY = -double.infinity;
     for (final p in pts) {
       minX = math.min(minX, p.x);
       minY = math.min(minY, p.y);
@@ -332,11 +369,15 @@ class _Box {
   final double minX, minY, maxX, maxY;
 
   bool near(_Box o, double d) =>
-      !(maxX + d < o.minX || o.maxX + d < minX || maxY + d < o.minY || o.maxY + d < minY);
+      !(maxX + d < o.minX ||
+          o.maxX + d < minX ||
+          maxY + d < o.minY ||
+          o.maxY + d < minY);
 }
 
 class _Prepared {
-  _Prepared(this.trail, this.xy, this.samples, this.cum, this.grid) : box = _Box.of(xy);
+  _Prepared(this.trail, this.xy, this.samples, this.cum, this.grid)
+    : box = _Box.of(xy);
 
   final GraphTrail trail;
   final List<math.Point<double>> xy;
@@ -352,7 +393,9 @@ class _Prepared {
       final a = xy[i - 1], b = xy[i];
       final dx = b.x - a.x, dy = b.y - a.y;
       final len2 = dx * dx + dy * dy;
-      final t = len2 == 0 ? 0.0 : (((p.x - a.x) * dx + (p.y - a.y) * dy) / len2).clamp(0.0, 1.0);
+      final t = len2 == 0
+          ? 0.0
+          : (((p.x - a.x) * dx + (p.y - a.y) * dy) / len2).clamp(0.0, 1.0);
       final q = math.Point(a.x + t * dx, a.y + t * dy);
       final d = p.distanceTo(q);
       if (d < bestD) {

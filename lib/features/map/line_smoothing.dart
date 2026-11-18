@@ -32,7 +32,10 @@ const kSmoothMinTurnDeg = 12.0;
 /// Punkte, die auf keinem Bildschirm zu sehen sind.
 const kSmoothMinSegmentM = 2.0;
 
-List<LatLng> chaikinSmooth(List<LatLng> points, {int passes = kLineSmoothingPasses}) {
+List<LatLng> chaikinSmooth(
+  List<LatLng> points, {
+  int passes = kLineSmoothingPasses,
+}) {
   var pts = points;
   for (var n = 0; n < passes && pts.length >= 3; n++) {
     final kx = math.cos(pts.first.latitude * math.pi / 180) * 111320;
@@ -40,18 +43,25 @@ List<LatLng> chaikinSmooth(List<LatLng> points, {int passes = kLineSmoothingPass
     double dx(LatLng a, LatLng b) => (b.longitude - a.longitude) * kx;
     double dy(LatLng a, LatLng b) => (b.latitude - a.latitude) * ky;
     LatLng lerp(LatLng a, LatLng b, double t) => LatLng(
-        a.latitude + (b.latitude - a.latitude) * t, a.longitude + (b.longitude - a.longitude) * t);
+      a.latitude + (b.latitude - a.latitude) * t,
+      a.longitude + (b.longitude - a.longitude) * t,
+    );
 
     final out = <LatLng>[pts.first];
     var changed = false;
     for (var i = 1; i < pts.length - 1; i++) {
       final p = pts[i - 1], v = pts[i], q = pts[i + 1];
       final ax = dx(p, v), ay = dy(p, v), bx = dx(v, q), by = dy(v, q);
-      final la = math.sqrt(ax * ax + ay * ay), lb = math.sqrt(bx * bx + by * by);
+      final la = math.sqrt(ax * ax + ay * ay),
+          lb = math.sqrt(bx * bx + by * by);
       final turn = (la == 0 || lb == 0)
           ? 0.0
-          : math.acos(((ax * bx + ay * by) / (la * lb)).clamp(-1.0, 1.0)) * 180 / math.pi;
-      if (turn < kSmoothMinTurnDeg || la < kSmoothMinSegmentM || lb < kSmoothMinSegmentM) {
+          : math.acos(((ax * bx + ay * by) / (la * lb)).clamp(-1.0, 1.0)) *
+                180 /
+                math.pi;
+      if (turn < kSmoothMinTurnDeg ||
+          la < kSmoothMinSegmentM ||
+          lb < kSmoothMinSegmentM) {
         out.add(v);
         continue;
       }

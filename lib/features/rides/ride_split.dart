@@ -67,7 +67,12 @@ const kSplitCorridorGap = 2;
 /// Ein Stück der Fahrt: Punkt [start] bis [end], beide eingeschlossen,
 /// als Indizes in [RideSplit.points].
 sealed class RideSection {
-  const RideSection({required this.start, required this.end, required this.lengthM, this.rides = 1});
+  const RideSection({
+    required this.start,
+    required this.end,
+    required this.lengthM,
+    this.rides = 1,
+  });
 
   final int start;
   final int end;
@@ -93,8 +98,13 @@ class KnownTrailSection extends RideSection {
 
   final Trail trail;
 
-  KnownTrailSection withRides(int rides) =>
-      KnownTrailSection(trail: trail, start: start, end: end, lengthM: lengthM, rides: rides);
+  KnownTrailSection withRides(int rides) => KnownTrailSection(
+    trail: trail,
+    start: start,
+    end: end,
+    lengthM: lengthM,
+    rides: rides,
+  );
 }
 
 /// Ein Vorschlag für einen neuen Trail — gefunden, vom Nutzer über die
@@ -119,18 +129,18 @@ class CandidateSection extends RideSection {
   final String? name;
 
   CandidateSection copyWith({int? rides, String? name}) => CandidateSection(
-        start: start,
-        end: end,
-        lengthM: lengthM,
-        lossM: lossM,
-        offRoadShare: offRoadShare,
-        nearStart: nearStart,
-        nearEnd: nearEnd,
-        manual: manual,
-        marked: marked,
-        name: name ?? this.name,
-        rides: rides ?? this.rides,
-      );
+    start: start,
+    end: end,
+    lengthM: lengthM,
+    lossM: lossM,
+    offRoadShare: offRoadShare,
+    nearStart: nearStart,
+    nearEnd: nearEnd,
+    manual: manual,
+    marked: marked,
+    name: name ?? this.name,
+    rides: rides ?? this.rides,
+  );
 
   /// Höhenverlust über das Stück, aus den geglätteten Höhen; beim
   /// selbst gewählten Stück aus den rohen (null ohne Höhen).
@@ -193,7 +203,8 @@ class RideSplit {
     return math.max(0, totalM - used);
   }
 
-  List<TrackPoint> pointsOf(RideSection s) => points.sublist(s.start, s.end + 1);
+  List<TrackPoint> pointsOf(RideSection s) =>
+      points.sublist(s.start, s.end + 1);
 }
 
 /// Ein selbst gewähltes Stück (#104, `docs/konzept-rework.md` 5): Die
@@ -204,12 +215,15 @@ class RideSplit {
 /// die Fahrt ohne ihre ersten und letzten [kSplitHomeM] — eine Fahrt
 /// beginnt an der Haustür, und die soll nicht aus Versehen mitgehen.
 /// Null, wenn die Fahrt kürzer als ein Trail ist.
-({CandidateSection section, int start, int end})? manualSection(RideSplit split) {
+({CandidateSection section, int start, int end})? manualSection(
+  RideSplit split,
+) {
   final pts = split.points;
   if (pts.length < 2 || split.totalM < kTrailMinLengthM) return null;
   final last = pts.length - 1;
   final first = pts.first, end = pts.last;
-  double from(TrackPoint a, TrackPoint b) => haversineM(a.lat, a.lon, b.lat, b.lon);
+  double from(TrackPoint a, TrackPoint b) =>
+      haversineM(a.lat, a.lon, b.lat, b.lon);
   var s = 0;
   while (s < last && from(pts[s], first) <= kSplitHomeM) {
     s++;
@@ -244,7 +258,11 @@ class RideSplit {
 /// Beginnt oder endet das Stück [start]…[end] in der Heimzone der Fahrt
 /// (Konzept 5.1)? Gerechnet für die AKTUELLEN Griffe — ein Hinweis, der
 /// am ursprünglichen Stück klebte, stimmte nach dem Ziehen nicht mehr.
-({bool nearStart, bool nearEnd}) homeZoneOf(RideSplit split, int start, int end) {
+({bool nearStart, bool nearEnd}) homeZoneOf(
+  RideSplit split,
+  int start,
+  int end,
+) {
   final pts = split.points;
   final first = pts.first, last = pts.last;
   bool near(TrackPoint p) =>
@@ -267,7 +285,9 @@ RideSplit splitRide({
   final kept = <TrackPoint>[];
   var dropped = 0;
   for (var i = 0; i < points.length; i++) {
-    final acc = accuracyM == null || i >= accuracyM.length ? null : accuracyM[i];
+    final acc = accuracyM == null || i >= accuracyM.length
+        ? null
+        : accuracyM[i];
     if (acc != null && acc > kSplitMaxAccuracyM) {
       dropped++;
       continue;
@@ -293,7 +313,13 @@ RideSplit splitRide({
   final cum = _cumulative(xy);
 
   // 2. Bekannte Trails.
-  final known = knownTrailSectionsOf(latLng, trails, proj: proj, xy: xy, cum: cum);
+  final known = knownTrailSectionsOf(
+    latLng,
+    trails,
+    proj: proj,
+    xy: xy,
+    cum: cum,
+  );
 
   // 3. Kandidaten in den freien Stücken.
   final ele = _elevations(kept);
@@ -314,29 +340,37 @@ RideSplit splitRide({
   //    überschneiden — der Fahrer wusste es, die Suche rät.
   final startXy = xy.first, endXy = xy.last;
   bool nearHome(math.Point<double> p) =>
-      p.distanceTo(startXy) <= kSplitHomeM || p.distanceTo(endXy) <= kSplitHomeM;
+      p.distanceTo(startXy) <= kSplitHomeM ||
+      p.distanceTo(endXy) <= kSplitHomeM;
   final marked = <CandidateSection>[];
   for (final (:from, :to, :name) in markedRanges(kept, marks)) {
     final lengthM = cum[to] - cum[from];
     // Deckt ein bekannter Trail das Stück, IST es dieser Trail: Seine
     // Zeile steht schon im Blatt; ein Kandidat daneben steuerte dieselbe
     // Strecke zweimal bei.
-    if (lengthM > 0 && _knownLengthIn(from, to, known, cum) / lengthM >= kMatchCoverage) continue;
+    if (lengthM > 0 &&
+        _knownLengthIn(from, to, known, cum) / lengthM >= kMatchCoverage) {
+      continue;
+    }
     final a = kept[from].ele, b = kept[to].ele;
-    marked.add(CandidateSection(
-      start: from,
-      end: to,
-      lengthM: lengthM,
-      lossM: a == null || b == null ? null : a - b,
-      offRoadShare: null,
-      nearStart: nearHome(xy[from]),
-      nearEnd: nearHome(xy[to]),
-      marked: true,
-      name: name,
-    ));
+    marked.add(
+      CandidateSection(
+        start: from,
+        end: to,
+        lengthM: lengthM,
+        lossM: a == null || b == null ? null : a - b,
+        offRoadShare: null,
+        nearStart: nearHome(xy[from]),
+        nearEnd: nearHome(xy[to]),
+        marked: true,
+        name: name,
+      ),
+    );
   }
   if (marked.isNotEmpty) {
-    candidates.removeWhere((c) => marked.any((m) => c.start <= m.end && m.start <= c.end));
+    candidates.removeWhere(
+      (c) => marked.any((m) => c.start <= m.end && m.start <= c.end),
+    );
     candidates
       ..addAll(marked)
       ..sort((a, b) => a.start.compareTo(b.start));
@@ -416,9 +450,17 @@ List<MarkedRange> markedRanges(List<TrackPoint> points, List<RideMark> marks) {
 /// ist es nicht.
 bool sameStretch(List<math.Point<double>> a, List<math.Point<double>> b) {
   if (a.length < 2 || b.length < 2) return false;
-  final ab = coverageWithin(resampleXy(a, kMatchSampleStepM), SegmentGrid([b], kMatchCorridorM), kMatchCorridorM);
+  final ab = coverageWithin(
+    resampleXy(a, kMatchSampleStepM),
+    SegmentGrid([b], kMatchCorridorM),
+    kMatchCorridorM,
+  );
   if (ab < kMatchCoverage) return false;
-  return coverageWithin(resampleXy(b, kMatchSampleStepM), SegmentGrid([a], kMatchCorridorM), kMatchCorridorM) >=
+  return coverageWithin(
+        resampleXy(b, kMatchSampleStepM),
+        SegmentGrid([a], kMatchCorridorM),
+        kMatchCorridorM,
+      ) >=
       kMatchCoverage;
 }
 
@@ -428,18 +470,24 @@ bool sameStretch(List<math.Point<double>> a, List<math.Point<double>> b) {
 /// mit — [knownTrailSectionsOf] nimmt je Trail nur EINEN Durchgang),
 /// ebenso einer über die Strecke eines früheren Kandidaten; markierte
 /// gehen vor gefundenen, und ein Name wandert zum behaltenen mit.
-({List<KnownTrailSection> known, List<CandidateSection> candidates}) _dropRepeats(
+({List<KnownTrailSection> known, List<CandidateSection> candidates})
+_dropRepeats(
   List<KnownTrailSection> known,
   List<CandidateSection> candidates,
   List<math.Point<double>> xy,
   FlatProjection proj,
 ) {
   if (candidates.isEmpty) return (known: known, candidates: candidates);
-  List<math.Point<double>> slice(RideSection s) => xy.sublist(s.start, s.end + 1);
+  List<math.Point<double>> slice(RideSection s) =>
+      xy.sublist(s.start, s.end + 1);
   final knownOut = List.of(known);
   final knownLines = [for (final k in known) proj.line(k.trail.points)];
   final order = List.of(candidates)
-    ..sort((a, b) => a.marked != b.marked ? (a.marked ? -1 : 1) : a.start.compareTo(b.start));
+    ..sort(
+      (a, b) => a.marked != b.marked
+          ? (a.marked ? -1 : 1)
+          : a.start.compareTo(b.start),
+    );
   final kept = <CandidateSection>[];
   for (final c in order) {
     final line = slice(c);
@@ -450,7 +498,10 @@ bool sameStretch(List<math.Point<double>> a, List<math.Point<double>> b) {
     }
     final o = kept.indexWhere((other) => sameStretch(line, slice(other)));
     if (o >= 0) {
-      kept[o] = kept[o].copyWith(rides: kept[o].rides + c.rides, name: kept[o].name ?? c.name);
+      kept[o] = kept[o].copyWith(
+        rides: kept[o].rides + c.rides,
+        name: kept[o].name ?? c.name,
+      );
       continue;
     }
     kept.add(c);
@@ -460,7 +511,12 @@ bool sameStretch(List<math.Point<double>> a, List<math.Point<double>> b) {
 }
 
 /// Wie viel von [from]…[to] (Länge über [cum]) in bekannten Stücken liegt.
-double _knownLengthIn(int from, int to, List<KnownTrailSection> known, List<double> cum) {
+double _knownLengthIn(
+  int from,
+  int to,
+  List<KnownTrailSection> known,
+  List<double> cum,
+) {
   var sum = 0.0;
   for (final k in known) {
     final a = math.max(from, k.start), b = math.min(to, k.end);
@@ -497,7 +553,9 @@ List<double> smoothElevation(List<double> ele, int window) {
   final half = window ~/ 2;
   return [
     for (var i = 0; i < ele.length; i++)
-      _median(ele.sublist(math.max(0, i - half), math.min(ele.length, i + half + 1))),
+      _median(
+        ele.sublist(math.max(0, i - half), math.min(ele.length, i + half + 1)),
+      ),
   ];
 }
 
@@ -573,7 +631,8 @@ CandidateSection? _candidateFrom(
   if (share <= kSplitOffRoadShare) return null;
   final startXy = xy.first, endXy = xy.last;
   bool nearHome(math.Point<double> p) =>
-      p.distanceTo(startXy) <= kSplitHomeM || p.distanceTo(endXy) <= kSplitHomeM;
+      p.distanceTo(startXy) <= kSplitHomeM ||
+      p.distanceTo(endXy) <= kSplitHomeM;
   return CandidateSection(
     start: start,
     end: end,
@@ -590,7 +649,12 @@ CandidateSection? _candidateFrom(
 /// zwei Messpunkten, und die Straßenfrage ist je Messpunkt schon
 /// beantwortet — beide auf der Straße heißt Straße.
 bool _nearAnyRoadSample(
-    math.Point<double> s, List<math.Point<double>> xy, List<bool> onRoad, int start, int end) {
+  math.Point<double> s,
+  List<math.Point<double>> xy,
+  List<bool> onRoad,
+  int start,
+  int end,
+) {
   var best = start;
   var bestD = double.infinity;
   for (var i = start; i <= end; i++) {
@@ -669,11 +733,25 @@ List<KnownTrailSection> knownTrailSectionsOf(
     // Beidseitige Deckung wie beim Abgleich: das Stück auf dem Trail UND
     // der Trail unter dem Stück.
     final sectionXy = xy.sublist(start, end + 1);
-    final ab = coverageWithin(resampleXy(sectionXy, kMatchSampleStepM), trailGrid, kMatchCorridorM);
-    final ba = coverageWithin(resampleXy(trailXy, kMatchSampleStepM),
-        SegmentGrid([sectionXy], kMatchCorridorM), kMatchCorridorM);
+    final ab = coverageWithin(
+      resampleXy(sectionXy, kMatchSampleStepM),
+      trailGrid,
+      kMatchCorridorM,
+    );
+    final ba = coverageWithin(
+      resampleXy(trailXy, kMatchSampleStepM),
+      SegmentGrid([sectionXy], kMatchCorridorM),
+      kMatchCorridorM,
+    );
     if (ab < kMatchCoverage || ba < kMatchCoverage) continue;
-    out.add(KnownTrailSection(trail: t, start: start, end: end, lengthM: cum[end] - cum[start]));
+    out.add(
+      KnownTrailSection(
+        trail: t,
+        start: start,
+        end: end,
+        lengthM: cum[end] - cum[start],
+      ),
+    );
   }
   // Überlappende Treffer (zwei Trails auf demselben Stück, etwa ein Trail
   // und seine Variante): der längere gewinnt, sonst würde ein Stück

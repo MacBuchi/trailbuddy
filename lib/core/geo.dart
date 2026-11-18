@@ -11,9 +11,8 @@ import 'dart:math' as math;
 double distanceKm(double lat1, double lon1, double lat2, double lon2) {
   const kmPerDegree = 111.2;
   final dy = (lat1 - lat2) * kmPerDegree;
-  final dx = (lon1 - lon2) *
-      kmPerDegree *
-      math.cos((lat1 + lat2) / 2 * math.pi / 180);
+  final dx =
+      (lon1 - lon2) * kmPerDegree * math.cos((lat1 + lat2) / 2 * math.pi / 180);
   return math.sqrt(dx * dx + dy * dy);
 }
 
@@ -32,9 +31,8 @@ double distanceMeters(double lat1, double lon1, double lat2, double lon2) =>
 double bearingDegrees(double lat1, double lon1, double lat2, double lon2) {
   const kmPerDegree = 111.2;
   final dy = (lat2 - lat1) * kmPerDegree;
-  final dx = (lon2 - lon1) *
-      kmPerDegree *
-      math.cos((lat1 + lat2) / 2 * math.pi / 180);
+  final dx =
+      (lon2 - lon1) * kmPerDegree * math.cos((lat1 + lat2) / 2 * math.pi / 180);
   final degrees = math.atan2(dx, dy) * 180 / math.pi;
   return (degrees + 360) % 360;
 }

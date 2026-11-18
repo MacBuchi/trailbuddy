@@ -90,7 +90,9 @@ class OfficialRegion {
       throw FormatException('Regionsdatei mit ungültigem Namen: $file');
     }
     final bbox = [for (final v in j['bbox'] as List) (v as num).toDouble()];
-    if (bbox.length != 4) throw const FormatException('Rahmen braucht vier Zahlen');
+    if (bbox.length != 4) {
+      throw const FormatException('Rahmen braucht vier Zahlen');
+    }
     return OfficialRegion(
       id: j['id'] as String,
       file: file,
@@ -120,7 +122,9 @@ class OfficialIndex {
     final j = jsonDecode(body) as Map<String, dynamic>;
     final version = j['version'];
     if (version != supportedVersion) {
-      throw FormatException('Index in Version $version, gelesen wird $supportedVersion');
+      throw FormatException(
+        'Index in Version $version, gelesen wird $supportedVersion',
+      );
     }
     return OfficialIndex(
       regions: [
@@ -129,7 +133,10 @@ class OfficialIndex {
       ],
       sources: {
         for (final e in (j['sources'] as Map<String, dynamic>).entries)
-          e.key: OfficialSource.fromJson(e.key, e.value as Map<String, dynamic>),
+          e.key: OfficialSource.fromJson(
+            e.key,
+            e.value as Map<String, dynamic>,
+          ),
       },
     );
   }
@@ -145,17 +152,21 @@ enum OfficialStatus {
   closed;
 
   static OfficialStatus parse(Object? raw) => switch (raw) {
-        'closed' => closed,
-        'partly_closed' => partlyClosed,
-        _ => open,
-      };
+    'closed' => closed,
+    'partly_closed' => partlyClosed,
+    _ => open,
+  };
 }
 
 /// Ein Teil der Linie: die Hauptroute oder eine Variante, je mit eigenem
 /// Status.
 @immutable
 class OfficialSection {
-  const OfficialSection({required this.points, this.variant = false, this.closed = false});
+  const OfficialSection({
+    required this.points,
+    this.variant = false,
+    this.closed = false,
+  });
 
   final List<LatLng> points;
   final bool variant;
@@ -212,11 +223,13 @@ class OfficialTrail {
           LatLng(((c as List)[1] as num).toDouble(), (c[0] as num).toDouble()),
       ];
       if (points.length < 2) continue;
-      sections.add(OfficialSection(
-        points: points,
-        variant: m['variant'] == true,
-        closed: m['closed'] == true,
-      ));
+      sections.add(
+        OfficialSection(
+          points: points,
+          variant: m['variant'] == true,
+          closed: m['closed'] == true,
+        ),
+      );
     }
     if (sections.isEmpty) throw const FormatException('Trail ohne Linie');
     String? text(String key) {

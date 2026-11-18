@@ -65,9 +65,7 @@ class PushEnabledNotifier extends Notifier<bool> {
       if (result.denied) {
         return l.pushDenied;
       }
-      return ref.read(noConnectivityProvider)
-          ? l.pushOffline
-          : l.pushFailed;
+      return ref.read(noConnectivityProvider) ? l.pushOffline : l.pushFailed;
     }
     final locale = pushLocaleOf(Locale(l.localeName));
     try {
@@ -122,8 +120,8 @@ class PushEnabledNotifier extends Notifier<bool> {
 /// Die Sprache der Meldungen für eine Sprache der App: Englisch nur,
 /// wenn die App englisch läuft — alles andere bekommt Deutsch wie die
 /// Oberfläche (`resolveAppLocale`).
-String pushLocaleOf(Locale locale) =>
-    locale.languageCode == 'en' ? 'en' : 'de';
+String pushLocaleOf(Locale locale) => locale.languageCode == 'en' ? 'en' : 'de';
 
-final pushEnabledProvider =
-    NotifierProvider<PushEnabledNotifier, bool>(PushEnabledNotifier.new);
+final pushEnabledProvider = NotifierProvider<PushEnabledNotifier, bool>(
+  PushEnabledNotifier.new,
+);

@@ -31,11 +31,20 @@ const kWatchBuddiesEvery = Duration(seconds: 15);
 /// kennt (abseits, zurück, angekommen) und für einen Trail ohne Namen.
 Map<String, Object>? watchVoiceCueOf(VoiceCue cue) {
   switch (cue.kind) {
-    case VoiceCueKind.trailAhead || VoiceCueKind.trailStart || VoiceCueKind.trailDone:
+    case VoiceCueKind.trailAhead ||
+        VoiceCueKind.trailStart ||
+        VoiceCueKind.trailDone:
       final name = cue.name?.trim() ?? '';
       if (name.isEmpty) return null;
-      return {'t': kWatchCue, 'k': 'tr', 'n': name, if (cue.grade != null) 'g': cue.grade!};
-    case VoiceCueKind.offRoute || VoiceCueKind.backOnRoute || VoiceCueKind.arrived:
+      return {
+        't': kWatchCue,
+        'k': 'tr',
+        'n': name,
+        if (cue.grade != null) 'g': cue.grade!,
+      };
+    case VoiceCueKind.offRoute ||
+        VoiceCueKind.backOnRoute ||
+        VoiceCueKind.arrived:
       return null;
   }
 }
@@ -53,14 +62,24 @@ String? encodeVoiceWatch(Iterable<VoiceCue> cues) {
 
 /// Die Hinweise aus [data], leer bei allem anderen. Wirft nie.
 List<Map<String, Object>> decodeVoiceWatch(Object? data) {
-  if (data is! String || !data.startsWith(kVoiceWatchMessagePrefix)) return const [];
+  if (data is! String || !data.startsWith(kVoiceWatchMessagePrefix)) {
+    return const [];
+  }
   try {
     final raw = jsonDecode(data.substring(kVoiceWatchMessagePrefix.length));
     if (raw is! List) return const [];
     return [
       for (final m in raw)
-        if (m is Map && m['t'] == kWatchCue && m['k'] == 'tr' && m['n'] is String)
-          {'t': kWatchCue, 'k': 'tr', 'n': m['n'] as String, if (m['g'] is int) 'g': m['g'] as int},
+        if (m is Map &&
+            m['t'] == kWatchCue &&
+            m['k'] == 'tr' &&
+            m['n'] is String)
+          {
+            't': kWatchCue,
+            'k': 'tr',
+            'n': m['n'] as String,
+            if (m['g'] is int) 'g': m['g'] as int,
+          },
     ];
   } catch (_) {
     return const [];
@@ -75,11 +94,18 @@ Map<String, Object>? watchBuddyNearOf(String name) {
 
 /// Die Buddys mit genauer Position für die Uhr — die Zelle eines Homies
 /// bleibt am Handy. [nameOf] liefert den angezeigten Namen.
-Map<String, Object> watchBuddiesOf(List<BuddyMapEntry> entries, String Function(String buddyId) nameOf) {
-  final live = [
-    for (final e in entries)
-      if (e.kind == BuddyMapKind.live) e,
-  ]..sort((a, b) => (a.seenAgo ?? Duration.zero).compareTo(b.seenAgo ?? Duration.zero));
+Map<String, Object> watchBuddiesOf(
+  List<BuddyMapEntry> entries,
+  String Function(String buddyId) nameOf,
+) {
+  final live =
+      [
+        for (final e in entries)
+          if (e.kind == BuddyMapKind.live) e,
+      ]..sort(
+        (a, b) =>
+            (a.seenAgo ?? Duration.zero).compareTo(b.seenAgo ?? Duration.zero),
+      );
   return {
     't': kWatchBuddies,
     'l': [

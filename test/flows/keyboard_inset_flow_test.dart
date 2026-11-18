@@ -35,7 +35,9 @@ void main() {
     addTearDown(tester.view.reset);
   }
 
-  testWidgets('die Karte reicht bis an die Reiterleiste, auch mit Tastatur', (tester) async {
+  testWidgets('die Karte reicht bis an die Reiterleiste, auch mit Tastatur', (
+    tester,
+  ) async {
     keyboardOpen(tester);
     await pumpApp(tester, backend);
     await settle(tester, frames: 20);
@@ -43,17 +45,26 @@ void main() {
     // Der Body des Karten-Scaffolds: der Stapel, in dem `MapView` liegt.
     // `MapView` selbst hat im Test keine Fläche (die Fake-Karte ist ein
     // `Wrap` ihrer Marker).
-    final map = tester.getRect(find
-        .ancestor(
+    final map = tester.getRect(
+      find
+          .ancestor(
             of: find.descendant(
-                of: find.byType(MapScreen), matching: find.byType(MapView)),
-            matching: find.byType(Stack))
-        .first);
+              of: find.byType(MapScreen),
+              matching: find.byType(MapView),
+            ),
+            matching: find.byType(Stack),
+          )
+          .first,
+    );
     final bar = tester.getRect(find.byType(NavigationBar));
 
     expect(map.height, greaterThan(0), reason: 'die Karte ist gemessen');
-    expect(map.bottom, moreOrLessEquals(bar.top, epsilon: 0.5),
-        reason: 'mit ausweichendem Scaffold endete sie eine Tastaturhöhe '
-            'über der Reiterleiste');
+    expect(
+      map.bottom,
+      moreOrLessEquals(bar.top, epsilon: 0.5),
+      reason:
+          'mit ausweichendem Scaffold endete sie eine Tastaturhöhe '
+          'über der Reiterleiste',
+    );
   });
 }

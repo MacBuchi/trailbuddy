@@ -24,7 +24,9 @@ const invitePathPrefix = '/trailbuddy/';
 /// Seite darf die App nicht öffnen.
 String? inviteNameFromLink(Uri? link) {
   // Auch der Intent-Filter im Manifest gilt nur für https.
-  if (link == null || link.scheme != 'https' || link.host != inviteHost) return null;
+  if (link == null || link.scheme != 'https' || link.host != inviteHost) {
+    return null;
+  }
   if (!link.path.startsWith(invitePathPrefix)) return null;
   final name = (link.queryParameters['invite'] ?? '').trim();
   return name.isEmpty ? null : name;
@@ -42,7 +44,9 @@ Uri? launchLink;
 /// Sie überlebt die Anmeldung: Wer den QR scannt, ist oft noch nicht
 /// eingeloggt. `take()` holt sie einmal — sonst füllte bei jedem Besuch der
 /// Buddys wieder derselbe Name die Suche.
-final inviteProvider = NotifierProvider<InviteNotifier, String?>(InviteNotifier.new);
+final inviteProvider = NotifierProvider<InviteNotifier, String?>(
+  InviteNotifier.new,
+);
 
 class InviteNotifier extends Notifier<String?> {
   StreamSubscription<Uri>? _links;

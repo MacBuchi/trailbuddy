@@ -28,10 +28,10 @@ class PendingCode {
   static const lifetime = Duration(hours: 1);
 
   String encode() => jsonEncode({
-        'kind': kind.name,
-        'email': email,
-        'at': requestedAt.toUtc().toIso8601String(),
-      });
+    'kind': kind.name,
+    'email': email,
+    'at': requestedAt.toUtc().toIso8601String(),
+  });
 
   /// Liest den Merker, oder null, wenn keiner da, er unlesbar oder
   /// abgelaufen ist.
@@ -52,7 +52,11 @@ class PendingCode {
 
   /// Der Merker für [kind], sonst null — ein Reset-Code öffnet nicht die
   /// Registrierung und umgekehrt.
-  static PendingCode? read(Settings settings, PendingCodeKind kind, {DateTime? now}) {
+  static PendingCode? read(
+    Settings settings,
+    PendingCodeKind kind, {
+    DateTime? now,
+  }) {
     final code = decode(settings.pendingAuthCode, now: now ?? DateTime.now());
     return code?.kind == kind ? code : null;
   }
@@ -73,7 +77,11 @@ class PendingCode {
     _write(settings, null);
   }
 
-  static void _write(Settings settings, String? value) => unawaited(settings
-      .setPendingAuthCode(value)
-      .catchError((Object e, StackTrace s) => logError('Code-Merker schreiben', e, s)));
+  static void _write(Settings settings, String? value) => unawaited(
+    settings
+        .setPendingAuthCode(value)
+        .catchError(
+          (Object e, StackTrace s) => logError('Code-Merker schreiben', e, s),
+        ),
+  );
 }

@@ -23,7 +23,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/errors.dart';
 import '../../core/settings.dart';
 import '../profile/profile_providers.dart' show riderProfileProvider;
-import '../rides/ride_providers.dart' show rideProvider, ridesProvider, RideStartResult, WatchRideSave;
+import '../rides/ride_providers.dart'
+    show rideProvider, ridesProvider, RideStartResult, WatchRideSave;
 import '../rides/ride_track.dart' show RideMark;
 import 'garmin_bridge.dart';
 import 'watch_event_store.dart';
@@ -46,6 +47,7 @@ class WatchRideInbox extends Notifier<int> {
   StreamSubscription<Object?>? _messages;
   final _incoming = <String, _Incoming>{};
   final _saving = <String>{};
+
   /// Die laufende Aufzeichnung begann auf START der Uhr.
   bool _byWatch = false;
   Timer? _check;
@@ -91,9 +93,13 @@ class WatchRideInbox extends Notifier<int> {
       // Nach einem Absturz der Uhr-App reist ihr Protokoll mit (#510).
       final crash = watchEventsOf((message as Map)['ev']);
       if (crash != null) {
-        await ref.read(watchEventStoreProvider).add(WatchEventLog(at: now(), fromCrash: true, events: crash));
+        await ref
+            .read(watchEventStoreProvider)
+            .add(WatchEventLog(at: now(), fromCrash: true, events: crash));
       }
-      if (hello.rides.isNotEmpty) await ref.read(garminBridgeProvider).send([watchRidePull]);
+      if (hello.rides.isNotEmpty) {
+        await ref.read(garminBridgeProvider).send([watchRidePull]);
+      }
       return;
     }
     final record = watchRecordOf(message);
@@ -101,9 +107,13 @@ class WatchRideInbox extends Notifier<int> {
     final part = watchRidePartOf(message);
     if (part == null) return;
     final t = now();
-    _incoming.removeWhere((_, i) => t.difference(i.touched) > kWatchRidePartWait);
+    _incoming.removeWhere(
+      (_, i) => t.difference(i.touched) > kWatchRidePartWait,
+    );
     var inc = _incoming[part.id];
-    if (inc == null || inc.n != part.n) inc = _incoming[part.id] = _Incoming(part.n);
+    if (inc == null || inc.n != part.n) {
+      inc = _incoming[part.id] = _Incoming(part.n);
+    }
     inc.parts[part.p] = part.chunks;
     if (part.p == 0) {
       inc.marks = part.marks;
@@ -115,28 +125,42 @@ class WatchRideInbox extends Notifier<int> {
     _incoming.remove(part.id);
     if (!_saving.add(part.id)) return;
     try {
-      await _save(part.id, [for (var p = 0; p < inc.n; p++) ...inc.parts[p]!], inc.marks);
+      await _save(part.id, [
+        for (var p = 0; p < inc.n; p++) ...inc.parts[p]!,
+      ], inc.marks);
       final ev = inc.events;
       if (ev != null) {
-        await ref.read(watchEventStoreProvider).add(WatchEventLog(at: t, fromCrash: false, events: ev));
+        await ref
+            .read(watchEventStoreProvider)
+            .add(WatchEventLog(at: t, fromCrash: false, events: ev));
       }
     } finally {
       _saving.remove(part.id);
     }
   }
 
-  Future<void> _save(String id, List<List<int>> chunks, List<RideMark> marks) async {
+  Future<void> _save(
+    String id,
+    List<List<int>> chunks,
+    List<RideMark> marks,
+  ) async {
     final bridge = ref.read(garminBridgeProvider);
     final points = decodeWatchRide(chunks);
     if (points == null || points.length < 2) {
       // Unlesbar wird sie auch beim nächsten Mal nicht: quittieren, sonst
       // käme sie bei jedem Start wieder und belegte die Uhr für immer.
-      logError('Fahrt der Uhr unlesbar', StateError('${chunks.length} Stücke'), StackTrace.current);
+      logError(
+        'Fahrt der Uhr unlesbar',
+        StateError('${chunks.length} Stücke'),
+        StackTrace.current,
+      );
       await bridge.send([watchRideAckOf(id)]);
       return;
     }
     final profile = ref.read(riderProfileProvider).name;
-    final result = await ref.read(ridesProvider.notifier).saveFromWatch(points, profile: profile, marks: marks);
+    final result = await ref
+        .read(ridesProvider.notifier)
+        .saveFromWatch(points, profile: profile, marks: marks);
     if (result == WatchRideSave.failed) return;
     await bridge.send([watchRideAckOf(id)]);
     if (result == WatchRideSave.saved) state = state + 1;
@@ -145,9 +169,17 @@ class WatchRideInbox extends Notifier<int> {
 
 extension on WatchRideInbox {
   Future<void> _onRecord(
-      ({WatchRecordEvent event, RideMark? trailStart, RideMark? trailEnd, bool? keep}) r) async {
+    ({
+      WatchRecordEvent event,
+      RideMark? trailStart,
+      RideMark? trailEnd,
+      bool? keep,
+    })
+    r,
+  ) async {
     final rides = ref.read(rideProvider.notifier);
-    if (r.event == WatchRecordEvent.pause || r.event == WatchRecordEvent.resume) {
+    if (r.event == WatchRecordEvent.pause ||
+        r.event == WatchRecordEvent.resume) {
       // Die Pause an der Uhr betrifft nur die Uhr: Das Handy zeichnet weiter
       // (#499 zeigt sie dem Nutzer; ob es mitstoppt, ist eine eigene Frage).
       return;
@@ -177,7 +209,9 @@ extension on WatchRideInbox {
     if (!rides.isRunning) return;
     final ride = await rides.stop();
     if (ride == null) return;
-    debugPrint('TB-GARMIN re: ${r.keep == false ? 'verworfen' : 'gespeichert'}, ${ride.points.length} Punkte');
+    debugPrint(
+      'TB-GARMIN re: ${r.keep == false ? 'verworfen' : 'gespeichert'}, ${ride.points.length} Punkte',
+    );
     if (r.keep == false || ride.points.length < 2) {
       await ref.read(ridesProvider.notifier).delete(ride.id);
     } else {
@@ -192,7 +226,9 @@ extension on WatchRideInbox {
     final current = ref.read(rideProvider);
     if (!_byWatch || current == null || current.points.isNotEmpty) return;
     _byWatch = false;
-    debugPrint('TB-GARMIN rs: kein Punkt in ${recordCheck.inSeconds} s, zurückgenommen');
+    debugPrint(
+      'TB-GARMIN rs: kein Punkt in ${recordCheck.inSeconds} s, zurückgenommen',
+    );
     final ride = await rides.stop();
     if (ride != null) await ref.read(ridesProvider.notifier).delete(ride.id);
   }
@@ -208,4 +244,6 @@ class _Incoming {
   DateTime touched = DateTime.fromMillisecondsSinceEpoch(0);
 }
 
-final watchRideInboxProvider = NotifierProvider<WatchRideInbox, int>(WatchRideInbox.new);
+final watchRideInboxProvider = NotifierProvider<WatchRideInbox, int>(
+  WatchRideInbox.new,
+);

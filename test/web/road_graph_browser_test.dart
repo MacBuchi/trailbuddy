@@ -28,23 +28,49 @@ void main() {
     const n = 11;
     final lines = [
       for (var i = 0; i < n; i++) ...[
-        WayLine(cls: WayClass.forstweg, oneway: false, points: [for (var j = 0; j < n; j++) at(i * step, j * step)]),
-        WayLine(cls: WayClass.wanderweg, oneway: false, points: [for (var j = 0; j < n; j++) at(j * step, i * step)]),
+        WayLine(
+          cls: WayClass.forstweg,
+          oneway: false,
+          points: [for (var j = 0; j < n; j++) at(i * step, j * step)],
+        ),
+        WayLine(
+          cls: WayClass.wanderweg,
+          oneway: false,
+          points: [for (var j = 0; j < n; j++) at(j * step, i * step)],
+        ),
         if (i + 1 < n)
           WayLine(
-              cls: WayClass.nebenstrasse,
-              oneway: false,
-              points: [for (var j = 0; j < n - 1; j++) at(j * step + step / 2, i * step + step / 2)]),
+            cls: WayClass.nebenstrasse,
+            oneway: false,
+            points: [
+              for (var j = 0; j < n - 1; j++)
+                at(j * step + step / 2, i * step + step / 2),
+            ],
+          ),
       ],
-      WayLine(cls: WayClass.radweg, oneway: false, points: [at(-150, 300), at(-1, 300)]),
+      WayLine(
+        cls: WayClass.radweg,
+        oneway: false,
+        points: [at(-150, 300), at(-1, 300)],
+      ),
     ];
     final build = buildRoadGraph(lines, lat0: lat0);
     final g = build.graph;
-    expect((g.nodes.length, g.edges.length, build.joins, build.crossings), _vm.counts);
+    expect((
+      g.nodes.length,
+      g.edges.length,
+      build.joins,
+      build.crossings,
+    ), _vm.counts);
 
     final head = g.attach(at(1000 + 7, 1000 + 55));
     expect(head, isNotNull);
-    final path = shortestPath(g, g.attach(at(-150, 300))!, head!, RiderProfile.bio);
+    final path = shortestPath(
+      g,
+      g.attach(at(-150, 300))!,
+      head!,
+      RiderProfile.bio,
+    );
     expect(path, isNotNull);
     expect(path!.edges.length, _vm.pathEdges);
     expect(path.costS, closeTo(_vm.costS, 1e-6));
@@ -53,4 +79,9 @@ void main() {
 }
 
 /// Auf der VM gerechnet (`flutter test` ohne `@TestOn`).
-const _vm = (counts: (234, 413, 1, 90), pathEdges: 13, costS: 573.6, nearestEdge: 53);
+const _vm = (
+  counts: (234, 413, 1, 90),
+  pathEdges: 13,
+  costS: 573.6,
+  nearestEdge: 53,
+);

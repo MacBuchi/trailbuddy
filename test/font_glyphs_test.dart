@@ -14,8 +14,7 @@ Set<int> _codepoints(String path) {
   var cmap = -1;
   for (var i = 0; i < tables; i++) {
     final rec = 12 + i * 16;
-    if (String.fromCharCodes(
-            List.generate(4, (k) => b.getUint8(rec + k))) ==
+    if (String.fromCharCodes(List.generate(4, (k) => b.getUint8(rec + k))) ==
         'cmap') {
       cmap = b.getUint32(rec + 8);
     }
@@ -68,17 +67,18 @@ void main() {
     expect(mono, contains(0x2193), reason: 'die Ersatzschrift für ↓');
 
     final missing = <String>{};
-    for (final f in Directory('lib/l10n')
-        .listSync()
-        .whereType<File>()
-        .where((f) => f.path.endsWith('.arb'))) {
+    for (final f in Directory(
+      'lib/l10n',
+    ).listSync().whereType<File>().where((f) => f.path.endsWith('.arb'))) {
       final arb = jsonDecode(f.readAsStringSync()) as Map<String, dynamic>;
       for (final e in arb.entries) {
         if (e.key.startsWith('@') || e.value is! String) continue;
         for (final c in (e.value as String).runes) {
           if (c < 0x20 || barlow.contains(c) || mono.contains(c)) continue;
-          missing.add('${e.key}: ${String.fromCharCode(c)} '
-              '(U+${c.toRadixString(16).toUpperCase()})');
+          missing.add(
+            '${e.key}: ${String.fromCharCode(c)} '
+            '(U+${c.toRadixString(16).toUpperCase()})',
+          );
         }
       }
     }
@@ -103,15 +103,19 @@ void main() {
 
   testWidgets('ein Text ohne eigenen Stil erbt den Ersatz', (tester) async {
     late TextStyle style;
-    await tester.pumpWidget(MaterialApp(
-      theme: buildAppTheme(AppColors.light),
-      home: Scaffold(
-        body: Builder(builder: (context) {
-          style = DefaultTextStyle.of(context).style;
-          return const Text('↓ 32 Hm');
-        }),
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: buildAppTheme(AppColors.light),
+        home: Scaffold(
+          body: Builder(
+            builder: (context) {
+              style = DefaultTextStyle.of(context).style;
+              return const Text('↓ 32 Hm');
+            },
+          ),
+        ),
       ),
-    ));
+    );
     expect(style.fontFamilyFallback, contains(AppFonts.mono));
   });
 }

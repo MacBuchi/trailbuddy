@@ -57,11 +57,16 @@ class _PushListenerState extends ConsumerState<PushListener> {
       // aus dem beendeten Zustand über die Startmeldung.
       try {
         _taps = ref.read(pushTapListenerProvider)().listen(_open);
-        ref.read(pushInitialMessageProvider)().then((message) {
-          if (message != null) _open(message);
-        }, onError: (Object e, StackTrace s) {
-          logError('Startmeldung lesen', e, s);
-        });
+        ref
+            .read(pushInitialMessageProvider)()
+            .then(
+              (message) {
+                if (message != null) _open(message);
+              },
+              onError: (Object e, StackTrace s) {
+                logError('Startmeldung lesen', e, s);
+              },
+            );
       } catch (e, stackTrace) {
         logError('Tipp auf Meldungen verdrahten', e, stackTrace);
       }
@@ -113,7 +118,8 @@ class _PushListenerState extends ConsumerState<PushListener> {
     // sobald er neu geladen hat — eine SnackBar darüber wäre doppelt.
     if (route != null &&
         isPushChatRoute(route) &&
-        ref.read(routerProvider).routerDelegate.currentConfiguration.uri.path == route) {
+        ref.read(routerProvider).routerDelegate.currentConfiguration.uri.path ==
+            route) {
       return;
     }
     final body = notification.body;
@@ -129,25 +135,27 @@ class _PushListenerState extends ConsumerState<PushListener> {
     // ein — es sah aus, als käme im Vordergrund nichts an (PilzBuddy,
     // 2026-08-12). Eintreffende Meldung schlägt stehende Rückmeldung.
     messenger.clearSnackBars();
-    messenger.showSnackBar(SnackBar(
-      content: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (title != null && title.isNotEmpty)
-            Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
-          Text(body),
-        ],
+    messenger.showSnackBar(
+      SnackBar(
+        content: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (title != null && title.isNotEmpty)
+              Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+            Text(body),
+          ],
+        ),
+        duration: const Duration(seconds: 4),
+        action: route == null
+            ? null
+            : SnackBarAction(
+                label: context.l10n.pushOpen,
+                onPressed: () => _open(message),
+              ),
+        persist: false,
       ),
-      duration: const Duration(seconds: 4),
-      action: route == null
-          ? null
-          : SnackBarAction(
-              label: context.l10n.pushOpen,
-              onPressed: () => _open(message),
-            ),
-      persist: false,
-    ));
+    );
   }
 
   @override

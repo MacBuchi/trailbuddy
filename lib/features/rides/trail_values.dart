@@ -31,7 +31,8 @@ class AirtimeLog {
   final Set<String> rejected;
 
   /// Was zählt.
-  Iterable<FusionEvent> get kept => events.where((e) => !rejected.contains(airtimeEventKey(e)));
+  Iterable<FusionEvent> get kept =>
+      events.where((e) => !rejected.contains(airtimeEventKey(e)));
 
   bool get isEmpty => events.isEmpty;
 
@@ -46,7 +47,9 @@ class AirtimeLog {
   AirtimeLog withAnswer(FusionEvent event, {required bool yes}) {
     final key = airtimeEventKey(event);
     return AirtimeLog(
-        events: events, rejected: yes ? ({...rejected}..remove(key)) : {...rejected, key});
+      events: events,
+      rejected: yes ? ({...rejected}..remove(key)) : {...rejected, key},
+    );
   }
 
   /// Zusammen mit [other] (Datei und Kanal): Ereignisse beider, die
@@ -56,7 +59,10 @@ class AirtimeLog {
     for (final e in other.events) {
       out = out.withEvent(e);
     }
-    return AirtimeLog(events: out.events, rejected: {...rejected, ...other.rejected});
+    return AirtimeLog(
+      events: out.events,
+      rejected: {...rejected, ...other.rejected},
+    );
   }
 }
 
@@ -64,10 +70,10 @@ class AirtimeLog {
 String airtimeEventKey(FusionEvent e) => '${_kind(e)}${e.startUs}';
 
 String _kind(FusionEvent e) => switch (e) {
-      WheelieEvent() => 'w',
-      JumpEvent() => 'j',
-      StoppieEvent() => 's',
-    };
+  WheelieEvent() => 'w',
+  JumpEvent() => 'j',
+  StoppieEvent() => 's',
+};
 
 /// Liest die Zeilen der Ereignis-Datei. Unlesbare Zeilen fallen einzeln
 /// weg — die letzte kann nach einem Prozess-Kill halb sein.
@@ -83,27 +89,50 @@ AirtimeLog parseAirtimeLog(String text) {
       int us(int i) => int.parse(f[i]);
       Duration d(int i) => Duration(microseconds: (n(i) * 1e6).round());
       final FusionEvent? event = switch (f.first) {
-        'e' when f.length >= 5 => WheelieEvent(startUs: us(1), duration: d(2), lengthM: n(3), maxTiltDeg: n(4)),
+        'e' when f.length >= 5 => WheelieEvent(
+          startUs: us(1),
+          duration: d(2),
+          lengthM: n(3),
+          maxTiltDeg: n(4),
+        ),
         'j' when f.length >= 5 => JumpEvent(
-            startUs: us(1), duration: d(2), landingG: n(3), upright: true, plausible: f[4] == '1'),
-        's' when f.length >= 6 =>
-          StoppieEvent(startUs: us(1), duration: d(2), maxTiltDeg: n(3), decel: n(4), landingG: n(5)),
+          startUs: us(1),
+          duration: d(2),
+          landingG: n(3),
+          upright: true,
+          plausible: f[4] == '1',
+        ),
+        's' when f.length >= 6 => StoppieEvent(
+          startUs: us(1),
+          duration: d(2),
+          maxTiltDeg: n(3),
+          decel: n(4),
+          landingG: n(5),
+        ),
         _ => null,
       };
       if (event != null) {
         if (seen.add(airtimeEventKey(event))) events.add(event);
         continue;
       }
-      final kind = switch (f.first) { 'l' => 'w', 'k' => 'j', 'p' => 's', _ => null };
+      final kind = switch (f.first) {
+        'l' => 'w',
+        'k' => 'j',
+        'p' => 's',
+        _ => null,
+      };
       if (kind != null && f.length >= 4) answers['$kind${us(2)}'] = f[3] == '1';
     } catch (_) {
       continue;
     }
   }
-  return AirtimeLog(events: events, rejected: {
-    for (final e in answers.entries)
-      if (!e.value) e.key,
-  });
+  return AirtimeLog(
+    events: events,
+    rejected: {
+      for (final e in answers.entries)
+        if (!e.value) e.key,
+    },
+  );
 }
 
 /// Was auf einem Stück zählt.
@@ -139,9 +168,17 @@ class TrailValues {
 
   /// Die Ereignisse, die zwischen [fromUs] und [toUs] beginnen (beide
   /// eingeschlossen, µs seit 1970 — die Achse der Sensoren und der Fixe).
-  static TrailValues of(Iterable<FusionEvent> events, {int? fromUs, int? toUs}) {
+  static TrailValues of(
+    Iterable<FusionEvent> events, {
+    int? fromUs,
+    int? toUs,
+  }) {
     var jumps = 0, wheelies = 0, stoppies = 0;
-    var air = 0.0, longestJump = 0.0, longestWheelie = 0.0, longestStoppie = 0.0, steepest = 0.0;
+    var air = 0.0,
+        longestJump = 0.0,
+        longestWheelie = 0.0,
+        longestStoppie = 0.0,
+        steepest = 0.0;
     double? maxG;
     for (final e in events) {
       if (fromUs != null && e.startUs < fromUs) continue;
@@ -190,7 +227,8 @@ String? trailValuesLine(AppLocalizations l, TrailValues v) {
   return [
     if (v.jumps > 0) l.airValuesAir(airtimeNumber(l, v.airS, 1), v.jumps),
     if (v.maxG case final g?) l.airValuesG(airtimeNumber(l, g, 1)),
-    if (v.wheelies > 0) l.airValuesWheelie(v.wheelies, airtimeNumber(l, v.longestWheelieM, 0)),
+    if (v.wheelies > 0)
+      l.airValuesWheelie(v.wheelies, airtimeNumber(l, v.longestWheelieM, 0)),
     if (v.stoppies > 0) l.airValuesStoppie(v.stoppies),
   ].join(' · ');
 }

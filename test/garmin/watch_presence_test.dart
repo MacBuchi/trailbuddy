@@ -13,7 +13,9 @@ void main() {
   late ProviderContainer container;
 
   ProviderContainer make() {
-    final c = ProviderContainer(overrides: [garminBridgeProvider.overrideWithValue(bridge)]);
+    final c = ProviderContainer(
+      overrides: [garminBridgeProvider.overrideWithValue(bridge)],
+    );
     addTearDown(c.dispose);
     return c;
   }
@@ -95,8 +97,16 @@ void main() {
     await settle();
     bridge.answer({'t': 'g', 'la': 4712346, 'lo': 1150000});
     await settle();
-    expect(ask().watchFix, const LatLng(47.12346, 11.5), reason: 'die Uhr sendet 1e-5 Grad');
-    expect(ask().record, WatchRecord.idle, reason: '„habe GPS" ist keine Aufzeichnung');
+    expect(
+      ask().watchFix,
+      const LatLng(47.12346, 11.5),
+      reason: 'die Uhr sendet 1e-5 Grad',
+    );
+    expect(
+      ask().record,
+      WatchRecord.idle,
+      reason: '„habe GPS" ist keine Aufzeichnung',
+    );
     // Eine alte Uhr-App sendet keine Zahlen: der Stand bleibt, wie er ist.
     bridge.answer({'t': 'rs'});
     bridge.answer({'t': 'g'});
@@ -117,7 +127,11 @@ void main() {
     await settle();
     expect(ask().watchFix, const LatLng(47.13, 11.51));
     expect(ask().watchOffM, 620.0);
-    expect(ask().record, WatchRecord.idle, reason: 'ein Stand ist keine Aufzeichnung');
+    expect(
+      ask().record,
+      WatchRecord.idle,
+      reason: 'ein Stand ist keine Aufzeichnung',
+    );
     // Ohne Abstand ist die Meldung unlesbar und fällt weg.
     bridge.answer({'t': 'd', 'la': 4713000, 'lo': 1151000});
     await settle();

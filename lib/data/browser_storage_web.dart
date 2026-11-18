@@ -10,7 +10,8 @@ import 'package:web/web.dart' as web;
 /// Bewusst NICHT `idbFactoryBrowser`: Das fällt still auf die
 /// Speicher-Fassung zurück, und ein Korb, der jeden Neustart vergisst,
 /// sähe von außen aus wie einer, der bleibt.
-IdbFactory? browserIdbFactory() => idbFactoryNativeSupported ? idbFactoryNative : null;
+IdbFactory? browserIdbFactory() =>
+    idbFactoryNativeSupported ? idbFactoryNative : null;
 
 /// Bittet den Browser, diesen Speicher nicht von sich aus zu räumen.
 /// Chrome entscheidet still nach eigenen Kriterien (installierte PWA,
@@ -22,7 +23,9 @@ Future<bool> requestDurableStorage() => _ask((s) => s.persist());
 /// der Karte.
 Future<bool> isStorageDurable() => _ask((s) => s.persisted());
 
-Future<bool> _ask(JSPromise<JSBoolean> Function(web.StorageManager) call) async {
+Future<bool> _ask(
+  JSPromise<JSBoolean> Function(web.StorageManager) call,
+) async {
   try {
     return (await call(web.window.navigator.storage).toDart).toDart;
   } catch (_) {

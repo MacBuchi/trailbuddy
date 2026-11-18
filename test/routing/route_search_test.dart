@@ -28,147 +28,230 @@ import '../fakes/l10n_de.dart';
 
 /// Meter → Grad über DIESELBE Projektion wie der Graph, sonst sind
 /// „1000 m" im Test 998,9 m im Graphen.
-List<LatLng> _m(List<(double, double)> xy, {double lat0 = 47.5, double lon0 = 11.5}) {
+List<LatLng> _m(
+  List<(double, double)> xy, {
+  double lat0 = 47.5,
+  double lon0 = 11.5,
+}) {
   final proj = FlatProjection(lat0);
   final o = proj.xy(LatLng(lat0, lon0));
   return [for (final (x, y) in xy) proj.latLng(math.Point(o.x + x, o.y + y))];
 }
 
-WayLine _way(List<(double, double)> xy, {WayClass cls = WayClass.forstweg, bool oneway = false}) =>
-    WayLine(cls: cls, oneway: oneway, points: _m(xy));
+WayLine _way(
+  List<(double, double)> xy, {
+  WayClass cls = WayClass.forstweg,
+  bool oneway = false,
+}) => WayLine(cls: cls, oneway: oneway, points: _m(xy));
 
 void main() {
   const bio = RiderProfile.bio;
 
-  test('der Forstweg gewinnt gegen die kürzere Bundesstraße, und der Pfad ist die Linie', () {
-    // Start (0,0) → Ziel (1000,0): Bundesstraße direkt (1 km, ×4), Forstweg
-    // über (500, 300) (≈ 1,17 km, ×1).
-    final g = buildRoadGraph([
-      _way([(0, 0), (1000, 0)], cls: WayClass.bundesstrasse),
-      _way([(0, 0), (500, 300), (1000, 0)]),
-    ], lat0: 47.5).graph;
-    final src = g.attach(_m([(0, 0)]).single)!, dst = g.attach(_m([(1000, 0)]).single)!;
-    final r = shortestPath(g, src, dst, bio)!;
-    expect(g.edges[r.edges.single].cls, WayClass.forstweg);
-    final s = summarizePath(g, r.edges, src, bio);
-    expect(s.lengthM, closeTo(2 * math.sqrt(500 * 500 + 300 * 300), 1));
-    expect(s.mix.keys, [WayClass.forstweg]);
-    expect(s.points.first.longitude, closeTo(_m([(0, 0)]).single.longitude, 1e-9));
-    expect(s.points.last.longitude, closeTo(_m([(1000, 0)]).single.longitude, 1e-9));
-    expect(s.heightsComplete, isFalse, reason: 'keine Höhen gelesen');
-    expect(s.hikingM, 0);
-    // Zeit = Strecke / 15 km/h ohne Höhen.
-    expect(s.timeS, closeTo(s.lengthM / (15 / 3.6), 1e-6));
-  });
+  test(
+    'der Forstweg gewinnt gegen die kürzere Bundesstraße, und der Pfad ist die Linie',
+    () {
+      // Start (0,0) → Ziel (1000,0): Bundesstraße direkt (1 km, ×4), Forstweg
+      // über (500, 300) (≈ 1,17 km, ×1).
+      final g = buildRoadGraph([
+        _way([(0, 0), (1000, 0)], cls: WayClass.bundesstrasse),
+        _way([(0, 0), (500, 300), (1000, 0)]),
+      ], lat0: 47.5).graph;
+      final src = g.attach(_m([(0, 0)]).single)!,
+          dst = g.attach(_m([(1000, 0)]).single)!;
+      final r = shortestPath(g, src, dst, bio)!;
+      expect(g.edges[r.edges.single].cls, WayClass.forstweg);
+      final s = summarizePath(g, r.edges, src, bio);
+      expect(s.lengthM, closeTo(2 * math.sqrt(500 * 500 + 300 * 300), 1));
+      expect(s.mix.keys, [WayClass.forstweg]);
+      expect(
+        s.points.first.longitude,
+        closeTo(_m([(0, 0)]).single.longitude, 1e-9),
+      );
+      expect(
+        s.points.last.longitude,
+        closeTo(_m([(1000, 0)]).single.longitude, 1e-9),
+      );
+      expect(s.heightsComplete, isFalse, reason: 'keine Höhen gelesen');
+      expect(s.hikingM, 0);
+      // Zeit = Strecke / 15 km/h ohne Höhen.
+      expect(s.timeS, closeTo(s.lengthM / (15 / 3.6), 1e-6));
+    },
+  );
 
-  test('Wegegüte (#213): bergauf gewinnt der gute Umweg, bergab der sehr schlechte direkte Forstweg', () {
-    // (0,0) → (1000,0): direkt 1 km Forstweg mit 100 hm, sehr schlecht (7);
-    // der Umweg über (500, 400) hat ≈ 1,28 km und 100 hm, gut. Bio:
-    // direkt 1 040 s + 872 s Aufschlag, Umweg ≈ 1 107 s.
-    final g = buildRoadGraph([
-      _way([(0, 0), (1000, 0)]),
-      _way([(0, 0), (500, 400), (1000, 0)]),
-    ], lat0: 47.5).graph;
-    final a = g.attach(_m([(0, 0)]).single)!, b = g.attach(_m([(1000, 0)]).single)!;
-    final direct = g.edges.indexWhere((e) => e.points.length == 2);
-    for (final e in g.edges) {
-      final up = e.a == a;
-      e
-        ..gain = up ? 100 : 0
-        ..loss = up ? 0 : 100
-        ..hasHeights = true
-        ..way = 1;
-    }
-    expect(g.edges[shortestPath(g, a, b, bio)!.edges.single].points, hasLength(2), reason: 'gleich gut: direkt');
-    g.edges[direct].way = 7;
-    expect(g.edges[shortestPath(g, a, b, bio)!.edges.single].points, hasLength(3), reason: 'sehr schlecht bergauf: Umweg');
-    expect(g.edges[shortestPath(g, b, a, bio)!.edges.single].points, hasLength(2), reason: 'bergab kein Aufschlag');
-  });
+  test(
+    'Wegegüte (#213): bergauf gewinnt der gute Umweg, bergab der sehr schlechte direkte Forstweg',
+    () {
+      // (0,0) → (1000,0): direkt 1 km Forstweg mit 100 hm, sehr schlecht (7);
+      // der Umweg über (500, 400) hat ≈ 1,28 km und 100 hm, gut. Bio:
+      // direkt 1 040 s + 872 s Aufschlag, Umweg ≈ 1 107 s.
+      final g = buildRoadGraph([
+        _way([(0, 0), (1000, 0)]),
+        _way([(0, 0), (500, 400), (1000, 0)]),
+      ], lat0: 47.5).graph;
+      final a = g.attach(_m([(0, 0)]).single)!,
+          b = g.attach(_m([(1000, 0)]).single)!;
+      final direct = g.edges.indexWhere((e) => e.points.length == 2);
+      for (final e in g.edges) {
+        final up = e.a == a;
+        e
+          ..gain = up ? 100 : 0
+          ..loss = up ? 0 : 100
+          ..hasHeights = true
+          ..way = 1;
+      }
+      expect(
+        g.edges[shortestPath(g, a, b, bio)!.edges.single].points,
+        hasLength(2),
+        reason: 'gleich gut: direkt',
+      );
+      g.edges[direct].way = 7;
+      expect(
+        g.edges[shortestPath(g, a, b, bio)!.edges.single].points,
+        hasLength(3),
+        reason: 'sehr schlecht bergauf: Umweg',
+      );
+      expect(
+        g.edges[shortestPath(g, b, a, bio)!.edges.single].points,
+        hasLength(2),
+        reason: 'bergab kein Aufschlag',
+      );
+    },
+  );
 
-  test('Steilaufschlag (#194): die steile Abkürzung verliert, bergab und auf dem Uphill-Trail nicht', () {
-    // (0,0) → (0,600): direkt 600 m Forstweg mit 140 hm, davon 60 über 15 %
-    // — gewichtet (#188) jeder der 140 hm mit seinen 23 %, rund 150;
-    // der Umweg über (400, 300) hat 1 000 m und 140 hm, nirgends steil.
-    final g = buildRoadGraph([
-      _way([(0, 0), (0, 600)]),
-      _way([(0, 0), (400, 300), (0, 600)]),
-    ], lat0: 47.5).graph;
-    final a = g.attach(_m([(0, 0)]).single)!, b = g.attach(_m([(0, 600)]).single)!;
-    final direct = g.edges.indexWhere((e) => e.points.length == 2);
-    for (final (i, e) in g.edges.indexed) {
-      final up = e.a == a; // a → b ist bergauf
-      e
-        ..gain = up ? (i == direct ? 140 : 140 * e.length / 1000) : 0
-        ..loss = up ? 0 : (i == direct ? 140 : 140 * e.length / 1000)
-        ..hasHeights = true;
-      if (i == direct) {
-        if (up) {
-          e
-            ..steepUp = 60
-            ..steepWUp = 140 * steepWeightAt(140 / 600);
-        } else {
-          e
-            ..steepDown = 60
-            ..steepWDown = 140 * steepWeightAt(140 / 600);
+  test(
+    'Steilaufschlag (#194): die steile Abkürzung verliert, bergab und auf dem Uphill-Trail nicht',
+    () {
+      // (0,0) → (0,600): direkt 600 m Forstweg mit 140 hm, davon 60 über 15 %
+      // — gewichtet (#188) jeder der 140 hm mit seinen 23 %, rund 150;
+      // der Umweg über (400, 300) hat 1 000 m und 140 hm, nirgends steil.
+      final g = buildRoadGraph([
+        _way([(0, 0), (0, 600)]),
+        _way([(0, 0), (400, 300), (0, 600)]),
+      ], lat0: 47.5).graph;
+      final a = g.attach(_m([(0, 0)]).single)!,
+          b = g.attach(_m([(0, 600)]).single)!;
+      final direct = g.edges.indexWhere((e) => e.points.length == 2);
+      for (final (i, e) in g.edges.indexed) {
+        final up = e.a == a; // a → b ist bergauf
+        e
+          ..gain = up ? (i == direct ? 140 : 140 * e.length / 1000) : 0
+          ..loss = up ? 0 : (i == direct ? 140 : 140 * e.length / 1000)
+          ..hasHeights = true;
+        if (i == direct) {
+          if (up) {
+            e
+              ..steepUp = 60
+              ..steepWUp = 140 * steepWeightAt(140 / 600);
+          } else {
+            e
+              ..steepDown = 60
+              ..steepWDown = 140 * steepWeightAt(140 / 600);
+          }
         }
       }
-    }
-    final up = shortestPath(g, a, b, bio)!;
-    expect(up.edges, isNot([direct]), reason: '140 hm mit 23 % kosten gut eine Stunde — mehr als 400 m Umweg');
-    expect(summarizePath(g, up.edges, a, bio).steepM, 0);
-    expect(shortestPath(g, b, a, bio)!.edges, [direct], reason: 'bergab ist die Steilheit kein Aufschlag');
+      final up = shortestPath(g, a, b, bio)!;
+      expect(
+        up.edges,
+        isNot([direct]),
+        reason: '140 hm mit 23 % kosten gut eine Stunde — mehr als 400 m Umweg',
+      );
+      expect(summarizePath(g, up.edges, a, bio).steepM, 0);
+      expect(shortestPath(g, b, a, bio)!.edges, [
+        direct,
+      ], reason: 'bergab ist die Steilheit kein Aufschlag');
 
-    // Ohne die steilen Meter wäre die Abkürzung die Wahl.
-    final e = g.edges[direct];
-    final steep = (e.steepWUp, e.steepWDown);
-    e
-      ..steepWUp = 0
-      ..steepWDown = 0;
-    expect(shortestPath(g, a, b, bio)!.edges, [direct]);
-    // Mit „Steile Rampen: egal" (#188) bleibt ein Drittel — für 23 %
-    // immer noch zu viel, die Abkürzung verliert weiter.
-    e
-      ..steepWUp = steep.$1
-      ..steepWDown = steep.$2;
-    expect(shortestPath(g, a, b, bio.withPrefs(const RoutePrefs(avoidSteep: false)))!.edges, isNot([direct]));
-
-    // Als Uphill-Trail gewollt: kein Aufschlag, die Abkürzung ist der Weg.
-    e.trail = const EdgeTrail(id: 'up', name: 'Uphill', connector: true);
-    final viaTrail = shortestPath(g, a, b, bio)!;
-    expect(viaTrail.edges, [direct]);
-    expect(summarizePath(g, viaTrail.edges, a, bio).steepM, 0, reason: 'der Uphill-Trail zählt nicht als steil');
-  });
-
-  test('Stufen bergauf (#210): die kurze Treppe verliert gegen 900 m Forstweg, bergab nicht', () {
-    // (0,0) → (0,20): 20 m Stufen mit 4 hm, oder 900 m Forstweg über
-    // (450, 10) mit denselben 4 hm. Ohne Aufschlag 216 s gegen 248 s —
-    // die Treppe gewänne; mit ihm 276 s.
-    final g = buildRoadGraph([
-      _way([(0, 0), (0, 20)], cls: WayClass.stufen),
-      _way([(0, 0), (450, 10), (0, 20)]),
-    ], lat0: 47.5).graph;
-    final a = g.attach(_m([(0, 0)]).single)!, b = g.attach(_m([(0, 20)]).single)!;
-    final flight = g.edges.indexWhere((e) => e.cls == WayClass.stufen);
-    for (final e in g.edges) {
-      final up = e.a == a; // a → b ist bergauf, beide Wege 4 hm
+      // Ohne die steilen Meter wäre die Abkürzung die Wahl.
+      final e = g.edges[direct];
+      final steep = (e.steepWUp, e.steepWDown);
       e
-        ..gain = up ? 4 : 0
-        ..loss = up ? 0 : 4
-        ..hasHeights = true;
-    }
-    expect(edgeCostFrom(g, flight, a, bio).cost, closeTo(276.0, 1e-6));
-    expect(shortestPath(g, a, b, bio)!.edges, isNot(contains(flight)), reason: 'hinauf wird getragen');
-    expect(shortestPath(g, b, a, bio)!.edges, [flight], reason: 'hinunter kein Aufschlag');
+        ..steepWUp = 0
+        ..steepWDown = 0;
+      expect(shortestPath(g, a, b, bio)!.edges, [direct]);
+      // Mit „Steile Rampen: egal" (#188) bleibt ein Drittel — für 23 %
+      // immer noch zu viel, die Abkürzung verliert weiter.
+      e
+        ..steepWUp = steep.$1
+        ..steepWDown = steep.$2;
+      expect(
+        shortestPath(
+          g,
+          a,
+          b,
+          bio.withPrefs(const RoutePrefs(avoidSteep: false)),
+        )!.edges,
+        isNot([direct]),
+      );
 
-    // Geteilt (ein Trailkopf auf der Treppe) bleibt es EIN Aufschlag.
-    final mid = g.splitEdge(flight, 0, _m([(0, 10)]).single);
-    final halves = [for (final (i, e) in g.edges.indexed) if (e.cls == WayClass.stufen) i];
-    expect(halves, hasLength(2));
-    expect(g.edges[halves[0]].carry + g.edges[halves[1]].carry, closeTo(1.0, 1e-9));
-    expect(edgeCostFrom(g, halves[0], a, bio).cost + edgeCostFrom(g, halves[1], mid, bio).cost, closeTo(276.0, 1e-6),
-        reason: 'die Hälften kosten zusammen, was die Treppe kostete');
-    expect(shortestPath(g, a, b, bio)!.edges.every((i) => g.edges[i].cls == WayClass.forstweg), isTrue);
-  });
+      // Als Uphill-Trail gewollt: kein Aufschlag, die Abkürzung ist der Weg.
+      e.trail = const EdgeTrail(id: 'up', name: 'Uphill', connector: true);
+      final viaTrail = shortestPath(g, a, b, bio)!;
+      expect(viaTrail.edges, [direct]);
+      expect(
+        summarizePath(g, viaTrail.edges, a, bio).steepM,
+        0,
+        reason: 'der Uphill-Trail zählt nicht als steil',
+      );
+    },
+  );
+
+  test(
+    'Stufen bergauf (#210): die kurze Treppe verliert gegen 900 m Forstweg, bergab nicht',
+    () {
+      // (0,0) → (0,20): 20 m Stufen mit 4 hm, oder 900 m Forstweg über
+      // (450, 10) mit denselben 4 hm. Ohne Aufschlag 216 s gegen 248 s —
+      // die Treppe gewänne; mit ihm 276 s.
+      final g = buildRoadGraph([
+        _way([(0, 0), (0, 20)], cls: WayClass.stufen),
+        _way([(0, 0), (450, 10), (0, 20)]),
+      ], lat0: 47.5).graph;
+      final a = g.attach(_m([(0, 0)]).single)!,
+          b = g.attach(_m([(0, 20)]).single)!;
+      final flight = g.edges.indexWhere((e) => e.cls == WayClass.stufen);
+      for (final e in g.edges) {
+        final up = e.a == a; // a → b ist bergauf, beide Wege 4 hm
+        e
+          ..gain = up ? 4 : 0
+          ..loss = up ? 0 : 4
+          ..hasHeights = true;
+      }
+      expect(edgeCostFrom(g, flight, a, bio).cost, closeTo(276.0, 1e-6));
+      expect(
+        shortestPath(g, a, b, bio)!.edges,
+        isNot(contains(flight)),
+        reason: 'hinauf wird getragen',
+      );
+      expect(shortestPath(g, b, a, bio)!.edges, [
+        flight,
+      ], reason: 'hinunter kein Aufschlag');
+
+      // Geteilt (ein Trailkopf auf der Treppe) bleibt es EIN Aufschlag.
+      final mid = g.splitEdge(flight, 0, _m([(0, 10)]).single);
+      final halves = [
+        for (final (i, e) in g.edges.indexed)
+          if (e.cls == WayClass.stufen) i,
+      ];
+      expect(halves, hasLength(2));
+      expect(
+        g.edges[halves[0]].carry + g.edges[halves[1]].carry,
+        closeTo(1.0, 1e-9),
+      );
+      expect(
+        edgeCostFrom(g, halves[0], a, bio).cost +
+            edgeCostFrom(g, halves[1], mid, bio).cost,
+        closeTo(276.0, 1e-6),
+        reason: 'die Hälften kosten zusammen, was die Treppe kostete',
+      );
+      expect(
+        shortestPath(
+          g,
+          a,
+          b,
+          bio,
+        )!.edges.every((i) => g.edges[i].cls == WayClass.forstweg),
+        isTrue,
+      );
+    },
+  );
 
   test('der Satz zu steilen Stücken erst ab ein paar Höhenmetern (#194)', () {
     expect(steepNote(l10nDe, 0), isNull);
@@ -181,68 +264,118 @@ void main() {
       _way([(0, 0), (1000, 0)], cls: WayClass.nebenstrasse, oneway: true),
       _way([(0, 0), (500, 400), (1000, 0)]),
     ], lat0: 47.5).graph;
-    final a = g.attach(_m([(0, 0)]).single)!, b = g.attach(_m([(1000, 0)]).single)!;
-    expect(g.edges[shortestPath(g, a, b, bio)!.edges.single].cls, WayClass.nebenstrasse);
-    expect(g.edges[shortestPath(g, b, a, bio)!.edges.single].cls, WayClass.forstweg);
+    final a = g.attach(_m([(0, 0)]).single)!,
+        b = g.attach(_m([(1000, 0)]).single)!;
+    expect(
+      g.edges[shortestPath(g, a, b, bio)!.edges.single].cls,
+      WayClass.nebenstrasse,
+    );
+    expect(
+      g.edges[shortestPath(g, b, a, bio)!.edges.single].cls,
+      WayClass.forstweg,
+    );
   });
 
-  test('Vorlieben (#188): „Straßen egal" nimmt die kürzere Hauptstraße, „meiden" den Forstweg', () {
-    // Hauptstraße direkt 1 km (×2,5, egal ×1,525), Forstweg über (500, 300)
-    // ≈ 1,17 km (×1).
-    final g = buildRoadGraph([
-      _way([(0, 0), (1000, 0)], cls: WayClass.hauptstrasse),
-      _way([(0, 0), (500, 300), (1000, 0)]),
-    ], lat0: 47.5).graph;
-    final src = g.attach(_m([(0, 0)]).single)!, dst = g.attach(_m([(1000, 0)]).single)!;
-    expect(g.edges[shortestPath(g, src, dst, bio)!.edges.single].cls, WayClass.forstweg);
-    final any = bio.withPrefs(const RoutePrefs(avoidRoads: false));
-    expect(g.edges[shortestPath(g, src, dst, any)!.edges.single].cls, WayClass.forstweg,
-        reason: 'egal ist nicht null: 1,525 × 1 km sind mehr als 1,17 km Forstweg');
-    // Bei 1,7 km Forstweg kippt es (1,525 km gegen 1,72 km, meiden 2,5 km).
-    final g2 = buildRoadGraph([
-      _way([(0, 0), (1000, 0)], cls: WayClass.hauptstrasse),
-      _way([(0, 0), (500, 700), (1000, 0)]),
-    ], lat0: 47.5).graph;
-    final s2 = g2.attach(_m([(0, 0)]).single)!, d2 = g2.attach(_m([(1000, 0)]).single)!;
-    expect(g2.edges[shortestPath(g2, s2, d2, bio)!.edges.single].cls, WayClass.forstweg);
-    expect(g2.edges[shortestPath(g2, s2, d2, any)!.edges.single].cls, WayClass.hauptstrasse);
-  });
+  test(
+    'Vorlieben (#188): „Straßen egal" nimmt die kürzere Hauptstraße, „meiden" den Forstweg',
+    () {
+      // Hauptstraße direkt 1 km (×2,5, egal ×1,525), Forstweg über (500, 300)
+      // ≈ 1,17 km (×1).
+      final g = buildRoadGraph([
+        _way([(0, 0), (1000, 0)], cls: WayClass.hauptstrasse),
+        _way([(0, 0), (500, 300), (1000, 0)]),
+      ], lat0: 47.5).graph;
+      final src = g.attach(_m([(0, 0)]).single)!,
+          dst = g.attach(_m([(1000, 0)]).single)!;
+      expect(
+        g.edges[shortestPath(g, src, dst, bio)!.edges.single].cls,
+        WayClass.forstweg,
+      );
+      final any = bio.withPrefs(const RoutePrefs(avoidRoads: false));
+      expect(
+        g.edges[shortestPath(g, src, dst, any)!.edges.single].cls,
+        WayClass.forstweg,
+        reason:
+            'egal ist nicht null: 1,525 × 1 km sind mehr als 1,17 km Forstweg',
+      );
+      // Bei 1,7 km Forstweg kippt es (1,525 km gegen 1,72 km, meiden 2,5 km).
+      final g2 = buildRoadGraph([
+        _way([(0, 0), (1000, 0)], cls: WayClass.hauptstrasse),
+        _way([(0, 0), (500, 700), (1000, 0)]),
+      ], lat0: 47.5).graph;
+      final s2 = g2.attach(_m([(0, 0)]).single)!,
+          d2 = g2.attach(_m([(1000, 0)]).single)!;
+      expect(
+        g2.edges[shortestPath(g2, s2, d2, bio)!.edges.single].cls,
+        WayClass.forstweg,
+      );
+      expect(
+        g2.edges[shortestPath(g2, s2, d2, any)!.edges.single].cls,
+        WayClass.hauptstrasse,
+      );
+    },
+  );
 
-  test('Stil „Bequem" (#329): der Umweg über die Nebenstraße statt des Schotteranstiegs', () {
-    // Forstweg direkt 1 km mit 100 hm (MTB 1040, Bequem 2396), Nebenstraße
-    // über (500, 490) ≈ 1,4 km mit denselben 100 hm (MTB ×1,2 = 1363,
-    // Bequem 2336) — die Suche „Umweg" im Werkzeug.
-    final g = buildRoadGraph([
-      _way([(0, 0), (1000, 0)]),
-      _way([(0, 0), (500, 490), (1000, 0)], cls: WayClass.nebenstrasse),
-    ], lat0: 47.5).graph;
-    for (final e in g.edges) {
-      e.gain = 100;
-    }
-    final src = g.attach(_m([(0, 0)]).single)!, dst = g.attach(_m([(1000, 0)]).single)!;
-    expect(g.edges[shortestPath(g, src, dst, bio)!.edges.single].cls, WayClass.forstweg);
-    final easy = bio.withPrefs(const RoutePrefs(easy: true));
-    expect(g.edges[shortestPath(g, src, dst, easy)!.edges.single].cls, WayClass.nebenstrasse);
-  });
+  test(
+    'Stil „Bequem" (#329): der Umweg über die Nebenstraße statt des Schotteranstiegs',
+    () {
+      // Forstweg direkt 1 km mit 100 hm (MTB 1040, Bequem 2396), Nebenstraße
+      // über (500, 490) ≈ 1,4 km mit denselben 100 hm (MTB ×1,2 = 1363,
+      // Bequem 2336) — die Suche „Umweg" im Werkzeug.
+      final g = buildRoadGraph([
+        _way([(0, 0), (1000, 0)]),
+        _way([(0, 0), (500, 490), (1000, 0)], cls: WayClass.nebenstrasse),
+      ], lat0: 47.5).graph;
+      for (final e in g.edges) {
+        e.gain = 100;
+      }
+      final src = g.attach(_m([(0, 0)]).single)!,
+          dst = g.attach(_m([(1000, 0)]).single)!;
+      expect(
+        g.edges[shortestPath(g, src, dst, bio)!.edges.single].cls,
+        WayClass.forstweg,
+      );
+      final easy = bio.withPrefs(const RoutePrefs(easy: true));
+      expect(
+        g.edges[shortestPath(g, src, dst, easy)!.edges.single].cls,
+        WayClass.nebenstrasse,
+      );
+    },
+  );
 
-  test('Verschenkte Höhe (#188) kostet auf einer Verbindung, auf einem Trail nicht', () {
-    final g = buildRoadGraph([_way([(0, 0), (1000, 0)])], lat0: 47.5).graph;
-    final e = g.edges.single
-      ..gain = 0
-      ..loss = 100
-      ..hasHeights = true;
-    final from = e.a; // in Kantenrichtung: 100 hm bergab
-    final plain = 1000 / (25 / 3.6);
-    expect(edgeCostFrom(g, 0, from, bio).cost, closeTo(plain + 100 * kDescentCost * 3600 / 450, 1e-6));
-    e.trail = const EdgeTrail(id: 't', name: 'Abfahrt', connector: false);
-    expect(edgeCostFrom(g, 0, from, bio).cost, closeTo(plain, 1e-6), reason: 'dafür ist der Trail da');
-  });
+  test(
+    'Verschenkte Höhe (#188) kostet auf einer Verbindung, auf einem Trail nicht',
+    () {
+      final g = buildRoadGraph([
+        _way([(0, 0), (1000, 0)]),
+      ], lat0: 47.5).graph;
+      final e = g.edges.single
+        ..gain = 0
+        ..loss = 100
+        ..hasHeights = true;
+      final from = e.a; // in Kantenrichtung: 100 hm bergab
+      final plain = 1000 / (25 / 3.6);
+      expect(
+        edgeCostFrom(g, 0, from, bio).cost,
+        closeTo(plain + 100 * kDescentCost * 3600 / 450, 1e-6),
+      );
+      e.trail = const EdgeTrail(id: 't', name: 'Abfahrt', connector: false);
+      expect(
+        edgeCostFrom(g, 0, from, bio).cost,
+        closeTo(plain, 1e-6),
+        reason: 'dafür ist der Trail da',
+      );
+    },
+  );
 
   test('das Budget begrenzt die Reichweite; Anstieg wird mitgezählt', () {
     final g = buildRoadGraph([
       _way([(0, 0), (1000, 0), (2000, 0), (3000, 0)]),
     ], lat0: 47.5).graph;
-    final split = [for (final x in [0, 1000, 2000, 3000]) g.attach(_m([(x.toDouble(), 0)]).single)!];
+    final split = [
+      for (final x in [0, 1000, 2000, 3000])
+        g.attach(_m([(x.toDouble(), 0)]).single)!,
+    ];
     for (final e in g.edges) {
       e
         ..gain = 100
@@ -262,7 +395,10 @@ void main() {
     // Zurück: bergab, Strecke mit 25 km/h, dazu kostet jeder verschenkte
     // Höhenmeter 0,3 seiner Steigzeit (#188).
     final back = dijkstra(g, split[3], bio);
-    expect(back.costTo(split[0]), closeTo(3 * 1000 / (25 / 3.6) + 300 * kDescentCost * 3600 / 450, 1e-6));
+    expect(
+      back.costTo(split[0]),
+      closeTo(3 * 1000 / (25 / 3.6) + 300 * kDescentCost * 3600 / 450, 1e-6),
+    );
     expect(back.climbTo(split[0]), 0);
     final s = summarizePath(g, back.pathTo(split[0])!, split[3], bio);
     expect(s.gainM, 0);
@@ -270,39 +406,52 @@ void main() {
     expect(s.heightsComplete, isTrue);
   });
 
-  test('vorab gerechnete Kosten (#379) sind dieselben, bis der Graph sich ändert', () {
-    final g = buildRoadGraph([
-      _way([(0, 0), (1000, 0), (2000, 300)]),
-      _way([(0, 0), (500, 400), (1000, 0)], cls: WayClass.wanderweg),
-      _way([(1000, 0), (1000, -800)], cls: WayClass.nebenstrasse),
-    ], lat0: 47.5).graph;
-    for (final (i, e) in g.edges.indexed) {
-      e
-        ..gain = 40.0 * i
-        ..loss = 15.0 + i
-        ..steepUp = 3.0 * i
-        ..steepWUp = 2.0 * i
-        ..hasHeights = true;
-    }
-    final costs = EdgeCosts(g, bio);
-    for (final (i, e) in g.edges.indexed) {
-      for (final from in [e.a, e.b]) {
-        expect(costs.of(i, from), edgeCostFrom(g, i, from, bio).cost, reason: 'Kante $i ab $from');
+  test(
+    'vorab gerechnete Kosten (#379) sind dieselben, bis der Graph sich ändert',
+    () {
+      final g = buildRoadGraph([
+        _way([(0, 0), (1000, 0), (2000, 300)]),
+        _way([(0, 0), (500, 400), (1000, 0)], cls: WayClass.wanderweg),
+        _way([(1000, 0), (1000, -800)], cls: WayClass.nebenstrasse),
+      ], lat0: 47.5).graph;
+      for (final (i, e) in g.edges.indexed) {
+        e
+          ..gain = 40.0 * i
+          ..loss = 15.0 + i
+          ..steepUp = 3.0 * i
+          ..steepWUp = 2.0 * i
+          ..hasHeights = true;
       }
-    }
-    final a = dijkstra(g, 0, bio), b = dijkstra(g, 0, bio, costs: costs);
-    for (var n = 0; n < g.nodes.length; n++) {
-      expect(b.costTo(n), a.costTo(n));
-      expect(b.pathTo(n), a.pathTo(n));
-    }
-    // Eine Teilung kürzt die Kante: Danach gilt das Gemerkte nicht mehr.
-    final mid = g.attach(_m([(400, 0)]).single)!;
-    final e0 = g.adj[mid].first;
-    expect(costs.of(e0, g.edges[e0].a), edgeCostFrom(g, e0, g.edges[e0].a, bio).cost);
-  });
+      final costs = EdgeCosts(g, bio);
+      for (final (i, e) in g.edges.indexed) {
+        for (final from in [e.a, e.b]) {
+          expect(
+            costs.of(i, from),
+            edgeCostFrom(g, i, from, bio).cost,
+            reason: 'Kante $i ab $from',
+          );
+        }
+      }
+      final a = dijkstra(g, 0, bio), b = dijkstra(g, 0, bio, costs: costs);
+      for (var n = 0; n < g.nodes.length; n++) {
+        expect(b.costTo(n), a.costTo(n));
+        expect(b.pathTo(n), a.pathTo(n));
+      }
+      // Eine Teilung kürzt die Kante: Danach gilt das Gemerkte nicht mehr.
+      final mid = g.attach(_m([(400, 0)]).single)!;
+      final e0 = g.adj[mid].first;
+      expect(
+        costs.of(e0, g.edges[e0].a),
+        edgeCostFrom(g, e0, g.edges[e0].a, bio).cost,
+      );
+    },
+  );
 
   test('kein Weg: null', () {
-    final g = buildRoadGraph([_way([(0, 0), (100, 0)]), _way([(500, 0), (600, 0)])], lat0: 47.5).graph;
+    final g = buildRoadGraph([
+      _way([(0, 0), (100, 0)]),
+      _way([(500, 0), (600, 0)]),
+    ], lat0: 47.5).graph;
     expect(shortestPath(g, 0, 2, bio), isNull);
     expect(dijkstra(g, 0, bio).pathTo(2), isNull);
   });
@@ -316,7 +465,12 @@ void main() {
       road([(2048, 0), (2048, 4096)], 'minor_road', kindDetail: 'residential'),
     ]);
     final bounds = tileBounds(13, t.x, t.y);
-    final box = LatBox(bounds.south + 1e-4, bounds.west + 1e-4, bounds.north - 1e-4, bounds.east - 1e-4);
+    final box = LatBox(
+      bounds.south + 1e-4,
+      bounds.west + 1e-4,
+      bounds.north - 1e-4,
+      bounds.east - 1e-4,
+    );
 
     Future<MemoryAreaStore> seed({required bool withTile}) async {
       final store = MemoryAreaStore();
@@ -327,7 +481,12 @@ void main() {
       final bytes = writePmTiles(
         tiles: tiles,
         tileCompression: Compression.none,
-        bounds: TileBounds(west: bounds.west, south: bounds.south, east: bounds.east, north: bounds.north),
+        bounds: TileBounds(
+          west: bounds.west,
+          south: bounds.south,
+          east: bounds.east,
+          north: bounds.north,
+        ),
       );
       await store.putArchive('a', bytes);
       await store.saveIndex([
@@ -346,195 +505,325 @@ void main() {
       return store;
     }
 
-    Future<PmTilesVectorTileProvider?> Function(StoredArea) openFrom(MemoryAreaStore store) => (a) async {
-          final bytes = await store.readArchive(a.id);
-          return bytes == null ? null : PmTilesVectorTileProvider.openBytes(bytes);
-        };
+    Future<PmTilesVectorTileProvider?> Function(StoredArea) openFrom(
+      MemoryAreaStore store,
+    ) => (a) async {
+      final bytes = await store.readArchive(a.id);
+      return bytes == null ? null : PmTilesVectorTileProvider.openBytes(bytes);
+    };
 
-    test('vollständig: der Graph steht, die Kreuzung ist geteilt, Höhen aus dem Leser', () async {
-      final store = await seed(withTile: true);
-      final values = [for (var i = 0; i < kHeightGrid * kHeightGrid; i++) 700];
-      final heights = HeightReader([
-        MemoryHeightSource({(x: t.x, y: t.y): HeightTile(Int16List.fromList(values))}),
-      ]);
-      final r = await loadRoadGraph(areas: await store.list(), box: box, open: openFrom(store), heights: heights);
-      expect(r.coverage, RoadCoverage.complete);
-      expect(r.tilesFound, 1);
-      expect(r.crossings, 1);
-      final g = r.graph!;
-      expect(g.edges, hasLength(4));
-      expect(r.edgesWithoutHeights, 0);
-      expect(g.components(), hasLength(1));
-      // Von der West- zur Ostkante über die Kreuzung.
-      final src = g.attach(LatLng((bounds.north + bounds.south) / 2, bounds.west))!;
-      final dst = g.attach(LatLng((bounds.north + bounds.south) / 2, bounds.east))!;
-      final p = shortestPath(g, src, dst, bio)!;
-      expect(p.edges, hasLength(2));
-      expect(summarizePath(g, p.edges, src, bio).gainM, 0);
-    });
+    test(
+      'vollständig: der Graph steht, die Kreuzung ist geteilt, Höhen aus dem Leser',
+      () async {
+        final store = await seed(withTile: true);
+        final values = [
+          for (var i = 0; i < kHeightGrid * kHeightGrid; i++) 700,
+        ];
+        final heights = HeightReader([
+          MemoryHeightSource({
+            (x: t.x, y: t.y): HeightTile(Int16List.fromList(values)),
+          }),
+        ]);
+        final r = await loadRoadGraph(
+          areas: await store.list(),
+          box: box,
+          open: openFrom(store),
+          heights: heights,
+        );
+        expect(r.coverage, RoadCoverage.complete);
+        expect(r.tilesFound, 1);
+        expect(r.crossings, 1);
+        final g = r.graph!;
+        expect(g.edges, hasLength(4));
+        expect(r.edgesWithoutHeights, 0);
+        expect(g.components(), hasLength(1));
+        // Von der West- zur Ostkante über die Kreuzung.
+        final src = g.attach(
+          LatLng((bounds.north + bounds.south) / 2, bounds.west),
+        )!;
+        final dst = g.attach(
+          LatLng((bounds.north + bounds.south) / 2, bounds.east),
+        )!;
+        final p = shortestPath(g, src, dst, bio)!;
+        expect(p.edges, hasLength(2));
+        expect(summarizePath(g, p.edges, src, bio).gainM, 0);
+      },
+    );
 
-    test('Bereich ohne Höhen, mit Empfang: die Höhen kommen vom Host (#322)', () async {
-      // Das Feld: Wege aus alten Bereichen (vor 0.69.0, ohne Höhen) — kein
-      // Wegestück wird nachgeladen. Bis 0.117.x fragte die Planung den Host
-      // dann nach keiner Höhe: „0 hm bergauf", das Profil darunter voller Berge.
+    test(
+      'Bereich ohne Höhen, mit Empfang: die Höhen kommen vom Host (#322)',
+      () async {
+        // Das Feld: Wege aus alten Bereichen (vor 0.69.0, ohne Höhen) — kein
+        // Wegestück wird nachgeladen. Bis 0.117.x fragte die Planung den Host
+        // dann nach keiner Höhe: „0 hm bergauf", das Profil darunter voller Berge.
+        final store = await seed(withTile: true);
+        // Von West nach Ost 5 m je Rasterspalte: 240 m über die Kachel.
+        final values = [
+          for (var row = 0; row < kHeightGrid; row++)
+            for (var col = 0; col < kHeightGrid; col++) 500 + 5 * col,
+        ];
+        final hostHeights = writePmTiles(
+          tiles: [
+            TileToWrite(kHeightTileZoom, t.x, t.y, encodeHeightTile(values)),
+          ],
+          tileCompression: Compression.gzip,
+          bounds: TileBounds(
+            west: bounds.west,
+            south: bounds.south,
+            east: bounds.east,
+            north: bounds.north,
+          ),
+          metadata: heightsMetadata('Test', '20261001'),
+        );
+        final online = OnlineFill(
+          openRoads: () async =>
+              throw StateError('Die Wege kommen aus dem Bereich'),
+          openHeights: () async => PmTilesArchive.fromBytes(hostHeights),
+          cache: OnlineTileCache(),
+        );
+        final r = await loadRoadGraph(
+          areas: await store.list(),
+          box: box,
+          open: openFrom(store),
+          heights: HeightReader([online.heights]),
+          fetchOnline: online.fetch,
+        );
+        await online.close();
+        expect(r.tilesOnline, 0, reason: 'die Wege kamen alle aus dem Bereich');
+        expect(r.edgesWithoutHeights, 0);
+        final g = r.graph!;
+        final src = g.attach(
+          LatLng((bounds.north + bounds.south) / 2, bounds.west),
+        )!;
+        final dst = g.attach(
+          LatLng((bounds.north + bounds.south) / 2, bounds.east),
+        )!;
+        final s = summarizePath(
+          g,
+          shortestPath(g, src, dst, bio)!.edges,
+          src,
+          bio,
+        );
+        expect(s.heightsComplete, isTrue);
+        expect(s.gainM, closeTo(240, 15));
+        expect(
+          online.heightRequests,
+          lessThanOrEqualTo(kOnlineHeightsMaxTiles),
+          reason:
+              'Kanten am Kachelrand fragen auch die Nachbarn — nie mehr als die Grenze',
+        );
+      },
+    );
+
+    test('ohne Höhenleser zählt jede Kante als ohne Höhe', () async {
       final store = await seed(withTile: true);
-      // Von West nach Ost 5 m je Rasterspalte: 240 m über die Kachel.
-      final values = [
-        for (var row = 0; row < kHeightGrid; row++)
-          for (var col = 0; col < kHeightGrid; col++) 500 + 5 * col,
-      ];
-      final hostHeights = writePmTiles(
-        tiles: [TileToWrite(kHeightTileZoom, t.x, t.y, encodeHeightTile(values))],
-        tileCompression: Compression.gzip,
-        bounds: TileBounds(west: bounds.west, south: bounds.south, east: bounds.east, north: bounds.north),
-        metadata: heightsMetadata('Test', '20261001'),
-      );
-      final online = OnlineFill(
-        openRoads: () async => throw StateError('Die Wege kommen aus dem Bereich'),
-        openHeights: () async => PmTilesArchive.fromBytes(hostHeights),
-        cache: OnlineTileCache(),
-      );
       final r = await loadRoadGraph(
         areas: await store.list(),
         box: box,
         open: openFrom(store),
-        heights: HeightReader([online.heights]),
-        fetchOnline: online.fetch,
       );
-      await online.close();
-      expect(r.tilesOnline, 0, reason: 'die Wege kamen alle aus dem Bereich');
-      expect(r.edgesWithoutHeights, 0);
-      final g = r.graph!;
-      final src = g.attach(LatLng((bounds.north + bounds.south) / 2, bounds.west))!;
-      final dst = g.attach(LatLng((bounds.north + bounds.south) / 2, bounds.east))!;
-      final s = summarizePath(g, shortestPath(g, src, dst, bio)!.edges, src, bio);
-      expect(s.heightsComplete, isTrue);
-      expect(s.gainM, closeTo(240, 15));
-      expect(online.heightRequests, lessThanOrEqualTo(kOnlineHeightsMaxTiles),
-          reason: 'Kanten am Kachelrand fragen auch die Nachbarn — nie mehr als die Grenze');
-    });
-
-    test('ohne Höhenleser zählt jede Kante als ohne Höhe', () async {
-      final store = await seed(withTile: true);
-      final r = await loadRoadGraph(areas: await store.list(), box: box, open: openFrom(store));
       expect(r.coverage, RoadCoverage.complete);
       expect(r.edgesWithoutHeights, r.graph!.edges.length);
     });
 
-    test('über der Grenze wird kein Archiv geöffnet: „zu groß" vor dem Lesen (#356 PR 8)', () async {
-      final store = await seed(withTile: true);
-      var opened = 0;
-      final open = openFrom(store);
-      Future<PmTilesVectorTileProvider?> counting(StoredArea a) {
-        opened++;
-        return open(a);
-      }
+    test(
+      'über der Grenze wird kein Archiv geöffnet: „zu groß" vor dem Lesen (#356 PR 8)',
+      () async {
+        final store = await seed(withTile: true);
+        var opened = 0;
+        final open = openFrom(store);
+        Future<PmTilesVectorTileProvider?> counting(StoredArea a) {
+          opened++;
+          return open(a);
+        }
 
-      final wide = LatBox(bounds.south + 1e-4, bounds.west + 1e-4, bounds.north - 1e-4, bounds.east + 0.01);
-      final r = await readRoadTiles(areas: await store.list(), box: wide, open: counting, maxTiles: 1);
-      expect(r.tooLarge, isTrue);
-      expect(r.tilesNeeded, 2);
-      expect(r.tilesFound, 0);
-      expect(opened, 0, reason: 'nichts gelesen');
-      final ok = await readRoadTiles(areas: await store.list(), box: wide, open: counting, maxTiles: 2);
-      expect(ok.tooLarge, isFalse);
-      expect(ok.tilesFound, 1);
-      expect(opened, 1);
-      expect(kPlanMaxTiles, greaterThan(kOnlineFillMaxTiles), reason: 'die Grenze liegt über dem, was online kommt');
-    });
+        final wide = LatBox(
+          bounds.south + 1e-4,
+          bounds.west + 1e-4,
+          bounds.north - 1e-4,
+          bounds.east + 0.01,
+        );
+        final r = await readRoadTiles(
+          areas: await store.list(),
+          box: wide,
+          open: counting,
+          maxTiles: 1,
+        );
+        expect(r.tooLarge, isTrue);
+        expect(r.tilesNeeded, 2);
+        expect(r.tilesFound, 0);
+        expect(opened, 0, reason: 'nichts gelesen');
+        final ok = await readRoadTiles(
+          areas: await store.list(),
+          box: wide,
+          open: counting,
+          maxTiles: 2,
+        );
+        expect(ok.tooLarge, isFalse);
+        expect(ok.tilesFound, 1);
+        expect(opened, 1);
+        expect(
+          kPlanMaxTiles,
+          greaterThan(kOnlineFillMaxTiles),
+          reason: 'die Grenze liegt über dem, was online kommt',
+        );
+      },
+    );
 
-    test('fehlt die Kachel, gibt es keinen Graphen — und ohne Bereich auch nicht', () async {
-      final store = await seed(withTile: false);
-      final r = await loadRoadGraph(areas: await store.list(), box: box, open: openFrom(store));
-      expect(r.coverage, RoadCoverage.none);
-      expect(r.graph, isNull);
-      final empty = await loadRoadGraph(areas: const [], box: box, open: openFrom(store));
-      expect(empty.coverage, RoadCoverage.none);
-      // Ein Rahmen über zwei Kacheln, nur eine da: teilweise, kein Graph.
-      final full = await seed(withTile: true);
-      final wide = LatBox(bounds.south + 1e-4, bounds.west + 1e-4, bounds.north - 1e-4, bounds.east + 0.01);
-      final partial = await loadRoadGraph(areas: await full.list(), box: wide, open: openFrom(full));
-      expect(partial.coverage, RoadCoverage.partial);
-      expect(partial.graph, isNull);
-      expect(partial.tilesNeeded, 2);
-      expect(partial.tilesFound, 1);
-    });
+    test(
+      'fehlt die Kachel, gibt es keinen Graphen — und ohne Bereich auch nicht',
+      () async {
+        final store = await seed(withTile: false);
+        final r = await loadRoadGraph(
+          areas: await store.list(),
+          box: box,
+          open: openFrom(store),
+        );
+        expect(r.coverage, RoadCoverage.none);
+        expect(r.graph, isNull);
+        final empty = await loadRoadGraph(
+          areas: const [],
+          box: box,
+          open: openFrom(store),
+        );
+        expect(empty.coverage, RoadCoverage.none);
+        // Ein Rahmen über zwei Kacheln, nur eine da: teilweise, kein Graph.
+        final full = await seed(withTile: true);
+        final wide = LatBox(
+          bounds.south + 1e-4,
+          bounds.west + 1e-4,
+          bounds.north - 1e-4,
+          bounds.east + 0.01,
+        );
+        final partial = await loadRoadGraph(
+          areas: await full.list(),
+          box: wide,
+          open: openFrom(full),
+        );
+        expect(partial.coverage, RoadCoverage.partial);
+        expect(partial.graph, isNull);
+        expect(partial.tilesNeeded, 2);
+        expect(partial.tilesFound, 1);
+      },
+    );
 
     group('Wegegüte (#213)', () {
       final ways = waysTile([
         (k: 7, u: null, px: [(0, 2048), (4096, 2048)]),
       ]);
 
-      test('aus dem Wege-Archiv eines Bereichs: der Forstweg ist sehr schlecht, die Straße nicht', () async {
-        final store = await seed(withTile: true);
-        await store.putWays(
+      test(
+        'aus dem Wege-Archiv eines Bereichs: der Forstweg ist sehr schlecht, die Straße nicht',
+        () async {
+          final store = await seed(withTile: true);
+          await store.putWays(
             'a',
             writePmTiles(
               tiles: [TileToWrite(13, t.x, t.y, ways)],
               tileCompression: Compression.none,
-              bounds: TileBounds(west: bounds.west, south: bounds.south, east: bounds.east, north: bounds.north),
-            ));
-        final area = (await store.list()).single;
-        final withWays = StoredArea(
-          id: area.id,
-          name: area.name,
-          bounds: area.bounds,
-          minZoom: area.minZoom,
-          maxZoom: area.maxZoom,
-          build: area.build,
-          tiles: area.tiles,
-          bytes: area.bytes,
-          savedAt: area.savedAt,
-          wayTiles: 1,
-          waysBuild: '20261008',
-        );
-        final r = await loadRoadGraph(
-          areas: [withWays],
-          box: box,
-          open: openFrom(store),
-          openWays: (a) async {
-            final bytes = await store.readWays(a.id);
-            return bytes == null ? null : PmTilesVectorTileProvider.openBytes(bytes);
-          },
-        );
-        final g = r.graph!;
-        expect({for (final e in g.edges) if (e.cls == WayClass.forstweg) e.way}, {7});
-        expect({for (final e in g.edges) if (e.cls != WayClass.forstweg) e.way}, {null});
-        // Ohne Archiv bleibt die Güte unbekannt.
-        final plain = await loadRoadGraph(areas: [withWays], box: box, open: openFrom(store));
-        expect({for (final e in plain.graph!.edges) e.way}, {null});
-      });
+              bounds: TileBounds(
+                west: bounds.west,
+                south: bounds.south,
+                east: bounds.east,
+                north: bounds.north,
+              ),
+            ),
+          );
+          final area = (await store.list()).single;
+          final withWays = StoredArea(
+            id: area.id,
+            name: area.name,
+            bounds: area.bounds,
+            minZoom: area.minZoom,
+            maxZoom: area.maxZoom,
+            build: area.build,
+            tiles: area.tiles,
+            bytes: area.bytes,
+            savedAt: area.savedAt,
+            wayTiles: 1,
+            waysBuild: '20261008',
+          );
+          final r = await loadRoadGraph(
+            areas: [withWays],
+            box: box,
+            open: openFrom(store),
+            openWays: (a) async {
+              final bytes = await store.readWays(a.id);
+              return bytes == null
+                  ? null
+                  : PmTilesVectorTileProvider.openBytes(bytes);
+            },
+          );
+          final g = r.graph!;
+          expect(
+            {
+              for (final e in g.edges)
+                if (e.cls == WayClass.forstweg) e.way,
+            },
+            {7},
+          );
+          expect(
+            {
+              for (final e in g.edges)
+                if (e.cls != WayClass.forstweg) e.way,
+            },
+            {null},
+          );
+          // Ohne Archiv bleibt die Güte unbekannt.
+          final plain = await loadRoadGraph(
+            areas: [withWays],
+            box: box,
+            open: openFrom(store),
+          );
+          expect({for (final e in plain.graph!.edges) e.way}, {null});
+        },
+      );
 
-      test('vom Host nur für die nachgeladenen Kacheln; ein Netzfehler kostet nur die Güte', () async {
-        final asked = <int>[];
-        final r = await loadRoadGraph(
-          areas: const [],
-          box: box,
-          open: (_) async => null,
-          fetchOnline: (_) async => tile,
-          fetchWaysOnline: (k) async {
-            asked.add(k.x);
-            return ways;
-          },
-        );
-        expect(asked, [t.x]);
-        expect({for (final e in r.graph!.edges) if (e.cls == WayClass.forstweg) e.way}, {7});
-        final broken = await loadRoadGraph(
-          areas: const [],
-          box: box,
-          open: (_) async => null,
-          fetchOnline: (_) async => tile,
-          fetchWaysOnline: (_) async => throw StateError('kein Netz'),
-        );
-        expect(broken.graph, isNotNull);
-        expect({for (final e in broken.graph!.edges) e.way}, {null});
-      });
+      test(
+        'vom Host nur für die nachgeladenen Kacheln; ein Netzfehler kostet nur die Güte',
+        () async {
+          final asked = <int>[];
+          final r = await loadRoadGraph(
+            areas: const [],
+            box: box,
+            open: (_) async => null,
+            fetchOnline: (_) async => tile,
+            fetchWaysOnline: (k) async {
+              asked.add(k.x);
+              return ways;
+            },
+          );
+          expect(asked, [t.x]);
+          expect(
+            {
+              for (final e in r.graph!.edges)
+                if (e.cls == WayClass.forstweg) e.way,
+            },
+            {7},
+          );
+          final broken = await loadRoadGraph(
+            areas: const [],
+            box: box,
+            open: (_) async => null,
+            fetchOnline: (_) async => tile,
+            fetchWaysOnline: (_) async => throw StateError('kein Netz'),
+          );
+          expect(broken.graph, isNotNull);
+          expect({for (final e in broken.graph!.edges) e.way}, {null});
+        },
+      );
     });
 
     group('online ergänzt (#187)', () {
       // Ein Rahmen über drei Kacheln nebeneinander, die mittlere ist [t].
-      final west = tileBounds(13, t.x - 1, t.y), east = tileBounds(13, t.x + 1, t.y);
-      final three = LatBox(bounds.south + 1e-4, west.west + 1e-4, bounds.north - 1e-4, east.east - 1e-4);
+      final west = tileBounds(13, t.x - 1, t.y),
+          east = tileBounds(13, t.x + 1, t.y);
+      final three = LatBox(
+        bounds.south + 1e-4,
+        west.west + 1e-4,
+        bounds.north - 1e-4,
+        east.east - 1e-4,
+      );
 
       test('ohne Bereich: alles vom Host, und der Graph steht', () async {
         final asked = <({int x, int y})>[];
@@ -553,44 +842,50 @@ void main() {
         expect(r.graph!.edges, hasLength(4));
       });
 
-      test('gefragt wird nur, was kein Bereich hat — die nächsten zur Mitte zuerst', () async {
-        final store = await seed(withTile: true);
-        final asked = <int>[];
-        final r = await loadRoadGraph(
-          areas: await store.list(),
-          box: three,
-          open: openFrom(store),
-          maxOnline: 1,
-          fetchOnline: (k) async {
-            asked.add(k.x);
-            return tile;
-          },
-        );
-        // Die mittlere liegt im Bereich; von den beiden äußeren holt die
-        // Grenze genau eine.
-        expect(asked, hasLength(1));
-        expect(asked.single, isNot(t.x));
-        expect(r.tilesNeeded, 3);
-        expect(r.tilesFound, 2);
-        expect(r.tilesOnline, 1);
-        expect(r.onlineCapped, isTrue);
-        expect(r.coverage, RoadCoverage.partial);
-      });
+      test(
+        'gefragt wird nur, was kein Bereich hat — die nächsten zur Mitte zuerst',
+        () async {
+          final store = await seed(withTile: true);
+          final asked = <int>[];
+          final r = await loadRoadGraph(
+            areas: await store.list(),
+            box: three,
+            open: openFrom(store),
+            maxOnline: 1,
+            fetchOnline: (k) async {
+              asked.add(k.x);
+              return tile;
+            },
+          );
+          // Die mittlere liegt im Bereich; von den beiden äußeren holt die
+          // Grenze genau eine.
+          expect(asked, hasLength(1));
+          expect(asked.single, isNot(t.x));
+          expect(r.tilesNeeded, 3);
+          expect(r.tilesFound, 2);
+          expect(r.tilesOnline, 1);
+          expect(r.onlineCapped, isTrue);
+          expect(r.coverage, RoadCoverage.partial);
+        },
+      );
 
-      test('ohne Bereich und mit Grenze: die Kachel in der Mitte zuerst', () async {
-        final asked = <int>[];
-        await loadRoadGraph(
-          areas: const [],
-          box: three,
-          open: (_) async => null,
-          maxOnline: 1,
-          fetchOnline: (k) async {
-            asked.add(k.x);
-            return tile;
-          },
-        );
-        expect(asked, [t.x]);
-      });
+      test(
+        'ohne Bereich und mit Grenze: die Kachel in der Mitte zuerst',
+        () async {
+          final asked = <int>[];
+          await loadRoadGraph(
+            areas: const [],
+            box: three,
+            open: (_) async => null,
+            maxOnline: 1,
+            fetchOnline: (k) async {
+              asked.add(k.x);
+              return tile;
+            },
+          );
+          expect(asked, [t.x]);
+        },
+      );
 
       test('ein Netzfehler beendet das Nachladen, der Plan bleibt', () async {
         final store = await seed(withTile: true);
@@ -605,7 +900,11 @@ void main() {
             throw TimeoutException('kein Netz');
           },
         );
-        expect(calls, 1, reason: 'nach dem ersten Fehler fragt der Lader nicht weiter');
+        expect(
+          calls,
+          1,
+          reason: 'nach dem ersten Fehler fragt der Lader nicht weiter',
+        );
         expect(r.onlineBroken, isTrue);
         expect(r.tilesOnline, 0);
         expect(r.tilesFound, 1);

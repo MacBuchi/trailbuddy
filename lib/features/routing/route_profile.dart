@@ -51,7 +51,12 @@ abstract interface class RiderParams {
 /// davon ([kPrefAnyRoads] …) — nie null, sonst nähme die Route bei
 /// gleicher Zeit eine Hauptstraße statt des Forstwegs.
 class RoutePrefs {
-  const RoutePrefs({this.avoidRoads = true, this.avoidHiking = true, this.avoidSteep = true, this.easy = false});
+  const RoutePrefs({
+    this.avoidRoads = true,
+    this.avoidHiking = true,
+    this.avoidSteep = true,
+    this.easy = false,
+  });
 
   final bool avoidRoads;
   final bool avoidHiking;
@@ -68,12 +73,17 @@ class RoutePrefs {
   double get hikingStrength => avoidHiking ? 1.0 : kPrefAnyHiking;
   double get steepStrength => avoidSteep || easy ? 1.0 : kPrefAnySteep;
 
-  RoutePrefs copyWith({bool? avoidRoads, bool? avoidHiking, bool? avoidSteep, bool? easy}) => RoutePrefs(
-        avoidRoads: avoidRoads ?? this.avoidRoads,
-        avoidHiking: avoidHiking ?? this.avoidHiking,
-        avoidSteep: avoidSteep ?? this.avoidSteep,
-        easy: easy ?? this.easy,
-      );
+  RoutePrefs copyWith({
+    bool? avoidRoads,
+    bool? avoidHiking,
+    bool? avoidSteep,
+    bool? easy,
+  }) => RoutePrefs(
+    avoidRoads: avoidRoads ?? this.avoidRoads,
+    avoidHiking: avoidHiking ?? this.avoidHiking,
+    avoidSteep: avoidSteep ?? this.avoidSteep,
+    easy: easy ?? this.easy,
+  );
 
   @override
   bool operator ==(Object other) =>
@@ -113,7 +123,8 @@ const kEasyWay = 2.0;
 /// Trailkopf" aus dem Profil (samt Kalibrierung) und den gemerkten
 /// Schaltern machen.
 extension RiderParamsPrefs on RiderParams {
-  RiderParams withPrefs(RoutePrefs prefs) => prefs == this.prefs ? this : _PreferringRider(this, prefs);
+  RiderParams withPrefs(RoutePrefs prefs) =>
+      prefs == this.prefs ? this : _PreferringRider(this, prefs);
 }
 
 class _PreferringRider implements RiderParams {
@@ -191,9 +202,9 @@ enum RiderProfile implements RiderParams {
 
   /// Der Name des Rads (#209: aus den ARB-Dateien).
   String label(AppLocalizations l) => switch (this) {
-        bio => l.riderBio,
-        ebike => l.riderEbike,
-      };
+    bio => l.riderBio,
+    ebike => l.riderEbike,
+  };
 
   @override
   RiderProfile get profile => this;
@@ -245,13 +256,13 @@ const kBudgetHikingKm = 2.0;
 /// ohne Einschätzung 10 km/h. Für beide Profile gleich: Bergab ist ein
 /// S2 ein S2.
 double trailDownKmh(int? grade) => switch (grade) {
-      0 => 16,
-      1 => 12,
-      2 => 9,
-      3 => 6,
-      4 || 5 => 4,
-      _ => 10,
-    };
+  0 => 16,
+  1 => 12,
+  2 => 9,
+  3 => 6,
+  4 || 5 => 4,
+  _ => 10,
+};
 
 /// Die Wegklassen (Konzept-Routing 2.4): Aufschlag bergauf/bergab, ob
 /// die Klasse als Wanderweg zählt (Regler „höchstens Wanderweg"), und
@@ -263,37 +274,53 @@ enum WayClass {
   nebenstrasse(up: 1.2, down: 1.2, easy: 1.0, steep: kSteepFactorPaved),
   zufahrt(up: 1.2, down: 1.2, easy: 1.0, steep: kSteepFactorPaved),
   wanderweg(
-      up: null, down: null, easy: 3.0, hiking: true, pathSpeed: true, pathRate: true, steep: kSteepFactorUnpaved),
-  fussweg(up: 2.0, down: 2.5, easy: 2.5, hiking: true, pathSpeed: true, pathRate: true, steep: kSteepFactorUnpaved),
+    up: null,
+    down: null,
+    easy: 3.0,
+    hiking: true,
+    pathSpeed: true,
+    pathRate: true,
+    steep: kSteepFactorUnpaved,
+  ),
+  fussweg(
+    up: 2.0,
+    down: 2.5,
+    easy: 2.5,
+    hiking: true,
+    pathSpeed: true,
+    pathRate: true,
+    steep: kSteepFactorUnpaved,
+  ),
   stufen(up: 3.0, down: 3.0, easy: 6.0, hiking: true, pushing: true, steep: 0),
   landstrasse(up: 1.6, down: 1.6, easy: 1.3, steep: kSteepFactorPaved),
   hauptstrasse(up: 2.5, down: 2.5, easy: 2.0, steep: kSteepFactorPaved),
   bundesstrasse(up: 4.0, down: 4.0, easy: 4.0, steep: kSteepFactorPaved);
 
-  const WayClass(
-      {required this.up,
-      required this.down,
-      required this.easy,
-      required this.steep,
-      this.hiking = false,
-      this.pathSpeed = false,
-      this.pathRate = false,
-      this.pushing = false});
+  const WayClass({
+    required this.up,
+    required this.down,
+    required this.easy,
+    required this.steep,
+    this.hiking = false,
+    this.pathSpeed = false,
+    this.pathRate = false,
+    this.pushing = false,
+  });
 
   /// Der Name auf dem Schirm (Zeile der Wegarten) — ein `switch`, damit
   /// eine neue Klasse ohne Text nicht baut (#209).
   String label(AppLocalizations l) => switch (this) {
-        forstweg => l.routingWayForest,
-        radweg => l.routingWayCycle,
-        nebenstrasse => l.routingWayMinor,
-        zufahrt => l.routingWayAccess,
-        wanderweg => l.routingWayHiking,
-        fussweg => l.routingWayFoot,
-        stufen => l.routingWaySteps,
-        landstrasse => l.routingWayRural,
-        hauptstrasse => l.routingWayMain,
-        bundesstrasse => l.routingWayFederal,
-      };
+    forstweg => l.routingWayForest,
+    radweg => l.routingWayCycle,
+    nebenstrasse => l.routingWayMinor,
+    zufahrt => l.routingWayAccess,
+    wanderweg => l.routingWayHiking,
+    fussweg => l.routingWayFoot,
+    stufen => l.routingWaySteps,
+    landstrasse => l.routingWayRural,
+    hauptstrasse => l.routingWayMain,
+    bundesstrasse => l.routingWayFederal,
+  };
 
   final double? up;
   final double? down;
@@ -322,9 +349,13 @@ enum WayClass {
   /// Straßenklassen: Nur hier gilt `oneway` — Forstwege und Pfade sind
   /// in beide Richtungen befahrbar.
   bool get isRoad => switch (this) {
-        nebenstrasse || zufahrt || landstrasse || hauptstrasse || bundesstrasse => true,
-        _ => false,
-      };
+    nebenstrasse ||
+    zufahrt ||
+    landstrasse ||
+    hauptstrasse ||
+    bundesstrasse => true,
+    _ => false,
+  };
 
   double upFactor(RiderParams p) => up ?? p.pathUpFactor;
   double downFactor(RiderParams p) => down ?? p.pathDownFactor;
@@ -402,8 +433,15 @@ const kWayUphillPush = <int, double>{3: 1.0, 4: 2.0, 5: 2.0};
 
 /// Der Aufschlag für die Wegegüte einer Kante in einer Richtung (#213)
 /// — `way_cost_s`.
-double wayCostS(RiderParams p, WayClass cls,
-    {required double lengthM, required double gainM, required double lossM, int? way, int? uphill}) {
+double wayCostS(
+  RiderParams p,
+  WayClass cls, {
+  required double lengthM,
+  required double gainM,
+  required double lossM,
+  int? way,
+  int? uphill,
+}) {
   if (lossM > gainM) return 0;
   if (cls == WayClass.forstweg) {
     final f = kWayTrack[way];
@@ -422,8 +460,11 @@ double wayCostS(RiderParams p, WayClass cls,
       push = kWayPathPush[way];
     }
     if (push != null && push > 0) {
-      final pushed = lengthM / (p.vPushKmh / 3.6) + gainM / (p.pushRateMPerH / 3600.0);
-      final extra = push * pushed - edgeTimeS(p, cls, lengthM: lengthM, gainM: gainM, lossM: lossM);
+      final pushed =
+          lengthM / (p.vPushKmh / 3.6) + gainM / (p.pushRateMPerH / 3600.0);
+      final extra =
+          push * pushed -
+          edgeTimeS(p, cls, lengthM: lengthM, gainM: gainM, lossM: lossM);
       return extra > 0 ? extra : 0;
     }
   }
@@ -433,7 +474,8 @@ double wayCostS(RiderParams p, WayClass cls,
 /// Das Gewicht eines Höhenmeters bei [grade] — `steep_weight_at`.
 double steepWeightAt(double grade) {
   if (grade <= kSteepWeightFrom) return 0;
-  final w = math.exp((grade - kSteepWeightRef) / kSteepWeightScale) -
+  final w =
+      math.exp((grade - kSteepWeightRef) / kSteepWeightScale) -
       math.exp((kSteepWeightFrom - kSteepWeightRef) / kSteepWeightScale);
   return w > kSteepWeightMax ? kSteepWeightMax : w;
 }
@@ -442,8 +484,14 @@ double steepWeightAt(double grade) {
 /// dagegen: je Schritt der Anstieg mal [steepWeightAt] seiner Steigung,
 /// geglättet wie [steepExcess] (Höhen UND Positionen). Spiegel von
 /// `steep_weight` im Werkzeug, mit dessen Testvektoren.
-({double up, double down}) steepWeight(List<double> heights, List<double> stepsM, {int window = kSteepSmooth}) {
-  if (heights.length < 2 || stepsM.length != heights.length - 1) return (up: 0.0, down: 0.0);
+({double up, double down}) steepWeight(
+  List<double> heights,
+  List<double> stepsM, {
+  int window = kSteepSmooth,
+}) {
+  if (heights.length < 2 || stepsM.length != heights.length - 1) {
+    return (up: 0.0, down: 0.0);
+  }
   final dist = <double>[0];
   for (final d in stepsM) {
     dist.add(dist.last + d);
@@ -472,7 +520,9 @@ List<double> smoothHeights(List<double> heights, {int window = kSteepSmooth}) {
     for (var i = 0; i < heights.length; i++)
       () {
         final lo = i - half < 0 ? 0 : i - half;
-        final hi = i + half + 1 > heights.length ? heights.length : i + half + 1;
+        final hi = i + half + 1 > heights.length
+            ? heights.length
+            : i + half + 1;
         var sum = 0.0;
         for (var j = lo; j < hi; j++) {
           sum += heights[j];
@@ -490,9 +540,15 @@ List<double> smoothHeights(List<double> heights, {int window = kSteepSmooth}) {
 /// 50 m), und nur die Höhen zu glätten legte dort einen 50-m-Anstieg auf
 /// einen Meter. Eine gleichmäßige Steigung kommt so immer genau heraus.
 /// Spiegel von `steep_excess` im Werkzeug, mit dessen Testvektoren.
-({double up, double down}) steepExcess(List<double> heights, List<double> stepsM,
-    {double grade = kSteepGrade, int window = kSteepSmooth}) {
-  if (heights.length < 2 || stepsM.length != heights.length - 1) return (up: 0.0, down: 0.0);
+({double up, double down}) steepExcess(
+  List<double> heights,
+  List<double> stepsM, {
+  double grade = kSteepGrade,
+  int window = kSteepSmooth,
+}) {
+  if (heights.length < 2 || stepsM.length != heights.length - 1) {
+    return (up: 0.0, down: 0.0);
+  }
   final dist = <double>[0];
   for (final d in stepsM) {
     dist.add(dist.last + d);
@@ -522,12 +578,16 @@ WayClass? classifyWay({
   if (access == 'private' || access == 'no') return null;
   switch (kind) {
     case 'major_road':
-      return (kindDetail ?? '').startsWith('primary') ? WayClass.bundesstrasse : WayClass.hauptstrasse;
+      return (kindDetail ?? '').startsWith('primary')
+          ? WayClass.bundesstrasse
+          : WayClass.hauptstrasse;
     case 'medium_road':
       return WayClass.landstrasse;
     case 'minor_road':
       if (kindDetail == 'service') {
-        return service == 'driveway' || service == 'parking_aisle' ? null : WayClass.zufahrt;
+        return service == 'driveway' || service == 'parking_aisle'
+            ? null
+            : WayClass.zufahrt;
       }
       return WayClass.nebenstrasse;
     case 'path':
@@ -549,8 +609,13 @@ WayClass? classifyWay({
 /// Bergab (mehr Verlust als Gewinn) zählt nur die Strecke — mit der
 /// Abfahrtsgeschwindigkeit, auf einem Wanderweg wie auf einem Trail ohne
 /// Einschätzung, auf Stufen schiebend.
-double edgeTimeS(RiderParams p, WayClass cls,
-    {required double lengthM, required double gainM, required double lossM}) {
+double edgeTimeS(
+  RiderParams p,
+  WayClass cls, {
+  required double lengthM,
+  required double gainM,
+  required double lossM,
+}) {
   final downhill = lossM > gainM;
   final double vKmh;
   if (cls.pushing) {
@@ -559,8 +624,8 @@ double edgeTimeS(RiderParams p, WayClass cls,
     vKmh = cls == WayClass.wanderweg
         ? trailDownKmh(null)
         : cls.hiking
-            ? p.vPathUpKmh
-            : p.vDownKmh;
+        ? p.vPathUpKmh
+        : p.vDownKmh;
   } else {
     vKmh = cls.pathSpeed ? p.vPathUpKmh : p.vFlatKmh;
   }
@@ -571,15 +636,18 @@ double edgeTimeS(RiderParams p, WayClass cls,
 double _climbRate(RiderParams p, WayClass cls) => cls.pushing
     ? p.pushRateMPerH
     : cls.pathRate
-        ? p.climbPathMPerH
-        : p.climbTrackMPerH;
+    ? p.climbPathMPerH
+    : p.climbTrackMPerH;
 
 /// Der Steilaufschlag (#194, seit #188 gewichtet) für [steepW]
 /// gewichtete Steilmeter ([steepWeight]): ihre Steigzeit noch einmal,
 /// mal [WayClass.steep] und der Stärke aus den Vorlieben. Kosten, keine
 /// Minuten — die Zeit bleibt, was die Fahrten kalibrieren.
 double steepCostS(RiderParams p, WayClass cls, double steepW) =>
-    steepW / (_climbRate(p, cls) / 3600.0) * _steepFactor(p, cls) * p.prefs.steepStrength;
+    steepW /
+    (_climbRate(p, cls) / 3600.0) *
+    _steepFactor(p, cls) *
+    p.prefs.steepStrength;
 
 /// [WayClass.steep], im Stil „Bequem" mindestens [kEasySteep] — Stufen
 /// bleiben bei null (#329).
@@ -588,12 +656,17 @@ double _steepFactor(RiderParams p, WayClass cls) =>
 
 /// Was [lossM] Höhenmeter bergab auf einer Verbindung kosten:
 /// [kDescentCost] der Zeit, sie wieder hinaufzufahren.
-double descentCostS(RiderParams p, WayClass cls, double lossM) => kDescentCost * lossM / (_climbRate(p, cls) / 3600.0);
+double descentCostS(RiderParams p, WayClass cls, double lossM) =>
+    kDescentCost * lossM / (_climbRate(p, cls) / 3600.0);
 
 /// Der Trage-Aufschlag ([kCarryCostS]) einer Stufen-Kante bergauf, nach
 /// einer Teilung ihr Anteil [share] — `carry_cost_s`.
-double carryCostS(WayClass cls, {required double gainM, required double lossM, double share = 1}) =>
-    cls.pushing && gainM > lossM ? kCarryCostS * share : 0;
+double carryCostS(
+  WayClass cls, {
+  required double gainM,
+  required double lossM,
+  double share = 1,
+}) => cls.pushing && gainM > lossM ? kCarryCostS * share : 0;
 
 /// Die Zeit auf einem Trail bergab, nach S-Grad.
 double trailTimeS({required double lengthM, required int? grade}) =>
@@ -602,12 +675,19 @@ double trailTimeS({required double lengthM, required int? grade}) =>
 /// Der Aufschlag der Kante — bergab der Abstiegs-, sonst der
 /// Anstiegsaufschlag. Die Vorlieben (#188) skalieren den Teil über 1:
 /// Straßen in beide Richtungen, Wanderwege nur bergauf, Stufen nie.
-double edgeFactor(RiderParams p, WayClass cls, {required double gainM, required double lossM}) {
+double edgeFactor(
+  RiderParams p,
+  WayClass cls, {
+  required double gainM,
+  required double lossM,
+}) {
   if (p.prefs.easy) return cls.easy;
   final downhill = lossM > gainM;
   final f = downhill ? cls.downFactor(p) : cls.upFactor(p);
   if (cls.isRoad) return 1 + p.prefs.roadStrength * (f - 1);
-  if (cls.hiking && !cls.pushing && !downhill) return 1 + p.prefs.hikingStrength * (f - 1);
+  if (cls.hiking && !cls.pushing && !downhill) {
+    return 1 + p.prefs.hikingStrength * (f - 1);
+  }
   return f;
 }
 
@@ -623,20 +703,31 @@ double easyClimbCostS(RiderParams p, WayClass cls, double gainM) =>
 /// (#188), auf Stufen bergauf der Anteil [carry] des Trage-Aufschlags
 /// (#210) und die Wegegüte [way]/[uphill] (#213, [wayCostS]); im Stil
 /// „Bequem" die Wegegüte doppelt und der Steigaufschlag (#329).
-double edgeCostS(RiderParams p, WayClass cls,
-        {required double lengthM,
-        required double gainM,
-        required double lossM,
-        double steepW = 0,
-        bool descent = true,
-        double carry = 1,
-        int? way,
-        int? uphill}) =>
+double edgeCostS(
+  RiderParams p,
+  WayClass cls, {
+  required double lengthM,
+  required double gainM,
+  required double lossM,
+  double steepW = 0,
+  bool descent = true,
+  double carry = 1,
+  int? way,
+  int? uphill,
+}) =>
     edgeTimeS(p, cls, lengthM: lengthM, gainM: gainM, lossM: lossM) *
         edgeFactor(p, cls, gainM: gainM, lossM: lossM) +
     steepCostS(p, cls, steepW) +
     (descent ? descentCostS(p, cls, lossM) : 0) +
     carryCostS(cls, gainM: gainM, lossM: lossM, share: carry) +
-    wayCostS(p, cls, lengthM: lengthM, gainM: gainM, lossM: lossM, way: way, uphill: uphill) *
+    wayCostS(
+          p,
+          cls,
+          lengthM: lengthM,
+          gainM: gainM,
+          lossM: lossM,
+          way: way,
+          uphill: uphill,
+        ) *
         (p.prefs.easy ? kEasyWay : 1) +
     easyClimbCostS(p, cls, gainM);

@@ -39,8 +39,7 @@ class ConversationScreen extends ConsumerStatefulWidget {
   final String otherId;
 
   @override
-  ConsumerState<ConversationScreen> createState() =>
-      _ConversationScreenState();
+  ConsumerState<ConversationScreen> createState() => _ConversationScreenState();
 }
 
 class _ConversationScreenState extends ConsumerState<ConversationScreen> {
@@ -111,7 +110,8 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
     } catch (e, s) {
       logError('Nachricht senden', e, s);
       messenger.showSnackBar(
-          SnackBar(content: Text(l.messagesNotSent(friendlyError(l, e)))));
+        SnackBar(content: Text(l.messagesNotSent(friendlyError(l, e)))),
+      );
     } finally {
       if (mounted) setState(() => _sending = false);
     }
@@ -125,11 +125,13 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
         content: Text(context.l10n.messagesDeleteBody),
         actions: [
           TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: Text(context.l10n.commonCancel)),
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text(context.l10n.commonCancel),
+          ),
           FilledButton(
-              onPressed: () => Navigator.of(context).pop(true),
-              child: Text(context.l10n.messagesDeleteConfirm)),
+            onPressed: () => Navigator.of(context).pop(true),
+            child: Text(context.l10n.messagesDeleteConfirm),
+          ),
         ],
       ),
     );
@@ -149,8 +151,7 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
     final l = context.l10n;
     final theme = Theme.of(context);
     final uid = ref.watch(currentUserIdProvider) ?? '';
-    final friendships =
-        ref.watch(friendshipsProvider).valueOrNull ?? const [];
+    final friendships = ref.watch(friendshipsProvider).valueOrNull ?? const [];
     final friendship = friendshipWith(friendships, uid, widget.otherId);
     final all = ref.watch(messagesProvider).valueOrNull ?? const [];
     final messages = conversationWith(all, uid, widget.otherId);
@@ -164,8 +165,9 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
     // Neu Eingetroffenes auch als gelesen markieren, solange der
     // Verlauf offen ist.
     ref.listen(messagesProvider, (_, next) {
-      if (next.valueOrNull?.any((m) =>
-              m.senderId == widget.otherId && m.isUnreadFor(uid)) ??
+      if (next.valueOrNull?.any(
+            (m) => m.senderId == widget.otherId && m.isUnreadFor(uid),
+          ) ??
           false) {
         _markRead();
       }
@@ -175,9 +177,10 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
       (null, _) => l.messagesLimitGone,
       (_, null) => null,
       (_, 0) => l.messagesLimitUsed(kPendingMessageLimit),
-      (final f?, final n?) => f.isIncomingFor(uid)
-          ? l.messagesLeftIncoming(n)
-          : l.messagesLeftOutgoing(n, name),
+      (final f?, final n?) =>
+        f.isIncomingFor(uid)
+            ? l.messagesLeftIncoming(n)
+            : l.messagesLeftOutgoing(n, name),
     };
     final canWrite = friendship != null && left != 0;
 
@@ -213,9 +216,11 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
                 children: [
                   Padding(
                     padding: const EdgeInsets.only(top: 12),
-                    child: Text(l.messagesNote(kMessageDays),
-                        textAlign: TextAlign.center,
-                        style: theme.textTheme.bodySmall),
+                    child: Text(
+                      l.messagesNote(kMessageDays),
+                      textAlign: TextAlign.center,
+                      style: theme.textTheme.bodySmall,
+                    ),
                   ),
                   for (final m in messages.reversed)
                     _Bubble(
@@ -231,8 +236,9 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
                       child: Text(
                         l.messagesEmpty(name),
                         textAlign: TextAlign.center,
-                        style: theme.textTheme.bodyMedium
-                            ?.copyWith(color: AppPalette.of(context).muted),
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: AppPalette.of(context).muted,
+                        ),
                       ),
                     ),
                 ],
@@ -242,8 +248,11 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
           if (limitLine != null)
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
-              child: Text(limitLine,
-                  key: kMessageLimitKey, style: theme.textTheme.bodySmall),
+              child: Text(
+                limitLine,
+                key: kMessageLimitKey,
+                style: theme.textTheme.bodySmall,
+              ),
             ),
           SafeArea(
             top: false,
@@ -281,7 +290,8 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
                         ? const SizedBox(
                             width: 18,
                             height: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2))
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
                         : const Icon(Icons.send),
                   ),
                 ],
@@ -320,7 +330,8 @@ class _Bubble extends StatelessWidget {
           margin: const EdgeInsets.symmetric(vertical: 3),
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           constraints: BoxConstraints(
-              maxWidth: MediaQuery.of(context).size.width * 0.78),
+            maxWidth: MediaQuery.of(context).size.width * 0.78,
+          ),
           // Eigene eine Stufe heller, die des Buddys mit Rand — die Seite
           // sagt schon die Ausrichtung, die Fläche bestätigt sie nur.
           decoration: BoxDecoration(
@@ -329,14 +340,18 @@ class _Bubble extends StatelessWidget {
             border: mine ? null : Border.all(color: palette.line),
           ),
           child: Column(
-            crossAxisAlignment:
-                mine ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+            crossAxisAlignment: mine
+                ? CrossAxisAlignment.end
+                : CrossAxisAlignment.start,
             children: [
               Text(message.body),
               const SizedBox(height: 2),
-              Text(time,
-                  style: theme.textTheme.labelSmall
-                      ?.copyWith(color: palette.muted)),
+              Text(
+                time,
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: palette.muted,
+                ),
+              ),
             ],
           ),
         ),

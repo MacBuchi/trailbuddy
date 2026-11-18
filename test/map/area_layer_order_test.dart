@@ -30,7 +30,11 @@ import 'package:vector_tile_renderer/vector_tile_renderer.dart' as vtr;
 class _NoTiles extends vmt.VectorTileProvider {
   @override
   Future<Uint8List> provide(vmt.TileIdentity tile) async =>
-      throw vmt.ProviderException(message: 'leer', retryable: vmt.Retryable.none, statusCode: 404);
+      throw vmt.ProviderException(
+        message: 'leer',
+        retryable: vmt.Retryable.none,
+        statusCode: 404,
+      );
 
   @override
   int get minimumZoom => 0;
@@ -46,28 +50,38 @@ class _NoTiles extends vmt.VectorTileProvider {
 }
 
 BaseMapStyle _style() => BaseMapStyle(
-      theme: vtr.ThemeReader().read({
-        'version': 8,
-        'sources': {
-          'protomaps': {'type': 'vector'},
-        },
-        'layers': [
-          {
-            'id': 'earth',
-            'type': 'fill',
-            'source': 'protomaps',
-            'source-layer': 'earth',
-            'paint': {'fill-color': '#e2dfda'},
-          },
-        ],
-      }),
-      tileProviders: vmt.TileProviders({'protomaps': _NoTiles()}),
-    );
+  theme: vtr.ThemeReader().read({
+    'version': 8,
+    'sources': {
+      'protomaps': {'type': 'vector'},
+    },
+    'layers': [
+      {
+        'id': 'earth',
+        'type': 'fill',
+        'source': 'protomaps',
+        'source-layer': 'earth',
+        'paint': {'fill-color': '#e2dfda'},
+      },
+    ],
+  }),
+  tileProviders: vmt.TileProviders({'protomaps': _NoTiles()}),
+);
 
 void main() {
-  Future<({BaseMapStyle online, BaseMapStyle areas, BaseMapStyle ways, BaseMapStyle areaWays})> pump(
-      WidgetTester tester,
-      {required bool noConnectivity, bool withOverviews = false}) async {
+  Future<
+    ({
+      BaseMapStyle online,
+      BaseMapStyle areas,
+      BaseMapStyle ways,
+      BaseMapStyle areaWays,
+    })
+  >
+  pump(
+    WidgetTester tester, {
+    required bool noConnectivity,
+    bool withOverviews = false,
+  }) async {
     final online = _style();
     final areas = _style();
     final ways = _style();
@@ -79,92 +93,124 @@ void main() {
       maxZoom: 19,
       backgroundColor: AppColors.mapBackground,
     );
-    await tester.pumpWidget(ProviderScope(
-      overrides: [
-        noConnectivityProvider.overrideWithValue(noConnectivity),
-        onlineMapStyleProvider.overrideWith((ref) async => online),
-        baseMapStyleProvider.overrideWith((ref) async => withOverviews ? _style() : null),
-        areaOverviewStyleProvider.overrideWith((ref) async => withOverviews ? _style() : null),
-        areaMapStyleProvider.overrideWith((ref) async => areas),
-        onlineWaysStyleProvider.overrideWith((ref) async => ways),
-        areaWaysStyleProvider.overrideWith((ref) async => areaWays),
-      ],
-      child: MaterialApp(
-        locale: const Locale('de'),
-        localizationsDelegates: AppLocalizations.localizationsDelegates,
-        supportedLocales: AppLocalizations.supportedLocales,
-        home: FlutterMapView(
-          config: config,
-          controller: MapViewController(initialCenter: config.initialCenter, initialZoom: 12),
-          layers: const MapViewLayers(),
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          noConnectivityProvider.overrideWithValue(noConnectivity),
+          onlineMapStyleProvider.overrideWith((ref) async => online),
+          baseMapStyleProvider.overrideWith(
+            (ref) async => withOverviews ? _style() : null,
+          ),
+          areaOverviewStyleProvider.overrideWith(
+            (ref) async => withOverviews ? _style() : null,
+          ),
+          areaMapStyleProvider.overrideWith((ref) async => areas),
+          onlineWaysStyleProvider.overrideWith((ref) async => ways),
+          areaWaysStyleProvider.overrideWith((ref) async => areaWays),
+        ],
+        child: MaterialApp(
+          locale: const Locale('de'),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: FlutterMapView(
+            config: config,
+            controller: MapViewController(
+              initialCenter: config.initialCenter,
+              initialZoom: 12,
+            ),
+            layers: const MapViewLayers(),
+          ),
         ),
       ),
-    ));
+    );
     await tester.pump();
     await tester.pump();
     return (online: online, areas: areas, ways: ways, areaWays: areaWays);
   }
 
-  List<Key?> tileLayerKeys(WidgetTester tester) =>
-      tester.widgetList(find.byType(vmt.VectorTileLayer)).map((w) => w.key).toList();
+  List<Key?> tileLayerKeys(WidgetTester tester) => tester
+      .widgetList(find.byType(vmt.VectorTileLayer))
+      .map((w) => w.key)
+      .toList();
 
   for (final noConnectivity in [false, true]) {
     testWidgets(
-        'die Bereiche liegen über der Online-Karte (${noConnectivity ? 'ohne' : 'mit'} Empfang)',
-        (tester) async {
-      final s = await pump(tester, noConnectivity: noConnectivity);
-      expect(tileLayerKeys(tester),
+      'die Bereiche liegen über der Online-Karte (${noConnectivity ? 'ohne' : 'mit'} Empfang)',
+      (tester) async {
+        final s = await pump(tester, noConnectivity: noConnectivity);
+        expect(
+          tileLayerKeys(tester),
           [
             ValueKey(s.online.tileProviders),
             ValueKey(s.areas.tileProviders),
             ValueKey(s.ways.tileProviders),
             ValueKey(s.areaWays.tileProviders),
           ],
-          reason: 'Reihenfolge = Schichtung: der Bereich über der Karte, die Wege (#212) über '
+          reason:
+              'Reihenfolge = Schichtung: der Bereich über der Karte, die Wege (#212) über '
               'beiden — die deckende Fläche eines Bereichs deckte sie sonst zu —, die Wege '
-              'der Bereiche zuoberst, wie die Bereiche über der Online-Karte');
-      final area = tester.widget<vmt.VectorTileLayer>(
-          find.byKey(ValueKey(s.areas.tileProviders)));
-      expect(area.maximumTileSubstitutionDifference, 0,
-          reason: 'eine gröbere Bereichskachel läge sonst über der schärferen Online-Kachel');
-      // Die vmt-Schichten laufen mit Zeitgebern; abbauen, bevor der Test endet.
-      await tester.pumpWidget(const SizedBox());
-      await tester.pump(const Duration(minutes: 1));
-    });
+              'der Bereiche zuoberst, wie die Bereiche über der Online-Karte',
+        );
+        final area = tester.widget<vmt.VectorTileLayer>(
+          find.byKey(ValueKey(s.areas.tileProviders)),
+        );
+        expect(
+          area.maximumTileSubstitutionDifference,
+          0,
+          reason:
+              'eine gröbere Bereichskachel läge sonst über der schärferen Online-Kachel',
+        );
+        // Die vmt-Schichten laufen mit Zeitgebern; abbauen, bevor der Test endet.
+        await tester.pumpWidget(const SizedBox());
+        await tester.pump(const Duration(minutes: 1));
+      },
+    );
   }
 
   // #220 Schritt 4: Die Übersicht einer Region liegt über der DACH-
   // Übersicht und unter allem anderen — und nur, solange die Übersicht
   // überhaupt gebraucht wird (hier: ohne Empfang).
   for (final noConnectivity in [false, true]) {
-    testWidgets('die Übersichten der Regionen: ${noConnectivity ? 'über der DACH-Übersicht' : 'mit Empfang keine'}',
-        (tester) async {
-      await pump(tester, noConnectivity: noConnectivity, withOverviews: true);
-      final keys = tileLayerKeys(tester);
-      if (noConnectivity) {
-        expect(keys.take(2), const [ValueKey('base-map'), ValueKey('region-overviews')]);
-        final layer = tester.widget<vmt.VectorTileLayer>(find.byKey(const ValueKey('region-overviews')));
-        expect(layer.layerMode, vmt.VectorTileLayerMode.raster);
-      } else {
-        expect(keys, isNot(contains(const ValueKey('region-overviews'))));
-        expect(keys, isNot(contains(const ValueKey('base-map'))));
-      }
-      await tester.pumpWidget(const SizedBox());
-      await tester.pump(const Duration(minutes: 1));
-    });
+    testWidgets(
+      'die Übersichten der Regionen: ${noConnectivity ? 'über der DACH-Übersicht' : 'mit Empfang keine'}',
+      (tester) async {
+        await pump(tester, noConnectivity: noConnectivity, withOverviews: true);
+        final keys = tileLayerKeys(tester);
+        if (noConnectivity) {
+          expect(keys.take(2), const [
+            ValueKey('base-map'),
+            ValueKey('region-overviews'),
+          ]);
+          final layer = tester.widget<vmt.VectorTileLayer>(
+            find.byKey(const ValueKey('region-overviews')),
+          );
+          expect(layer.layerMode, vmt.VectorTileLayerMode.raster);
+        } else {
+          expect(keys, isNot(contains(const ValueKey('region-overviews'))));
+          expect(keys, isNot(contains(const ValueKey('base-map'))));
+        }
+        await tester.pumpWidget(const SizedBox());
+        await tester.pump(const Duration(minutes: 1));
+      },
+    );
   }
 
-  test('die Annahme dahinter: `earth` ist eine deckende Fläche ohne Transparenz', () {
-    // Nur deshalb verdeckt eine Bereichskachel die Online-Karte darunter
-    // vollständig, statt sie doppelt durchscheinen zu lassen. Wer den Stil
-    // neu erzeugt und das ändert, muss #82 neu denken.
-    final style = jsonDecode(File(kMapStyleAsset).readAsStringSync()) as Map<String, dynamic>;
-    final layers = (style['layers'] as List).cast<Map<String, dynamic>>();
-    final firstData = layers.firstWhere((l) => l['type'] != 'background');
-    expect(firstData['id'], 'earth');
-    expect(firstData['type'], 'fill');
-    final paint = firstData['paint'] as Map<String, dynamic>;
-    expect(paint.containsKey('fill-opacity'), isFalse);
-    expect(paint['fill-color'], matches(RegExp(r'^#[0-9a-fA-F]{6}$')));
-  });
+  test(
+    'die Annahme dahinter: `earth` ist eine deckende Fläche ohne Transparenz',
+    () {
+      // Nur deshalb verdeckt eine Bereichskachel die Online-Karte darunter
+      // vollständig, statt sie doppelt durchscheinen zu lassen. Wer den Stil
+      // neu erzeugt und das ändert, muss #82 neu denken.
+      final style =
+          jsonDecode(File(kMapStyleAsset).readAsStringSync())
+              as Map<String, dynamic>;
+      final layers = (style['layers'] as List).cast<Map<String, dynamic>>();
+      final firstData = layers.firstWhere((l) => l['type'] != 'background');
+      expect(firstData['id'], 'earth');
+      expect(firstData['type'], 'fill');
+      final paint = firstData['paint'] as Map<String, dynamic>;
+      expect(paint.containsKey('fill-opacity'), isFalse);
+      expect(paint['fill-color'], matches(RegExp(r'^#[0-9a-fA-F]{6}$')));
+    },
+  );
 }

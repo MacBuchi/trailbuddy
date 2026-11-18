@@ -55,21 +55,30 @@ bool trailHeadsNorth(Trail t) {
 ///
 /// Die Startmarke von [coachTrailId] trägt den Anker `MapCoach.trailStart`
 /// für die Vorführung.
-List<MapViewMarker> trailEndMarkers(Iterable<Trail> trails, MapViewCamera? camera,
-    {String? coachTrailId}) {
+List<MapViewMarker> trailEndMarkers(
+  Iterable<Trail> trails,
+  MapViewCamera? camera, {
+  String? coachTrailId,
+}) {
   if (camera == null || camera.zoom < kTrailBadgeMinZoom) return const [];
   final out = <MapViewMarker>[];
   for (final t in trails) {
     if (t.pending || t.points.length < 2) continue;
     final dot = TrailStartDot(
-        color: trailColorOf(t, AppColors.mapGrades), bearingDeg: trailStartBearing(t) ?? 0);
-    out.add(MapViewMarker(
-      key: ValueKey('trail-start-${t.id}'),
-      point: t.start,
-      width: kTrailMarkSize,
-      height: kTrailMarkSize,
-      child: t.id == coachTrailId ? CoachAnchor(id: MapCoach.trailStart, child: dot) : dot,
-    ));
+      color: trailColorOf(t, AppColors.mapGrades),
+      bearingDeg: trailStartBearing(t) ?? 0,
+    );
+    out.add(
+      MapViewMarker(
+        key: ValueKey('trail-start-${t.id}'),
+        point: t.start,
+        width: kTrailMarkSize,
+        height: kTrailMarkSize,
+        child: t.id == coachTrailId
+            ? CoachAnchor(id: MapCoach.trailStart, child: dot)
+            : dot,
+      ),
+    );
   }
   return out;
 }
@@ -80,7 +89,9 @@ const _fontSize = 11.0;
 /// geschätzt; das Schild steht darin zentriert, ein Rest bleibt leer.
 double _badgeWidth(Trail t, bool uphill, List<TrailTrait> traits) {
   var w = _fontSize * 1.1 + 2; // Rand links und rechts
-  if (uphill || t.grade != null) w += _fontSize * (t.grade == 4 || t.grade == 5 ? 2.2 : 1.0);
+  if (uphill || t.grade != null) {
+    w += _fontSize * (t.grade == 4 || t.grade == 5 ? 2.2 : 1.0);
+  }
   if (t.grade != null) w += _fontSize * (0.35 + 1.4);
   w += traits.length * _fontSize * 1.5;
   return w + 8;
@@ -93,8 +104,11 @@ double _badgeWidth(Trail t, bool uphill, List<TrailTrait> traits) {
 /// Das Schild von [coachTrailId] trägt den Anker der Karten-Tour (#132,
 /// `MapCoach.trailBadge`) — die Tour zeigt auf GENAU das Schild, dessen
 /// Blatt sie danach öffnet.
-List<MapViewMarker> trailBadgeMarkers(Iterable<Trail> trails, MapViewCamera? camera,
-    {String? coachTrailId}) {
+List<MapViewMarker> trailBadgeMarkers(
+  Iterable<Trail> trails,
+  MapViewCamera? camera, {
+  String? coachTrailId,
+}) {
   if (camera == null || camera.zoom < kTrailBadgeMinZoom) return const [];
   return [
     for (final t in trails)
@@ -105,13 +119,23 @@ List<MapViewMarker> trailBadgeMarkers(Iterable<Trail> trails, MapViewCamera? cam
 /// Bekommt [t] ein Schild? Nicht wartend, mit Linie, mit Grad oder
 /// Merkmalen — dieselbe Regel für die Marker und für die Tour.
 bool hasTrailBadge(Trail t) =>
-    !t.pending && t.points.isNotEmpty && (t.grade != null || t.topTraits.isNotEmpty);
+    !t.pending &&
+    t.points.isNotEmpty &&
+    (t.grade != null || t.topTraits.isNotEmpty);
 
 MapViewMarker _marker(Trail t, {bool anchored = false}) {
   final uphill = isUphill(t);
-  final traits = [for (final x in t.topTraits) if (!(uphill && x == TrailTrait.uphill)) x];
-  final shield = GradeShield(t.grade,
-      fontSize: _fontSize, uphill: uphill, traits: traits, palette: AppColors.mapGrades);
+  final traits = [
+    for (final x in t.topTraits)
+      if (!(uphill && x == TrailTrait.uphill)) x,
+  ];
+  final shield = GradeShield(
+    t.grade,
+    fontSize: _fontSize,
+    uphill: uphill,
+    traits: traits,
+    palette: AppColors.mapGrades,
+  );
   return MapViewMarker(
     key: ValueKey('trail-badge-${t.id}'),
     point: t.start,
@@ -120,7 +144,9 @@ MapViewMarker _marker(Trail t, {bool anchored = false}) {
     // Das Schild steht neben dem Anfang auf der Seite, von der die Linie
     // WEGführt: `topCenter` = darüber (der Punkt an der Unterkante),
     // `bottomCenter` = darunter. So bleibt der Anfang der Linie frei.
-    alignment: trailHeadsNorth(t) ? Alignment.bottomCenter : Alignment.topCenter,
+    alignment: trailHeadsNorth(t)
+        ? Alignment.bottomCenter
+        : Alignment.topCenter,
     hitValue: t,
     child: Center(
       child: anchored

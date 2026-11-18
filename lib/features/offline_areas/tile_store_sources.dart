@@ -13,9 +13,14 @@ import 'height_tiles.dart';
 import 'tile_store.dart';
 
 class StoreTileProvider extends ClosableVectorTileProvider {
-  StoreTileProvider(this._store, this.region, this.layer, {required int minZoom, required int maxZoom})
-      : _minZoom = minZoom,
-        _maxZoom = maxZoom;
+  StoreTileProvider(
+    this._store,
+    this.region,
+    this.layer, {
+    required int minZoom,
+    required int maxZoom,
+  }) : _minZoom = minZoom,
+       _maxZoom = maxZoom;
 
   final TileStore _store;
   final String region;
@@ -28,7 +33,8 @@ class StoreTileProvider extends ClosableVectorTileProvider {
     final bytes = await _store.read(region, layer, tile.z, tile.x, tile.y);
     if (bytes == null) {
       throw ProviderException(
-        message: 'Kachel ${tile.key()} nicht im Speicher ($region/${layer.name})',
+        message:
+            'Kachel ${tile.key()} nicht im Speicher ($region/${layer.name})',
         retryable: Retryable.none,
         statusCode: 404,
       );
@@ -67,7 +73,13 @@ class StoreHeightSource implements HeightTileSource {
     final key = (x << kHeightTileZoom) | y;
     if (_cache.containsKey(key)) return _cache[key];
     HeightTile? out;
-    final bytes = await _store.read(region, TileLayer.heights, kHeightTileZoom, x, y);
+    final bytes = await _store.read(
+      region,
+      TileLayer.heights,
+      kHeightTileZoom,
+      x,
+      y,
+    );
     if (bytes != null) {
       try {
         out = HeightTile.decode(unpackStoredTile(bytes));

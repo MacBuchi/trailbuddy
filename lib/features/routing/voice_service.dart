@@ -26,7 +26,8 @@ import 'voice_cues.dart';
 /// Die Trails der freien Fahrt (F7) — die App legt sie ab, der Dienst liest.
 const kVoiceTrailsFileName = 'voice_trails.json';
 
-File voiceTrailsFile(String baseDir) => File('$baseDir/${FileRideStore.dirName}/$kVoiceTrailsFileName');
+File voiceTrailsFile(String baseDir) =>
+    File('$baseDir/${FileRideStore.dirName}/$kVoiceTrailsFileName');
 
 /// Spricht einen Satz; die Naht für den Test.
 typedef VoiceSpeak = Future<void> Function(String text, Locale locale);
@@ -47,14 +48,18 @@ Future<bool> readServiceVoiceOn() async {
 const kVoiceChannel = MethodChannel('de.mcbuchi.trailbuddy/voice');
 
 /// Die Sprache der Stimme zur Sprache der App.
-String voiceLanguageTag(Locale locale) => locale.languageCode == 'de' ? 'de-DE' : 'en-GB';
+String voiceLanguageTag(Locale locale) =>
+    locale.languageCode == 'de' ? 'de-DE' : 'en-GB';
 
 /// Die Stimme des Geräts. Fehlt sie oder die Sprache, bleibt es still —
 /// die Benachrichtigung zeigt dasselbe. Das Plugin wartet nicht auf das
 /// Ende des Satzes; der Takt läuft weiter.
 Future<void> speakVoice(String text, Locale locale) async {
   try {
-    await kVoiceChannel.invokeMethod<bool>('speak', {'text': text, 'language': voiceLanguageTag(locale)});
+    await kVoiceChannel.invokeMethod<bool>('speak', {
+      'text': text,
+      'language': voiceLanguageTag(locale),
+    });
   } catch (_) {
     // Ohne Stimme (oder im Web, ohne Plugin) keine Ansage; die Fahrt läuft weiter.
   }
@@ -65,8 +70,12 @@ Future<void> speakVoice(String text, Locale locale) async {
 /// Dieselben Momente gehen an die Uhr (#525: kurz vibrieren, Schild und
 /// Name) — über die App, denn die Brücke zur Uhr lebt dort ([toApp];
 /// ist die App zu, verwirft der Kanal still, und mit ihr fehlt die Uhr).
-Future<void> speakCues(List<VoiceCue> cues,
-    {VoiceSpeak? speak, DateTime? now, void Function(Object data)? toApp}) async {
+Future<void> speakCues(
+  List<VoiceCue> cues, {
+  VoiceSpeak? speak,
+  DateTime? now,
+  void Function(Object data)? toApp,
+}) async {
   if (cues.isEmpty) return;
   final watch = encodeVoiceWatch(cues);
   if (watch != null) {
@@ -85,7 +94,7 @@ Future<void> speakCues(List<VoiceCue> cues,
 /// Der Wächter der freien Fahrt — einer je Fahrt in diesem Isolate.
 class _FreeVoice {
   _FreeVoice({required this.uid, required this.startedAt, required this.selfId})
-      : watcher = FreeVoiceWatcher(selfId: selfId);
+    : watcher = FreeVoiceWatcher(selfId: selfId);
 
   final String uid;
   final String startedAt;
@@ -99,21 +108,30 @@ _FreeVoice? _free;
 
 /// Ein Takt der freien Fahrt (F7): ohne Navigation, mit Aufzeichnung —
 /// wer in einen bekannten Trail einfährt, hört Name und Grad. Wirft nie.
-Future<void> freeVoiceTick(RidePoint point,
-    {required String dir, VoiceSpeak? speak, DateTime Function()? now}) async {
+Future<void> freeVoiceTick(
+  RidePoint point, {
+  required String dir,
+  VoiceSpeak? speak,
+  DateTime Function()? now,
+}) async {
   try {
     final uid = await FlutterForegroundTask.getData<String>(key: kRideDataUid);
-    final started = await FlutterForegroundTask.getData<String>(key: kRideDataStartedAt);
+    final started = await FlutterForegroundTask.getData<String>(
+      key: kRideDataStartedAt,
+    );
     if (uid == null || started == null) return;
     final current = _free;
-    final free = current != null && current.uid == uid && current.startedAt == started
+    final free =
+        current != null && current.uid == uid && current.startedAt == started
         ? current
         : _free = _FreeVoice(uid: uid, startedAt: started, selfId: uid);
     final file = voiceTrailsFile(dir);
     final modified = await file.exists() ? await file.lastModified() : null;
     if (modified != free.version) {
       free.version = modified;
-      free.trails = modified == null ? const [] : decodeVoiceTrails(await file.readAsString(), uid: uid);
+      free.trails = modified == null
+          ? const []
+          : decodeVoiceTrails(await file.readAsString(), uid: uid);
     }
     final at = (now ?? DateTime.now)();
     final cue = free.watcher.update(point, free.trails, now: at);

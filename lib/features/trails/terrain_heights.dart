@@ -36,7 +36,10 @@ import 'trail_elevation.dart';
 import 'trail_providers.dart' show trailByIdProvider;
 
 /// Die Höhe jedes Punkts aus [reader] — null, sobald einer keine hat.
-Future<List<double>?> terrainHeightsAt(HeightReader reader, List<LatLng> points) async {
+Future<List<double>?> terrainHeightsAt(
+  HeightReader reader,
+  List<LatLng> points,
+) async {
   final out = <double>[];
   for (final p in points) {
     final h = await reader.heightAt(p);
@@ -48,7 +51,10 @@ Future<List<double>?> terrainHeightsAt(HeightReader reader, List<LatLng> points)
 
 /// Das Profil aus dem Geländemodell: Proben alle [kClimbSampleM] Meter
 /// entlang [line] (in Trail-Richtung). Null ohne vollständige Höhen.
-Future<ElevationProfile?> terrainProfileOf(HeightReader reader, List<LatLng> line) async {
+Future<ElevationProfile?> terrainProfileOf(
+  HeightReader reader,
+  List<LatLng> line,
+) async {
   if (line.length < 2) return null;
   final samples = samplesAlong(line, kClimbSampleM);
   final heights = await terrainHeightsAt(reader, samples);
@@ -69,7 +75,9 @@ class TerrainHeights {
     } catch (e, s) {
       logError('Höhen der Bereiche öffnen', e, s);
     }
-    final online = _ref.read(noConnectivityProvider) ? null : _ref.read(onlineHeightsFactoryProvider)();
+    final online = _ref.read(noConnectivityProvider)
+        ? null
+        : _ref.read(onlineHeightsFactoryProvider)();
     // Die Quellen der Bereiche gehören ihrem Provider und bleiben offen;
     // geschlossen wird nur, was hier geöffnet wurde.
     final reader = HeightReader([...?areas?.sources, ?online]);
@@ -81,23 +89,32 @@ class TerrainHeights {
   }
 
   /// Höhe je Punkt, null wenn einer fehlt.
-  Future<List<double>?> at(List<LatLng> points) => _with((r) => terrainHeightsAt(r, points));
+  Future<List<double>?> at(List<LatLng> points) =>
+      _with((r) => terrainHeightsAt(r, points));
 
   /// Das Profil entlang [line] — siehe [terrainProfileOf].
-  Future<ElevationProfile?> profile(List<LatLng> line) => _with((r) => terrainProfileOf(r, line));
+  Future<ElevationProfile?> profile(List<LatLng> line) =>
+      _with((r) => terrainProfileOf(r, line));
 }
 
-final terrainHeightsProvider = Provider<TerrainHeights>((ref) => TerrainHeights(ref));
+final terrainHeightsProvider = Provider<TerrainHeights>(
+  (ref) => TerrainHeights(ref),
+);
 
 /// Das Profil eines Trails OHNE aufgezeichnete Höhen aus dem
 /// Geländemodell; null, wenn er welche hat oder das Modell dort keine
 /// kennt. Gerechnet nur, solange jemand zusieht (das Blatt) — beobachten
 /// heißt laden.
-final terrainProfileProvider = FutureProvider.autoDispose.family<ElevationProfile?, String>((ref, trailId) async {
-  final line = ref.watch(trailByIdProvider(trailId).select((t) => t == null || t.elevation != null ? null : t.directedPoints));
-  if (line == null) return null;
-  return ref.read(terrainHeightsProvider).profile(line);
-});
+final terrainProfileProvider = FutureProvider.autoDispose
+    .family<ElevationProfile?, String>((ref, trailId) async {
+      final line = ref.watch(
+        trailByIdProvider(trailId).select(
+          (t) => t == null || t.elevation != null ? null : t.directedPoints,
+        ),
+      );
+      if (line == null) return null;
+      return ref.read(terrainHeightsProvider).profile(line);
+    });
 
 /// Das Profil entlang einer geplanten Linie (#234) aus dem Geländemodell,
 /// in Fahrtrichtung; null, wo eine Kachel fehlt. Der Schlüssel ist die
@@ -105,8 +122,10 @@ final terrainProfileProvider = FutureProvider.autoDispose.family<ElevationProfil
 /// eine neue, und nur so lange es gezeigt wird, lebt die Rechnung. Mit
 /// Empfang kommen fehlende Kacheln aus dem Sitzungsspeicher, in den die
 /// Planung sie schon gelegt hat — kein zweiter Abruf.
-final lineProfileProvider = FutureProvider.autoDispose.family<ElevationProfile?, List<LatLng>>(
-    (ref, line) => ref.read(terrainHeightsProvider).profile(line));
+final lineProfileProvider = FutureProvider.autoDispose
+    .family<ElevationProfile?, List<LatLng>>(
+      (ref, line) => ref.read(terrainHeightsProvider).profile(line),
+    );
 
 /// Wie die Höhen einer Datei zum Geländemodell passen (#186).
 class TerrainComparison {
@@ -131,10 +150,12 @@ class TerrainComparison {
     final offset = offsetM.abs().round(), spread = spreadM.round();
     final above = offsetM > 0;
     return switch ((offsetSuspicious, spreadSuspicious)) {
-      (true, true) => above
-          ? l.heightsReasonAboveAndSpread(offset, spread)
-          : l.heightsReasonBelowAndSpread(offset, spread),
-      (true, false) => above ? l.heightsReasonAbove(offset) : l.heightsReasonBelow(offset),
+      (true, true) =>
+        above
+            ? l.heightsReasonAboveAndSpread(offset, spread)
+            : l.heightsReasonBelowAndSpread(offset, spread),
+      (true, false) =>
+        above ? l.heightsReasonAbove(offset) : l.heightsReasonBelow(offset),
       _ => l.heightsReasonSpread(spread),
     };
   }
@@ -154,7 +175,8 @@ const kTerrainSpreadMaxM = 80.0;
 /// Punkten; null ohne Paare.
 TerrainComparison? compareToTerrain(List<double> file, List<double> terrain) {
   if (file.length != terrain.length || file.isEmpty) return null;
-  final d = [for (var i = 0; i < file.length; i++) file[i] - terrain[i]]..sort();
+  final d = [for (var i = 0; i < file.length; i++) file[i] - terrain[i]]
+    ..sort();
   final offset = _quantile(d, 0.5);
   final spread = [for (final v in d) (v - offset).abs()]..sort();
   return TerrainComparison(offsetM: offset, spreadM: _quantile(spread, 0.95));

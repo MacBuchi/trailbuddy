@@ -40,7 +40,9 @@ class _OutboxTriggerState extends ConsumerState<OutboxTrigger> {
       _retry = cachedAt == null
           ? null
           : Timer.periodic(kTrailsCopyRetry, (_) {
-              if (!ref.read(noConnectivityProvider)) unawaited(ref.read(trailsProvider.notifier).retryCopy());
+              if (!ref.read(noConnectivityProvider)) {
+                unawaited(ref.read(trailsProvider.notifier).retryCopy());
+              }
             });
     }, fireImmediately: true);
   }
@@ -62,7 +64,9 @@ class _OutboxTriggerState extends ConsumerState<OutboxTrigger> {
       if (previous == true && next == false) {
         unawaited(() async {
           await ref.read(trailsProvider.notifier).sendOutbox();
-          if (mounted && ref.read(trailsCachedAtProvider) != null) ref.invalidate(trailsProvider);
+          if (mounted && ref.read(trailsCachedAtProvider) != null) {
+            ref.invalidate(trailsProvider);
+          }
         }());
       }
     });
@@ -70,9 +74,15 @@ class _OutboxTriggerState extends ConsumerState<OutboxTrigger> {
     // „kein Netz", aber vielleicht der Empfang, auf den die Kopie wartet
     // (#397) — nicht auf den nächsten Takt warten.
     ref.listen(connectivityProvider, (previous, next) {
-      if (previous?.valueOrNull == null || ref.read(noConnectivityProvider)) return;
-      if (previous!.valueOrNull!.every((r) => r == ConnectivityResult.none)) return;
-      if (ref.read(trailsCachedAtProvider) != null) unawaited(ref.read(trailsProvider.notifier).retryCopy());
+      if (previous?.valueOrNull == null || ref.read(noConnectivityProvider)) {
+        return;
+      }
+      if (previous!.valueOrNull!.every((r) => r == ConnectivityResult.none)) {
+        return;
+      }
+      if (ref.read(trailsCachedAtProvider) != null) {
+        unawaited(ref.read(trailsProvider.notifier).retryCopy());
+      }
     });
     return widget.child;
   }

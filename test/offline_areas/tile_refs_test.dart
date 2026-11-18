@@ -15,7 +15,12 @@ void main() {
 
   test('nur liegende, gedeckte Kacheln älterer Bauten, mit ihren Bytes', () {
     final s = staleTiles(index, {1, 2, 3, 5}, '20261001');
-    expect(s.ids, [1], reason: '4 deckt keine Form mehr, 5 liegt nicht, 2 und 3 sind nicht älter');
+    expect(
+      s.ids,
+      [1],
+      reason:
+          '4 deckt keine Form mehr, 5 liegt nicht, 2 und 3 sind nicht älter',
+    );
     expect(s.bytes, 10);
   });
 

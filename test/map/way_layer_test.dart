@@ -19,17 +19,17 @@ import '../fakes/l10n_de.dart';
 
 /// Das Manifest, wie `tool/way_archive.py write_archive` es schreibt.
 Map<String, dynamic> _toolManifest() => {
-      'attribution': '© OpenStreetMap contributors (ODbL)',
-      'bbox': [5.5, 45.5, 17.5, 55.5],
-      'build': '20261101',
-      'bytes': 92300000,
-      'file': 'ways-20261101.pmtiles',
-      'format': 2,
-      'sha256': 'ab' * 32,
-      'source': 'OpenStreetMap',
-      'tiles': 53615,
-      'zoom': 13,
-    };
+  'attribution': '© OpenStreetMap contributors (ODbL)',
+  'bbox': [5.5, 45.5, 17.5, 55.5],
+  'build': '20261101',
+  'bytes': 92300000,
+  'file': 'ways-20261101.pmtiles',
+  'format': 2,
+  'sha256': 'ab' * 32,
+  'source': 'OpenStreetMap',
+  'tiles': 53615,
+  'zoom': 13,
+};
 
 void main() {
   group('Manifest', () {
@@ -37,7 +37,10 @@ void main() {
       final m = WaysManifest.fromJson(_toolManifest());
       expect(m.file, 'ways-20261101.pmtiles');
       expect(m.build, '20261101');
-      expect(m.archiveUri.toString(), 'https://tiles.mcbuchi.de/trailbuddy/ways-20261101.pmtiles');
+      expect(
+        m.archiveUri.toString(),
+        'https://tiles.mcbuchi.de/trailbuddy/ways-20261101.pmtiles',
+      );
     });
 
     test('lehnt fremde Namen, Formate und Zoomstufen ab', () {
@@ -48,31 +51,54 @@ void main() {
         {..._toolManifest(), 'format': 3},
         {..._toolManifest(), 'zoom': 12},
       ]) {
-        expect(() => WaysManifest.fromJson(bad), throwsFormatException, reason: '$bad');
+        expect(
+          () => WaysManifest.fromJson(bad),
+          throwsFormatException,
+          reason: '$bad',
+        );
       }
     });
   });
 
   group('Stil-Ebenen', () {
-    test('MapLibre: erst alle Bänder, dann Forstwege samt Mittelstreifen, zuletzt Pfade', () {
-      final layers = wayStyleLayers('ways', dashes: true);
-      final bands = [for (final c in WayClass.values) if (c.band != null) c];
-      final tracks = [for (final c in WayClass.values) if (c.kind == WayKind.track) c];
-      final paths = [for (final c in WayClass.values) if (c.kind == WayKind.path) c];
-      expect([for (final l in layers) l['id']], [
-        for (final c in bands) 'ways/band-${c.name}',
-        for (final c in tracks) 'ways/line-${c.name}',
-        for (final c in tracks) 'ways/core-${c.name}',
-        for (final c in paths) 'ways/line-${c.name}',
-      ]);
-      for (final c in WayClass.values) {
-        final l = layers.firstWhere((l) => l['id'] == 'ways/line-${c.name}');
-        expect(l['filter'], ['==', ['get', kWaysKey], c.code]);
-        expect(l['source-layer'], kWaysLayer);
-        expect(l['minzoom'], kWaysZoom);
-        expect((l['paint'] as Map)['line-dasharray'], c.dash);
-      }
-    });
+    test(
+      'MapLibre: erst alle Bänder, dann Forstwege samt Mittelstreifen, zuletzt Pfade',
+      () {
+        final layers = wayStyleLayers('ways', dashes: true);
+        final bands = [
+          for (final c in WayClass.values)
+            if (c.band != null) c,
+        ];
+        final tracks = [
+          for (final c in WayClass.values)
+            if (c.kind == WayKind.track) c,
+        ];
+        final paths = [
+          for (final c in WayClass.values)
+            if (c.kind == WayKind.path) c,
+        ];
+        expect(
+          [for (final l in layers) l['id']],
+          [
+            for (final c in bands) 'ways/band-${c.name}',
+            for (final c in tracks) 'ways/line-${c.name}',
+            for (final c in tracks) 'ways/core-${c.name}',
+            for (final c in paths) 'ways/line-${c.name}',
+          ],
+        );
+        for (final c in WayClass.values) {
+          final l = layers.firstWhere((l) => l['id'] == 'ways/line-${c.name}');
+          expect(l['filter'], [
+            '==',
+            ['get', kWaysKey],
+            c.code,
+          ]);
+          expect(l['source-layer'], kWaysLayer);
+          expect(l['minzoom'], kWaysZoom);
+          expect((l['paint'] as Map)['line-dasharray'], c.dash);
+        }
+      },
+    );
 
     test('Forstweg ist eine Doppellinie, Pfad eine Linie (#263)', () {
       double widthAt15(Map<String, dynamic> l) {
@@ -88,9 +114,14 @@ void main() {
             expect(core, isEmpty, reason: c.name);
             continue;
           }
-          final line = layers.firstWhere((l) => l['id'] == 'ways/line-${c.name}');
+          final line = layers.firstWhere(
+            (l) => l['id'] == 'ways/line-${c.name}',
+          );
           expect(core.single['filter'], line['filter']);
-          expect((core.single['paint'] as Map).containsKey('line-dasharray'), isFalse);
+          expect(
+            (core.single['paint'] as Map).containsKey('line-dasharray'),
+            isFalse,
+          );
           // Zwei Spuren bleiben sichtbar, jede so breit wie ein Fünftel.
           final rut = (widthAt15(line) - widthAt15(core.single)) / 2;
           expect(rut, greaterThan(widthAt15(line) / 5), reason: c.name);
@@ -98,13 +129,31 @@ void main() {
         }
       }
       // Der Streifen ist heller als jede Spur und als das Land der Karte.
-      final style = jsonDecode(File(kMapStyleAsset).readAsStringSync()) as Map<String, dynamic>;
-      final earth = (style['layers'] as List).cast<Map<String, dynamic>>().firstWhere((l) => l['id'] == 'earth');
-      final land = Color(int.parse(((earth['paint'] as Map)['fill-color'] as String).substring(1), radix: 16) | 0xFF000000);
+      final style =
+          jsonDecode(File(kMapStyleAsset).readAsStringSync())
+              as Map<String, dynamic>;
+      final earth = (style['layers'] as List)
+          .cast<Map<String, dynamic>>()
+          .firstWhere((l) => l['id'] == 'earth');
+      final land = Color(
+        int.parse(
+              ((earth['paint'] as Map)['fill-color'] as String).substring(1),
+              radix: 16,
+            ) |
+            0xFF000000,
+      );
       for (final c in WayClass.values.where((c) => c.core != null)) {
-        expect(c.core!.computeLuminance(), greaterThan(land.computeLuminance()), reason: c.name);
+        expect(
+          c.core!.computeLuminance(),
+          greaterThan(land.computeLuminance()),
+          reason: c.name,
+        );
         for (final rut in [c.color, c.webColor, ?c.band]) {
-          expect(c.core!.computeLuminance(), greaterThan(rut.computeLuminance()), reason: c.name);
+          expect(
+            c.core!.computeLuminance(),
+            greaterThan(rut.computeLuminance()),
+            reason: c.name,
+          );
         }
       }
     });
@@ -114,7 +163,11 @@ void main() {
       final cores = WayClass.values.where((c) => c.core != null).length;
       expect(layers, hasLength(WayClass.values.length + cores));
       for (final l in layers) {
-        expect((l['paint'] as Map).containsKey('line-dasharray'), isFalse, reason: '${l['id']}');
+        expect(
+          (l['paint'] as Map).containsKey('line-dasharray'),
+          isFalse,
+          reason: '${l['id']}',
+        );
       }
       // Ohne Strich trägt die Helligkeit: rauer heißt heller, je Wegart.
       for (final kind in WayKind.values) {
@@ -123,7 +176,10 @@ void main() {
             if (c.kind == kind) c.webColor.computeLuminance(),
         ];
         expect(lum, orderedEquals([...lum]..sort()), reason: '$kind');
-        final widths = <double>[for (final c in WayClass.values) if (c.kind == kind) c.width];
+        final widths = <double>[
+          for (final c in WayClass.values)
+            if (c.kind == kind) c.width,
+        ];
         final descending = [...widths]..sort((a, b) => b.compareTo(a));
         expect(widths, orderedEquals(descending), reason: '$kind');
       }
@@ -131,24 +187,39 @@ void main() {
 
     test('die Codes sind die des Werkzeugs', () {
       final tool = File('tool/way_archive.py').readAsStringSync();
-      final classes = RegExp(r'^CLASSES = \{(.*?)\}', multiLine: true, dotAll: true).firstMatch(tool)!.group(1)!;
+      final classes = RegExp(
+        r'^CLASSES = \{(.*?)\}',
+        multiLine: true,
+        dotAll: true,
+      ).firstMatch(tool)!.group(1)!;
       final codes = {
-        for (final m in RegExp(r'(\d+): "(\w+)"').allMatches(classes)) m.group(2)!: int.parse(m.group(1)!),
+        for (final m in RegExp(r'(\d+): "(\w+)"').allMatches(classes))
+          m.group(2)!: int.parse(m.group(1)!),
       };
-      String snake(String camel) => camel.replaceAllMapped(RegExp('[A-Z]'), (m) => '_${m[0]!.toLowerCase()}');
+      String snake(String camel) => camel.replaceAllMapped(
+        RegExp('[A-Z]'),
+        (m) => '_${m[0]!.toLowerCase()}',
+      );
       expect({for (final c in WayClass.values) snake(c.name): c.code}, codes);
     });
 
     test('jede Breite liegt bei Zoom 15 über der Linie der Basiskarte', () {
-      final style = jsonDecode(File(kMapStyleAsset).readAsStringSync()) as Map<String, dynamic>;
+      final style =
+          jsonDecode(File(kMapStyleAsset).readAsStringSync())
+              as Map<String, dynamic>;
       double baseAt15(String id) {
-        final layer = (style['layers'] as List).cast<Map<String, dynamic>>().firstWhere((l) => l['id'] == id);
+        final layer = (style['layers'] as List)
+            .cast<Map<String, dynamic>>()
+            .firstWhere((l) => l['id'] == id);
         final w = (layer['paint'] as Map)['line-width'] as List;
         final stops = w.sublist(3);
         return (stops[stops.indexOf(15) + 1] as num).toDouble();
       }
 
-      final base = {WayKind.track: baseAt15('roads_path_track'), WayKind.path: baseAt15('roads_path')};
+      final base = {
+        WayKind.track: baseAt15('roads_path_track'),
+        WayKind.path: baseAt15('roads_path'),
+      };
       for (final c in WayClass.values) {
         expect(c.width, greaterThan(base[c.kind]!), reason: c.name);
       }
@@ -158,43 +229,74 @@ void main() {
       const g = AppColors.mapGrades;
       const m = AppColors.mapLines;
       final trail = {
-        for (final c in [g.s0, g.s1, g.s2, g.s3, g.ungraded, g.uphill, m.mine, m.buddy, m.warning, m.note,
-          m.official, m.candidate, m.ride])
+        for (final c in [
+          g.s0,
+          g.s1,
+          g.s2,
+          g.s3,
+          g.ungraded,
+          g.uphill,
+          m.mine,
+          m.buddy,
+          m.warning,
+          m.note,
+          m.official,
+          m.candidate,
+          m.ride,
+        ])
           c.toARGB32(),
       };
       for (final c in WayClass.values) {
         for (final color in [c.color, c.webColor, ?c.band, ?c.core]) {
           expect(trail, isNot(contains(color.toARGB32())), reason: c.name);
           // Grau-Braun: keine kräftige Farbe.
-          expect(HSLColor.fromColor(color).saturation, lessThan(0.3), reason: c.name);
+          expect(
+            HSLColor.fromColor(color).saturation,
+            lessThan(0.3),
+            reason: c.name,
+          );
         }
       }
     });
 
     test('flutter_map liest das Thema', () {
-      expect(wayTheme().layers, hasLength(wayStyleLayers(kWaysSourceId, dashes: false).length));
+      expect(
+        wayTheme().layers,
+        hasLength(wayStyleLayers(kWaysSourceId, dashes: false).length),
+      );
     });
   });
 
   group('Manifest-Provider', () {
-    (ProviderContainer, List<int>) make({required bool enabled, required bool offline, Object? error}) {
+    (ProviderContainer, List<int>) make({
+      required bool enabled,
+      required bool offline,
+      Object? error,
+    }) {
       final asked = <int>[];
-      final c = ProviderContainer(overrides: [
-        settingsProvider.overrideWithValue(FakeSettings(wayLayerEnabled: enabled)),
-        noConnectivityProvider.overrideWithValue(offline),
-        waysManifestLoaderProvider.overrideWithValue(() async {
-          asked.add(1);
-          if (error != null) throw error;
-          return WaysManifest.fromJson(_toolManifest());
-        }),
-      ]);
+      final c = ProviderContainer(
+        overrides: [
+          settingsProvider.overrideWithValue(
+            FakeSettings(wayLayerEnabled: enabled),
+          ),
+          noConnectivityProvider.overrideWithValue(offline),
+          waysManifestLoaderProvider.overrideWithValue(() async {
+            asked.add(1);
+            if (error != null) throw error;
+            return WaysManifest.fromJson(_toolManifest());
+          }),
+        ],
+      );
       addTearDown(c.dispose);
       return (c, asked);
     }
 
     test('an und online: geholt', () async {
       final (c, asked) = make(enabled: true, offline: false);
-      expect((await c.read(waysManifestProvider.future))?.file, 'ways-20261101.pmtiles');
+      expect(
+        (await c.read(waysManifestProvider.future))?.file,
+        'ways-20261101.pmtiles',
+      );
       expect(asked, hasLength(1));
     });
 
@@ -207,13 +309,19 @@ void main() {
     });
 
     test('noch kein Bau oder fremdes Format: still null', () async {
-      final (c, _) = make(enabled: true, offline: false, error: const FormatException('Format 2'));
+      final (c, _) = make(
+        enabled: true,
+        offline: false,
+        error: const FormatException('Format 2'),
+      );
       expect(await c.read(waysManifestProvider.future), isNull);
     });
 
     test('der Schalter merkt sich die Wahl', () async {
       final settings = FakeSettings();
-      final c = ProviderContainer(overrides: [settingsProvider.overrideWithValue(settings)]);
+      final c = ProviderContainer(
+        overrides: [settingsProvider.overrideWithValue(settings)],
+      );
       addTearDown(c.dispose);
       expect(c.read(wayLayerEnabledProvider), isTrue, reason: 'ab Werk an');
       c.read(wayLayerEnabledProvider.notifier).set(false);
@@ -224,11 +332,33 @@ void main() {
 
   test('die Legende zeigt die Wege nur, solange die Ebene an ist', () {
     final on = legendSamples(l10nDe);
-    expect([for (final s in on) if (s.way != null) s.way], WayClass.values);
-    expect([for (final s in legendSamples(l10nDe, ways: false)) if (s.way != null) s], isEmpty);
-    expect(legendGroupTitle(l10nDe, on.firstWhere((s) => s.way == WayClass.trackGood).group), 'Forstweg');
-    expect(legendGroupTitle(l10nDe, on.firstWhere((s) => s.way == WayClass.pathEasy).group), 'Pfad');
+    expect([
+      for (final s in on)
+        if (s.way != null) s.way,
+    ], WayClass.values);
+    expect([
+      for (final s in legendSamples(l10nDe, ways: false))
+        if (s.way != null) s,
+    ], isEmpty);
+    expect(
+      legendGroupTitle(
+        l10nDe,
+        on.firstWhere((s) => s.way == WayClass.trackGood).group,
+      ),
+      'Forstweg',
+    );
+    expect(
+      legendGroupTitle(
+        l10nDe,
+        on.firstWhere((s) => s.way == WayClass.pathEasy).group,
+      ),
+      'Pfad',
+    );
     final labels = [for (final s in on) s.label];
-    expect(labels.toSet(), hasLength(labels.length), reason: 'jede Probe einmal auffindbar');
+    expect(
+      labels.toSet(),
+      hasLength(labels.length),
+      reason: 'jede Probe einmal auffindbar',
+    );
   });
 }

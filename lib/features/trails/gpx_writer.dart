@@ -38,35 +38,68 @@ String writeGpx({
 }) {
   final b = XmlBuilder();
   b.processing('xml', 'version="1.0" encoding="UTF-8"');
-  b.element('gpx', nest: () {
-    b.attribute('version', '1.1');
-    b.attribute('creator', creator);
-    b.attribute('xmlns', kGpxNamespace);
-    if (terrainHeights) b.attribute('xmlns:tb', kTrailBuddyGpxNamespace);
-    b.element('metadata', nest: () {
-      b.element('name', nest: name);
-      if (link != null) b.element('link', nest: () => b.attribute('href', link));
-    });
-    b.element('trk', nest: () {
-      b.element('name', nest: name);
-      if (link != null) b.element('link', nest: () => b.attribute('href', link));
-      if (terrainHeights) {
-        b.element('extensions', nest: () => b.element('tb:$kElevationSourceTag', nest: kTerrainElevationSource));
-      }
-      b.element('trkseg', nest: () {
-        for (final p in points) {
-          b.element('trkpt', nest: () {
-            b.attribute('lat', p.lat.toStringAsFixed(6));
-            b.attribute('lon', p.lon.toStringAsFixed(6));
-            if (p.ele case final ele?) b.element('ele', nest: ele.toStringAsFixed(1));
-            if (p.time case final time?) {
-              b.element('time', nest: time.toUtc().toIso8601String().replaceFirst(RegExp(r'\.\d+'), ''));
-            }
-          });
-        }
-      });
-    });
-  });
+  b.element(
+    'gpx',
+    nest: () {
+      b.attribute('version', '1.1');
+      b.attribute('creator', creator);
+      b.attribute('xmlns', kGpxNamespace);
+      if (terrainHeights) b.attribute('xmlns:tb', kTrailBuddyGpxNamespace);
+      b.element(
+        'metadata',
+        nest: () {
+          b.element('name', nest: name);
+          if (link != null) {
+            b.element('link', nest: () => b.attribute('href', link));
+          }
+        },
+      );
+      b.element(
+        'trk',
+        nest: () {
+          b.element('name', nest: name);
+          if (link != null) {
+            b.element('link', nest: () => b.attribute('href', link));
+          }
+          if (terrainHeights) {
+            b.element(
+              'extensions',
+              nest: () => b.element(
+                'tb:$kElevationSourceTag',
+                nest: kTerrainElevationSource,
+              ),
+            );
+          }
+          b.element(
+            'trkseg',
+            nest: () {
+              for (final p in points) {
+                b.element(
+                  'trkpt',
+                  nest: () {
+                    b.attribute('lat', p.lat.toStringAsFixed(6));
+                    b.attribute('lon', p.lon.toStringAsFixed(6));
+                    if (p.ele case final ele?) {
+                      b.element('ele', nest: ele.toStringAsFixed(1));
+                    }
+                    if (p.time case final time?) {
+                      b.element(
+                        'time',
+                        nest: time.toUtc().toIso8601String().replaceFirst(
+                          RegExp(r'\.\d+'),
+                          '',
+                        ),
+                      );
+                    }
+                  },
+                );
+              }
+            },
+          );
+        },
+      );
+    },
+  );
   return b.buildDocument().toXmlString(pretty: true);
 }
 
@@ -77,7 +110,11 @@ String gpxFileName(String name) {
   var slug = name.toLowerCase();
   const umlauts = {'ä': 'ae', 'ö': 'oe', 'ü': 'ue', 'ß': 'ss'};
   umlauts.forEach((k, v) => slug = slug.replaceAll(k, v));
-  slug = slug.replaceAll(RegExp(r'[^a-z0-9]+'), '-').replaceAll(RegExp(r'^-+|-+$'), '');
-  if (slug.length > 60) slug = slug.substring(0, 60).replaceAll(RegExp(r'-+$'), '');
+  slug = slug
+      .replaceAll(RegExp(r'[^a-z0-9]+'), '-')
+      .replaceAll(RegExp(r'^-+|-+$'), '');
+  if (slug.length > 60) {
+    slug = slug.substring(0, 60).replaceAll(RegExp(r'-+$'), '');
+  }
   return 'trailbuddy-${slug.isEmpty ? 'trail' : slug}.gpx';
 }

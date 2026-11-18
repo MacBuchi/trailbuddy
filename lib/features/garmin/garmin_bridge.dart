@@ -22,7 +22,11 @@ enum WatchApp { installed, notInstalled, unknown }
 
 /// Was die Brücke über die Uhr weiß.
 class WatchStatus {
-  const WatchStatus({this.connect = false, this.device, this.app = WatchApp.unknown});
+  const WatchStatus({
+    this.connect = false,
+    this.device,
+    this.app = WatchApp.unknown,
+  });
 
   static const none = WatchStatus();
 
@@ -45,7 +49,11 @@ class WatchStatus {
       _ => WatchApp.unknown,
     };
     final device = raw['device'];
-    return WatchStatus(connect: raw['connect'] == true, device: device is String ? device : null, app: app);
+    return WatchStatus(
+      connect: raw['connect'] == true,
+      device: device is String ? device : null,
+      app: app,
+    );
   }
 }
 
@@ -63,7 +71,10 @@ class WatchSendResult {
   static WatchSendResult fromChannel(Object? raw) {
     if (raw is! Map) return const WatchSendResult('FAILURE_UNKNOWN', 0);
     final status = raw['status'], sent = raw['sent'];
-    return WatchSendResult(status is String ? status : 'FAILURE_UNKNOWN', sent is int ? sent : 0);
+    return WatchSendResult(
+      status is String ? status : 'FAILURE_UNKNOWN',
+      sent is int ? sent : 0,
+    );
   }
 }
 
@@ -85,11 +96,11 @@ enum WatchOpen {
   unknown;
 
   static WatchOpen fromChannel(Object? raw) => switch (raw) {
-        'APP_IS_ALREADY_RUNNING' => running,
-        'PROMPT_SHOWN_ON_DEVICE' => prompted,
-        'APP_IS_NOT_INSTALLED' => notInstalled,
-        _ => unknown,
-      };
+    'APP_IS_ALREADY_RUNNING' => running,
+    'PROMPT_SHOWN_ON_DEVICE' => prompted,
+    'APP_IS_NOT_INSTALLED' => notInstalled,
+    _ => unknown,
+  };
 }
 
 abstract interface class GarminBridge {
@@ -119,4 +130,6 @@ abstract interface class GarminBridge {
   Stream<void> get connected;
 }
 
-final garminBridgeProvider = Provider<GarminBridge>((ref) => createGarminBridge());
+final garminBridgeProvider = Provider<GarminBridge>(
+  (ref) => createGarminBridge(),
+);

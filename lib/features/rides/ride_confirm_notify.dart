@@ -41,14 +41,19 @@ const kConfirmNotificationIcon = 'ic_notification';
 
 /// Was die Benachrichtigung zur Antwort mitträgt: wo die Fahrt liegt, zu
 /// welchem Konto und welcher Fahrt sie gehört, und welcher Trail.
-typedef ConfirmPayload = ({String dir, String uid, DateTime rideStartedAt, String trailId});
+typedef ConfirmPayload = ({
+  String dir,
+  String uid,
+  DateTime rideStartedAt,
+  String trailId,
+});
 
 String encodeConfirmPayload(ConfirmPayload p) => jsonEncode({
-      'dir': p.dir,
-      'uid': p.uid,
-      'ride': p.rideStartedAt.toUtc().toIso8601String(),
-      'trail': p.trailId,
-    });
+  'dir': p.dir,
+  'uid': p.uid,
+  'ride': p.rideStartedAt.toUtc().toIso8601String(),
+  'trail': p.trailId,
+});
 
 ConfirmPayload? decodeConfirmPayload(String? text) {
   if (text == null) return null;
@@ -57,7 +62,9 @@ ConfirmPayload? decodeConfirmPayload(String? text) {
     if (json is! Map<String, dynamic>) return null;
     final dir = json['dir'], uid = json['uid'], trail = json['trail'];
     final ride = DateTime.tryParse(json['ride'] as String? ?? '');
-    if (dir is! String || uid is! String || trail is! String || ride == null) return null;
+    if (dir is! String || uid is! String || trail is! String || ride == null) {
+      return null;
+    }
     return (dir: dir, uid: uid, rideStartedAt: ride.toUtc(), trailId: trail);
   } catch (_) {
     return null;
@@ -90,7 +97,11 @@ Future<String?> handleConfirmResponse({
     if (choice != null) {
       final store = (storeFor ?? _storeFor)(p.dir);
       await store.appendConfirmEvent(
-        ConfirmAnswered(trailId: p.trailId, at: (now ?? DateTime.now()).toUtc(), choice: choice),
+        ConfirmAnswered(
+          trailId: p.trailId,
+          at: (now ?? DateTime.now()).toUtc(),
+          choice: choice,
+        ),
         rideStartedAt: p.rideStartedAt,
       );
     }
@@ -112,7 +123,9 @@ void rideConfirmBackgroundResponse(NotificationResponse response) {
 }
 
 Future<void> _respond(NotificationResponse r) async {
-  if (await handleWheelieResponse(actionId: r.actionId, payload: r.payload)) return;
+  if (await handleWheelieResponse(actionId: r.actionId, payload: r.payload)) {
+    return;
+  }
   await handleConfirmResponse(actionId: r.actionId, payload: r.payload);
 }
 
@@ -123,13 +136,15 @@ Future<bool?>? _initialized;
 /// eingerichtet — auch für die Wheelie-Messung.
 FlutterLocalNotificationsPlugin get rideNoticesPlugin => _plugin;
 
-Future<void> initRideNotices({DidReceiveNotificationResponseCallback? onResponse}) =>
-    _init(onResponse: onResponse);
+Future<void> initRideNotices({
+  DidReceiveNotificationResponseCallback? onResponse,
+}) => _init(onResponse: onResponse);
 
 Future<void> _init({DidReceiveNotificationResponseCallback? onResponse}) async {
   await (_initialized ??= _plugin.initialize(
     settings: const InitializationSettings(
-        android: AndroidInitializationSettings(kConfirmNotificationIcon)),
+      android: AndroidInitializationSettings(kConfirmNotificationIcon),
+    ),
     onDidReceiveNotificationResponse: onResponse,
     onDidReceiveBackgroundNotificationResponse: rideConfirmBackgroundResponse,
   ));
@@ -137,7 +152,10 @@ Future<void> _init({DidReceiveNotificationResponseCallback? onResponse}) async {
 
 /// Zeigt die Frage. Aufgerufen im Service-Isolate; wirft nie — ohne
 /// Benachrichtigung fragt das Zerlege-Blatt am Ende.
-Future<void> showConfirmNotice(ConfirmTarget target, {required String payload}) async {
+Future<void> showConfirmNotice(
+  ConfirmTarget target, {
+  required String payload,
+}) async {
   try {
     await _init();
     // Kein BuildContext im Service-Isolate: dieselbe Sprache wie die App
@@ -179,14 +197,23 @@ Future<void> showConfirmNotice(ConfirmTarget target, {required String payload}) 
 /// Die Trails, zu denen eine Frage in der App angetippt wurde (Tipp auf
 /// die Benachrichtigung oder „Ändern…") — auch der Tipp, der die App
 /// erst gestartet hat. Nur Android; im Test überschrieben.
-final rideConfirmTapsProvider = Provider<Stream<String> Function()>((ref) => _platformTaps);
+final rideConfirmTapsProvider = Provider<Stream<String> Function()>(
+  (ref) => _platformTaps,
+);
 
 Stream<String> _platformTaps() {
-  if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) return const Stream.empty();
+  if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) {
+    return const Stream.empty();
+  }
   final controller = StreamController<String>();
   Future<void> forward(NotificationResponse r) async {
-    if (await handleWheelieResponse(actionId: r.actionId, payload: r.payload)) return;
-    final trail = await handleConfirmResponse(actionId: r.actionId, payload: r.payload);
+    if (await handleWheelieResponse(actionId: r.actionId, payload: r.payload)) {
+      return;
+    }
+    final trail = await handleConfirmResponse(
+      actionId: r.actionId,
+      payload: r.payload,
+    );
     if (trail != null && !controller.isClosed) controller.add(trail);
   }
 
@@ -195,7 +222,9 @@ Stream<String> _platformTaps() {
       await _init(onResponse: forward);
       final launch = await _plugin.getNotificationAppLaunchDetails();
       final response = launch?.notificationResponse;
-      if (launch?.didNotificationLaunchApp == true && response != null) await forward(response);
+      if (launch?.didNotificationLaunchApp == true && response != null) {
+        await forward(response);
+      }
     } catch (e, stackTrace) {
       logError('Fahrt: Antworten auf Fragen verdrahten', e, stackTrace);
     }

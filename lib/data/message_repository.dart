@@ -31,7 +31,8 @@ class MessageRejectedException implements Exception {
   const MessageRejectedException();
 
   @override
-  String toString() => 'Nachricht nicht zugestellt — vielleicht wurde die '
+  String toString() =>
+      'Nachricht nicht zugestellt — vielleicht wurde die '
       'Anfrage zurückgezogen, oder deine drei Nachrichten sind schon '
       'geschrieben.';
 }
@@ -59,9 +60,10 @@ class MessageRepository {
 
   Future<void> send({required String recipientId, required String body}) async {
     try {
-      await _client
-          .from('buddy_messages')
-          .insert({'recipient_id': recipientId, 'body': body.trim()});
+      await _client.from('buddy_messages').insert({
+        'recipient_id': recipientId,
+        'body': body.trim(),
+      });
     } on PostgrestException catch (e) {
       // 42501: die Policy hat nein gesagt (`may_message`).
       if (e.code == '42501') throw const MessageRejectedException();

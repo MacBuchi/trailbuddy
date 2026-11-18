@@ -48,7 +48,8 @@ class TrailRecording {
   /// Dieselbe Aufzeichnung unter einem anderen Trail (#107): ein Duplikat,
   /// das bei mir unter [trailId] steht. [flip]: B läuft gegen A, die
   /// Richtung zum Trail dreht sich mit. Die Punkte bleiben dieselbe Liste.
-  TrailRecording movedTo(String trailId, {required bool flip}) => TrailRecording(
+  TrailRecording movedTo(String trailId, {required bool flip}) =>
+      TrailRecording(
         id: id,
         trailId: trailId,
         userId: userId,
@@ -67,21 +68,23 @@ class TrailRecording {
     // castet, kommt er als String oder als Map — beides wird angenommen,
     // damit eine Spaltenänderung nicht still leere Linien erzeugt.
     final raw = json['geojson'];
-    final geo = raw is String
-        ? jsonDecode(raw)
-        : raw;
+    final geo = raw is String ? jsonDecode(raw) : raw;
     final coords = geo is Map ? geo['coordinates'] : null;
     final points = <LatLng>[];
     if (coords is List) {
       for (final c in coords) {
         if (c is List && c.length >= 2) {
-          points.add(LatLng((c[1] as num).toDouble(), (c[0] as num).toDouble()));
+          points.add(
+            LatLng((c[1] as num).toDouble(), (c[0] as num).toDouble()),
+          );
         }
       }
     }
     final rawEle = json['ele'];
     List<double>? ele;
-    if (rawEle is List && rawEle.length == points.length && rawEle.every((e) => e is num)) {
+    if (rawEle is List &&
+        rawEle.length == points.length &&
+        rawEle.every((e) => e is num)) {
       ele = [for (final e in rawEle) (e as num).toDouble()];
     }
     return TrailRecording(
@@ -89,8 +92,9 @@ class TrailRecording {
       trailId: json['trail_id'] as String,
       userId: json['user_id'] as String,
       source: RecordingSource.values.firstWhere(
-          (s) => s.name == json['source'],
-          orElse: () => RecordingSource.import),
+        (s) => s.name == json['source'],
+        orElse: () => RecordingSource.import,
+      ),
       recordedAt: json['recorded_at'] == null
           ? null
           : DateTime.parse(json['recorded_at'] as String).toLocal(),
@@ -145,14 +149,14 @@ enum TrailTrait {
   /// Der Name auf dem Schirm (#209) — ein `switch`, damit ein neues
   /// Merkmal ohne Text nicht baut.
   String label(AppLocalizations l) => switch (this) {
-        flowy => l.traitFlowy,
-        jumps => l.traitJumps,
-        rocky => l.traitRocky,
-        steep => l.traitSteep,
-        uphill => l.traitUphill,
-        natural => l.traitNatural,
-        connection => l.traitConnection,
-      };
+    flowy => l.traitFlowy,
+    jumps => l.traitJumps,
+    rocky => l.traitRocky,
+    steep => l.traitSteep,
+    uphill => l.traitUphill,
+    natural => l.traitNatural,
+    connection => l.traitConnection,
+  };
 
   static TrailTrait? fromDb(String? s) =>
       s == null ? null : values.where((k) => k.db == s).firstOrNull;
@@ -161,13 +165,13 @@ enum TrailTrait {
   /// Patch 009, für Zeilen, die noch keine `traits` tragen (ein alter
   /// Zwischenspeicher, ein wartender Auftrag im Ausgangskorb).
   static TrailTrait? fromLegacyKind(String? kind) => switch (kind) {
-        'flow' => flowy,
-        'jump' => jumps,
-        'tech' => rocky,
-        'natural' => natural,
-        'connection' => connection,
-        _ => null,
-      };
+    'flow' => flowy,
+    'jump' => jumps,
+    'tech' => rocky,
+    'natural' => natural,
+    'connection' => connection,
+    _ => null,
+  };
 }
 
 /// Höchstens so viele Merkmale zeigt ein Trail (Design Turn 4): die
@@ -182,9 +186,9 @@ enum TrailVisibility {
   final String db;
 
   String label(AppLocalizations l) => switch (this) {
-        buddies => l.visibilityBuddies,
-        private => l.visibilityPrivate,
-      };
+    buddies => l.visibilityBuddies,
+    private => l.visibilityPrivate,
+  };
 
   static TrailVisibility fromDb(String? s) =>
       values.where((v) => v.db == s).firstOrNull ?? TrailVisibility.buddies;
@@ -203,11 +207,11 @@ enum TrailStatus {
   final String db;
 
   String label(AppLocalizations l) => switch (this) {
-        open => l.statusOpen,
-        closed => l.statusClosed,
-        destroyed => l.statusDestroyed,
-        changed => l.statusChanged,
-      };
+    open => l.statusOpen,
+    closed => l.statusClosed,
+    destroyed => l.statusDestroyed,
+    changed => l.statusChanged,
+  };
 
   static TrailStatus fromDb(String? s) =>
       values.where((v) => v.db == s).firstOrNull ?? TrailStatus.open;
@@ -216,7 +220,8 @@ enum TrailStatus {
 
   /// Sperrt den Trail für die Planung (#434, Betreiber 2026-10-31):
   /// gesperrt und zerstört, nicht „Verändert" (`changed`).
-  bool get blocksRouting => this == TrailStatus.closed || this == TrailStatus.destroyed;
+  bool get blocksRouting =>
+      this == TrailStatus.closed || this == TrailStatus.destroyed;
 }
 
 /// Was ein Nutzer über einen Trail sagt — genau eine Zeile je Nutzer und
@@ -288,39 +293,42 @@ class TrailDetails {
   }
 
   Map<String, dynamic> toRow() => {
-        'trail_id': trailId,
-        'user_id': userId,
-        'name': name,
-        'description': description,
-        'grade': grade,
-        // `kind` schreibt die App nicht mehr; der Server behält den
-        // alten Wert, bis Patch-Folge die Spalte entfernt.
-        'traits': [for (final t in TrailTrait.values) if (traits.contains(t)) t.db],
-        'rating': rating,
-        'two_way': twoWay,
-        'link': link,
-        'visibility': visibility.db,
-        // `status`/`status_at` schreibt die App seit 0.49.0 nicht mehr: Die
-        // Meldung geht über `report_trail` (Patch 013), und der Server
-        // gleicht sie für ältere Clients an den Beitrag ab.
-      };
+    'trail_id': trailId,
+    'user_id': userId,
+    'name': name,
+    'description': description,
+    'grade': grade,
+    // `kind` schreibt die App nicht mehr; der Server behält den
+    // alten Wert, bis Patch-Folge die Spalte entfernt.
+    'traits': [
+      for (final t in TrailTrait.values)
+        if (traits.contains(t)) t.db,
+    ],
+    'rating': rating,
+    'two_way': twoWay,
+    'link': link,
+    'visibility': visibility.db,
+    // `status`/`status_at` schreibt die App seit 0.49.0 nicht mehr: Die
+    // Meldung geht über `report_trail` (Patch 013), und der Server
+    // gleicht sie für ältere Clients an den Beitrag ab.
+  };
 
   /// Derselbe Beitrag unter einem anderen Trail (#107) — nur für die
   /// Anzeige; geschrieben wird er nie so.
   TrailDetails withTrailId(String trailId) => TrailDetails(
-        trailId: trailId,
-        userId: userId,
-        username: username,
-        name: name,
-        description: description,
-        grade: grade,
-        traits: traits,
-        rating: rating,
-        twoWay: twoWay,
-        link: link,
-        visibility: visibility,
-        updatedAt: updatedAt,
-      );
+    trailId: trailId,
+    userId: userId,
+    username: username,
+    name: name,
+    description: description,
+    grade: grade,
+    traits: traits,
+    rating: rating,
+    twoWay: twoWay,
+    link: link,
+    visibility: visibility,
+    updatedAt: updatedAt,
+  );
 
   TrailDetails copyWith({
     String? name,
@@ -334,21 +342,20 @@ class TrailDetails {
     String? link,
     bool clearLink = false,
     TrailVisibility? visibility,
-  }) =>
-      TrailDetails(
-        trailId: trailId,
-        userId: userId,
-        username: username,
-        name: name ?? this.name,
-        description: description ?? this.description,
-        grade: clearGrade ? null : (grade ?? this.grade),
-        traits: traits ?? this.traits,
-        rating: clearRating ? null : (rating ?? this.rating),
-        twoWay: twoWay ?? this.twoWay,
-        link: clearLink ? null : (link ?? this.link),
-        visibility: visibility ?? this.visibility,
-        updatedAt: updatedAt,
-      );
+  }) => TrailDetails(
+    trailId: trailId,
+    userId: userId,
+    username: username,
+    name: name ?? this.name,
+    description: description ?? this.description,
+    grade: clearGrade ? null : (grade ?? this.grade),
+    traits: traits ?? this.traits,
+    rating: clearRating ? null : (rating ?? this.rating),
+    twoWay: twoWay ?? this.twoWay,
+    link: clearLink ? null : (link ?? this.link),
+    visibility: visibility ?? this.visibility,
+    updatedAt: updatedAt,
+  );
 }
 
 int? _ratingFromJson(Object? raw) =>
@@ -423,11 +430,15 @@ class TrailReport {
     final kind = ReportKind.fromDb(json['kind'] as String?);
     final at = DateTime.tryParse(json['reported_at'] as String? ?? '');
     if (kind == null || at == null) return null;
-    final status = json['status'] == null ? null : TrailStatus.fromDb(json['status'] as String?);
+    final status = json['status'] == null
+        ? null
+        : TrailStatus.fromDb(json['status'] as String?);
     final condition = json['condition'];
     if (kind == ReportKind.status && status == null) return null;
     if (kind == ReportKind.condition &&
-        !(condition is int && condition >= kConditionMin && condition <= kConditionMax)) {
+        !(condition is int &&
+            condition >= kConditionMin &&
+            condition <= kConditionMax)) {
       return null;
     }
     final reporter = json['reporter'];
@@ -446,30 +457,30 @@ class TrailReport {
 
   /// Dieselbe Meldung unter einem anderen Trail (#107), nur für die Anzeige.
   TrailReport withTrailId(String trailId) => TrailReport(
-        id: id,
-        trailId: trailId,
-        userId: userId,
-        kind: kind,
-        confirmed: confirmed,
-        reportedAt: reportedAt,
-        status: status,
-        condition: condition,
-        username: username,
-        pending: pending,
-        sending: sending,
-      );
+    id: id,
+    trailId: trailId,
+    userId: userId,
+    kind: kind,
+    confirmed: confirmed,
+    reportedAt: reportedAt,
+    status: status,
+    condition: condition,
+    username: username,
+    pending: pending,
+    sending: sending,
+  );
 
   Map<String, dynamic> toRow() => {
-        'id': id,
-        'trail_id': trailId,
-        'user_id': userId,
-        'kind': kind.db,
-        'status': status?.db,
-        'condition': condition,
-        'confirmed': confirmed,
-        'reported_at': reportedAt.toUtc().toIso8601String(),
-        'reporter': username == null ? null : {'username': username},
-      };
+    'id': id,
+    'trail_id': trailId,
+    'user_id': userId,
+    'kind': kind.db,
+    'status': status?.db,
+    'condition': condition,
+    'confirmed': confirmed,
+    'reported_at': reportedAt.toUtc().toIso8601String(),
+    'reporter': username == null ? null : {'username': username},
+  };
 }
 
 /// Die Skala des Zustands — dieselben Grenzen wie der Check an
@@ -490,7 +501,8 @@ typedef ShownReports = ({TrailReport? confirmed, TrailReport? unconfirmed});
 ShownReports shownReportsOf(Iterable<TrailReport> reports) {
   TrailReport? confirmed;
   TrailReport? unconfirmed;
-  bool newer(TrailReport a, TrailReport? b) => b == null || a.reportedAt.isAfter(b.reportedAt);
+  bool newer(TrailReport a, TrailReport? b) =>
+      b == null || a.reportedAt.isAfter(b.reportedAt);
   for (final r in reports) {
     if (r.confirmed) {
       if (newer(r, confirmed)) confirmed = r;
@@ -498,7 +510,9 @@ ShownReports shownReportsOf(Iterable<TrailReport> reports) {
       unconfirmed = r;
     }
   }
-  if (confirmed != null && unconfirmed != null && !unconfirmed.reportedAt.isAfter(confirmed.reportedAt)) {
+  if (confirmed != null &&
+      unconfirmed != null &&
+      !unconfirmed.reportedAt.isAfter(confirmed.reportedAt)) {
     unconfirmed = null;
   }
   return (confirmed: confirmed, unconfirmed: unconfirmed);
@@ -566,16 +580,17 @@ class TrailNote {
 
   /// Derselbe Hinweis unter einem anderen Trail (#107), nur für die Anzeige.
   TrailNote withTrailId(String trailId) => TrailNote(
-      id: id,
-      trailId: trailId,
-      userId: userId,
-      body: body,
-      createdAt: createdAt,
-      username: username,
-      photo: photo,
-      reportId: reportId,
-      pending: pending,
-      sending: sending);
+    id: id,
+    trailId: trailId,
+    userId: userId,
+    body: body,
+    createdAt: createdAt,
+    username: username,
+    photo: photo,
+    reportId: reportId,
+    pending: pending,
+    sending: sending,
+  );
 
   factory TrailNote.fromJson(Map<String, dynamic> json) {
     final author = json['author'];
@@ -597,7 +612,8 @@ class TrailNote {
 /// Nutzer ein Eintrag. Wer den Text nicht sehen darf, bekommt die Notiz
 /// gar nicht erst und sieht nur die Meldung.
 class TrailEntry {
-  const TrailEntry({this.report, this.note}) : assert(report != null || note != null);
+  const TrailEntry({this.report, this.note})
+    : assert(report != null || note != null);
 
   /// Nur [ReportKind.status].
   final TrailReport? report;
@@ -634,7 +650,10 @@ class NotePhoto {
     return NotePhoto(key: key, expiresAt: DateTime.parse(expires).toLocal());
   }
 
-  Map<String, dynamic> toRow() => {'key': key, 'expires_at': expiresAt.toUtc().toIso8601String()};
+  Map<String, dynamic> toRow() => {
+    'key': key,
+    'expires_at': expiresAt.toUtc().toIso8601String(),
+  };
 }
 
 /// So lange gilt ein Hinweis eines Buddys als neu: Liste und Karte heben
@@ -704,7 +723,8 @@ class Trail {
   /// Stand [id] einmal für diesen Trail — er selbst oder ein Duplikat,
   /// das bei mir unter ihm steht? Für Kennungen von früher (Push, Fokus,
   /// ein offenes Blatt), die nach dem Zusammenführen ins Leere zeigten.
-  bool answersTo(String trailId) => id == trailId || mergedFrom.any((m) => m.id == trailId);
+  bool answersTo(String trailId) =>
+      id == trailId || mergedFrom.any((m) => m.id == trailId);
 
   /// Die sichtbaren Meldungen und Zustände (#101), in beliebiger
   /// Reihenfolge — angezeigt über [shownStatus], [shownCondition] und
@@ -724,8 +744,7 @@ class Trail {
 
   /// Alle sichtbaren Belege sind geplant — gefahren hat ihn hier
   /// nachweislich niemand.
-  bool get allPlanned =>
-      recordings.every((r) => !r.ridden);
+  bool get allPlanned => recordings.every((r) => !r.ridden);
 
   /// Die beste sichtbare Aufzeichnung: höchste Qualität, bei Gleichstand
   /// die ältere (sie hat den Trail „angelegt").
@@ -792,13 +811,18 @@ class Trail {
   /// Beiträge in der Reihenfolge ihres ersten Belegs — der älteste
   /// Beitragende zuerst. Ohne Beleg (nur Beitrag) hinten.
   List<TrailDetails> get contributionsOrdered {
-    DateTime firstRecording(String userId) => recordings
-        .where((r) => r.userId == userId)
-        .map((r) => r.createdAt)
-        .fold<DateTime?>(null, (m, t) => m == null || t.isBefore(m) ? t : m) ??
+    DateTime firstRecording(String userId) =>
+        recordings
+            .where((r) => r.userId == userId)
+            .map((r) => r.createdAt)
+            .fold<DateTime?>(
+              null,
+              (m, t) => m == null || t.isBefore(m) ? t : m,
+            ) ??
         DateTime.fromMillisecondsSinceEpoch(1 << 52);
-    return List.of(details)
-      ..sort((a, b) => firstRecording(a.userId).compareTo(firstRecording(b.userId)));
+    return List.of(details)..sort(
+      (a, b) => firstRecording(a.userId).compareTo(firstRecording(b.userId)),
+    );
   }
 
   /// Eigener Name, sonst der Name des ältesten sichtbaren Beitrags; die
@@ -866,7 +890,8 @@ class Trail {
   /// der SCHWERERE der beiden mittleren: Im Zweifel gewinnt die Warnung —
   /// wer einen S3 für S2 hält, liegt teurer daneben als umgekehrt.
   int? get grade {
-    final grades = details.map((d) => d.grade).whereType<int>().toList()..sort();
+    final grades = details.map((d) => d.grade).whereType<int>().toList()
+      ..sort();
     if (grades.isEmpty) return null;
     return grades[grades.length ~/ 2];
   }
@@ -915,10 +940,14 @@ class Trail {
   /// Der Verlauf im Blatt, neueste zuerst: alles aus den letzten
   /// [kReportRetentionDays] Tagen, dazu immer, was angezeigt wird.
   List<TrailReport> reportsShown({DateTime? now}) {
-    final since = (now ?? DateTime.now())
-        .subtract(const Duration(days: kReportRetentionDays));
+    final since = (now ?? DateTime.now()).subtract(
+      const Duration(days: kReportRetentionDays),
+    );
     final keep = {
-      for (final pair in [shownStatus, shownCondition]) ...[?pair.confirmed, ?pair.unconfirmed],
+      for (final pair in [shownStatus, shownCondition]) ...[
+        ?pair.confirmed,
+        ?pair.unconfirmed,
+      ],
     };
     return [
       for (final r in reports)
@@ -929,8 +958,8 @@ class Trail {
   /// [userId] ist den Trail gefahren — eine sichtbare Aufzeichnung, die
   /// nicht nur geplant ist. Dieselbe Regel wie `has_ridden` auf dem
   /// Server; auf dem Gerät nur die Vorhersage für wartende Meldungen.
-  bool hasRidden(String userId) => recordings
-      .any((r) => r.userId == userId && r.ridden);
+  bool hasRidden(String userId) =>
+      recordings.any((r) => r.userId == userId && r.ridden);
 
   /// Die sichtbaren Bewertungen, älteste Beiträge zuerst — „wer hat was
   /// gesagt" im Blatt.
@@ -941,7 +970,8 @@ class Trail {
   /// Bei gerader Anzahl der HÖHERE der beiden mittleren — wie beim S-Grad
   /// (dort im Zweifel die Warnung, hier der Betreiber, 2026-09-30).
   int? get rating {
-    final ratings = details.map((d) => d.rating).whereType<int>().toList()..sort();
+    final ratings = details.map((d) => d.rating).whereType<int>().toList()
+      ..sort();
     if (ratings.isEmpty) return null;
     return ratings[ratings.length ~/ 2];
   }
@@ -970,8 +1000,9 @@ class Trail {
   List<TrailNote> notesShown({DateTime? now}) {
     final sorted = List.of(notes)
       ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
-    final since = (now ?? DateTime.now())
-        .subtract(const Duration(days: kNoteRetentionDays));
+    final since = (now ?? DateTime.now()).subtract(
+      const Duration(days: kNoteRetentionDays),
+    );
     return [
       for (var i = 0; i < sorted.length; i++)
         if (i == 0 || sorted[i].createdAt.isAfter(since)) sorted[i],
@@ -1013,14 +1044,19 @@ class Trail {
       notes.any((n) => isFreshNote(n, now: now, seen: seen));
 
   bool isFreshNote(TrailNote n, {DateTime? now, Set<String> seen = const {}}) {
-    final since =
-        (now ?? DateTime.now()).subtract(const Duration(days: kFreshNoteDays));
-    return n.userId != myId && n.createdAt.isAfter(since) && !seen.contains(n.id);
+    final since = (now ?? DateTime.now()).subtract(
+      const Duration(days: kFreshNoteDays),
+    );
+    return n.userId != myId &&
+        n.createdAt.isAfter(since) &&
+        !seen.contains(n.id);
   }
 
   /// Wer den Trail belegt hat, ohne mich — für „3 Buddys kennen ihn".
-  Set<String> get buddyIds =>
-      {for (final r in recordings) if (r.userId != myId) r.userId};
+  Set<String> get buddyIds => {
+    for (final r in recordings)
+      if (r.userId != myId) r.userId,
+  };
 }
 
 /// Ein Duplikat, das bei mir unter einem anderen Trail steht (#107).
@@ -1034,7 +1070,12 @@ int compareTrailNames(Trail a, Trail b) {
 }
 
 class MergedTrail {
-  const MergedTrail({required this.id, required this.byMe, this.name, this.byUsers = const []});
+  const MergedTrail({
+    required this.id,
+    required this.byMe,
+    this.name,
+    this.byUsers = const [],
+  });
 
   /// Die Kennung des Duplikats.
   final String id;
@@ -1081,7 +1122,10 @@ List<Trail> buildTrails({
   List<TrailMerge> merges = const [],
   Iterable<Trail> previous = const [],
 }) {
-  final before = {for (final t in previous) if (!t.pending && t.myId == myId) t.id: t};
+  final before = {
+    for (final t in previous)
+      if (!t.pending && t.myId == myId) t.id: t,
+  };
   final targets = _mergeTargets(merges, recordings);
   final mergedFrom = <String, List<MergedTrail>>{};
   if (targets.isNotEmpty) {
@@ -1091,29 +1135,45 @@ List<Trail> buildTrails({
           .where((d) => d.trailId == e.key && (d.name ?? '').trim().isNotEmpty)
           .map((d) => d.name!.trim())
           .firstOrNull;
-      (mergedFrom[e.value.to] ??= []).add(MergedTrail(
-          id: e.key, name: name, byMe: e.value.byMe, byUsers: e.value.byUsers));
+      (mergedFrom[e.value.to] ??= []).add(
+        MergedTrail(
+          id: e.key,
+          name: name,
+          byMe: e.value.byMe,
+          byUsers: e.value.byUsers,
+        ),
+      );
     }
     recordings = [
       for (final r in recordings)
         if (targets[r.trailId] case final t?) _movedRecording(r, t) else r,
     ];
     // Hat jemand an beiden einen Beitrag, gilt der am behaltenen Trail.
-    final kept = {for (final d in details) if (!targets.containsKey(d.trailId)) '${d.trailId}|${d.userId}'};
+    final kept = {
+      for (final d in details)
+        if (!targets.containsKey(d.trailId)) '${d.trailId}|${d.userId}',
+    };
     details = [
       for (final d in details)
-        if (targets[d.trailId] case final t?)
-          ...[if (kept.add('${t.to}|${d.userId}')) _moved(d, t.to, () => d.withTrailId(t.to))]
-        else
+        if (targets[d.trailId] case final t?) ...[
+          if (kept.add('${t.to}|${d.userId}'))
+            _moved(d, t.to, () => d.withTrailId(t.to)),
+        ] else
           d,
     ];
     notes = [
       for (final n in notes)
-        if (targets[n.trailId] case final t?) _moved(n, t.to, () => n.withTrailId(t.to)) else n,
+        if (targets[n.trailId] case final t?)
+          _moved(n, t.to, () => n.withTrailId(t.to))
+        else
+          n,
     ];
     reports = [
       for (final r in reports)
-        if (targets[r.trailId] case final t?) _moved(r, t.to, () => r.withTrailId(t.to)) else r,
+        if (targets[r.trailId] case final t?)
+          _moved(r, t.to, () => r.withTrailId(t.to))
+        else
+          r,
     ];
   }
   final byTrail = <String, List<TrailRecording>>{};
@@ -1148,24 +1208,37 @@ List<Trail> buildTrails({
       return old;
     }
     return Trail(
-        id: id, recordings: recs, details: d, myId: myId, notes: n, reports: r, mergedFrom: m);
+      id: id,
+      recordings: recs,
+      details: d,
+      myId: myId,
+      notes: n,
+      reports: r,
+      mergedFrom: m,
+    );
   }
 
-  return [
-    for (final e in byTrail.entries) make(e.key, e.value),
-  ]..sort(compareTrailNames);
+  return [for (final e in byTrail.entries) make(e.key, e.value)]
+    ..sort(compareTrailNames);
 }
 
 /// [resolveMerges] mit dem Alter jedes Trails aus seiner ältesten
 /// sichtbaren Aufzeichnung.
-Map<String, MergeTarget> _mergeTargets(List<TrailMerge> merges, List<TrailRecording> recordings) {
-  if (!merges.any((m) => m.kind == TrailMergeKind.own || m.kind == TrailMergeKind.folded)) {
+Map<String, MergeTarget> _mergeTargets(
+  List<TrailMerge> merges,
+  List<TrailRecording> recordings,
+) {
+  if (!merges.any(
+    (m) => m.kind == TrailMergeKind.own || m.kind == TrailMergeKind.folded,
+  )) {
     return const {};
   }
   final firstSeen = <String, DateTime>{};
   for (final r in recordings) {
     final t = firstSeen[r.trailId];
-    if (t == null || r.createdAt.isBefore(t)) firstSeen[r.trailId] = r.createdAt;
+    if (t == null || r.createdAt.isBefore(t)) {
+      firstSeen[r.trailId] = r.createdAt;
+    }
   }
   return resolveMerges(merges, ageOf: (id) => firstSeen[id]);
 }
@@ -1176,7 +1249,12 @@ Map<String, MergeTarget> _mergeTargets(List<TrailMerge> merges, List<TrailRecord
 /// Zeilen selbst teilt `shareSnapshot` über die Abrufe hinweg.
 final _movedRows = Expando<(String, bool, Object)>('trail-merge');
 
-T _moved<T extends Object>(T row, String to, T Function() copy, {bool flip = false}) {
+T _moved<T extends Object>(
+  T row,
+  String to,
+  T Function() copy, {
+  bool flip = false,
+}) {
   final hit = _movedRows[row];
   if (hit != null && hit.$1 == to && hit.$2 == flip) return hit.$3 as T;
   final made = copy();

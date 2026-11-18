@@ -27,24 +27,30 @@ FakeBackend _signedIn() {
 }
 
 void main() {
-  testWidgets('Bestätigen widerruft — und die eigene Sitzung bleibt',
-      (tester) async {
+  testWidgets('Bestätigen widerruft — und die eigene Sitzung bleibt', (
+    tester,
+  ) async {
     final backend = _signedIn();
     await pumpApp(tester, backend);
     await _openDialog(tester);
 
-    expect(find.textContaining('Dieses Gerät bleibt angemeldet'),
-        findsOneWidget,
-        reason: 'Die Rückfrage muss sagen, was passiert — sonst traut '
-            'sich niemand zu tippen.');
+    expect(
+      find.textContaining('Dieses Gerät bleibt angemeldet'),
+      findsOneWidget,
+      reason:
+          'Die Rückfrage muss sagen, was passiert — sonst traut '
+          'sich niemand zu tippen.',
+    );
     await tester.tap(find.widgetWithText(FilledButton, 'Abmelden'));
     await settle(tester);
 
     expect(backend.otherSessionsRevoked, 1);
-    expect(backend.currentUserId, isNotNull,
-        reason: 'Die eigene Sitzung darf der Widerruf nicht mitreißen.');
-    expect(find.text('Alle anderen Geräte wurden abgemeldet.'),
-        findsOneWidget);
+    expect(
+      backend.currentUserId,
+      isNotNull,
+      reason: 'Die eigene Sitzung darf der Widerruf nicht mitreißen.',
+    );
+    expect(find.text('Alle anderen Geräte wurden abgemeldet.'), findsOneWidget);
     await drainSnackbars(tester);
   });
 
@@ -56,8 +62,12 @@ void main() {
     await tester.tap(find.widgetWithText(TextButton, 'Abbrechen'));
     await settle(tester);
 
-    expect(backend.otherSessionsRevoked, 0,
-        reason: 'Die Rückfrage existiert genau dafür, dass ein Fehltipp '
-            'folgenlos bleibt.');
+    expect(
+      backend.otherSessionsRevoked,
+      0,
+      reason:
+          'Die Rückfrage existiert genau dafür, dass ein Fehltipp '
+          'folgenlos bleibt.',
+    );
   });
 }

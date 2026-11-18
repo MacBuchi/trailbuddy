@@ -33,17 +33,32 @@ enum GpxShareOutcome {
   downloaded,
 }
 
-typedef GpxShare = Future<GpxShareOutcome> Function({required String fileName, required String xml});
+typedef GpxShare =
+    Future<GpxShareOutcome> Function({
+      required String fileName,
+      required String xml,
+    });
 
 /// Die Teilen-Funktion; der Harness überschreibt sie mit einem Recorder.
 final gpxShareProvider = Provider<GpxShare>((ref) => _shareViaSystem);
 
-Future<GpxShareOutcome> _shareViaSystem({required String fileName, required String xml}) async {
-  final result = await SharePlus.instance.share(ShareParams(
-    files: [XFile.fromData(utf8.encode(xml), mimeType: 'application/gpx+xml', name: fileName)],
-    fileNameOverrides: [fileName],
-    subject: fileName,
-  ));
+Future<GpxShareOutcome> _shareViaSystem({
+  required String fileName,
+  required String xml,
+}) async {
+  final result = await SharePlus.instance.share(
+    ShareParams(
+      files: [
+        XFile.fromData(
+          utf8.encode(xml),
+          mimeType: 'application/gpx+xml',
+          name: fileName,
+        ),
+      ],
+      fileNameOverrides: [fileName],
+      subject: fileName,
+    ),
+  );
   return switch (result.status) {
     ShareResultStatus.success => GpxShareOutcome.shared,
     ShareResultStatus.dismissed => GpxShareOutcome.dismissed,
@@ -54,12 +69,19 @@ Future<GpxShareOutcome> _shareViaSystem({required String fileName, required Stri
 /// Gibt [xml] als [fileName] heraus und sagt, was der Nutzer sonst nicht
 /// sähe: den Download im Browser und einen Fehler. Ein gewähltes Ziel
 /// steht im Vordergrund, ein weggewischtes Blatt braucht keine Meldung.
-Future<void> shareGpx(BuildContext context, WidgetRef ref,
-    {required String fileName, required String xml}) async {
+Future<void> shareGpx(
+  BuildContext context,
+  WidgetRef ref, {
+  required String fileName,
+  required String xml,
+}) async {
   final messenger = ScaffoldMessenger.of(context);
   final l = context.l10n;
   try {
-    final outcome = await ref.read(gpxShareProvider)(fileName: fileName, xml: xml);
+    final outcome = await ref.read(gpxShareProvider)(
+      fileName: fileName,
+      xml: xml,
+    );
     if (outcome != GpxShareOutcome.downloaded) return;
     messenger
       ..clearSnackBars()
@@ -68,21 +90,31 @@ Future<void> shareGpx(BuildContext context, WidgetRef ref,
     logError('GPX-Export', e, stackTrace);
     messenger
       ..clearSnackBars()
-      ..showSnackBar(SnackBar(content: Text(l.gpxExportFailed(friendlyError(l, e)))));
+      ..showSnackBar(
+        SnackBar(content: Text(l.gpxExportFailed(friendlyError(l, e)))),
+      );
   }
 }
 
 /// Gibt eine Datei vom Gerät heraus, ohne sie in den Speicher zu lesen —
 /// die Sensor-Rohdaten einer Fahrt (#36, Dev-App) sind ~30 MB je Stunde.
-typedef FileShare = Future<void> Function({required String path, required String fileName});
+typedef FileShare =
+    Future<void> Function({required String path, required String fileName});
 
 /// Die Naht für die Rohdaten; der Harness überschreibt sie.
-final sensorLogShareProvider = Provider<FileShare>((ref) => _shareFileViaSystem);
+final sensorLogShareProvider = Provider<FileShare>(
+  (ref) => _shareFileViaSystem,
+);
 
-Future<void> _shareFileViaSystem({required String path, required String fileName}) async {
-  await SharePlus.instance.share(ShareParams(
-    files: [XFile(path, mimeType: 'text/csv', name: fileName)],
-    fileNameOverrides: [fileName],
-    subject: fileName,
-  ));
+Future<void> _shareFileViaSystem({
+  required String path,
+  required String fileName,
+}) async {
+  await SharePlus.instance.share(
+    ShareParams(
+      files: [XFile(path, mimeType: 'text/csv', name: fileName)],
+      fileNameOverrides: [fileName],
+      subject: fileName,
+    ),
+  );
 }

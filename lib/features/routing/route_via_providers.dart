@@ -32,7 +32,8 @@ class RouteViaNotifier extends Notifier<ViaEdit?> {
 
   /// Ein Ergebnis liegt auf der Karte: Punkte sind ab jetzt möglich —
   /// mit [vias], wenn das Ergebnis schon welche hat.
-  void begin(ViaOwner owner, [RouteVias vias = RouteVias.none]) => state = ViaEdit(owner, vias);
+  void begin(ViaOwner owner, [RouteVias vias = RouteVias.none]) =>
+      state = ViaEdit(owner, vias);
 
   /// Nur der Besitzer beendet.
   void end(ViaOwner owner) {
@@ -66,8 +67,12 @@ class RouteViaNotifier extends Notifier<ViaEdit?> {
   /// zurück, und die Karte sagt es.
   void reject(RouteVias previous) {
     final s = state;
-    if (s != null) state = ViaEdit(s.owner, previous, rejections: s.rejections + 1);
+    if (s != null) {
+      state = ViaEdit(s.owner, previous, rejections: s.rejections + 1);
+    }
   }
 }
 
-final routeViaProvider = NotifierProvider<RouteViaNotifier, ViaEdit?>(RouteViaNotifier.new);
+final routeViaProvider = NotifierProvider<RouteViaNotifier, ViaEdit?>(
+  RouteViaNotifier.new,
+);

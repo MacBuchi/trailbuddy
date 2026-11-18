@@ -30,7 +30,8 @@ import '../map/position_provider.dart';
 import '../map/start_point_layer.dart' show StartPointPin, shownStartPoints;
 import '../map/start_point_sheet.dart' show rememberStartPoint;
 import '../trails/trail_geometry.dart' show haversineM;
-import '../trails/trail_providers.dart' show mapVisibleBoundsProvider, startPointsProvider;
+import '../trails/trail_providers.dart'
+    show mapVisibleBoundsProvider, startPointsProvider;
 import 'loop_planner_controller.dart';
 
 /// Bis zu diesem Abstand vom Standort ist ein gemerkter Punkt beim
@@ -41,11 +42,20 @@ typedef StartPointChoice = ({StartPoint point, double? distanceM});
 
 /// Die Liste „Gemerkt": alle sichtbaren Punkte nach der 30-m-Regel, nach
 /// Abstand von [from] (ohne [from] nach Namen), [lastKey] zuoberst.
-List<StartPointChoice> startPointChoices(List<StartPoint> points, String? myId,
-    {LatLng? from, String? lastKey}) {
+List<StartPointChoice> startPointChoices(
+  List<StartPoint> points,
+  String? myId, {
+  LatLng? from,
+  String? lastKey,
+}) {
   final choices = [
     for (final p in shownStartPoints(points, myId))
-      (point: p, distanceM: from == null ? null : haversineM(from.latitude, from.longitude, p.lat, p.lon)),
+      (
+        point: p,
+        distanceM: from == null
+            ? null
+            : haversineM(from.latitude, from.longitude, p.lat, p.lon),
+      ),
   ];
   choices.sort((a, b) {
     if (a.point.key == lastKey) return -1;
@@ -78,26 +88,39 @@ LatLng? startPointOrigin(WidgetRef ref) {
   final fix = ref.read(positionStreamProvider).valueOrNull;
   if (fix != null) return LatLng(fix.latitude, fix.longitude);
   final b = ref.read(mapVisibleBoundsProvider);
-  return b == null ? null : LatLng((b.south + b.north) / 2, (b.west + b.east) / 2);
+  return b == null
+      ? null
+      : LatLng((b.south + b.north) / 2, (b.west + b.east) / 2);
 }
 
 /// Zeigt die Liste und gibt den gewählten Punkt als Start (oder Ziel) an
 /// den Planer. Wahr, wenn einer gewählt wurde. „Mein Standort merken"
 /// unten in der Liste legt einen Punkt an, wählt ihn aber nicht — wer
 /// dort steht, startet ohnehin dort.
-Future<bool> pickStartPoint(BuildContext context, WidgetRef ref, {required bool asTarget}) async {
+Future<bool> pickStartPoint(
+  BuildContext context,
+  WidgetRef ref, {
+  required bool asTarget,
+}) async {
   final myId = ref.read(currentUserIdProvider);
-  final choices = startPointChoices(ref.read(startPointsProvider), myId,
-      from: startPointOrigin(ref), lastKey: ref.read(settingsProvider).lastStartPoint);
+  final choices = startPointChoices(
+    ref.read(startPointsProvider),
+    myId,
+    from: startPointOrigin(ref),
+    lastKey: ref.read(settingsProvider).lastStartPoint,
+  );
   final picked = await showModalBottomSheet<Object>(
     context: context,
     showDragHandle: true,
     isScrollControlled: true,
-    builder: (_) => _StartPointList(choices: choices, myId: myId, asTarget: asTarget),
+    builder: (_) =>
+        _StartPointList(choices: choices, myId: myId, asTarget: asTarget),
   );
   if (!context.mounted) return false;
   if (picked is StartPoint) {
-    ref.read(loopPlannerProvider.notifier).takeStartPoint(picked, asTarget: asTarget);
+    ref
+        .read(loopPlannerProvider.notifier)
+        .takeStartPoint(picked, asTarget: asTarget);
     return true;
   }
   if (picked == _rememberHere) await rememberMyPosition(context, ref);
@@ -116,10 +139,21 @@ Future<void> rememberMyPosition(BuildContext context, WidgetRef ref) async {
   if (fix == null) {
     messenger
       ..clearSnackBars()
-      ..showSnackBar(SnackBar(key: const ValueKey('start-point-no-position'), content: Text(l.startPointNoPosition)));
+      ..showSnackBar(
+        SnackBar(
+          key: const ValueKey('start-point-no-position'),
+          content: Text(l.startPointNoPosition),
+        ),
+      );
     return;
   }
-  await rememberStartPoint(context, ref, LatLng(fix.latitude, fix.longitude), shared: false, home: true);
+  await rememberStartPoint(
+    context,
+    ref,
+    LatLng(fix.latitude, fix.longitude),
+    shared: false,
+    home: true,
+  );
 }
 
 /// „Start merken" aus der Wahl des Starts (Konzept 4, „Planer-Ergebnis";
@@ -134,7 +168,11 @@ Future<void> rememberPlannerStart(BuildContext context, WidgetRef ref) async {
 }
 
 class _StartPointList extends ConsumerWidget {
-  const _StartPointList({required this.choices, required this.myId, required this.asTarget});
+  const _StartPointList({
+    required this.choices,
+    required this.myId,
+    required this.asTarget,
+  });
 
   final List<StartPointChoice> choices;
   final String? myId;
@@ -148,56 +186,87 @@ class _StartPointList extends ConsumerWidget {
     final names = ref.watch(buddyNamesViewProvider);
     return SafeArea(
       child: ConstrainedBox(
-        constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(context).height * 0.7),
-        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
-            child: Text(asTarget ? l.startPointPickTarget : l.startPointPickStart, style: theme.textTheme.titleMedium),
-          ),
-          Flexible(
-            child: ListView(shrinkWrap: true, children: [
-              if (choices.isEmpty)
-                Padding(
-                  key: const ValueKey('start-point-none'),
-                  padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
-                  child: Text(l.startPointNoneYet, style: theme.textTheme.bodyMedium),
-                ),
-              for (final c in choices)
-                Builder(builder: (context) {
-                  final p = c.point;
-                  final own = myId != null && p.isMine(myId!);
-                  final String? who = !own
-                      ? l.startPointFrom(names.of(p.userId, p.username))
-                      : p.shared
-                          ? null
-                          : l.startPointPrivate;
-                  return ListTile(
-                    key: ValueKey('start-point-choice-${p.key}'),
-                    minTileHeight: 52,
-                    leading: StartPointPin(own: own, pending: p.pending),
-                    title: Text(p.name, maxLines: 1, overflow: TextOverflow.ellipsis),
-                    subtitle: who == null
-                        ? null
-                        : Text(who, style: own ? null : TextStyle(color: palette.buddyText)),
-                    trailing: c.distanceM == null
-                        ? null
-                        : Text(formatMeters(c.distanceM!), style: AppFonts.numbers(theme.textTheme.bodyMedium)),
-                    onTap: () => Navigator.of(context).pop(p),
-                  );
-                }),
-              if (!asTarget) ...[
-                const Divider(height: 1),
-                ListTile(
-                  key: const ValueKey('start-point-remember-here'),
-                  minTileHeight: 52,
-                  leading: const Icon(Icons.my_location),
-                  title: Text(l.startPointRememberHere),
-                  onTap: () => Navigator.of(context).pop(_rememberHere),
-                ),
-              ],
-            ]),
-          ),
-        ]),
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.sizeOf(context).height * 0.7,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+              child: Text(
+                asTarget ? l.startPointPickTarget : l.startPointPickStart,
+                style: theme.textTheme.titleMedium,
+              ),
+            ),
+            Flexible(
+              child: ListView(
+                shrinkWrap: true,
+                children: [
+                  if (choices.isEmpty)
+                    Padding(
+                      key: const ValueKey('start-point-none'),
+                      padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
+                      child: Text(
+                        l.startPointNoneYet,
+                        style: theme.textTheme.bodyMedium,
+                      ),
+                    ),
+                  for (final c in choices)
+                    Builder(
+                      builder: (context) {
+                        final p = c.point;
+                        final own = myId != null && p.isMine(myId!);
+                        final String? who = !own
+                            ? l.startPointFrom(names.of(p.userId, p.username))
+                            : p.shared
+                            ? null
+                            : l.startPointPrivate;
+                        return ListTile(
+                          key: ValueKey('start-point-choice-${p.key}'),
+                          minTileHeight: 52,
+                          leading: StartPointPin(own: own, pending: p.pending),
+                          title: Text(
+                            p.name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          subtitle: who == null
+                              ? null
+                              : Text(
+                                  who,
+                                  style: own
+                                      ? null
+                                      : TextStyle(color: palette.buddyText),
+                                ),
+                          trailing: c.distanceM == null
+                              ? null
+                              : Text(
+                                  formatMeters(c.distanceM!),
+                                  style: AppFonts.numbers(
+                                    theme.textTheme.bodyMedium,
+                                  ),
+                                ),
+                          onTap: () => Navigator.of(context).pop(p),
+                        );
+                      },
+                    ),
+                  if (!asTarget) ...[
+                    const Divider(height: 1),
+                    ListTile(
+                      key: const ValueKey('start-point-remember-here'),
+                      minTileHeight: 52,
+                      leading: const Icon(Icons.my_location),
+                      title: Text(l.startPointRememberHere),
+                      onTap: () => Navigator.of(context).pop(_rememberHere),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

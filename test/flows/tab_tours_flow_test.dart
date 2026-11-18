@@ -37,8 +37,10 @@ CoachPainter painter(WidgetTester tester) => tester
     .whereType<CoachPainter>()
     .single;
 
-String shownTitle(WidgetTester tester) =>
-    tester.widgetList<Text>(find.descendant(of: bubble, matching: find.byType(Text))).first.data!;
+String shownTitle(WidgetTester tester) => tester
+    .widgetList<Text>(find.descendant(of: bubble, matching: find.byType(Text)))
+    .first
+    .data!;
 
 void main() {
   late FakeBackend backend;
@@ -49,7 +51,10 @@ void main() {
     backend = FakeBackend();
     me = backend.addUser(username: 'testrail').id;
     backend.signInAs(me);
-    trails = FakeTrailRepository(myId: () => backend.currentUserId ?? '', areFriends: backend.areFriends);
+    trails = FakeTrailRepository(
+      myId: () => backend.currentUserId ?? '',
+      areFriends: backend.areFriends,
+    );
   });
 
   /// Karten-Tour und Hinweis gesehen, die Reiter-Touren nicht.
@@ -60,8 +65,15 @@ void main() {
     final seen = <String>[];
     for (var i = 0; i < 12 && bubble.evaluate().isNotEmpty; i++) {
       seen.add(shownTitle(tester));
-      final done = find.descendant(of: bubble, matching: find.text('Los geht\'s'));
-      await tester.tap(done.evaluate().isNotEmpty ? done : find.descendant(of: bubble, matching: find.text('Weiter')));
+      final done = find.descendant(
+        of: bubble,
+        matching: find.text('Los geht\'s'),
+      );
+      await tester.tap(
+        done.evaluate().isNotEmpty
+            ? done
+            : find.descendant(of: bubble, matching: find.text('Weiter')),
+      );
       await settle(tester);
     }
     return seen;
@@ -78,7 +90,11 @@ void main() {
     await settle(tester);
     expect(find.byKey(kExampleTrailKey), findsOneWidget);
     expect(find.byKey(const Key('tour-example-badge')), findsWidgets);
-    expect(find.text('Beispiel: Buchenhang'), findsOneWidget, reason: 'auch im Namen');
+    expect(
+      find.text('Beispiel: Buchenhang'),
+      findsOneWidget,
+      reason: 'auch im Namen',
+    );
 
     final titles = await runThrough(tester);
     expect(titles, [
@@ -91,13 +107,25 @@ void main() {
       'GPX hereinholen',
     ]);
     expect(settings.seenCoachTours, contains('trails'));
-    expect(find.byKey(kExampleTrailKey), findsNothing, reason: 'nach der Tour ist das Beispiel weg');
+    expect(
+      find.byKey(kExampleTrailKey),
+      findsNothing,
+      reason: 'nach der Tour ist das Beispiel weg',
+    );
     expect(find.byKey(kExampleTrailSheetKey), findsNothing);
     expect(find.byType(BottomSheet), findsNothing);
-    expect(trails.recordings, isEmpty, reason: 'nichts landet im Fake-Repository');
+    expect(
+      trails.recordings,
+      isEmpty,
+      reason: 'nichts landet im Fake-Repository',
+    );
     expect(trails.details, isEmpty);
     expect(trails.contributeCalls, 0);
-    expect(find.byKey(const ValueKey('trails-total')), findsNothing, reason: 'keine Summe über ein Beispiel');
+    expect(
+      find.byKey(const ValueKey('trails-total')),
+      findsNothing,
+      reason: 'keine Summe über ein Beispiel',
+    );
     expect(find.textContaining('Noch keine Trails'), findsOneWidget);
 
     await openTab(tester, 'Karte');
@@ -105,22 +133,33 @@ void main() {
     expect(intro, findsNothing, reason: 'nie wieder');
   });
 
-  testWidgets('mit einem eigenen Trail: kein Beispiel, das echte Blatt', (tester) async {
+  testWidgets('mit einem eigenen Trail: kein Beispiel, das echte Blatt', (
+    tester,
+  ) async {
     trails.seedTrail(me, name: 'Hexentanz', grade: 2);
     await pumpApp(tester, backend, trails: trails, settings: tabsFresh());
     await openTab(tester, 'Trails');
     await tester.tap(find.byKey(const ValueKey('coach-intro-start')));
     await settle(tester);
     expect(find.byKey(kExampleTrailKey), findsNothing);
-    final row = find.byWidgetPredicate((w) => w is CoachAnchor && w.id == TrailsCoach.row);
-    expect(find.descendant(of: row, matching: find.text('Hexentanz')), findsOneWidget);
-    await tester.tap(find.descendant(of: bubble, matching: find.text('Weiter')));
+    final row = find.byWidgetPredicate(
+      (w) => w is CoachAnchor && w.id == TrailsCoach.row,
+    );
+    expect(
+      find.descendant(of: row, matching: find.text('Hexentanz')),
+      findsOneWidget,
+    );
+    await tester.tap(
+      find.descendant(of: bubble, matching: find.text('Weiter')),
+    );
     await settle(tester);
     expect(find.text('HEXENTANZ'), findsOneWidget, reason: 'das echte Blatt');
     expect(find.byKey(const ValueKey('trail-contribution')), findsOneWidget);
   });
 
-  testWidgets('ein Buddy-Trail: Einschätzung und Beitrag fallen weg', (tester) async {
+  testWidgets('ein Buddy-Trail: Einschätzung und Beitrag fallen weg', (
+    tester,
+  ) async {
     final ben = backend.addUser(username: 'ben').id;
     backend.addFriendship(me, ben);
     trails.seedTrail(ben, name: 'Bens Hang', grade: 1);
@@ -146,23 +185,41 @@ void main() {
     for (var i = 0; i < 3; i++) {
       final b = tester.getRect(bubble);
       final screen = Offset.zero & const Size(360, 740);
-      expect(screen.contains(b.topLeft) && screen.contains(b.bottomRight - const Offset(1, 1)), isTrue,
-          reason: '„${shownTitle(tester)}": Blase $b außerhalb');
+      expect(
+        screen.contains(b.topLeft) &&
+            screen.contains(b.bottomRight - const Offset(1, 1)),
+        isTrue,
+        reason: '„${shownTitle(tester)}": Blase $b außerhalb',
+      );
       for (final r in [...painter(tester).lit, ...painter(tester).ring]) {
-        expect(b.overlaps(r), isFalse, reason: '„${shownTitle(tester)}": Blase $b deckt $r zu');
+        expect(
+          b.overlaps(r),
+          isFalse,
+          reason: '„${shownTitle(tester)}": Blase $b deckt $r zu',
+        );
       }
-      await tester.tap(find.descendant(of: bubble, matching: find.text('Weiter')));
+      await tester.tap(
+        find.descendant(of: bubble, matching: find.text('Weiter')),
+      );
       await settle(tester);
     }
-    expect(find.byKey(kExampleTrailSheetKey), findsOneWidget, reason: 'das Beispiel-Blatt ist offen');
-    await tester.tap(find.descendant(of: bubble, matching: find.text('Überspringen')));
+    expect(
+      find.byKey(kExampleTrailSheetKey),
+      findsOneWidget,
+      reason: 'das Beispiel-Blatt ist offen',
+    );
+    await tester.tap(
+      find.descendant(of: bubble, matching: find.text('Überspringen')),
+    );
     await settle(tester);
     expect(find.byKey(kExampleTrailSheetKey), findsNothing);
     expect(find.byType(BottomSheet), findsNothing);
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('Buddys ohne Buddy: der Beispiel-Buddy, nichts gespeichert', (tester) async {
+  testWidgets('Buddys ohne Buddy: der Beispiel-Buddy, nichts gespeichert', (
+    tester,
+  ) async {
     final settings = tabsFresh();
     await pumpApp(tester, backend, trails: trails, settings: settings);
     await openTab(tester, 'Buddys');
@@ -171,8 +228,12 @@ void main() {
     await settle(tester);
     expect(find.byKey(kExampleBuddyKey), findsOneWidget);
     final titles = await runThrough(tester);
-    expect(titles, ['Jemanden einladen', 'Nach Buddys suchen', 'Ein Buddy in der Liste', 'Beim Verbinden'],
-        reason: 'ohne offene Anfragen fällt der Schritt weg');
+    expect(titles, [
+      'Jemanden einladen',
+      'Nach Buddys suchen',
+      'Ein Buddy in der Liste',
+      'Beim Verbinden',
+    ], reason: 'ohne offene Anfragen fällt der Schritt weg');
     expect(settings.seenCoachTours, contains('buddys'));
     expect(find.byKey(kExampleBuddyKey), findsNothing);
     expect(backend.friendships, isEmpty, reason: 'nichts landet im Fake');
@@ -191,9 +252,16 @@ void main() {
 
   testWidgets('die Karten-Tour geht vor: erster Start, dann die Kette — '
       '„Später" beendet sie', (tester) async {
-    final settings = FakeSettings(mapTourSeen: false, seenCoachTours: const {'split'});
+    final settings = FakeSettings(
+      mapTourSeen: false,
+      seenCoachTours: const {'split'},
+    );
     await pumpApp(tester, backend, trails: trails, settings: settings);
-    expect(find.text('Willkommen bei TrailBuddy'), findsOneWidget, reason: 'nicht die Trails-Tour');
+    expect(
+      find.text('Willkommen bei TrailBuddy'),
+      findsOneWidget,
+      reason: 'nicht die Trails-Tour',
+    );
     await settle(tester);
     await tester.tap(find.byKey(const ValueKey('coach-intro-start')));
     await settle(tester);
@@ -201,11 +269,19 @@ void main() {
     expect(settings.mapTourSeen, isTrue);
 
     await settle(tester, frames: 6);
-    expect(find.text('Weiter mit den Trails?'), findsOneWidget, reason: 'die Kette fragt');
+    expect(
+      find.text('Weiter mit den Trails?'),
+      findsOneWidget,
+      reason: 'die Kette fragt',
+    );
     expect(find.text('Später'), findsOneWidget);
     await tester.tap(find.byKey(const ValueKey('coach-intro-start')));
     await settle(tester);
-    expect(find.byKey(kExampleTrailKey), findsOneWidget, reason: 'auf dem Reiter Trails, mit Beispiel');
+    expect(
+      find.byKey(kExampleTrailKey),
+      findsOneWidget,
+      reason: 'auf dem Reiter Trails, mit Beispiel',
+    );
     await runThrough(tester);
     expect(settings.seenCoachTours, contains('trails'));
 
@@ -214,10 +290,16 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('coach-intro-later')));
     await settle(tester);
     expect(intro, findsNothing);
-    expect(settings.seenCoachTours, contains('buddys'), reason: '„Später" ist gemerkt (#417)');
+    expect(
+      settings.seenCoachTours,
+      contains('buddys'),
+      reason: '„Später" ist gemerkt (#417)',
+    );
   });
 
-  testWidgets('„Nicht jetzt" ist gemerkt, auch über einen Neustart (#417)', (tester) async {
+  testWidgets('„Nicht jetzt" ist gemerkt, auch über einen Neustart (#417)', (
+    tester,
+  ) async {
     final settings = tabsFresh();
     await pumpApp(tester, backend, trails: trails, settings: settings);
     await openTab(tester, 'Trails');
@@ -247,15 +329,27 @@ void main() {
     await settle(tester, frames: 12);
     expect(intro, findsNothing, reason: 'nicht über der Karte');
     await openTab(tester, 'Trails');
-    expect(find.text('Deine Trails'), findsOneWidget, reason: 'erst auf dem Reiter');
+    expect(
+      find.text('Deine Trails'),
+      findsOneWidget,
+      reason: 'erst auf dem Reiter',
+    );
   });
 
-  testWidgets('aus der Kurzanleitung neu startbar, auch wenn gesehen', (tester) async {
+  testWidgets('aus der Kurzanleitung neu startbar, auch wenn gesehen', (
+    tester,
+  ) async {
     await pumpApp(tester, backend, trails: trails);
     await openProfilePage(tester, 'help');
     final start = find.byKey(const ValueKey('tab-tour-trails'));
-    await tester.scrollUntilVisible(start, 300,
-        scrollable: find.descendant(of: find.byKey(const ValueKey('help-list')), matching: find.byType(Scrollable)));
+    await tester.scrollUntilVisible(
+      start,
+      300,
+      scrollable: find.descendant(
+        of: find.byKey(const ValueKey('help-list')),
+        matching: find.byType(Scrollable),
+      ),
+    );
     await settle(tester);
     await tester.tap(start);
     await settle(tester);
@@ -265,16 +359,26 @@ void main() {
   test('jede Reiter-Tour steht in der Fake-Vorgabe „gesehen"', () {
     // Sonst läge über jedem Flow-Test, der einen Reiter öffnet, die Tour.
     for (final script in tabTourScripts(l10nDe)) {
-      expect(FakeSettings().seenCoachTours, contains(script.id), reason: script.id);
+      expect(
+        FakeSettings().seenCoachTours,
+        contains(script.id),
+        reason: script.id,
+      );
     }
-    expect(tabTourScripts(l10nDe).every((s) => s.examples && s.steps.first.isIntro), isTrue,
-        reason: 'Beispiele nur an Skripten MIT Startseite');
+    expect(
+      tabTourScripts(l10nDe).every((s) => s.examples && s.steps.first.isIntro),
+      isTrue,
+      reason: 'Beispiele nur an Skripten MIT Startseite',
+    );
   });
 
   test('die Kette und die Karten-Tour teilen ihre Schritte', () {
     expect(welcomeTourScript(l10nDe).endLink, isNull);
     expect(tabTours(l10nDe).map((t) => t.$1.id), ['trails', 'buddys']);
-    expect(trailsTourScript(l10nDe).steps.first.chainTitle, 'Weiter mit den Trails?');
+    expect(
+      trailsTourScript(l10nDe).steps.first.chainTitle,
+      'Weiter mit den Trails?',
+    );
   });
 
   test('Beispiele gibt es nur als Widgets', () {

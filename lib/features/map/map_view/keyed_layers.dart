@@ -51,7 +51,13 @@ class UpdateSourceOp extends LayerOp {
 /// Anderer Stil unter derselben Kennung: die Ebene neu anlegen, an ihrer
 /// Stelle; die Quelle nur, wenn sich auch die Daten geändert haben.
 class RestyleOp extends LayerOp {
-  const RestyleOp(super.slot, super.layer, {required this.updateSource, this.belowSlot, this.belowLayer});
+  const RestyleOp(
+    super.slot,
+    super.layer, {
+    required this.updateSource,
+    this.belowSlot,
+    this.belowLayer,
+  });
   final bool updateSource;
   final int? belowSlot;
   final ml.Layer? belowLayer;
@@ -78,7 +84,11 @@ String layerStyleOf(ml.Layer layer) =>
 /// neue gehört, schon da. Vorhandene Ebenen werden nicht umsortiert: Die
 /// Reihenfolge der Bänder (Flächen, Kreise, Linien, Namen) ändert sich nie,
 /// innerhalb der Trail-Linien ist sie gleichgültig.
-List<LayerOp> planLayerOps(OnMap onMap, List<KeyedLayer> desired, int Function() nextSlot) {
+List<LayerOp> planLayerOps(
+  OnMap onMap,
+  List<KeyedLayer> desired,
+  int Function() nextSlot,
+) {
   final ops = <LayerOp>[];
   final wanted = <String>{};
   final unique = <KeyedLayer>[];
@@ -99,14 +109,23 @@ List<LayerOp> planLayerOps(OnMap onMap, List<KeyedLayer> desired, int Function()
     final old = onMap[d.key];
     if (old == null) {
       final slot = nextSlot();
-      ops.add(AddLayerOp(slot, d.layer, belowSlot: belowSlot, belowLayer: belowLayer));
+      ops.add(
+        AddLayerOp(slot, d.layer, belowSlot: belowSlot, belowLayer: belowLayer),
+      );
       onMap[d.key] = (slot: slot, layer: d.layer);
     } else if (!identical(old.layer, d.layer)) {
       final sameData = identical(old.layer.list, d.layer.list);
       final sameStyle = layerStyleOf(old.layer) == layerStyleOf(d.layer);
       if (!sameStyle) {
-        ops.add(RestyleOp(old.slot, d.layer,
-            updateSource: !sameData, belowSlot: belowSlot, belowLayer: belowLayer));
+        ops.add(
+          RestyleOp(
+            old.slot,
+            d.layer,
+            updateSource: !sameData,
+            belowSlot: belowSlot,
+            belowLayer: belowLayer,
+          ),
+        );
       } else if (!sameData) {
         ops.add(UpdateSourceOp(old.slot, d.layer));
       }
@@ -149,7 +168,8 @@ class KeyedLayerSync {
   /// Läuft gerade ein Abgleich, wartet der nächste Wunsch, und nur der
   /// jüngste zählt.
   bool _running = false;
-  ({ml.StyleController style, List<KeyedLayer> desired, String? below})? _queued;
+  ({ml.StyleController style, List<KeyedLayer> desired, String? below})?
+  _queued;
 
   /// Zählt die Stile: Ein Abgleich, der noch gegen den alten Stil läuft,
   /// hört auf, sobald ein neuer geladen ist — sonst schriebe er in den
@@ -164,7 +184,11 @@ class KeyedLayerSync {
 
   /// [below]: Die oberste Ebene des Wunschs liegt unter dieser Ebene des
   /// Stils statt zuoberst (die Höhenlinien unter den Wegen).
-  Future<void> sync(ml.StyleController style, List<KeyedLayer> desired, {String? below}) async {
+  Future<void> sync(
+    ml.StyleController style,
+    List<KeyedLayer> desired, {
+    String? below,
+  }) async {
     _queued = (style: style, desired: desired, below: below);
     if (_running) return;
     _running = true;
@@ -178,7 +202,11 @@ class KeyedLayerSync {
     }
   }
 
-  Future<void> _apply(ml.StyleController style, List<KeyedLayer> desired, String? below) async {
+  Future<void> _apply(
+    ml.StyleController style,
+    List<KeyedLayer> desired,
+    String? below,
+  ) async {
     final epoch = _epoch;
     _order = [for (final d in desired) d.key];
     final ops = planLayerOps(_onMap, desired, () => _slots++);
@@ -199,22 +227,44 @@ class KeyedLayerSync {
     }
   }
 
-  static Future<void> _run(ml.StyleController style, LayerOp op, String? below) async {
+  static Future<void> _run(
+    ml.StyleController style,
+    LayerOp op,
+    String? below,
+  ) async {
     final layer = op.layer;
     final slot = op.slot;
     String data() => ml.FeatureCollection(layer.list).toText();
     switch (op) {
       case AddLayerOp(:final belowSlot, :final belowLayer):
-        await style.addSource(ml.GeoJsonSource(id: layer.getSourceId(slot), data: data()));
-        await style.addLayer(layer.createStyleLayer(slot),
-            belowLayerId: belowSlot == null ? below : belowLayer!.getLayerId(belowSlot));
+        await style.addSource(
+          ml.GeoJsonSource(id: layer.getSourceId(slot), data: data()),
+        );
+        await style.addLayer(
+          layer.createStyleLayer(slot),
+          belowLayerId: belowSlot == null
+              ? below
+              : belowLayer!.getLayerId(belowSlot),
+        );
       case UpdateSourceOp():
-        await style.updateGeoJsonSource(id: layer.getSourceId(slot), data: data());
+        await style.updateGeoJsonSource(
+          id: layer.getSourceId(slot),
+          data: data(),
+        );
       case RestyleOp(:final updateSource, :final belowSlot, :final belowLayer):
         await style.removeLayer(layer.getLayerId(slot));
-        if (updateSource) await style.updateGeoJsonSource(id: layer.getSourceId(slot), data: data());
-        await style.addLayer(layer.createStyleLayer(slot),
-            belowLayerId: belowSlot == null ? below : belowLayer!.getLayerId(belowSlot));
+        if (updateSource) {
+          await style.updateGeoJsonSource(
+            id: layer.getSourceId(slot),
+            data: data(),
+          );
+        }
+        await style.addLayer(
+          layer.createStyleLayer(slot),
+          belowLayerId: belowSlot == null
+              ? below
+              : belowLayer!.getLayerId(belowSlot),
+        );
       case RemoveLayerOp():
         await style.removeLayer(layer.getLayerId(slot));
         await style.removeSource(layer.getSourceId(slot));

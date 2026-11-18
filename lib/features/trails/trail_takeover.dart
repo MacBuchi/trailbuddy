@@ -42,7 +42,9 @@ bool needsTakeOver(Trail t) => !t.pending && t.myDetails == null;
 /// Die Voreinstellung aus dem, was ich sehe.
 TakeOver takeOverOf(Trail t, {DateTime? now}) {
   final c = t.shownCondition.confirmed;
-  final since = (now ?? DateTime.now()).subtract(const Duration(days: kTakeOverConditionDays));
+  final since = (now ?? DateTime.now()).subtract(
+    const Duration(days: kTakeOverConditionDays),
+  );
   return TakeOver(
     name: t.name ?? '',
     grade: t.grade,
@@ -57,7 +59,10 @@ TakeOver takeOverOf(Trail t, {DateTime? now}) {
 /// eines Buddys. Kein Rückfüllen auf dem Server (Konzept 12), der Nutzer
 /// übernimmt selbst.
 bool offersTakeOver(Trail t) =>
-    t.isOwn && !t.pending && !t.pendingDetails && (t.myDetails?.name ?? '').trim().isEmpty;
+    t.isOwn &&
+    !t.pending &&
+    !t.pendingDetails &&
+    (t.myDetails?.name ?? '').trim().isEmpty;
 
 /// Die eigene Zeile, aufgefüllt mit der Vorbelegung — nur, was dort noch
 /// leer ist; was ich schon gesagt habe, bleibt.
@@ -65,7 +70,9 @@ TrailDetails takeOverDetails(Trail t, {DateTime? now}) {
   final p = takeOverOf(t, now: now);
   final own = t.myDetails ?? TrailDetails(trailId: t.id, userId: t.myId);
   return own.copyWith(
-    name: (own.name ?? '').trim().isEmpty && p.name.isNotEmpty ? p.name : own.name,
+    name: (own.name ?? '').trim().isEmpty && p.name.isNotEmpty
+        ? p.name
+        : own.name,
     grade: own.grade ?? p.grade,
     traits: own.traits.isEmpty ? p.traits : own.traits,
     rating: own.rating ?? p.rating,

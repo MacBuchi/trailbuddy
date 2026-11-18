@@ -14,7 +14,12 @@ import '../app_colors.dart';
 /// von [AppColors.avatarFills], fest je Nutzer-id — Lime heißt „mein",
 /// wie auf der Karte, und steht deshalb nie an einem Buddy.
 class LetterAvatar extends StatelessWidget {
-  const LetterAvatar({super.key, required this.name, this.size = 40, this.colorKey});
+  const LetterAvatar({
+    super.key,
+    required this.name,
+    this.size = 40,
+    this.colorKey,
+  });
 
   final String name;
   final double size;
@@ -35,14 +40,16 @@ class LetterAvatar extends StatelessWidget {
         // 12 bei 40 dp — mit der Größe mitwachsend.
         borderRadius: BorderRadius.circular(size * 0.3),
       ),
-      child: Text(letter,
-          style: TextStyle(
-            fontFamily: 'BarlowCondensed',
-            fontSize: size * 0.5,
-            fontWeight: FontWeight.w800,
-            color: AppColors.onBrand,
-            height: 1,
-          )),
+      child: Text(
+        letter,
+        style: TextStyle(
+          fontFamily: 'BarlowCondensed',
+          fontSize: size * 0.5,
+          fontWeight: FontWeight.w800,
+          color: AppColors.onBrand,
+          height: 1,
+        ),
+      ),
     );
   }
 }

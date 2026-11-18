@@ -16,7 +16,11 @@ const kPendingValueOpacity = 0.5;
 /// Sagt, WARUM der Wert blass ist; Farbe allein wäre eine Behauptung, die
 /// niemand lesen kann.
 class PendingValueCaption extends StatelessWidget {
-  const PendingValueCaption({super.key, required this.trail, required this.hasValue});
+  const PendingValueCaption({
+    super.key,
+    required this.trail,
+    required this.hasValue,
+  });
   final Trail trail;
   final bool hasValue;
 
@@ -24,8 +28,12 @@ class PendingValueCaption extends StatelessWidget {
   Widget build(BuildContext context) {
     if (!trail.pendingDetails || !hasValue) return const SizedBox.shrink();
     return Text(
-      trail.sendingDetails ? context.l10n.sheetValueSending : context.l10n.sheetValueQueued,
-      style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppPalette.of(context).muted),
+      trail.sendingDetails
+          ? context.l10n.sheetValueSending
+          : context.l10n.sheetValueQueued,
+      style: Theme.of(
+        context,
+      ).textTheme.bodySmall?.copyWith(color: AppPalette.of(context).muted),
     );
   }
 }

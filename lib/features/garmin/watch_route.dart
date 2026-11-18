@@ -19,7 +19,8 @@ import 'dart:math' as math;
 
 import 'package:latlong2/latlong.dart';
 
-import '../rides/sensor_fusion.dart' show FusionEvent, FusionLive, JumpEvent, StoppieEvent, WheelieEvent;
+import '../rides/sensor_fusion.dart'
+    show FusionEvent, FusionLive, JumpEvent, StoppieEvent, WheelieEvent;
 import '../rides/trail_values.dart' show AirtimeLog;
 import '../routing/nav_sections.dart';
 import '../trails/gpx.dart' show TrackPoint;
@@ -62,14 +63,16 @@ const kWatchPartInts = 800;
 const kWatchWindowFrom = '1.3.0';
 
 /// „1.3.0-dev" ist dieselbe Fassung wie „1.3.0"; keine Angabe heißt alt.
-bool watchKnowsWindow(String? version) => watchVersionAtLeast(version, kWatchWindowFrom);
+bool watchKnowsWindow(String? version) =>
+    watchVersionAtLeast(version, kWatchWindowFrom);
 
 /// Ist die Uhr-App [version] mindestens [from]? Ohne Angabe nein.
 bool watchVersionAtLeast(String? version, String from) {
   if (version == null) return false;
   final here = version.split('-').first.split('.');
   final need = from.split('.');
-  int part(List<String> p, int i) => i < p.length ? (int.tryParse(p[i]) ?? 0) : 0;
+  int part(List<String> p, int i) =>
+      i < p.length ? (int.tryParse(p[i]) ?? 0) : 0;
   for (var i = 0; i < 3; i++) {
     final a = part(here, i), b = part(need, i);
     if (a != b) return a > b;
@@ -110,8 +113,11 @@ const kWatchAnnounce = 'n';
 const kWatchCurrent = 'k';
 
 /// „Eine neue Route kommt" ([kWatchAnnounce]).
-Map<String, Object> watchAnnounceOf(String? id, int parts) =>
-    {'t': kWatchAnnounce, 'np': parts, 'id': ?id};
+Map<String, Object> watchAnnounceOf(String? id, int parts) => {
+  't': kWatchAnnounce,
+  'np': parts,
+  'id': ?id,
+};
 
 /// „Deine Route ist aktuell" ([kWatchCurrent]).
 Map<String, Object> watchCurrentOf(String id) => {'t': kWatchCurrent, 'id': id};
@@ -128,7 +134,9 @@ Map<String, Object> watchEndOf(String id) => {'t': kWatchEnd, 'id': id};
 
 /// Die Kennung aus „Navigation beendet" der Uhr, oder null.
 String? watchEndedId(Object? message) =>
-    message is Map && message['t'] == kWatchEnd && message['id'] is String ? message['id'] as String : null;
+    message is Map && message['t'] == kWatchEnd && message['id'] is String
+    ? message['id'] as String
+    : null;
 
 /// Die Uhr hat ihr eigenes GPS (`{t: "g"}`). Seit #500 meldet sie dabei
 /// ihren ersten Fix mit (`la`, `lo` in 1e-5°); danach schickt das Handy keine
@@ -186,21 +194,27 @@ const kWatchErrVersion = 'ver';
 /// im Web (32-Bit-Schieben ohne Vorzeichen) eine Zahl mit Vorzeichen —
 /// eine Zahl über 32 Bit käme in Kotlin als `Long` und auf der Uhr als
 /// `Long` an.
-int watchPack(int hi, int lo) => ((hi & 0xffff) << 16 | (lo & 0xffff)).toSigned(32);
+int watchPack(int hi, int lo) =>
+    ((hi & 0xffff) << 16 | (lo & 0xffff)).toSigned(32);
 
 /// Gegenstück zu [watchPack] (Tests).
-(int, int) watchUnpack(int v) => (((v >> 16) & 0xffff).toSigned(16), (v & 0xffff).toSigned(16));
+(int, int) watchUnpack(int v) =>
+    (((v >> 16) & 0xffff).toSigned(16), (v & 0xffff).toSigned(16));
 
 /// Die Frage an die Uhr, nach dem Wiederverbinden: Läuft ihre App, meldet
 /// sie sich mit `hi` (läuft sie nicht, verfällt die Nachricht still).
 const Map<String, Object> watchQuery = {'t': kWatchQuery};
 
 /// Die Position des Handys für die Uhr ([kWatchPhonePosition]).
-Map<String, Object> watchPositionOf(LatLng p) =>
-    {'t': kWatchPhonePosition, 'la': (p.latitude * 1e5).round(), 'lo': (p.longitude * 1e5).round()};
+Map<String, Object> watchPositionOf(LatLng p) => {
+  't': kWatchPhonePosition,
+  'la': (p.latitude * 1e5).round(),
+  'lo': (p.longitude * 1e5).round(),
+};
 
 /// Meldet die Uhr ihr eigenes GPS ([kWatchHasGps])?
-bool watchHasGps(Object? message) => message is Map && message['t'] == kWatchHasGps;
+bool watchHasGps(Object? message) =>
+    message is Map && message['t'] == kWatchHasGps;
 
 /// Welche Seite ist veraltet, wenn die Uhr mit Fassung [v] spricht? Null,
 /// wenn sie passt; ohne Fassung gilt die Uhr als veraltet.
@@ -214,13 +228,14 @@ enum WatchOutdated { watch, phone }
 
 /// Die Route für die Uhr, noch nicht in Stücken.
 class WatchRoute {
-  const WatchRoute(
-      {required this.id,
-      required this.pts,
-      required this.ele,
-      required this.sec,
-      this.br = const [],
-      this.tolM = kWatchSimplifyM});
+  const WatchRoute({
+    required this.id,
+    required this.pts,
+    required this.ele,
+    required this.sec,
+    this.br = const [],
+    this.tolM = kWatchSimplifyM,
+  });
 
   final String id;
   final List<int> pts;
@@ -240,8 +255,9 @@ class WatchRoute {
   /// Gepackt: je Punkt `(dLat << 16) | dLon` gegen den Vorgänger, der
   /// erste gegen den Ursprung `o` (also 0).
   List<int> packedPts([int from = 0, int? to]) => [
-        for (var i = from; i < (to ?? pointCount); i++) i == 0 ? 0 : watchPack(pts[2 * i], pts[2 * i + 1]),
-      ];
+    for (var i = from; i < (to ?? pointCount); i++)
+      i == 0 ? 0 : watchPack(pts[2 * i], pts[2 * i + 1]),
+  ];
 
   /// Die Höhen der Punkte [from] bis [to] als Differenzen gegen den
   /// Vorgänger (der erste Punkt gegen `e0`, also 0), zu zweit in einer Zahl;
@@ -250,27 +266,34 @@ class WatchRoute {
     final e = ele;
     if (e == null) return null;
     final end = to ?? pointCount;
-    int d(int i) => i == 0 ? 0 : (e[i] - e[i - 1]).clamp(-kWatchMaxDelta, kWatchMaxDelta);
-    return [for (var i = from; i < end; i += 2) watchPack(d(i), i + 1 < end ? d(i + 1) : 0)];
+    int d(int i) =>
+        i == 0 ? 0 : (e[i] - e[i - 1]).clamp(-kWatchMaxDelta, kWatchMaxDelta);
+    return [
+      for (var i = from; i < end; i += 2)
+        watchPack(d(i), i + 1 < end ? d(i + 1) : 0),
+    ];
   }
 
   /// Die Stummel `br[from…to)` (Stellen in [br], je drei) als `[Punkt,
   /// gepackt(dLat, dLon)]`.
   List<int> packedBr([int from = 0, int? to]) => [
-        for (var k = from; k + 2 < (to ?? br.length); k += 3) ...[
-          br[k],
-          watchPack(br[k + 1].clamp(-kWatchMaxDelta, kWatchMaxDelta), br[k + 2].clamp(-kWatchMaxDelta, kWatchMaxDelta)),
-        ],
-      ];
+    for (var k = from; k + 2 < (to ?? br.length); k += 3) ...[
+      br[k],
+      watchPack(
+        br[k + 1].clamp(-kWatchMaxDelta, kWatchMaxDelta),
+        br[k + 2].clamp(-kWatchMaxDelta, kWatchMaxDelta),
+      ),
+    ],
+  ];
 
   /// Der Kopf, den das erste Stück trägt.
   Map<String, Object> _head() => {
-        'v': kWatchProtocol,
-        'np': pointCount,
-        'o': [pts[0], pts[1]],
-        if (ele case final e?) 'e0': e[0],
-        if (sec.isNotEmpty) 'sec': sec,
-      };
+    'v': kWatchProtocol,
+    'np': pointCount,
+    'o': [pts[0], pts[1]],
+    if (ele case final e?) 'e0': e[0],
+    if (sec.isNotEmpty) 'sec': sec,
+  };
 
   /// So viele Zahlen kostet der Kopf auf dem Draht (Namen nach Bytes, eine
   /// Zahl je 5): Er zählt in die Grenze des ersten Stücks.
@@ -285,13 +308,13 @@ class WatchRoute {
   /// In der Form von `route.json`, ein einziges Stück (für den Vergleich
   /// mit dem Werkzeug).
   Map<String, Object> toJson() => {
-        ..._head(),
-        'id': id,
-        'rel': false,
-        'pts': packedPts(),
-        'ele': ?packedEle(),
-        if (br.isNotEmpty) 'br': packedBr(),
-      };
+    ..._head(),
+    'id': id,
+    'rel': false,
+    'pts': packedPts(),
+    'ele': ?packedEle(),
+    if (br.isNotEmpty) 'br': packedBr(),
+  };
 
   /// Die Stücke, wie sie über die Brücke gehen: jedes mit `t`, `id`,
   /// Laufnummer `p` und Anzahl `n`; das erste trägt dazu den Kopf (`v`,
@@ -308,12 +331,16 @@ class WatchRoute {
     }
     final head = _headInts();
     int cost(int points, int brUsed, bool first) =>
-        points + (withEle ? (points + 1) ~/ 2 : 0) + brUsed + (first ? head : 0);
+        points +
+        (withEle ? (points + 1) ~/ 2 : 0) +
+        brUsed +
+        (first ? head : 0);
     // Grenzen der Stücke: so viele Punkte, wie samt Stummeln passen.
     final bounds = <int>[0];
     var points = 0, brUsed = 0;
     for (var i = 0; i < pointCount; i++) {
-      if (points > 0 && cost(points + 1, brUsed + brInts[i], bounds.length == 1) > maxInts) {
+      if (points > 0 &&
+          cost(points + 1, brUsed + brInts[i], bounds.length == 1) > maxInts) {
         bounds.add(i);
         points = 0;
         brUsed = 0;
@@ -343,7 +370,7 @@ class WatchRoute {
           'pts': packedPts(bounds[p], bounds[p + 1]),
           'ele': ?packedEle(bounds[p], bounds[p + 1]),
           if (brAt[p + 1] > brAt[p]) 'br': packedBr(brAt[p], brAt[p + 1]),
-        }
+        },
     ];
   }
 }
@@ -357,15 +384,23 @@ class WatchRoute {
 /// Die Punkte der [branches] (Nummern in [points]) bleiben beim
 /// Vereinfachen stehen: Die Uhr zeichnet einen Stummel vom Punkt der
 /// Linie aus — fiele die Kreuzung weg, begänne er am nächsten Knick.
-WatchRoute? watchRouteOf(List<LatLng> points, NavSections sections,
-    {ElevationProfile? heights, List<WatchBranch> branches = const [], int maxPoints = kWatchMaxPoints}) {
+WatchRoute? watchRouteOf(
+  List<LatLng> points,
+  NavSections sections, {
+  ElevationProfile? heights,
+  List<WatchBranch> branches = const [],
+  int maxPoints = kWatchMaxPoints,
+}) {
   if (points.length < 2) return null;
   final track = [for (final p in points) TrackPoint(p.latitude, p.longitude)];
   // Lage ab Start je Originalpunkt — die Abschnitte stehen in Metern.
   final cum = <double>[0];
   for (var i = 1; i < points.length; i++) {
     final a = points[i - 1], b = points[i];
-    cum.add(cum.last + geo.distanceMeters(a.latitude, a.longitude, b.latitude, b.longitude));
+    cum.add(
+      cum.last +
+          geo.distanceMeters(a.latitude, a.longitude, b.latitude, b.longitude),
+    );
   }
   if (!(cum.last > 0)) return null;
   final fixed = {
@@ -417,10 +452,7 @@ WatchRoute? watchRouteOf(List<LatLng> points, NavSections sections,
   }
   // Die Stummel an ihren Punkt der vereinfachten Linie, das Ende als
   // Versatz gegen die Kreuzung.
-  final keptAt = {
-    for (var i = 0; i < line.orig.length; i++)
-      ?line.orig[i]: i,
-  };
+  final keptAt = {for (var i = 0; i < line.orig.length; i++) ?line.orig[i]: i};
   final sorted = [
     for (final b in branches)
       if (keptAt[b.index] case final i?) (i: i, b: b),
@@ -433,7 +465,14 @@ WatchRoute? watchRouteOf(List<LatLng> points, NavSections sections,
       ((b.end.longitude - b.at.longitude) * 1e5).round(),
     ]);
   }
-  return WatchRoute(id: watchRouteId(pts), pts: pts, ele: ele, sec: sec, br: br, tolM: tol);
+  return WatchRoute(
+    id: watchRouteId(pts),
+    pts: pts,
+    ele: ele,
+    sec: sec,
+    br: br,
+    tolM: tol,
+  );
 }
 
 /// Die vereinfachte Linie in 1e-5°, so dicht, dass jeder Schritt in 16 Bit
@@ -442,7 +481,10 @@ WatchRoute? watchRouteOf(List<LatLng> points, NavSections sections,
 /// die Lage ab Start (Meter der Originallinie), [orig] die Nummer in der
 /// Originallinie, null für einen Zwischenpunkt.
 ({List<(int, int)> e5, List<double> along, List<int?> orig}) _packable(
-    List<TrackPoint> kept, Map<TrackPoint, int> index, List<double> cum) {
+  List<TrackPoint> kept,
+  Map<TrackPoint, int> index,
+  List<double> cum,
+) {
   final e5 = <(int, int)>[];
   final along = <double>[];
   final orig = <int?>[];
@@ -451,7 +493,9 @@ WatchRoute? watchRouteOf(List<LatLng> points, NavSections sections,
     final p = ((kept[i].lat * 1e5).round(), (kept[i].lon * 1e5).round());
     if (e5.isNotEmpty) {
       final (a, b) = e5.last;
-      final steps = (math.max((p.$1 - a).abs(), (p.$2 - b).abs()) / kWatchMaxDelta).ceil();
+      final steps =
+          (math.max((p.$1 - a).abs(), (p.$2 - b).abs()) / kWatchMaxDelta)
+              .ceil();
       final m0 = along.last;
       for (var k = 1; k < steps; k++) {
         final t = k / steps;
@@ -473,7 +517,11 @@ WatchRoute? watchRouteOf(List<LatLng> points, NavSections sections,
 /// Gipfel und jede bestätigte Senke, dazu der letzte Kandidat. Bleiben sie
 /// beim Vereinfachen stehen, zählt die Uhr aus den Höhen ihrer Punkte
 /// dieselben Höhenmeter wie das Handy aus dem Profil.
-Set<int> climbTurnIndices(List<double> cum, ElevationProfile heights, {double threshold = kClimbHysteresisM}) {
+Set<int> climbTurnIndices(
+  List<double> cum,
+  ElevationProfile heights, {
+  double threshold = kClimbHysteresisM,
+}) {
   final d = heights.distM, e = heights.eleM;
   if (d.length < 2 || !(cum.last > 0)) return const {};
   final turns = <int>[];
@@ -505,12 +553,19 @@ Set<int> climbTurnIndices(List<double> cum, ElevationProfile heights, {double th
 }
 
 /// Douglas-Peucker je Stück zwischen den Punkten in [fixed] — die bleiben.
-List<TrackPoint> _simplifyKeeping(List<TrackPoint> track, Set<int> fixed, double tol) {
+List<TrackPoint> _simplifyKeeping(
+  List<TrackPoint> track,
+  Set<int> fixed,
+  double tol,
+) {
   if (fixed.isEmpty) return simplify(track, toleranceM: tol);
   final cuts = {0, ...fixed, track.length - 1}.toList()..sort();
   final out = <TrackPoint>[];
   for (var k = 0; k + 1 < cuts.length; k++) {
-    final piece = simplify(track.sublist(cuts[k], cuts[k + 1] + 1), toleranceM: tol);
+    final piece = simplify(
+      track.sublist(cuts[k], cuts[k + 1] + 1),
+      toleranceM: tol,
+    );
     out.addAll(k == 0 ? piece : piece.skip(1));
   }
   return out;
@@ -530,7 +585,12 @@ int watchGrade(NavTrailSection t) {
 String watchRouteId(List<int> pts) {
   var h = 0x811c9dc5;
   for (final v in pts) {
-    for (final byte in [v & 0xff, (v >> 8) & 0xff, (v >> 16) & 0xff, (v >> 24) & 0xff]) {
+    for (final byte in [
+      v & 0xff,
+      (v >> 8) & 0xff,
+      (v >> 16) & 0xff,
+      (v >> 24) & 0xff,
+    ]) {
       h = ((h ^ byte) * 0x01000193) & 0xffffffff;
     }
   }
@@ -603,7 +663,9 @@ const kWatchDetectFresh = Duration(seconds: 5);
 /// Erkennt das Handy gerade mit gelernter Halterung? [latest] ist der
 /// jüngste Takt (Unix-µs, die Achse der Sensoren), [nowUs] die Uhrzeit.
 bool watchDetecting(FusionLive? latest, int nowUs) =>
-    latest != null && latest.mountReady && nowUs - latest.tUs <= kWatchDetectFresh.inMicroseconds;
+    latest != null &&
+    latest.mountReady &&
+    nowUs - latest.tUs <= kWatchDetectFresh.inMicroseconds;
 
 /// Der Hinweis zu [e], oder null, wenn es zur Uhrzeit [nowUs] schon zu
 /// lange vorbei ist ([kWatchCueMaxAge]) oder ein Sprung unplausibel war.
@@ -614,7 +676,11 @@ Map<String, Object>? watchCueOf(FusionEvent e, int nowUs) {
     JumpEvent(:final plausible) when !plausible => null,
     JumpEvent() => {'t': kWatchCue, 'k': 'air', 'v': e.duration.inMilliseconds},
     WheelieEvent() => {'t': kWatchCue, 'k': 'wh', 'v': e.lengthM.round()},
-    StoppieEvent() => {'t': kWatchCue, 'k': 'st', 'v': e.duration.inMilliseconds},
+    StoppieEvent() => {
+      't': kWatchCue,
+      'k': 'st',
+      'v': e.duration.inMilliseconds,
+    },
   };
 }
 
@@ -628,18 +694,35 @@ Map<String, Object>? watchCueOf(FusionEvent e, int nowUs) {
 /// `ver` ist die Fassung der Uhr-App selbst, seit #500 — eine alte App
 /// sagt nichts, dann geht alles wie bisher. `rides` sind die Fahrten, die
 /// auf der Uhr auf das Handy warten (`rq`, #484, `watch_ride.dart`).
-({bool hello, String? id, String? bad, int? v, String? ver, List<String> rides}) watchHelloOf(Object? message) {
+({bool hello, String? id, String? bad, int? v, String? ver, List<String> rides})
+watchHelloOf(Object? message) {
   if (message is! Map || message['t'] != kWatchHello) {
-    return (hello: false, id: null, bad: null, v: null, ver: null, rides: const []);
+    return (
+      hello: false,
+      id: null,
+      bad: null,
+      v: null,
+      ver: null,
+      rides: const [],
+    );
   }
-  final id = message['id'], bad = message['bad'], v = message['v'], ver = message['ver'], rq = message['rq'];
+  final id = message['id'],
+      bad = message['bad'],
+      v = message['v'],
+      ver = message['ver'],
+      rq = message['rq'];
   return (
     hello: true,
     id: id is String ? id : null,
     bad: bad is String ? bad : null,
     v: v is int ? v : null,
     ver: ver is String ? ver : null,
-    rides: rq is List ? [for (final r in rq) if (r is String) r] : const <String>[],
+    rides: rq is List
+        ? [
+            for (final r in rq)
+              if (r is String) r,
+          ]
+        : const <String>[],
   );
 }
 
@@ -655,7 +738,8 @@ Map<String, Object>? watchCueOf(FusionEvent e, int nowUs) {
 
 /// Hilft eine Route mit weniger Punkten? Bei Speicher und Absturz ja; ein
 /// Stück in falscher Form oder Fassung wird auch kleiner nicht richtig.
-bool watchErrorWantsSmaller(String code) => code != kWatchErrBad && code != kWatchErrVersion;
+bool watchErrorWantsSmaller(String code) =>
+    code != kWatchErrBad && code != kWatchErrVersion;
 
 /// Hat die Uhr [routeId] gespeichert? Ihre Antwort auf eine vollständige
 /// Route (Konzept 2).
@@ -676,7 +760,9 @@ int _nearest(List<double> along, double m) {
       hi = mid;
     }
   }
-  if (lo > 0 && (m - along[lo - 1]).abs() < (along[lo] - m).abs()) return lo - 1;
+  if (lo > 0 && (m - along[lo - 1]).abs() < (along[lo] - m).abs()) {
+    return lo - 1;
+  }
   return lo;
 }
 
@@ -697,5 +783,6 @@ double _eleAt(ElevationProfile p, double m) {
   return span <= 0 ? e[lo] : e[lo] + (e[hi] - e[lo]) * (m - d[lo]) / span;
 }
 
-String _short(String name) =>
-    name.length <= kWatchNameChars ? name : '${name.substring(0, kWatchNameChars - 1)}…';
+String _short(String name) => name.length <= kWatchNameChars
+    ? name
+    : '${name.substring(0, kWatchNameChars - 1)}…';

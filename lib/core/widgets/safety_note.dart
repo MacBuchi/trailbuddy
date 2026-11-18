@@ -57,10 +57,17 @@ class SafetyNoteTile extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.warning_amber_outlined, size: 20, color: palette.warningText),
+          Icon(
+            Icons.warning_amber_outlined,
+            size: 20,
+            color: palette.warningText,
+          ),
           const SizedBox(width: 10),
           Expanded(
-            child: Text(context.l10n.safetyNote, style: Theme.of(context).textTheme.bodySmall),
+            child: Text(
+              context.l10n.safetyNote,
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
           ),
         ],
       ),
@@ -74,22 +81,22 @@ class SafetyNoteTile extends StatelessWidget {
 /// täglich wegklickt, wird zur Tapete; einer, den man einmal bewusst
 /// bestätigt, bleibt hängen.
 Future<void> showSafetyNoteDialog(BuildContext context) => showDialog<void>(
-      context: context,
-      // Nicht wegtippbar: Ein Hinweis, der sich durch einen Fehlgriff
-      // neben den Dialog schließt, ist nicht gezeigt worden.
-      barrierDismissible: false,
-      builder: (context) => PopScope(
-        // Auch die Zurück-Taste schließt ihn nicht — aus demselben Grund.
-        canPop: false,
-        child: AlertDialog(
-          title: Text(context.l10n.safetyNoteDialogTitle),
-          content: Text(context.l10n.safetyNote),
-          actions: [
-            FilledButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: Text(context.l10n.safetyNoteConfirm),
-            ),
-          ],
+  context: context,
+  // Nicht wegtippbar: Ein Hinweis, der sich durch einen Fehlgriff
+  // neben den Dialog schließt, ist nicht gezeigt worden.
+  barrierDismissible: false,
+  builder: (context) => PopScope(
+    // Auch die Zurück-Taste schließt ihn nicht — aus demselben Grund.
+    canPop: false,
+    child: AlertDialog(
+      title: Text(context.l10n.safetyNoteDialogTitle),
+      content: Text(context.l10n.safetyNote),
+      actions: [
+        FilledButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: Text(context.l10n.safetyNoteConfirm),
         ),
-      ),
-    );
+      ],
+    ),
+  ),
+);

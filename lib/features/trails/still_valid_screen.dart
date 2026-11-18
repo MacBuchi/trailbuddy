@@ -27,7 +27,10 @@ class StillValidScreen extends ConsumerWidget {
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
         children: [
           Text(
-            l.stillValidIntro(kStillValidAfter.inDays, kStillValidSnooze.inDays),
+            l.stillValidIntro(
+              kStillValidAfter.inDays,
+              kStillValidSnooze.inDays,
+            ),
             style: theme.textTheme.bodyMedium,
           ),
           const SizedBox(height: 8),
@@ -68,11 +71,21 @@ class _QuestionCardState extends ConsumerState<_QuestionCard> {
     try {
       final outcome = await ref
           .read(trailsProvider.notifier)
-          .report(q.trail.id, status: status, condition: condition, onSite: false);
-      messenger.showSnackBar(SnackBar(
-          content: Text(outcome == WriteOutcome.queued
-              ? l.stillValidQueued
-              : l.stillValidUpdated)));
+          .report(
+            q.trail.id,
+            status: status,
+            condition: condition,
+            onSite: false,
+          );
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            outcome == WriteOutcome.queued
+                ? l.stillValidQueued
+                : l.stillValidUpdated,
+          ),
+        ),
+      );
     } catch (e, st) {
       logError('Noch gültig? beantworten', e, st);
       messenger.showSnackBar(SnackBar(content: Text(friendlyError(l, e))));
@@ -111,13 +124,15 @@ class _QuestionCardState extends ConsumerState<_QuestionCard> {
     await _send(condition: picked);
   }
 
-  void _dontKnow() => ref.read(stillValidSnoozesProvider.notifier).snooze(q.report.id);
+  void _dontKnow() =>
+      ref.read(stillValidSnoozesProvider.notifier).snooze(q.report.id);
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final l = context.l10n;
-    final value = reportValueLabel(l, q.report), age = reportAgeLabel(l, q.report.reportedAt);
+    final value = reportValueLabel(l, q.report),
+        age = reportAgeLabel(l, q.report.reportedAt);
     return Card(
       key: ValueKey('still-valid-$_key'),
       margin: const EdgeInsets.only(top: 8),
@@ -129,9 +144,11 @@ class _QuestionCardState extends ConsumerState<_QuestionCard> {
             ListTile(
               contentPadding: EdgeInsets.zero,
               title: Text(q.trail.displayName(l)),
-              subtitle: Text(q.kind == ReportKind.status
-                  ? l.stillValidStatusLine(value, age)
-                  : l.stillValidConditionLine(value, age)),
+              subtitle: Text(
+                q.kind == ReportKind.status
+                    ? l.stillValidStatusLine(value, age)
+                    : l.stillValidConditionLine(value, age),
+              ),
               trailing: IconButton(
                 tooltip: l.stillValidShowOnMap,
                 icon: const Icon(Icons.map_outlined),
@@ -151,7 +168,11 @@ class _QuestionCardState extends ConsumerState<_QuestionCard> {
                 OutlinedButton(
                   key: ValueKey('still-valid-no-$_key'),
                   onPressed: _busy ? null : _no,
-                  child: Text(q.kind == ReportKind.status ? l.stillValidNoReopen : l.stillValidNo),
+                  child: Text(
+                    q.kind == ReportKind.status
+                        ? l.stillValidNoReopen
+                        : l.stillValidNo,
+                  ),
                 ),
                 TextButton(
                   key: ValueKey('still-valid-unknown-$_key'),

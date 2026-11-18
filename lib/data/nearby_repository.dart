@@ -27,7 +27,12 @@ import '../features/nearby/nearby_core.dart' show livePairTopic;
 /// Die Schalter für EINEN Buddy. Vorgabe: er sieht mich, ich bekomme
 /// seine Meldung, und er ist kein Homie.
 class NearbyPref {
-  const NearbyPref({required this.buddyId, this.hidden = false, this.muted = false, this.homie = false});
+  const NearbyPref({
+    required this.buddyId,
+    this.hidden = false,
+    this.muted = false,
+    this.homie = false,
+  });
 
   final String buddyId;
 
@@ -45,18 +50,18 @@ class NearbyPref {
   bool get isDefault => !hidden && !muted && !homie;
 
   NearbyPref copyWith({bool? hidden, bool? muted, bool? homie}) => NearbyPref(
-        buddyId: buddyId,
-        hidden: hidden ?? this.hidden,
-        muted: muted ?? this.muted,
-        homie: homie ?? this.homie,
-      );
+    buddyId: buddyId,
+    hidden: hidden ?? this.hidden,
+    muted: muted ?? this.muted,
+    homie: homie ?? this.homie,
+  );
 
   factory NearbyPref.fromJson(Map<String, dynamic> j) => NearbyPref(
-        buddyId: j['buddy_id'] as String,
-        hidden: j['hidden'] as bool? ?? false,
-        muted: j['muted'] as bool? ?? false,
-        homie: j['homie'] as bool? ?? false,
-      );
+    buddyId: j['buddy_id'] as String,
+    hidden: j['hidden'] as bool? ?? false,
+    muted: j['muted'] as bool? ?? false,
+    homie: j['homie'] as bool? ?? false,
+  );
 }
 
 /// Ein Buddy hat seine Zelle gesetzt ([cell] `"zeile:spalte"`) oder ist
@@ -65,7 +70,12 @@ typedef NearbyCellEvent = ({String buddyId, String? cell, bool live});
 
 /// Ein Buddy hat im Paarkanal seine genaue Position gesetzt ([lat]/[lon],
 /// [at] seine Uhr) oder ist gegangen (alles null).
-typedef LivePositionEvent = ({String buddyId, double? lat, double? lon, DateTime? at});
+typedef LivePositionEvent = ({
+  String buddyId,
+  double? lat,
+  double? lon,
+  DateTime? at,
+});
 
 class NearbyRepository {
   NearbyRepository(this._client);
@@ -118,7 +128,10 @@ class NearbyRepository {
   /// Wer hat MICH als Homie gewählt? (Patch 032)
   Future<Set<String>> fetchHomieOwners() async {
     final rows = await _client.rpc<List<dynamic>>('nearby_homie_owners');
-    return {for (final r in rows) if (r is String) r};
+    return {
+      for (final r in rows)
+        if (r is String) r,
+    };
   }
 
   /// Die Zellen der Buddys, denen ich zuhöre.
@@ -147,8 +160,10 @@ class NearbyRepository {
     }
     var own = _own;
     if (own == null) {
-      own = _client.channel('nearby:$uid',
-          opts: const RealtimeChannelConfig(private: true, enabled: true));
+      own = _client.channel(
+        'nearby:$uid',
+        opts: const RealtimeChannelConfig(private: true, enabled: true),
+      );
       _own = own;
       _ownUid = uid;
       try {
@@ -173,7 +188,10 @@ class NearbyRepository {
     }
     for (final id in buddyIds) {
       if (_listening.containsKey(id)) continue;
-      final ch = _client.channel('nearby:$id', opts: const RealtimeChannelConfig(private: true));
+      final ch = _client.channel(
+        'nearby:$id',
+        opts: const RealtimeChannelConfig(private: true),
+      );
       void emit() {
         String? cell;
         var live = false;
@@ -232,8 +250,10 @@ class NearbyRepository {
     if (uid == null) return;
     for (final id in buddyIds) {
       if (_pairs.containsKey(id)) continue;
-      final ch = _client.channel(livePairTopic(uid, id),
-          opts: const RealtimeChannelConfig(private: true, enabled: true));
+      final ch = _client.channel(
+        livePairTopic(uid, id),
+        opts: const RealtimeChannelConfig(private: true, enabled: true),
+      );
       void emit() {
         LivePositionEvent e = (buddyId: id, lat: null, lon: null, at: null);
         for (final state in ch.presenceState()) {
@@ -241,7 +261,11 @@ class NearbyRepository {
             if (p.payload['u'] != id) continue;
             final pos = p.payload['p'];
             final t = p.payload['t'];
-            if (pos is List && pos.length == 2 && pos[0] is num && pos[1] is num && t is int) {
+            if (pos is List &&
+                pos.length == 2 &&
+                pos[0] is num &&
+                pos[1] is num &&
+                t is int) {
               e = (
                 buddyId: id,
                 lat: (pos[0] as num).toDouble(),
@@ -263,7 +287,9 @@ class NearbyRepository {
         if (status == RealtimeSubscribeStatus.subscribed) {
           _joinedPairs.add(id);
           final payload = _livePayload;
-          if (payload != null && _pairs[id] == ch) unawaited(_trackIn(ch, payload));
+          if (payload != null && _pairs[id] == ch) {
+            unawaited(_trackIn(ch, payload));
+          }
           return;
         }
         // Abgelehnt (ausgeschlossen, nicht mehr Buddy) oder getrennt: Der
@@ -285,7 +311,10 @@ class NearbyRepository {
     if (uid == null) return;
     final payload = <String, Object>{
       'u': uid,
-      'p': [double.parse(lat.toStringAsFixed(5)), double.parse(lon.toStringAsFixed(5))],
+      'p': [
+        double.parse(lat.toStringAsFixed(5)),
+        double.parse(lon.toStringAsFixed(5)),
+      ],
       't': at.toUtc().millisecondsSinceEpoch,
     };
     _livePayload = payload;

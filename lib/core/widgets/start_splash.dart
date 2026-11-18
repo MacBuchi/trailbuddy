@@ -46,7 +46,13 @@ const kSplashMaxStep = Duration(milliseconds: 50);
 /// Bild, gedeckelt auf [kSplashMaxStep]. Pur, damit der Test ohne Pixel
 /// prüfen kann, dass ein langes Bild nichts überspringt.
 Duration splashAdvance(Duration elapsed, Duration frame) =>
-    elapsed + Duration(microseconds: math.max(0, math.min(frame.inMicroseconds, kSplashMaxStep.inMicroseconds)));
+    elapsed +
+    Duration(
+      microseconds: math.max(
+        0,
+        math.min(frame.inMicroseconds, kSplashMaxStep.inMicroseconds),
+      ),
+    );
 
 /// Zeitpunkte aus dem Entwurf: Zeichnen 0…1,3 s linear, die Wortmarke ab
 /// 1,26 s in 0,52 s (`easeOutQuad`) mit weicher Kante.
@@ -68,7 +74,10 @@ const kSplashWipeEdge = 0.14;
   // Kurveneingänge klemmen: Gleitkomma liegt sonst knapp über 1, und die
   // Kurve lehnt das ab.
   final w = ((ms - _wipeStartMs) / _wipeMs).clamp(0.0, 1.0);
-  return (draw: draw, wipe: Curves.easeOutQuad.transform(w) * (1 + kSplashWipeEdge));
+  return (
+    draw: draw,
+    wipe: Curves.easeOutQuad.transform(w) * (1 + kSplashWipeEdge),
+  );
 }
 
 class StartSplash extends ConsumerStatefulWidget {
@@ -80,9 +89,17 @@ class StartSplash extends ConsumerStatefulWidget {
   ConsumerState<StartSplash> createState() => _StartSplashState();
 }
 
-class _StartSplashState extends ConsumerState<StartSplash> with TickerProviderStateMixin {
-  late final _draw = AnimationController(vsync: this, duration: kSplashDuration);
-  late final _fade = AnimationController(vsync: this, duration: kSplashFade, value: 1);
+class _StartSplashState extends ConsumerState<StartSplash>
+    with TickerProviderStateMixin {
+  late final _draw = AnimationController(
+    vsync: this,
+    duration: kSplashDuration,
+  );
+  late final _fade = AnimationController(
+    vsync: this,
+    duration: kSplashFade,
+    value: 1,
+  );
   late final Ticker _clock = createTicker(_tick);
 
   /// Die eigene Uhr: Summe der gedeckelten Bilder seit dem Start.
@@ -119,9 +136,11 @@ class _StartSplashState extends ConsumerState<StartSplash> with TickerProviderSt
     _clock.stop();
     _draw.value = 1;
     setState(() => _covering = false);
-    _fade.animateBack(0, duration: fade, curve: Curves.easeInOut).whenComplete(() {
-      if (mounted) setState(() => _showing = false);
-    });
+    _fade.animateBack(0, duration: fade, curve: Curves.easeInOut).whenComplete(
+      () {
+        if (mounted) setState(() => _showing = false);
+      },
+    );
   }
 
   @override
@@ -145,64 +164,70 @@ class _StartSplashState extends ConsumerState<StartSplash> with TickerProviderSt
         Offstage(offstage: _covering, child: widget.child),
         if (_showing == true)
           FadeTransition(
-          opacity: _fade,
-          child: GestureDetector(
-            key: const ValueKey('start-splash'),
-            behavior: HitTestBehavior.opaque,
-            onTap: () => _dismiss(fade: kSplashSkipFade),
-            child: Semantics(
-              label: 'TrailBuddy',
-              // Material statt ColoredBox: Der Splash liegt im Builder der
-              // App, ÜBER dem Navigator — ohne Material darüber zeichnet
-              // Flutter Text mit dem Warnstil (gelb, doppelt unterstrichen).
-              child: Material(
-                color: p.ground,
-                // Das Bild sagt nichts, was „TrailBuddy" nicht schon sagt —
-                // die Wortmarke brächte den Namen ein zweites Mal.
-                child: ExcludeSemantics(
-                  child: RepaintBoundary(
-                  child: Center(
-                    child: AnimatedBuilder(
-                      animation: _draw,
-                      builder: (context, _) {
-                        final s = splashAt(_draw.value);
-                        final geo = LogoGeometry.of(LogoSize.l);
-                        return Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            SizedBox.square(
-                              dimension: 72,
-                              child: CustomPaint(
-                                painter: LogoPainter(
-                                  geometry: geo,
-                                  color: p.brandMark,
-                                  to: s.draw * geo.total,
+            opacity: _fade,
+            child: GestureDetector(
+              key: const ValueKey('start-splash'),
+              behavior: HitTestBehavior.opaque,
+              onTap: () => _dismiss(fade: kSplashSkipFade),
+              child: Semantics(
+                label: 'TrailBuddy',
+                // Material statt ColoredBox: Der Splash liegt im Builder der
+                // App, ÜBER dem Navigator — ohne Material darüber zeichnet
+                // Flutter Text mit dem Warnstil (gelb, doppelt unterstrichen).
+                child: Material(
+                  color: p.ground,
+                  // Das Bild sagt nichts, was „TrailBuddy" nicht schon sagt —
+                  // die Wortmarke brächte den Namen ein zweites Mal.
+                  child: ExcludeSemantics(
+                    child: RepaintBoundary(
+                      child: Center(
+                        child: AnimatedBuilder(
+                          animation: _draw,
+                          builder: (context, _) {
+                            final s = splashAt(_draw.value);
+                            final geo = LogoGeometry.of(LogoSize.l);
+                            return Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                SizedBox.square(
+                                  dimension: 72,
+                                  child: CustomPaint(
+                                    painter: LogoPainter(
+                                      geometry: geo,
+                                      color: p.brandMark,
+                                      to: s.draw * geo.total,
+                                    ),
+                                  ),
                                 ),
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            ShaderMask(
-                              blendMode: BlendMode.dstIn,
-                              shaderCallback: (r) => LinearGradient(
-                                colors: const [Color(0xFF000000), Color(0x00000000)],
-                                stops: [
-                                  (s.wipe - kSplashWipeEdge).clamp(0.0, 1.0),
-                                  s.wipe.clamp(0.0, 1.0),
-                                ],
-                              ).createShader(r),
-                              child: const TrailBuddyWordmark(fontSize: 30),
-                            ),
-                          ],
-                        );
-                      },
+                                const SizedBox(width: 12),
+                                ShaderMask(
+                                  blendMode: BlendMode.dstIn,
+                                  shaderCallback: (r) => LinearGradient(
+                                    colors: const [
+                                      Color(0xFF000000),
+                                      Color(0x00000000),
+                                    ],
+                                    stops: [
+                                      (s.wipe - kSplashWipeEdge).clamp(
+                                        0.0,
+                                        1.0,
+                                      ),
+                                      s.wipe.clamp(0.0, 1.0),
+                                    ],
+                                  ).createShader(r),
+                                  child: const TrailBuddyWordmark(fontSize: 30),
+                                ),
+                              ],
+                            );
+                          },
+                        ),
+                      ),
                     ),
-                  ),
                   ),
                 ),
               ),
             ),
           ),
-        ),
       ],
     );
   }

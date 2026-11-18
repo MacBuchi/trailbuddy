@@ -1,6 +1,7 @@
 import 'package:latlong2/latlong.dart';
 
-import '../offline_areas/height_tiles.dart' show hysteresisClimb, kClimbHysteresisM, kClimbSampleM;
+import '../offline_areas/height_tiles.dart'
+    show hysteresisClimb, kClimbHysteresisM, kClimbSampleM;
 import 'trail_geometry.dart' as geo;
 
 /// Das Höhenprofil eines Trails, in TRAIL-Richtung (Konzept 4.3): Eine
@@ -13,12 +14,15 @@ import 'trail_geometry.dart' as geo;
 /// (Konzept 3, „Länge, Höhenmeter, mittleres Gefälle").
 class ElevationProfile {
   ElevationProfile._(this.distM, this.eleM, {this.fromTerrain = false})
-      : assert(distM.length == eleM.length && distM.length >= 2);
+    : assert(distM.length == eleM.length && distM.length >= 2);
 
   /// Null, wenn Höhen fehlen, nicht zur Linie passen oder die Linie
   /// keine Länge hat — lieber kein Profil als ein erfundenes.
-  static ElevationProfile? of(List<LatLng> points, List<double>? ele,
-      {bool reversed = false}) {
+  static ElevationProfile? of(
+    List<LatLng> points,
+    List<double>? ele, {
+    bool reversed = false,
+  }) {
     if (ele == null || ele.length != points.length || points.length < 2) {
       return null;
     }
@@ -26,9 +30,15 @@ class ElevationProfile {
     final e = reversed ? ele.reversed.toList() : List.of(ele);
     final dist = <double>[0];
     for (var i = 1; i < pts.length; i++) {
-      dist.add(dist.last +
-          geo.haversineM(pts[i - 1].latitude, pts[i - 1].longitude,
-              pts[i].latitude, pts[i].longitude));
+      dist.add(
+        dist.last +
+            geo.haversineM(
+              pts[i - 1].latitude,
+              pts[i - 1].longitude,
+              pts[i].latitude,
+              pts[i].longitude,
+            ),
+      );
     }
     // Auch NaN (ein Punkt ohne Lage): Das Profil teilt durch die Länge.
     if (!(dist.last > 0)) return null;
@@ -77,6 +87,7 @@ class ElevationProfile {
     final t = seg <= 0 ? 0.0 : (alongM - distM[lo]) / seg;
     return eleM[lo] + (eleM[hi] - eleM[lo]) * t;
   }
+
   double get startM => eleM.first;
   double get endM => eleM.last;
   double get minM => eleM.reduce((a, b) => a < b ? a : b);
@@ -101,6 +112,7 @@ class ElevationProfile {
 
   /// Steilstes Stück über [geo.kSteepestWindowM]; null bei kürzeren
   /// Trails.
-  late final double? steepestDescentPct =
-      fromTerrain ? null : geo.steepestDescentPct(distM, eleM);
+  late final double? steepestDescentPct = fromTerrain
+      ? null
+      : geo.steepestDescentPct(distM, eleM);
 }

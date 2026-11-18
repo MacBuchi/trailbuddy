@@ -17,7 +17,8 @@ import 'trail_elevation_flow_test.dart' show gpx, importFiles;
 
 const _encoded =
     'DREI%20EICHEN%20-%20Sponsored%20by%20SIGMA%20-%20RV%20Edelweiss%201924%20Deidesheim%20e.V.';
-const _decoded = 'DREI EICHEN - Sponsored by SIGMA - RV Edelweiss 1924 Deidesheim e.V.';
+const _decoded =
+    'DREI EICHEN - Sponsored by SIGMA - RV Edelweiss 1924 Deidesheim e.V.';
 
 void main() {
   late FakeBackend backend;
@@ -30,15 +31,23 @@ void main() {
     trails = FakeTrailRepository(myId: () => backend.currentUserId ?? '');
   });
 
-  String? myName() => trails.details
-      .singleWhere((d) => d.userId == backend.currentUserId)
-      .name;
+  String? myName() =>
+      trails.details.singleWhere((d) => d.userId == backend.currentUserId).name;
 
-  testWidgets('URL-kodierter Name: dekodiert, beigesteuert, kein Fehler',
-      (tester) async {
-    expect(_encoded.length, greaterThan(kTrailNameMaxLength),
-        reason: 'kodiert zu lang für den Server — genau der gemeldete Fall');
-    await importFiles(tester, [PickedFile.text('d.gpx', gpx(_encoded))], backend, trails);
+  testWidgets('URL-kodierter Name: dekodiert, beigesteuert, kein Fehler', (
+    tester,
+  ) async {
+    expect(
+      _encoded.length,
+      greaterThan(kTrailNameMaxLength),
+      reason: 'kodiert zu lang für den Server — genau der gemeldete Fall',
+    );
+    await importFiles(
+      tester,
+      [PickedFile.text('d.gpx', gpx(_encoded))],
+      backend,
+      trails,
+    );
 
     expect(find.text(_decoded), findsOneWidget);
     await tester.tap(find.text('1 beisteuern'));
@@ -48,9 +57,16 @@ void main() {
     expect(myName(), _decoded);
   });
 
-  testWidgets('auch dekodiert zu lang: gekürzt statt gescheitert', (tester) async {
+  testWidgets('auch dekodiert zu lang: gekürzt statt gescheitert', (
+    tester,
+  ) async {
     final long = 'Sehr langer Trail ${'mit vielen Wörtern ' * 6}am Ende';
-    await importFiles(tester, [PickedFile.text('l.gpx', gpx(long))], backend, trails);
+    await importFiles(
+      tester,
+      [PickedFile.text('l.gpx', gpx(long))],
+      backend,
+      trails,
+    );
     await tester.tap(find.text('1 beisteuern'));
     await settle(tester, frames: 20);
 
@@ -61,27 +77,38 @@ void main() {
     expect(name, startsWith('Sehr langer Trail mit vielen Wörtern'));
   });
 
-  testWidgets('schon beigesteuert, aber ohne Namen: der Import holt ihn nach',
-      (tester) async {
+  testWidgets('schon beigesteuert, aber ohne Namen: der Import holt ihn nach', (
+    tester,
+  ) async {
     // So liegt es nach dem Fehler vor 0.9.1: Aufzeichnung da, Name nicht.
     final track = parseGpx(gpx(_encoded), fallbackName: 'x').single;
     final pts = simplify(track.points);
     await trails.contribute(
-        coords: flatCoords(pts),
-        eles: trackElevations(pts),
-        source: RecordingSource.import,
-        clientId: 'vor-0-9-1');
+      coords: flatCoords(pts),
+      eles: trackElevations(pts),
+      source: RecordingSource.import,
+      clientId: 'vor-0-9-1',
+    );
     expect(myName(), isNull);
 
-    await importFiles(tester, [PickedFile.text('d.gpx', gpx(_encoded))], backend, trails);
-    expect(find.textContaining('schon beigesteuert — Name wird übernommen'),
-        findsOneWidget);
+    await importFiles(
+      tester,
+      [PickedFile.text('d.gpx', gpx(_encoded))],
+      backend,
+      trails,
+    );
+    expect(
+      find.textContaining('schon beigesteuert — Name wird übernommen'),
+      findsOneWidget,
+    );
     await tester.tap(find.text('1 übernehmen'));
     await settle(tester, frames: 20);
 
     expect(trails.contributeCalls, 1, reason: 'keine zweite Aufzeichnung');
     expect(myName(), _decoded);
-    expect(find.text('0 beigesteuert, 1 Name übernommen, 0 fehlgeschlagen.'),
-        findsOneWidget);
+    expect(
+      find.text('0 beigesteuert, 1 Name übernommen, 0 fehlgeschlagen.'),
+      findsOneWidget,
+    );
   });
 }

@@ -26,15 +26,42 @@ import 'trail_cache.dart';
 TrailSnapshot shareSnapshot(TrailSnapshot? previous, TrailSnapshot next) {
   if (previous == null) return next;
   return (
-    recordings: _share(previous.recordings, next.recordings, (r) => r.id, sameRecording),
-    details: _share(previous.details, next.details, (d) => '${d.trailId}|${d.userId}',
-        (a, b) => _sameRow(detailsToRow(a), detailsToRow(b))),
-    notes: _share(previous.notes, next.notes, (n) => n.id, (a, b) => _sameRow(noteToRow(a), noteToRow(b))),
-    reports: _share(previous.reports, next.reports, (r) => r.id, (a, b) => _sameRow(a.toRow(), b.toRow())),
-    merges: _share(previous.merges, next.merges, (m) => '${m.kind.db}|${m.trailId}|${m.sameAs}',
-        (a, b) => _sameRow(a.toRow(), b.toRow())),
-    startPoints: _share(previous.startPoints, next.startPoints, (p) => p.key,
-        (a, b) => _sameRow(a.toRow(), b.toRow())),
+    recordings: _share(
+      previous.recordings,
+      next.recordings,
+      (r) => r.id,
+      sameRecording,
+    ),
+    details: _share(
+      previous.details,
+      next.details,
+      (d) => '${d.trailId}|${d.userId}',
+      (a, b) => _sameRow(detailsToRow(a), detailsToRow(b)),
+    ),
+    notes: _share(
+      previous.notes,
+      next.notes,
+      (n) => n.id,
+      (a, b) => _sameRow(noteToRow(a), noteToRow(b)),
+    ),
+    reports: _share(
+      previous.reports,
+      next.reports,
+      (r) => r.id,
+      (a, b) => _sameRow(a.toRow(), b.toRow()),
+    ),
+    merges: _share(
+      previous.merges,
+      next.merges,
+      (m) => '${m.kind.db}|${m.trailId}|${m.sameAs}',
+      (a, b) => _sameRow(a.toRow(), b.toRow()),
+    ),
+    startPoints: _share(
+      previous.startPoints,
+      next.startPoints,
+      (p) => p.key,
+      (a, b) => _sameRow(a.toRow(), b.toRow()),
+    ),
   );
 }
 
@@ -77,12 +104,20 @@ bool sameRecording(TrailRecording a, TrailRecording b) {
   return true;
 }
 
-List<T> _share<T>(List<T> previous, List<T> next, String Function(T) key, bool Function(T, T) same) {
+List<T> _share<T>(
+  List<T> previous,
+  List<T> next,
+  String Function(T) key,
+  bool Function(T, T) same,
+) {
   if (previous.isEmpty) return next;
   final byKey = {for (final p in previous) key(p): p};
   return [
     for (final n in next)
-      if (byKey[key(n)] case final p? when identical(p, n) || same(p, n)) p else n,
+      if (byKey[key(n)] case final p? when identical(p, n) || same(p, n))
+        p
+      else
+        n,
   ];
 }
 
@@ -97,4 +132,5 @@ bool _sameItems<T>(List<T> a, List<T> b) {
 
 // Kleine Zeilen: als Text verglichen, damit Listen und Unterobjekte
 // (Merkmale, Embed des Namens) ohne eigene Gleichheit mitzählen.
-bool _sameRow(Map<String, dynamic> a, Map<String, dynamic> b) => jsonEncode(a) == jsonEncode(b);
+bool _sameRow(Map<String, dynamic> a, Map<String, dynamic> b) =>
+    jsonEncode(a) == jsonEncode(b);

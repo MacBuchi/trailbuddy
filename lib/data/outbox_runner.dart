@@ -34,8 +34,15 @@ class OutboxRunner {
   /// Nach dem Beisteuern: den Namen (und den Link, #103) aus der Datei als
   /// eigenen übernehmen, wenn noch keiner steht — und den S-Grad aus dem
   /// Zerlege-Blatt.
-  final Future<void> Function(String trailId, String name, int? grade,
-      Set<TrailTrait> traits, String? link, int? rating) adoptDetails;
+  final Future<void> Function(
+    String trailId,
+    String name,
+    int? grade,
+    Set<TrailTrait> traits,
+    String? link,
+    int? rating,
+  )
+  adoptDetails;
 
   /// Nach so vielen erfolglosen Anläufen gilt ein Auftrag als abgelehnt.
   /// Netzfehler und das Tageslimit zählen NICHT — die brechen den Lauf ab,
@@ -64,7 +71,9 @@ class OutboxRunner {
 
     for (final job in jobs) {
       if (stopped || job.failure != null) {
-        remaining.add(job); // Wartet auf den nächsten Anlauf bzw. eine Entscheidung.
+        remaining.add(
+          job,
+        ); // Wartet auf den nächsten Anlauf bzw. eine Entscheidung.
         continue;
       }
       try {
@@ -83,7 +92,14 @@ class OutboxRunner {
                 job.traits.isNotEmpty ||
                 job.link != null ||
                 job.rating != null) {
-              await adoptDetails(trailId, name, job.grade, job.traits, job.link, job.rating);
+              await adoptDetails(
+                trailId,
+                name,
+                job.grade,
+                job.traits,
+                job.link,
+                job.rating,
+              );
             }
           case DetailsJob():
             await repository.saveDetails(job.details);
@@ -113,8 +129,12 @@ class OutboxRunner {
               clientId: job.id,
             );
           case FeedbackJob():
-            await feedback.submit(job.type, job.message,
-                appVersion: job.appVersion, clientId: job.id);
+            await feedback.submit(
+              job.type,
+              job.message,
+              appVersion: job.appVersion,
+              clientId: job.id,
+            );
           case StartPointJob():
             await repository.saveStartPoint(job.point);
           case StartPointDeleteJob():
@@ -136,10 +156,12 @@ class OutboxRunner {
         // Eine Ablehnung des Servers (RLS, Constraint, zu kurze Linie)
         // wird durch Wiederholen nicht besser.
         final done = _isFinal(error) || attempts >= maxAttempts;
-        remaining.add(job.copyWith(
-          attempts: attempts,
-          failure: done ? friendlyError(serviceL10n(), error) : null,
-        ));
+        remaining.add(
+          job.copyWith(
+            attempts: attempts,
+            failure: done ? friendlyError(serviceL10n(), error) : null,
+          ),
+        );
       }
     }
 

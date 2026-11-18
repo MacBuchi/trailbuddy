@@ -41,19 +41,29 @@ final startPointLayerEnabledProvider = NotifierProvider<RememberedFlag, bool>(
 /// Buddys, und zählen soll die Karte nicht (A1).
 List<StartPoint> shownStartPoints(List<StartPoint> points, String? myId) {
   if (myId == null) return points;
-  final own = [for (final p in points) if (p.isMine(myId)) p];
+  final own = [
+    for (final p in points)
+      if (p.isMine(myId)) p,
+  ];
   if (own.isEmpty) return points;
   return [
     for (final p in points)
       if (p.isMine(myId) ||
-          !own.any((o) => haversineM(o.lat, o.lon, p.lat, p.lon) <= kStartPointSamePlaceM))
+          !own.any(
+            (o) =>
+                haversineM(o.lat, o.lon, p.lat, p.lon) <= kStartPointSamePlaceM,
+          ))
         p,
   ];
 }
 
 /// Die Pins im Ausschnitt — leer unter [kStartPointMinZoom]. Ein Tipp
 /// meldet den [StartPoint].
-List<MapViewMarker> startPointMarkers(List<StartPoint> points, MapViewCamera? camera, String? myId) {
+List<MapViewMarker> startPointMarkers(
+  List<StartPoint> points,
+  MapViewCamera? camera,
+  String? myId,
+) {
   if (camera == null || camera.zoom < kStartPointMinZoom) return const [];
   return [
     for (final p in points)
@@ -64,7 +74,10 @@ List<MapViewMarker> startPointMarkers(List<StartPoint> points, MapViewCamera? ca
           width: StartPointPin.size,
           height: StartPointPin.size,
           hitValue: p,
-          child: StartPointPin(own: myId != null && p.isMine(myId), pending: p.pending),
+          child: StartPointPin(
+            own: myId != null && p.isMine(myId),
+            pending: p.pending,
+          ),
         ),
   ];
 }
@@ -97,11 +110,23 @@ class StartPointPin extends StatelessWidget {
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             color: own ? color : Colors.white,
-            border: own ? Border.all(color: Colors.white, width: 2) : Border.all(color: color, width: 3.5),
-            boxShadow: const [BoxShadow(color: Color(0x55000000), blurRadius: 3, offset: Offset(0, 1))],
+            border: own
+                ? Border.all(color: Colors.white, width: 2)
+                : Border.all(color: color, width: 3.5),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x55000000),
+                blurRadius: 3,
+                offset: Offset(0, 1),
+              ),
+            ],
           ),
           alignment: Alignment.center,
-          child: Icon(own ? Icons.flag : Icons.outlined_flag, size: size * 0.55, color: own ? Colors.white : color),
+          child: Icon(
+            own ? Icons.flag : Icons.outlined_flag,
+            size: size * 0.55,
+            color: own ? Colors.white : color,
+          ),
         ),
       ),
     );

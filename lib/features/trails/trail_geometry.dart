@@ -38,7 +38,8 @@ double haversineM(double lat1, double lon1, double lat2, double lon2) {
   final p2 = lat2 * math.pi / 180;
   final dp = p2 - p1;
   final dl = (lon2 - lon1) * math.pi / 180;
-  final a = math.sin(dp / 2) * math.sin(dp / 2) +
+  final a =
+      math.sin(dp / 2) * math.sin(dp / 2) +
       math.cos(p1) * math.cos(p2) * math.sin(dl / 2) * math.sin(dl / 2);
   return 2 * kEarthRadiusM * math.asin(math.sqrt(a));
 }
@@ -128,8 +129,10 @@ const double kMaxElevationM = 9000;
 /// (Anstieg, Abstieg) einer Spur, null ohne vollständige Höhen. Die
 /// Vorgabe ist die Schwelle der Anzeige; die Importregel rechnet roh
 /// ([classifyTrack]), so ist sie gemessen.
-({double gain, double loss})? elevationGainLoss(List<TrackPoint> pts,
-    {double thresholdM = kElevationThresholdM}) {
+({double gain, double loss})? elevationGainLoss(
+  List<TrackPoint> pts, {
+  double thresholdM = kElevationThresholdM,
+}) {
   final ele = trackElevations(pts);
   return ele == null ? null : gainLoss(ele, thresholdM);
 }
@@ -140,8 +143,11 @@ const double kMaxElevationM = 9000;
 /// bergauf läuft, ist das die ehrliche Antwort.
 ///
 /// Spiegel von `steepest` in `tool/elevation_measure.py`.
-double? steepestDescentPct(List<double> distM, List<double> ele,
-    {double windowM = kSteepestWindowM}) {
+double? steepestDescentPct(
+  List<double> distM,
+  List<double> ele, {
+  double windowM = kSteepestWindowM,
+}) {
   double? best;
   var j = 0;
   for (var i = 0; i < distM.length; i++) {
@@ -168,7 +174,12 @@ bool looksPlanned(List<TrackPoint> pts) {
     if (a == null || b == null) continue;
     final dt = b.difference(a).inMilliseconds / 1000;
     if (dt <= 0) continue;
-    final d = haversineM(pts[i - 1].lat, pts[i - 1].lon, pts[i].lat, pts[i].lon);
+    final d = haversineM(
+      pts[i - 1].lat,
+      pts[i - 1].lon,
+      pts[i].lat,
+      pts[i].lon,
+    );
     speeds.add(d / dt * 3.6);
   }
   if (speeds.isEmpty) return true;
@@ -200,8 +211,11 @@ TrackKind classifyTrack(List<TrackPoint> pts) {
 /// ([verticalToleranceM], gegen die Höhe an derselben Stelle der Sehne):
 /// Ein Punkt bleibt, sobald er waagerecht ODER senkrecht zu weit
 /// danebenliegt. Spiegel von `simplify_3d` in `tool/elevation_measure.py`.
-List<TrackPoint> simplify(List<TrackPoint> pts,
-    {double toleranceM = 3, double verticalToleranceM = kSimplifyVerticalM}) {
+List<TrackPoint> simplify(
+  List<TrackPoint> pts, {
+  double toleranceM = 3,
+  double verticalToleranceM = kSimplifyVerticalM,
+}) {
   if (pts.length <= 2) return List.of(pts);
   final withEle = pts.every((p) => p.ele != null);
   final keep = List<bool>.filled(pts.length, false);
@@ -250,9 +264,13 @@ List<TrackPoint> simplify(List<TrackPoint> pts,
       stack.add((worstI, b));
     }
   }
-  return [for (var i = 0; i < pts.length; i++) if (keep[i]) pts[i]];
+  return [
+    for (var i = 0; i < pts.length; i++)
+      if (keep[i]) pts[i],
+  ];
 }
 
 /// Flache Koordinatenliste [lon, lat, lon, lat, …] für die RPC.
-List<double> flatCoords(List<TrackPoint> pts) =>
-    [for (final p in pts) ...[p.lon, p.lat]];
+List<double> flatCoords(List<TrackPoint> pts) => [
+  for (final p in pts) ...[p.lon, p.lat],
+];

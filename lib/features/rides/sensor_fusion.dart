@@ -58,10 +58,12 @@ const _longYaw = 0.15;
 const _leanYaw = 0.15;
 const _fwdTicks = 5;
 const _fwdConsistency = 0.5;
+
 /// „Vorn" gilt erst mit so vielen Proben vom Bremsen: Kurven allein
 /// streuen (am 2026-11-01 lernten neun Kurven in 15 s „vorn" um 57°
 /// verdreht, #36).
 const _fwdMinBrakes = 1;
+
 /// Gespeichert für die nächste Fahrt wird eine neu gelernte Halterung erst
 /// mit so viel Beleg ([FusionMount], `mount.json`) — sonst bleibt die alte.
 const kMountSolidBrakes = 3;
@@ -122,8 +124,12 @@ sealed class FusionEvent {
 /// Front hoch gegen den Weg, ab [kFusionWheelieTiltDeg] für
 /// [kFusionWheelieMinS]; [maxTiltDeg] ist die Spitze gegen den Weg.
 class WheelieEvent extends FusionEvent {
-  const WheelieEvent(
-      {required super.startUs, required super.duration, required this.lengthM, required this.maxTiltDeg});
+  const WheelieEvent({
+    required super.startUs,
+    required super.duration,
+    required this.lengthM,
+    required this.maxTiltDeg,
+  });
 
   final double lengthM;
   final double maxTiltDeg;
@@ -132,12 +138,13 @@ class WheelieEvent extends FusionEvent {
 /// Gefilterter Betrag unter [kFusionFlightG] für [kFusionFlightMinMs];
 /// [landingG] ist die Spitze in der Hochachse des Rads danach.
 class JumpEvent extends FusionEvent {
-  const JumpEvent(
-      {required super.startUs,
-      required super.duration,
-      required this.landingG,
-      required this.upright,
-      required this.plausible});
+  const JumpEvent({
+    required super.startUs,
+    required super.duration,
+    required this.landingG,
+    required this.upright,
+    required this.plausible,
+  });
 
   final double landingG;
   final bool upright;
@@ -151,12 +158,13 @@ class JumpEvent extends FusionEvent {
 /// [decel] ist das stärkste Bremsen (m/s², GPS), [landingG] die Spitze in
 /// der Hochachse bis 0,5 s danach — das Hinterrad setzt auf.
 class StoppieEvent extends FusionEvent {
-  const StoppieEvent(
-      {required super.startUs,
-      required super.duration,
-      required this.maxTiltDeg,
-      required this.decel,
-      required this.landingG});
+  const StoppieEvent({
+    required super.startUs,
+    required super.duration,
+    required this.maxTiltDeg,
+    required this.decel,
+    required this.landingG,
+  });
 
   final double maxTiltDeg;
   final double decel;
@@ -201,9 +209,9 @@ class FusionMount {
   final Vec forward;
 
   Map<String, Object> toJson() => {
-        'up': [up.$1, up.$2, up.$3],
-        'forward': [forward.$1, forward.$2, forward.$3],
-      };
+    'up': [up.$1, up.$2, up.$3],
+    'forward': [forward.$1, forward.$2, forward.$3],
+  };
 
   static FusionMount? fromJson(Object? json) {
     if (json is! Map) return null;
@@ -214,7 +222,9 @@ class FusionMount {
     }
 
     final up = vec(json['up']), forward = vec(json['forward']);
-    return up == null || forward == null ? null : FusionMount(up: up, forward: forward);
+    return up == null || forward == null
+        ? null
+        : FusionMount(up: up, forward: forward);
   }
 }
 
@@ -226,24 +236,28 @@ Vec _scale(Vec a, double k) => (a.$1 * k, a.$2 * k, a.$3 * k);
 double _dot(Vec a, Vec b) => a.$1 * b.$1 + a.$2 * b.$2 + a.$3 * b.$3;
 double _norm(Vec a) => math.sqrt(_dot(a, a));
 
-Vec _cross(Vec a, Vec b) =>
-    (a.$2 * b.$3 - a.$3 * b.$2, a.$3 * b.$1 - a.$1 * b.$3, a.$1 * b.$2 - a.$2 * b.$1);
+Vec _cross(Vec a, Vec b) => (
+  a.$2 * b.$3 - a.$3 * b.$2,
+  a.$3 * b.$1 - a.$1 * b.$3,
+  a.$1 * b.$2 - a.$2 * b.$1,
+);
 
 Vec _unit(Vec a) {
   final n = _norm(a);
   return n > 1e-12 ? _scale(a, 1.0 / n) : _zero;
 }
 
-double _angle(Vec a, Vec b) => math.acos(_dot(_unit(a), _unit(b)).clamp(-1.0, 1.0));
+double _angle(Vec a, Vec b) =>
+    math.acos(_dot(_unit(a), _unit(b)).clamp(-1.0, 1.0));
 
 Vec _mv(_Mat m, Vec v) => (_dot(m.$1, v), _dot(m.$2, v), _dot(m.$3, v));
 
 /// mᵀ v.
 Vec _mtv(_Mat m, Vec v) => (
-      m.$1.$1 * v.$1 + m.$2.$1 * v.$2 + m.$3.$1 * v.$3,
-      m.$1.$2 * v.$1 + m.$2.$2 * v.$2 + m.$3.$2 * v.$3,
-      m.$1.$3 * v.$1 + m.$2.$3 * v.$2 + m.$3.$3 * v.$3,
-    );
+  m.$1.$1 * v.$1 + m.$2.$1 * v.$2 + m.$3.$1 * v.$3,
+  m.$1.$2 * v.$1 + m.$2.$2 * v.$2 + m.$3.$2 * v.$3,
+  m.$1.$3 * v.$1 + m.$2.$3 * v.$2 + m.$3.$3 * v.$3,
+);
 
 // ---------------------------------------------------------- Quaternionen
 
@@ -338,7 +352,10 @@ class _Mount {
     up = u;
     _upSum = _scale(u, _upTicks.toDouble());
     _upN = _upTicks;
-    _fwdSum = _scale(_unit(_sub(m.forward, _scale(u, _dot(m.forward, u)))), _fwdTicks.toDouble());
+    _fwdSum = _scale(
+      _unit(_sub(m.forward, _scale(u, _dot(m.forward, u)))),
+      _fwdTicks.toDouble(),
+    );
     _fwdAbs = _fwdTicks.toDouble();
     _fwdN = _fwdTicks;
     _brakeN = _fwdMinBrakes;
@@ -354,7 +371,9 @@ class _Mount {
   /// neu gelernt aus [kMountSolidSamples] Proben, davon
   /// [kMountSolidBrakes] vom Bremsen.
   bool get solid =>
-      fwd != null && (!_fresh || (_brakeN >= kMountSolidBrakes && _fwdN >= kMountSolidSamples));
+      fwd != null &&
+      (!_fresh ||
+          (_brakeN >= kMountSolidBrakes && _fwdN >= kMountSolidSamples));
 
   void _drop() {
     up = fwd = left = null;
@@ -373,7 +392,10 @@ class _Mount {
     if (up != null && u != null && _dot(u, up) < 0) u = null;
     if (speed < _mountMinMps) return false;
     final tilt = up != null ? _angle(f, up) : 0.0;
-    final quiet = dvdt.abs() < _quietDvdt && yaw < _quietYaw && (_norm(f) - kG).abs() < _quietForce;
+    final quiet =
+        dvdt.abs() < _quietDvdt &&
+        yaw < _quietYaw &&
+        (_norm(f) - kG).abs() < _quietForce;
     if (_confirming && quiet) {
       // Die mitgebrachte Halterung gilt, wenn ruhiges Fahren zu ihr passt.
       if (tilt <= _tiltedRad) {
@@ -441,7 +463,9 @@ class _Mount {
   }
 
   bool get _fwdEnough =>
-      _fwdN >= _fwdTicks && _brakeN >= _fwdMinBrakes && _norm(_fwdSum) > _fwdConsistency * _fwdAbs;
+      _fwdN >= _fwdTicks &&
+      _brakeN >= _fwdMinBrakes &&
+      _norm(_fwdSum) > _fwdConsistency * _fwdAbs;
 
   void _orthogonalise() {
     final up = this.up;
@@ -539,7 +563,10 @@ class _Gps {
     final i = _right(t);
     if (i == 0) return _speeds.isEmpty ? double.nan : _speeds.first;
     if (i == _times.length) return _speeds.last;
-    final t0 = _times[i - 1], t1 = _times[i], s0 = _speeds[i - 1], s1 = _speeds[i];
+    final t0 = _times[i - 1],
+        t1 = _times[i],
+        s0 = _speeds[i - 1],
+        s1 = _speeds[i];
     return t1 > t0 ? s0 + (s1 - s0) * (t - t0) / (t1 - t0) : s1;
   }
 
@@ -577,7 +604,8 @@ class _Flight {
 
 /// Die Fusion EINER Fahrt, fortlaufend gefüttert.
 class SensorFusion {
-  SensorFusion({FusionMount? carried, this.originUs}) : _mount = _Mount(carried);
+  SensorFusion({FusionMount? carried, this.originUs})
+    : _mount = _Mount(carried);
 
   /// Nullpunkt der internen Zeit; ohne Angabe der erste Wert.
   int? originUs;
@@ -586,7 +614,8 @@ class SensorFusion {
   final _gps = _Gps();
   final _acc = ListQueue<(double, Vec)>();
   final _gyro = ListQueue<(double, Vec)>();
-  double _accNewest = double.negativeInfinity, _gyroNewest = double.negativeInfinity;
+  double _accNewest = double.negativeInfinity,
+      _gyroNewest = double.negativeInfinity;
   final _out = <FusionEvent>[];
 
   _Mahony? _filter;
@@ -602,7 +631,8 @@ class SensorFusion {
   double? _road;
   double _calm = 0;
   bool _holding = false;
-  final _ticks = ListQueue<(double, double, double)>(); // t, Pitch gegen den Weg, Roll
+  final _ticks =
+      ListQueue<(double, double, double)>(); // t, Pitch gegen den Weg, Roll
   double? _wStart;
   double _wLast2 = 0, _wPeak = 0, _wSpeedSum = 0;
   int _wSpeedN = 0;
@@ -691,7 +721,9 @@ class SensorFusion {
   }
 
   List<FusionEvent> _pump({bool all = false}) {
-    final limit = _gps.isEmpty ? double.negativeInfinity : _gps.lastT - _lookAheadS;
+    final limit = _gps.isEmpty
+        ? double.negativeInfinity
+        : _gps.lastT - _lookAheadS;
     final newest = math.max(_accNewest, _gyroNewest);
     while (_acc.isNotEmpty || _gyro.isNotEmpty) {
       final bool takeGyro;
@@ -728,8 +760,15 @@ class SensorFusion {
         if (t1 - t0 > 0 && t1 - t0 <= 3.0) {
           final f = _scale(_sumF, 1 / _nF);
           final filter = _filter;
-          if (_mount.step(t1, f, _scale(_sumW, 1 / _nW), _gps.speedAt(_fixI - 1), _gps.speedAt(_fixI),
-              t1 - t0, filter != null ? _unit(_sumU) : null)) {
+          if (_mount.step(
+            t1,
+            f,
+            _scale(_sumW, 1 / _nW),
+            _gps.speedAt(_fixI - 1),
+            _gps.speedAt(_fixI),
+            t1 - t0,
+            filter != null ? _unit(_sumU) : null,
+          )) {
             filter?.reset(f);
           }
         }
@@ -777,14 +816,19 @@ class SensorFusion {
     var aP = _zero;
     // Ohne „vorn" lässt sich das Modell nicht abziehen, seine Größe aber
     // kennt man: bis dahin ganz als Rauschen zählen.
-    final unknown = _mount.ready || speed.isNaN ? 0.0 : dvdt * dvdt + (speed * yaw) * (speed * yaw);
+    final unknown = _mount.ready || speed.isNaN
+        ? 0.0
+        : dvdt * dvdt + (speed * yaw) * (speed * yaw);
     final fwd = _mount.fwd;
     if (fwd != null && !speed.isNaN) {
       final fw = _mv(r, fwd);
       final flat = (fw.$1, fw.$2, 0.0);
       if (_norm(flat) > 1e-12) {
         final fh = _unit(flat);
-        final aW = _add(_scale(fh, dvdt), _scale((-fh.$2, fh.$1, 0.0), speed * yaw));
+        final aW = _add(
+          _scale(fh, dvdt),
+          _scale((-fh.$2, fh.$1, 0.0), speed * yaw),
+        );
         aP = _mtv(r, aW);
       }
     }
@@ -796,8 +840,15 @@ class SensorFusion {
       // geglättet und kommt beim Wechsel Bremsen → Antreten zu spät.
       final change = _gps.dvdtChange(t);
       final model = _modelTrust * _norm(aP);
-      filter.update(fc,
-          _accNoise * _accNoise + _vibVar + (2 * res) * (2 * res) + model * model + change * change + unknown);
+      filter.update(
+        fc,
+        _accNoise * _accNoise +
+            _vibVar +
+            (2 * res) * (2 * res) +
+            model * model +
+            change * change +
+            unknown,
+      );
       updates++;
     } else {
       rejected++;
@@ -835,7 +886,8 @@ class SensorFusion {
     if (filter == null || tW == null) return null;
     final fwd = _mount.fwd;
     final ready = fwd != null && _mount.left != null;
-    double pitchOf(_Quat q) => _deg(math.asin(_dot(_qrot(q).$3, fwd!).clamp(-1.0, 1.0)));
+    double pitchOf(_Quat q) =>
+        _deg(math.asin(_dot(_qrot(q).$3, fwd!).clamp(-1.0, 1.0)));
     var q = filter.q;
     var last = tW;
     // Der Weg läuft mit wie in [_tick] — sonst stünde er nach „Front
@@ -849,12 +901,16 @@ class SensorFusion {
       final rel = pitch - r;
       holding = rel >= _holdDeg && (holding || calm >= _roadS);
       calm = rel.abs() < _holdDeg ? calm + _tickS : 0.0;
-      if (_gps.speed(t) * 3.6 > _ridingKmh && !holding) road = r + (pitch - r) * _tickS / _roadS;
+      if (_gps.speed(t) * 3.6 > _ridingKmh && !holding) {
+        road = r + (pitch - r) * _tickS / _roadS;
+      }
     }
 
     for (final (t, w) in _gyro) {
       final dt = t - last;
-      if (dt > 0 && dt < 0.1) q = _qnorm(_qmul(q, _qexp(_scale(_sub(w, filter.b), dt))));
+      if (dt > 0 && dt < 0.1) {
+        q = _qnorm(_qmul(q, _qexp(_scale(_sub(w, filter.b), dt))));
+      }
       last = t;
       if (t >= nextTick) {
         nextTick = t + _tickS;
@@ -877,18 +933,19 @@ class SensorFusion {
     final (phase, start, peak) = flight != null
         ? (FusionPhase.airborne, flight, 0.0)
         : wheelie != null
-            ? (FusionPhase.wheelie, wheelie, _wPeak)
-            : stoppie != null
-                ? (FusionPhase.stoppie, stoppie, _sPeak)
-                : (FusionPhase.none, null, 0.0);
+        ? (FusionPhase.wheelie, wheelie, _wPeak)
+        : stoppie != null
+        ? (FusionPhase.stoppie, stoppie, _sPeak)
+        : (FusionPhase.none, null, 0.0);
     return FusionLive(
-        tUs: _us(t),
-        pitchDeg: rel,
-        speedKmh: speed.isNaN ? 0 : speed * 3.6,
-        upKnown: _mount.up != null,
-        phase: phase,
-        phaseStartUs: start == null ? null : _us(start),
-        peakDeg: peak);
+      tUs: _us(t),
+      pitchDeg: rel,
+      speedKmh: speed.isNaN ? 0 : speed * 3.6,
+      upKnown: _mount.up != null,
+      phase: phase,
+      phaseStartUs: start == null ? null : _us(start),
+      peakDeg: peak,
+    );
   }
 
   // ------------------------------------------------------- Stufe 3
@@ -909,7 +966,9 @@ class SensorFusion {
       rel = pitch - road;
       _holding = rel >= _holdDeg && (_holding || _calm >= _roadS);
       _calm = rel.abs() < _holdDeg ? _calm + _tickS : 0.0;
-      if (speed * 3.6 > _ridingKmh && !_holding) _road = road + (pitch - road) * _tickS / _roadS;
+      if (speed * 3.6 > _ridingKmh && !_holding) {
+        _road = road + (pitch - road) * _tickS / _roadS;
+      }
     }
     _ticks.add((t, rel, roll));
     while (t - _ticks.first.$1 > 15) {
@@ -941,11 +1000,14 @@ class SensorFusion {
       }
       final duration = _wLast2 - start;
       if (kFusionWheelieMinS <= duration) {
-        _out.add(WheelieEvent(
+        _out.add(
+          WheelieEvent(
             startUs: _us(start),
             duration: Duration(microseconds: (duration * 1e6).round()),
             lengthM: _wSpeedSum / _wSpeedN * duration,
-            maxTiltDeg: _wPeak));
+            maxTiltDeg: _wPeak,
+          ),
+        );
       }
       _wStart = null;
       return;
@@ -974,13 +1036,17 @@ class SensorFusion {
         return;
       }
       final duration = _sLast - start;
-      if (kFusionStoppieMinS <= duration && duration <= _stoppieMaxS && _sLow <= -kFusionStoppieDecel) {
+      if (kFusionStoppieMinS <= duration &&
+          duration <= _stoppieMaxS &&
+          _sLow <= -kFusionStoppieDecel) {
         _stoppies.add(_Stoppie(start, _sLast, t, _sPeak, -_sLow, _sLanding));
       }
       _sStart = null;
       return;
     }
-    if (!rel.isNaN && rel <= -kFusionStoppieTiltDeg && _gps.speed(t - 1.0) * 3.6 > _ridingKmh) {
+    if (!rel.isNaN &&
+        rel <= -kFusionStoppieTiltDeg &&
+        _gps.speed(t - 1.0) * 3.6 > _ridingKmh) {
       _sStart = _sLast = t;
       _sPeak = -rel;
       _sLow = dvdt;
@@ -988,12 +1054,15 @@ class SensorFusion {
     }
   }
 
-  void _emitStoppie(_Stoppie s) => _out.add(StoppieEvent(
+  void _emitStoppie(_Stoppie s) => _out.add(
+    StoppieEvent(
       startUs: _us(s.t0),
       duration: Duration(microseconds: ((s.t1 - s.t0) * 1e6).round()),
       maxTiltDeg: s.peakDeg,
       decel: s.decel,
-      landingG: s.landing));
+      landingG: s.landing,
+    ),
+  );
 
   void _flightSample(double t, double fn, double rawZ) {
     // Betrag und Hochachse über dasselbe Fenster gemittelt: Ein einzelner
@@ -1033,7 +1102,9 @@ class SensorFusion {
     final start = _flightStart;
     if (low && start == null) _flightStart = t;
     if (!low && start != null) {
-      if ((t - start) * 1000 >= kFusionFlightMinMs) _flights.add(_Flight(start, t, math.max(0.0, fz)));
+      if ((t - start) * 1000 >= kFusionFlightMinMs) {
+        _flights.add(_Flight(start, t, math.max(0.0, fz)));
+      }
       _flightStart = null;
     }
   }
@@ -1045,7 +1116,10 @@ class SensorFusion {
     final lastTick = _ticks.isEmpty ? double.negativeInfinity : _ticks.last.$1;
     final lastFix = _gps.isEmpty ? double.negativeInfinity : _gps.lastT;
     _flights.removeWhere((f) {
-      final ready = f.peakDone && lastTick >= f.t1 + _uprightAfterS && lastFix > f.t1 + _speedWindowS;
+      final ready =
+          f.peakDone &&
+          lastTick >= f.t1 + _uprightAfterS &&
+          lastFix > f.t1 + _speedWindowS;
       if (ready) _finishFlight(f);
       return ready;
     });
@@ -1057,15 +1131,24 @@ class SensorFusion {
     var upright = true;
     if (_ticks.isNotEmpty) {
       final at = f.t1 + _uprightAfterS;
-      final tick = _ticks.firstWhere((x) => x.$1 >= at, orElse: () => _ticks.last);
-      if (!tick.$2.isNaN) upright = tick.$2.abs() < _uprightPitchDeg && tick.$3.abs() < _uprightRollDeg;
+      final tick = _ticks.firstWhere(
+        (x) => x.$1 >= at,
+        orElse: () => _ticks.last,
+      );
+      if (!tick.$2.isNaN) {
+        upright =
+            tick.$2.abs() < _uprightPitchDeg && tick.$3.abs() < _uprightRollDeg;
+      }
     }
-    _out.add(JumpEvent(
+    _out.add(
+      JumpEvent(
         startUs: _us(f.t0),
         duration: Duration(microseconds: ((f.t1 - f.t0) * 1e6).round()),
         landingG: f.peak,
         upright: upright,
-        plausible: before && after && f.peak < _peakMaxG && upright));
+        plausible: before && after && f.peak < _peakMaxG && upright,
+      ),
+    );
   }
 }
 

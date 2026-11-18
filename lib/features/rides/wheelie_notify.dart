@@ -88,7 +88,9 @@ Future<bool> handleWheelieResponse({
   DateTime? now,
   Future<void> Function()? confirmMissed,
 }) async {
-  if (!_actions.contains(actionId)) return decodeWheeliePayload(payload) != null;
+  if (!_actions.contains(actionId)) {
+    return decodeWheeliePayload(payload) != null;
+  }
   try {
     final p = decodeWheeliePayload(payload);
     if (p == null) return true;
@@ -99,8 +101,16 @@ Future<bool> handleWheelieResponse({
       kJumpMissed => jumpMissedLine(at),
       kStoppieMissed => stoppieMissedLine(at),
       _ when start == null => null,
-      kWheelieYes || kWheelieNo => wheelieAnswerLine(at, startUs: start, yes: actionId == kWheelieYes),
-      kStoppieYes || kStoppieNo => stoppieAnswerLine(at, startUs: start, yes: actionId == kStoppieYes),
+      kWheelieYes || kWheelieNo => wheelieAnswerLine(
+        at,
+        startUs: start,
+        yes: actionId == kWheelieYes,
+      ),
+      kStoppieYes || kStoppieNo => stoppieAnswerLine(
+        at,
+        startUs: start,
+        yes: actionId == kStoppieYes,
+      ),
       _ => jumpAnswerLine(at, startUs: start, yes: actionId == kJumpYes),
     };
     if (line == null) return true;
@@ -108,7 +118,9 @@ Future<bool> handleWheelieResponse({
     // Die Antwort auch neben die Ereignisse: „War keiner" nimmt es aus den
     // Trail-Werten (`trail_values.dart`).
     if (start != null) {
-      await File(sensorEventsPath(p.file)).writeAsString(line, mode: FileMode.append, flush: true);
+      await File(
+        sensorEventsPath(p.file),
+      ).writeAsString(line, mode: FileMode.append, flush: true);
     }
     if (_missedActions.contains(actionId)) {
       await (confirmMissed ?? () => _showMissed(file: p.file, notedAt: at))();
@@ -122,9 +134,16 @@ Future<bool> handleWheelieResponse({
 /// Eine Antwort aus der offenen App (#36, die Live-Ansicht): dieselbe
 /// Zeile wie der Knopf im Banner — und das Banner geht weg, sonst stünde
 /// die Frage zweimal. Wirft nie.
-Future<void> answerAirtimeInApp(
-    {required String actionId, required String file, int? startUs, int? notificationId}) async {
-  await handleWheelieResponse(actionId: actionId, payload: encodeWheeliePayload(file: file, startUs: startUs));
+Future<void> answerAirtimeInApp({
+  required String actionId,
+  required String file,
+  int? startUs,
+  int? notificationId,
+}) async {
+  await handleWheelieResponse(
+    actionId: actionId,
+    payload: encodeWheeliePayload(file: file, startUs: startUs),
+  );
   if (notificationId == null) return;
   try {
     await initRideNotices();
@@ -149,9 +168,10 @@ class _PlatformWheelieNotices implements WheelieNotices {
       await initRideNotices();
       final l = serviceL10n();
       final body = l.wheelieNoticeBody(
-          _num(l, event.duration.inMilliseconds / 1000, 1),
-          _num(l, event.lengthM, 0),
-          _num(l, event.maxTiltDeg, 0));
+        _num(l, event.duration.inMilliseconds / 1000, 1),
+        _num(l, event.lengthM, 0),
+        _num(l, event.maxTiltDeg, 0),
+      );
       await rideNoticesPlugin.show(
         id: wheelieNotificationId(event.startUs),
         title: l.wheelieNoticeTitle,
@@ -166,8 +186,16 @@ class _PlatformWheelieNotices implements WheelieNotices {
             when: event.startUs ~/ 1000,
             showWhen: true,
             actions: [
-              AndroidNotificationAction(kWheelieYes, l.wheelieNoticeYes, cancelNotification: true),
-              AndroidNotificationAction(kWheelieNo, l.wheelieNoticeNo, cancelNotification: true),
+              AndroidNotificationAction(
+                kWheelieYes,
+                l.wheelieNoticeYes,
+                cancelNotification: true,
+              ),
+              AndroidNotificationAction(
+                kWheelieNo,
+                l.wheelieNoticeNo,
+                cancelNotification: true,
+              ),
             ],
           ),
         ),
@@ -188,7 +216,9 @@ class _PlatformWheelieNotices implements WheelieNotices {
       await rideNoticesPlugin.show(
         id: jumpNotificationId(event.startUs),
         title: l.jumpNoticeTitle,
-        body: event.plausible ? l.jumpNoticeBody(seconds, g) : l.jumpNoticeBodyImplausible(seconds, g),
+        body: event.plausible
+            ? l.jumpNoticeBody(seconds, g)
+            : l.jumpNoticeBodyImplausible(seconds, g),
         payload: encodeWheeliePayload(file: file, startUs: event.startUs),
         notificationDetails: NotificationDetails(
           android: AndroidNotificationDetails(
@@ -199,8 +229,16 @@ class _PlatformWheelieNotices implements WheelieNotices {
             when: event.startUs ~/ 1000,
             showWhen: true,
             actions: [
-              AndroidNotificationAction(kJumpYes, l.wheelieNoticeYes, cancelNotification: true),
-              AndroidNotificationAction(kJumpNo, l.wheelieNoticeNo, cancelNotification: true),
+              AndroidNotificationAction(
+                kJumpYes,
+                l.wheelieNoticeYes,
+                cancelNotification: true,
+              ),
+              AndroidNotificationAction(
+                kJumpNo,
+                l.wheelieNoticeNo,
+                cancelNotification: true,
+              ),
             ],
           ),
         ),
@@ -215,8 +253,11 @@ class _PlatformWheelieNotices implements WheelieNotices {
     try {
       await initRideNotices();
       final l = serviceL10n();
-      final body = l.stoppieNoticeBody(_num(l, event.duration.inMilliseconds / 1000, 1),
-          _num(l, event.maxTiltDeg, 0), _num(l, event.decel, 1));
+      final body = l.stoppieNoticeBody(
+        _num(l, event.duration.inMilliseconds / 1000, 1),
+        _num(l, event.maxTiltDeg, 0),
+        _num(l, event.decel, 1),
+      );
       await rideNoticesPlugin.show(
         id: stoppieNotificationId(event.startUs),
         title: l.stoppieNoticeTitle,
@@ -231,8 +272,16 @@ class _PlatformWheelieNotices implements WheelieNotices {
             when: event.startUs ~/ 1000,
             showWhen: true,
             actions: [
-              AndroidNotificationAction(kStoppieYes, l.wheelieNoticeYes, cancelNotification: true),
-              AndroidNotificationAction(kStoppieNo, l.wheelieNoticeNo, cancelNotification: true),
+              AndroidNotificationAction(
+                kStoppieYes,
+                l.wheelieNoticeYes,
+                cancelNotification: true,
+              ),
+              AndroidNotificationAction(
+                kStoppieNo,
+                l.wheelieNoticeNo,
+                cancelNotification: true,
+              ),
             ],
           ),
         ),
@@ -266,7 +315,9 @@ Future<void> _showMissed({required String file, DateTime? notedAt}) async {
     String two(int v) => v.toString().padLeft(2, '0');
     final body = local == null
         ? l.wheelieMissedBody
-        : l.wheelieMissedNoted('${two(local.hour)}:${two(local.minute)}:${two(local.second)}');
+        : l.wheelieMissedNoted(
+            '${two(local.hour)}:${two(local.minute)}:${two(local.second)}',
+          );
     await rideNoticesPlugin.show(
       id: kWheelieMissedNotificationId,
       title: l.wheelieMissedTitle,
@@ -283,9 +334,21 @@ Future<void> _showMissed({required String file, DateTime? notedAt}) async {
           onlyAlertOnce: true,
           silent: true,
           actions: [
-            AndroidNotificationAction(kWheelieMissed, l.wheelieMissedButton, cancelNotification: false),
-            AndroidNotificationAction(kJumpMissed, l.jumpMissedButton, cancelNotification: false),
-            AndroidNotificationAction(kStoppieMissed, l.stoppieMissedButton, cancelNotification: false),
+            AndroidNotificationAction(
+              kWheelieMissed,
+              l.wheelieMissedButton,
+              cancelNotification: false,
+            ),
+            AndroidNotificationAction(
+              kJumpMissed,
+              l.jumpMissedButton,
+              cancelNotification: false,
+            ),
+            AndroidNotificationAction(
+              kStoppieMissed,
+              l.stoppieMissedButton,
+              cancelNotification: false,
+            ),
           ],
         ),
       ),

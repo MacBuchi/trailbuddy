@@ -55,10 +55,16 @@ PocketWatch _ride({required bool pocket}) {
         ? (
             1.2 * math.sin(2 * math.pi * 0.7 * t),
             1.0 * math.sin(2 * math.pi * 1.1 * t + 1),
-            0.8 * math.sin(2 * math.pi * 0.4 * t + 2)
+            0.8 * math.sin(2 * math.pi * 0.4 * t + 2),
           )
-        : (0.1 * math.sin(2 * math.pi * 0.3 * t), 0.05 * math.sin(2 * math.pi * 0.5 * t), 0.0);
-    final swing = pocket && pedalling ? 1.4 * math.sin(2 * math.pi * 1.3 * t) : 0.0;
+        : (
+            0.1 * math.sin(2 * math.pi * 0.3 * t),
+            0.05 * math.sin(2 * math.pi * 0.5 * t),
+            0.0,
+          );
+    final swing = pocket && pedalling
+        ? 1.4 * math.sin(2 * math.pi * 1.3 * t)
+        : 0.0;
     final gx = bx + swing + noise.gauss(0.3);
     final gy = by + noise.gauss(0.3);
     final gz = bz + noise.gauss(0.3);
@@ -87,60 +93,104 @@ void main() {
   };
 
   for (final pocket in [false, true]) {
-    test('${pocket ? 'Tasche' : 'am Rad'}: dieselben Fenster und Werte wie das Werkzeug', () {
-      final watch = _ride(pocket: pocket);
-      expect(watch.windows, hasLength(148));
-      for (final (i, start, rotation, vibration) in tool[pocket]!) {
-        final w = watch.windows[i];
-        expect(w.startS, closeTo(start, 1e-9), reason: 'Fenster $i');
-        expect(w.rotation, closeTo(rotation, 1e-9), reason: 'Drehung im Fenster $i');
-        expect(w.vibration, closeTo(vibration, 1e-9), reason: 'Vibration im Fenster $i');
-      }
-      expect(watch.state, pocket);
-    });
+    test(
+      '${pocket ? 'Tasche' : 'am Rad'}: dieselben Fenster und Werte wie das Werkzeug',
+      () {
+        final watch = _ride(pocket: pocket);
+        expect(watch.windows, hasLength(148));
+        for (final (i, start, rotation, vibration) in tool[pocket]!) {
+          final w = watch.windows[i];
+          expect(w.startS, closeTo(start, 1e-9), reason: 'Fenster $i');
+          expect(
+            w.rotation,
+            closeTo(rotation, 1e-9),
+            reason: 'Drehung im Fenster $i',
+          );
+          expect(
+            w.vibration,
+            closeTo(vibration, 1e-9),
+            reason: 'Vibration im Fenster $i',
+          );
+        }
+        expect(watch.state, pocket);
+      },
+    );
   }
 
-  test('entschieden erst nach zwölf ruhigen Fenstern (120 s), nicht vorher', () {
-    final watch = PocketWatch();
-    // 115 s ruhig in der Tasche: elf Fenster in Fahrt, keine Entscheidung.
-    void ride(int fromS, int toS) {
-      for (var s = fromS; s <= toS; s++) {
+  test(
+    'entschieden erst nach zwölf ruhigen Fenstern (120 s), nicht vorher',
+    () {
+      final watch = PocketWatch();
+      // 115 s ruhig in der Tasche: elf Fenster in Fahrt, keine Entscheidung.
+      void ride(int fromS, int toS) {
+        for (var s = fromS; s <= toS; s++) {
+          watch.addGps(s * 1000000, 6.0);
+        }
+        for (var i = fromS * 100; i < toS * 100; i++) {
+          final t = i / 100;
+          watch.addAccel(i * 10000, 0, 0, 9.81 + (i.isEven ? 0.5 : -0.5));
+          watch.addGyro(i * 10000, 1.0 * math.sin(2 * math.pi * 1.3 * t), 0, 0);
+        }
+      }
+
+      ride(0, 115);
+      expect(watch.windows, hasLength(11));
+      expect(watch.state, isNull);
+      ride(115, 140);
+      expect(watch.state, isTrue);
+    },
+  );
+
+  test(
+    'ruppige Fenster zählen nicht — eine Abfahrt am Lenker ist keine Tasche',
+    () {
+      final watch = PocketWatch();
+      for (var s = 0; s <= 300; s++) {
         watch.addGps(s * 1000000, 6.0);
       }
-      for (var i = fromS * 100; i < toS * 100; i++) {
+      for (var i = 0; i < 300 * 100; i++) {
         final t = i / 100;
-        watch.addAccel(i * 10000, 0, 0, 9.81 + (i.isEven ? 0.5 : -0.5));
-        watch.addGyro(i * 10000, 1.0 * math.sin(2 * math.pi * 1.3 * t), 0, 0);
+        // Starke Vibration (|a| springt ±6 m/s²) UND viel Drehung: ruppig.
+        watch.addAccel(i * 10000, 0, 0, 9.81 + (i.isEven ? 6.0 : -6.0));
+        watch.addGyro(i * 10000, 1.5 * math.sin(2 * math.pi * 0.7 * t), 0, 0);
       }
-    }
-
-    ride(0, 115);
-    expect(watch.windows, hasLength(11));
-    expect(watch.state, isNull);
-    ride(115, 140);
-    expect(watch.state, isTrue);
-  });
-
-  test('ruppige Fenster zählen nicht — eine Abfahrt am Lenker ist keine Tasche', () {
-    final watch = PocketWatch();
-    for (var s = 0; s <= 300; s++) {
-      watch.addGps(s * 1000000, 6.0);
-    }
-    for (var i = 0; i < 300 * 100; i++) {
-      final t = i / 100;
-      // Starke Vibration (|a| springt ±6 m/s²) UND viel Drehung: ruppig.
-      watch.addAccel(i * 10000, 0, 0, 9.81 + (i.isEven ? 6.0 : -6.0));
-      watch.addGyro(i * 10000, 1.5 * math.sin(2 * math.pi * 0.7 * t), 0, 0);
-    }
-    expect(watch.windows, isNotEmpty);
-    expect(watch.state, isNull, reason: 'kein ruhiges Fenster, keine Entscheidung');
-  });
+      expect(watch.windows, isNotEmpty);
+      expect(
+        watch.state,
+        isNull,
+        reason: 'kein ruhiges Fenster, keine Entscheidung',
+      );
+    },
+  );
 
   test('in der Tasche bleiben nur Sprünge mit harter Landung', () {
-    const w = WheelieEvent(startUs: 0, duration: Duration(seconds: 2), lengthM: 10, maxTiltDeg: 30);
-    const s = StoppieEvent(startUs: 0, duration: Duration(seconds: 1), maxTiltDeg: 12, decel: 2, landingG: 4);
-    const soft = JumpEvent(startUs: 0, duration: Duration(milliseconds: 200), landingG: 3.0, plausible: true, upright: true);
-    const hard = JumpEvent(startUs: 0, duration: Duration(milliseconds: 200), landingG: 3.5, plausible: true, upright: true);
+    const w = WheelieEvent(
+      startUs: 0,
+      duration: Duration(seconds: 2),
+      lengthM: 10,
+      maxTiltDeg: 30,
+    );
+    const s = StoppieEvent(
+      startUs: 0,
+      duration: Duration(seconds: 1),
+      maxTiltDeg: 12,
+      decel: 2,
+      landingG: 4,
+    );
+    const soft = JumpEvent(
+      startUs: 0,
+      duration: Duration(milliseconds: 200),
+      landingG: 3.0,
+      plausible: true,
+      upright: true,
+    );
+    const hard = JumpEvent(
+      startUs: 0,
+      duration: Duration(milliseconds: 200),
+      landingG: 3.5,
+      plausible: true,
+      upright: true,
+    );
     expect(pocketKeeps(w), isFalse);
     expect(pocketKeeps(s), isFalse);
     expect(pocketKeeps(soft), isFalse);

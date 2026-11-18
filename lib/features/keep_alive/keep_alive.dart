@@ -27,11 +27,19 @@ abstract class KeepAlive {
   /// Startet den Service. Läuft er schon, werden nur Titel, Text und
   /// Knöpfe erneuert — die Typen bleiben dann, wie sie waren (siehe
   /// Koordinator).
-  Future<void> start(String title, String text, Set<KeepAliveType> types,
-      {List<KeepAliveButton> buttons = const []});
+  Future<void> start(
+    String title,
+    String text,
+    Set<KeepAliveType> types, {
+    List<KeepAliveButton> buttons = const [],
+  });
 
   /// Neuer Titel und Text; [buttons] ersetzt die Knöpfe (leer = keine).
-  Future<void> update(String title, String text, {List<KeepAliveButton> buttons = const []});
+  Future<void> update(
+    String title,
+    String text, {
+    List<KeepAliveButton> buttons = const [],
+  });
 
   /// Der Wiederhol-Takt des Service-Isolates; null heißt kein Takt (der
   /// Zustand für Downloads).
@@ -60,8 +68,16 @@ class KeepAliveCoordinator {
 
   final KeepAlive _keepAlive;
 
-  final _needs = <String,
-      ({String title, String text, Set<KeepAliveType> types, List<KeepAliveButton> buttons})>{};
+  final _needs =
+      <
+        String,
+        ({
+          String title,
+          String text,
+          Set<KeepAliveType> types,
+          List<KeepAliveButton> buttons,
+        })
+      >{};
   final _repeats = <String, Duration>{};
   Set<KeepAliveType> _runningTypes = const {};
 
@@ -97,7 +113,12 @@ class KeepAliveCoordinator {
   Future<void> update(String key, String text) async {
     final need = _needs[key];
     if (need == null || need.text == text) return;
-    _needs[key] = (title: need.title, text: text, types: need.types, buttons: need.buttons);
+    _needs[key] = (
+      title: need.title,
+      text: text,
+      types: need.types,
+      buttons: need.buttons,
+    );
     await _keepAlive.update(_title(), _combined(), buttons: _buttons());
   }
 
@@ -122,7 +143,12 @@ class KeepAliveCoordinator {
     // was noch gebraucht wird — `location` für einen Download wäre
     // gegenüber Play eine falsche Angabe.
     _runningTypes = _wantedTypes();
-    await _keepAlive.start(_title(), _combined(), _runningTypes, buttons: _buttons());
+    await _keepAlive.start(
+      _title(),
+      _combined(),
+      _runningTypes,
+      buttons: _buttons(),
+    );
     // Neu gestartet hätte er keinen Takt — den der übrigen Melder setzen.
     if (hadRepeat || _repeats.isNotEmpty) await _keepAlive.setRepeat(_repeat());
   }
@@ -146,23 +172,28 @@ class KeepAliveCoordinator {
 
   bool get isEmpty => _needs.isEmpty;
 
-  Set<KeepAliveType> _wantedTypes() => {for (final need in _needs.values) ...need.types};
+  Set<KeepAliveType> _wantedTypes() => {
+    for (final need in _needs.values) ...need.types,
+  };
 
   static bool _sameTypes(Set<KeepAliveType> a, Set<KeepAliveType> b) =>
       a.length == b.length && a.containsAll(b);
 
   /// Bei genau einem Melder sein eigener Titel, sonst ein neutraler —
   /// „Bereich wird gespeichert" über einer laufenden Fahrt wäre falsch.
-  String _title() => _needs.length == 1 ? _needs.values.single.title : 'TrailBuddy arbeitet';
+  String _title() =>
+      _needs.length == 1 ? _needs.values.single.title : 'TrailBuddy arbeitet';
 
-  String _combined() => [for (final need in _needs.values) need.text].join(' · ');
+  String _combined() =>
+      [for (final need in _needs.values) need.text].join(' · ');
 
   List<KeepAliveButton> _buttons() => [
-        for (final need in _needs.values) ...need.buttons,
-      ];
+    for (final need in _needs.values) ...need.buttons,
+  ];
 }
 
 /// Der Koordinator lebt so lange wie der ProviderScope — die gemeinsame
 /// Buchführung aller Verbraucher.
 final keepAliveCoordinatorProvider = Provider<KeepAliveCoordinator>(
-    (ref) => KeepAliveCoordinator(ref.watch(keepAliveProvider)));
+  (ref) => KeepAliveCoordinator(ref.watch(keepAliveProvider)),
+);

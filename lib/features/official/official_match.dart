@@ -41,7 +41,11 @@ enum OfficialOverlap {
 /// [onClosed]: Ein gesperrter Abschnitt des offiziellen Trails liegt auf
 /// der Linie (#41). Bei „teilweise gesperrt" ist das die eigentliche
 /// Frage — die gesperrte Variante kann auch woanders liegen.
-typedef OfficialMatch = ({OfficialTrail trail, OfficialOverlap overlap, bool onClosed});
+typedef OfficialMatch = ({
+  OfficialTrail trail,
+  OfficialOverlap overlap,
+  bool onClosed,
+});
 
 /// Die offiziellen Trails, die [line] deckt, „derselbe" zuerst.
 ///
@@ -49,7 +53,10 @@ typedef OfficialMatch = ({OfficialTrail trail, OfficialOverlap overlap, bool onC
 /// Hauptroute fährt, fährt den ausgeschilderten Trail, auch wenn er die
 /// Varianten auslässt. Für die Hinrichtung zählt jeder Teil — wer eine
 /// Variante fährt, ist trotzdem auf dem offiziellen Trail.
-List<OfficialMatch> matchOfficial(List<LatLng> line, Iterable<OfficialTrail> candidates) {
+List<OfficialMatch> matchOfficial(
+  List<LatLng> line,
+  Iterable<OfficialTrail> candidates,
+) {
   if (line.length < 2) return const [];
   final proj = FlatProjection.around(line);
   final lineBox = LatBox.of(line);
@@ -76,7 +83,10 @@ List<OfficialMatch> matchOfficial(List<LatLng> line, Iterable<OfficialTrail> can
         ...resampleXy(s, kOfficialSampleStepM),
     ];
     final ba = coverageWithin(mainSamples, lineGrid, kOfficialCorridorM);
-    final overlap = switch ((ab >= kOfficialCoverage, ba >= kOfficialCoverage)) {
+    final overlap = switch ((
+      ab >= kOfficialCoverage,
+      ba >= kOfficialCoverage,
+    )) {
       (true, true) => OfficialOverlap.same,
       (true, false) => OfficialOverlap.partOf,
       (false, true) => OfficialOverlap.contains,
@@ -88,7 +98,8 @@ List<OfficialMatch> matchOfficial(List<LatLng> line, Iterable<OfficialTrail> can
       if (!t.sections[i].closed) continue;
       final samples = resampleXy(sectionsXy[i], kOfficialSampleStepM);
       final share = coverageWithin(samples, lineGrid, kOfficialCorridorM);
-      onClosed = share >= kOfficialCoverage ||
+      onClosed =
+          share >= kOfficialCoverage ||
           share * _lengthXy(sectionsXy[i]) >= kOfficialClosedMinM;
     }
     out.add((trail: t, overlap: overlap, onClosed: onClosed));

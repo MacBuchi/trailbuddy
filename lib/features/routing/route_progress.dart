@@ -11,7 +11,8 @@ import 'dart:math' as math;
 import 'package:latlong2/latlong.dart';
 
 import '../../core/geo.dart' as geo;
-import '../offline_areas/height_tiles.dart' show hysteresisClimb, kClimbHysteresisM;
+import '../offline_areas/height_tiles.dart'
+    show hysteresisClimb, kClimbHysteresisM;
 import 'nav_sections.dart';
 
 export 'nav_sections.dart';
@@ -60,7 +61,8 @@ const kNavPipBarShare = 0.28;
 /// Teil darüber bei 75 % seiner Höhe, knapp unter der Mitte des
 /// Fensters — voraus liegt dreimal so viel Route wie dahinter. Ein
 /// Sechstel wie im Vollbild hätte sie unter die Zeile geschoben.
-double pipAheadPx(double heightPx) => heightPx * (1 - kNavPipBarShare) * 0.75 - heightPx / 2;
+double pipAheadPx(double heightPx) =>
+    heightPx * (1 - kNavPipBarShare) * 0.75 - heightPx / 2;
 
 /// Nach „Angekommen" endet die Navigation von selbst (9.3) — in der App
 /// und, ist die weggewischt, im Dienst (`nav_notice.dart`).
@@ -87,7 +89,15 @@ class NavRoute {
     final cum = <double>[0];
     for (var i = 1; i < points.length; i++) {
       final a = points[i - 1], b = points[i];
-      cum.add(cum.last + geo.distanceMeters(a.latitude, a.longitude, b.latitude, b.longitude));
+      cum.add(
+        cum.last +
+            geo.distanceMeters(
+              a.latitude,
+              a.longitude,
+              b.latitude,
+              b.longitude,
+            ),
+      );
     }
     if (cum.last <= 0) return null;
     return NavRoute._(List.unmodifiable(points), cum);
@@ -104,7 +114,13 @@ class NavRoute {
   /// gemeint, wenn der letzte Abschnitt erreicht ist (9.3).
   bool get isLoop {
     final a = points.first, b = points.last;
-    return geo.distanceMeters(a.latitude, a.longitude, b.latitude, b.longitude) <= kNavArriveM;
+    return geo.distanceMeters(
+          a.latitude,
+          a.longitude,
+          b.latitude,
+          b.longitude,
+        ) <=
+        kNavArriveM;
   }
 
   /// Der Punkt [alongM] Meter ab Start, auf die Linie geklemmt.
@@ -115,7 +131,10 @@ class NavRoute {
     final seg = cumM[i + 1] - cumM[i];
     final t = seg <= 0 ? 0.0 : (alongM - cumM[i]) / seg;
     final a = points[i], b = points[i + 1];
-    return LatLng(a.latitude + (b.latitude - a.latitude) * t, a.longitude + (b.longitude - a.longitude) * t);
+    return LatLng(
+      a.latitude + (b.latitude - a.latitude) * t,
+      a.longitude + (b.longitude - a.longitude) * t,
+    );
   }
 
   /// Die Linie geteilt bei [alongM]: das Gefahrene und der Rest, beide mit
@@ -182,14 +201,29 @@ class RouteFix {
 /// des Fensters (kein Sprung auf die Rückfahrt), der Abstand aber ist der
 /// zur ganzen Linie.
 RouteFix routeProgress(NavRoute route, LatLng p, {double lastAlongM = 0}) {
-  final window = _nearest(route, p, from: lastAlongM - kNavBackSlackM, to: lastAlongM + kNavAheadWindowM);
+  final window = _nearest(
+    route,
+    p,
+    from: lastAlongM - kNavBackSlackM,
+    to: lastAlongM + kNavAheadWindowM,
+  );
   if (window != null && window.offM <= kNavOffRouteM) return window;
-  final all = _nearest(route, p, from: double.negativeInfinity, to: double.infinity)!;
+  final all = _nearest(
+    route,
+    p,
+    from: double.negativeInfinity,
+    to: double.infinity,
+  )!;
   if (all.offM <= kNavOffRouteM || window == null) return all;
   return RouteFix(alongM: window.alongM, offM: all.offM);
 }
 
-RouteFix? _nearest(NavRoute route, LatLng p, {required double from, required double to}) {
+RouteFix? _nearest(
+  NavRoute route,
+  LatLng p, {
+  required double from,
+  required double to,
+}) {
   // Flach um die Position: auf ein paar Kilometer genau genug, und die
   // Abstände, um die es geht, sind Meter.
   const r = 6371000.0;
@@ -211,7 +245,9 @@ RouteFix? _nearest(NavRoute route, LatLng p, {required double from, required dou
     if (along < from || along > to) continue;
     final cx = ax + t * dx, cy = ay + t * dy;
     final off = math.sqrt(cx * cx + cy * cy);
-    if (best == null || off < best.offM) best = RouteFix(alongM: along, offM: off);
+    if (best == null || off < best.offM) {
+      best = RouteFix(alongM: along, offM: off);
+    }
   }
   return best;
 }
@@ -219,12 +255,21 @@ RouteFix? _nearest(NavRoute route, LatLng p, {required double from, required dou
 /// Höhenmeter bergauf ab [alongM] — aus den Proben eines Profils entlang
 /// der Linie ([distM]/[eleM], dieselbe Hysterese wie im Ergebnis), bis
 /// [untilM] (ohne: bis zum Ende). Null ohne Profil.
-double? climbAfter(List<double>? distM, List<double>? eleM, double alongM, {double? untilM}) =>
-    climbBetween(distM, eleM, alongM, untilM ?? double.infinity)?.gain;
+double? climbAfter(
+  List<double>? distM,
+  List<double>? eleM,
+  double alongM, {
+  double? untilM,
+}) => climbBetween(distM, eleM, alongM, untilM ?? double.infinity)?.gain;
 
 /// Anstieg und Abstieg zwischen [fromM] und [toM] auf dem Profil. Null
 /// ohne Profil.
-({double gain, double loss})? climbBetween(List<double>? distM, List<double>? eleM, double fromM, double toM) {
+({double gain, double loss})? climbBetween(
+  List<double>? distM,
+  List<double>? eleM,
+  double fromM,
+  double toM,
+) {
   final part = profilePart(distM, eleM, fromM, toM);
   if (part == null) return null;
   if (part.length < 2) return (gain: 0, loss: 0);
@@ -234,8 +279,18 @@ double? climbAfter(List<double>? distM, List<double>? eleM, double alongM, {doub
 
 /// Die Höhen des Profils zwischen [fromM] und [toM], an beiden Enden
 /// zwischen den Proben gelesen. Null ohne Profil, leer außerhalb.
-List<double>? profilePart(List<double>? distM, List<double>? eleM, double fromM, double toM) {
-  if (distM == null || eleM == null || distM.length < 2 || distM.length != eleM.length) return null;
+List<double>? profilePart(
+  List<double>? distM,
+  List<double>? eleM,
+  double fromM,
+  double toM,
+) {
+  if (distM == null ||
+      eleM == null ||
+      distM.length < 2 ||
+      distM.length != eleM.length) {
+    return null;
+  }
   if (fromM >= distM.last || toM <= fromM) return const [];
   double at(double m) {
     for (var i = 1; i < distM.length; i++) {
@@ -263,14 +318,26 @@ const kNavRampGrade = 0.12;
 
 /// Die erste Rampe voraus zwischen [fromM] und [toM]: ihre Steigung und
 /// wie weit sie entfernt beginnt. Null ohne Profil oder ohne Rampe.
-({double grade, double inM})? rampAhead(List<double>? distM, List<double>? eleM, double fromM, double toM) {
-  if (distM == null || eleM == null || distM.length < 2 || distM.length != eleM.length) return null;
+({double grade, double inM})? rampAhead(
+  List<double>? distM,
+  List<double>? eleM,
+  double fromM,
+  double toM,
+) {
+  if (distM == null ||
+      eleM == null ||
+      distM.length < 2 ||
+      distM.length != eleM.length) {
+    return null;
+  }
   for (var i = 1; i < distM.length; i++) {
     if (distM[i] <= fromM || distM[i - 1] >= toM) continue;
     final span = distM[i] - distM[i - 1];
     if (span <= 0) continue;
     final grade = (eleM[i] - eleM[i - 1]) / span;
-    if (grade >= kNavRampGrade) return (grade: grade, inM: math.max(0.0, distM[i - 1] - fromM));
+    if (grade >= kNavRampGrade) {
+      return (grade: grade, inM: math.max(0.0, distM[i - 1] - fromM));
+    }
   }
   return null;
 }
@@ -343,7 +410,8 @@ class NavTracker {
   /// [startAlongM]: wo der Stand anfängt — „zuletzt navigiert" geht dort
   /// weiter, wo die Navigation endete, sonst spränge eine Runde hin und
   /// zurück womöglich auf die Hinfahrt.
-  NavTracker(this.route, {double startAlongM = 0}) : _along = startAlongM.clamp(0, route.lengthM).toDouble();
+  NavTracker(this.route, {double startAlongM = 0})
+    : _along = startAlongM.clamp(0, route.lengthM).toDouble();
 
   final NavRoute route;
   double _along;
@@ -359,15 +427,26 @@ class NavTracker {
     _along = fix.alongM;
     _offCount = fix.offM > kNavOffRouteM ? _offCount + 1 : 0;
     final moving = speedMps != null && speedMps >= kNavHeadingMinSpeedMps;
-    if (moving && headingDeg != null && headingDeg >= 0 && headingDeg.isFinite) {
+    if (moving &&
+        headingDeg != null &&
+        headingDeg >= 0 &&
+        headingDeg.isFinite) {
       _heading = headingDeg % 360;
     }
     final remaining = math.max(0.0, route.lengthM - _along);
     final end = route.points.last;
-    final nearEnd = geo.distanceMeters(p.latitude, p.longitude, end.latitude, end.longitude) <= kNavArriveM;
+    final nearEnd =
+        geo.distanceMeters(
+          p.latitude,
+          p.longitude,
+          end.latitude,
+          end.longitude,
+        ) <=
+        kNavArriveM;
     // Bei einer Runde liegt der Start am Ziel: angekommen erst, wenn der
     // Stand auf dem letzten Stück ist.
-    _arrived = _arrived ||
+    _arrived =
+        _arrived ||
         (fix.offM <= kNavOffRouteM && remaining <= kNavArriveM) ||
         (nearEnd && (!route.isLoop || _along >= route.lengthM / 2));
     return NavState(
@@ -389,12 +468,25 @@ class NavTracker {
 /// Fläche von [heightPx] steht, wenn die Karte nach [bearingDeg] zeigt:
 /// die Mitte ein Sechstel der Höhe VORAUS (256er-Web-Mercator) — oder
 /// [aheadPx], wo die Fläche anders geteilt ist (Bild-im-Bild, #415).
-LatLng followCenter(LatLng position, double bearingDeg, double zoom, double heightPx, {double? aheadPx}) {
-  final mPerPx = 156543.03392 * math.cos(position.latitude * math.pi / 180) / math.pow(2, zoom);
+LatLng followCenter(
+  LatLng position,
+  double bearingDeg,
+  double zoom,
+  double heightPx, {
+  double? aheadPx,
+}) {
+  final mPerPx =
+      156543.03392 *
+      math.cos(position.latitude * math.pi / 180) /
+      math.pow(2, zoom);
   final ahead = (aheadPx ?? heightPx / 6) * mPerPx;
   if (ahead == 0 || ahead.isNaN) return position;
   // Negativ: die Mitte hinter der Position (sie steht dann darüber).
-  return const Distance().offset(position, ahead.abs(), ahead > 0 ? bearingDeg : bearingDeg + 180);
+  return const Distance().offset(
+    position,
+    ahead.abs(),
+    ahead > 0 ? bearingDeg : bearingDeg + 180,
+  );
 }
 
 /// So weit vor dem Trailkopf beginnt „am Trailkopf" (9.9) …
@@ -454,7 +546,11 @@ NavPhase navPhaseOf(
   if (state.arrived) {
     // Am Ziel ein Trail (Weg zum Trailkopf): der Moment vor dem Droppen.
     final head = sections.trails.where((t) => t.beyondRoute).firstOrNull;
-    return NavPhase(kind: head == null ? NavPhaseKind.arrived : NavPhaseKind.atHead, section: head, distM: 0);
+    return NavPhase(
+      kind: head == null ? NavPhaseKind.arrived : NavPhaseKind.atHead,
+      section: head,
+      distM: 0,
+    );
   }
   final on = sections.at(along);
   if (on != null && on.lengthM > 0) {
@@ -468,9 +564,19 @@ NavPhase navPhaseOf(
       );
     }
   }
-  final next = sections.nextFrom(along, slackM: on == null ? 0 : kNavHeadAfterM);
-  if (next != null && !next.beyondRoute && along >= next.startM - kNavHeadBeforeM && !state.moving) {
-    return NavPhase(kind: NavPhaseKind.atHead, section: next, distM: math.max(0.0, next.startM - along));
+  final next = sections.nextFrom(
+    along,
+    slackM: on == null ? 0 : kNavHeadAfterM,
+  );
+  if (next != null &&
+      !next.beyondRoute &&
+      along >= next.startM - kNavHeadBeforeM &&
+      !state.moving) {
+    return NavPhase(
+      kind: NavPhaseKind.atHead,
+      section: next,
+      distM: math.max(0.0, next.startM - along),
+    );
   }
   final toM = next?.startM ?? routeLengthM;
   final dist = math.max(0.0, toM - along);
@@ -550,7 +656,10 @@ class NavTrailWatch {
     if (run != null && along < run.startM) {
       // Zurück vor den Kopf: Das zählt nicht als Fahrt.
       _section = null;
-    } else if (run != null && (along >= run.endM - kNavTrailEndM || state.arrived || sections.at(along) != run)) {
+    } else if (run != null &&
+        (along >= run.endM - kNavTrailEndM ||
+            state.arrived ||
+            sections.at(along) != run)) {
       _section = null;
       final from = _enteredAlongM;
       final to = math.min(along, run.endM);
@@ -564,13 +673,20 @@ class NavTrailWatch {
       );
     }
     final on = sections.at(along);
-    if (_section == null && on != null && on.lengthM > 0 && !state.arrived && along < on.endM - kNavTrailEndM) {
+    if (_section == null &&
+        on != null &&
+        on.lengthM > 0 &&
+        !state.arrived &&
+        along < on.endM - kNavTrailEndM) {
       _section = on;
       _enteredAt = at;
       _enteredAlongM = along;
       _maxSpeed = null;
     }
-    if (_section != null && speedMps != null && speedMps >= 0 && speedMps.isFinite) {
+    if (_section != null &&
+        speedMps != null &&
+        speedMps >= 0 &&
+        speedMps.isFinite) {
       _maxSpeed = math.max(_maxSpeed ?? 0, speedMps);
     }
     return null;

@@ -26,7 +26,9 @@ void main() {
     annaId = anna.id;
     bobId = bob.id;
     trails = FakeTrailRepository(
-        myId: () => backend.currentUserId ?? '', areFriends: backend.areFriends);
+      myId: () => backend.currentUserId ?? '',
+      areFriends: backend.areFriends,
+    );
     trails.usernames[bob.id] = 'bob';
     roots = trails.seedTrail(bob.id, name: 'Roots');
     trails.seedTrail(anna.id, trailId: roots, grade: 2);
@@ -43,8 +45,11 @@ void main() {
     await pumpApp(tester, backend, trails: trails);
     await openTab(tester, 'Trails');
     await settle(tester, frames: 20);
-    await tester.scrollUntilVisible(find.text(name), 200,
-        scrollable: find.byType(Scrollable).first);
+    await tester.scrollUntilVisible(
+      find.text(name),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
     await tester.tap(find.text(name));
     await settle(tester);
   }
@@ -55,10 +60,15 @@ void main() {
     await settle(tester);
   }
 
-  testWidgets('eigener Trail allein: nach dem Löschen ist er weg', (tester) async {
+  testWidgets('eigener Trail allein: nach dem Löschen ist er weg', (
+    tester,
+  ) async {
     await openTrail(tester, 'Solo');
     await tapWithdraw(tester);
-    expect(find.textContaining('verschwindet von deiner Karte'), findsOneWidget);
+    expect(
+      find.textContaining('verschwindet von deiner Karte'),
+      findsOneWidget,
+    );
     await tester.tap(confirm);
     await settle(tester, frames: 20);
 
@@ -69,26 +79,41 @@ void main() {
     expect(trails.details.where((d) => d.trailId == solo), isEmpty);
   });
 
-  testWidgets('geteilter Trail: meine Zeilen gehen, der Trail und Bobs bleiben',
-      (tester) async {
-    await openTrail(tester, 'Roots');
-    await tapWithdraw(tester);
-    expect(find.textContaining('bleibt für deine Buddys'), findsOneWidget);
-    await tester.tap(confirm);
-    await settle(tester, frames: 20);
+  testWidgets(
+    'geteilter Trail: meine Zeilen gehen, der Trail und Bobs bleiben',
+    (tester) async {
+      await openTrail(tester, 'Roots');
+      await tapWithdraw(tester);
+      expect(find.textContaining('bleibt für deine Buddys'), findsOneWidget);
+      await tester.tap(confirm);
+      await settle(tester, frames: 20);
 
-    expect(find.text('Roots'), findsOneWidget, reason: 'Bob belegt ihn weiter');
-    bool mine(String userId) => userId == annaId;
-    expect(trails.recordings.where((r) => r.trailId == roots && mine(r.userId)), isEmpty);
-    expect(trails.details.where((d) => d.trailId == roots && mine(d.userId)), isEmpty);
-    expect(trails.notes.where((n) => n.trailId == roots).map((n) => n.userId), [bobId]);
-    expect(trails.recordings.where((r) => r.trailId == roots), hasLength(1));
+      expect(
+        find.text('Roots'),
+        findsOneWidget,
+        reason: 'Bob belegt ihn weiter',
+      );
+      bool mine(String userId) => userId == annaId;
+      expect(
+        trails.recordings.where((r) => r.trailId == roots && mine(r.userId)),
+        isEmpty,
+      );
+      expect(
+        trails.details.where((d) => d.trailId == roots && mine(d.userId)),
+        isEmpty,
+      );
+      expect(
+        trails.notes.where((n) => n.trailId == roots).map((n) => n.userId),
+        [bobId],
+      );
+      expect(trails.recordings.where((r) => r.trailId == roots), hasLength(1));
 
-    // Wieder offen: Er ist nicht mehr meiner, also kein Löschen.
-    await tester.tap(find.text('Roots'));
-    await settle(tester);
-    expect(withdraw, findsNothing);
-  });
+      // Wieder offen: Er ist nicht mehr meiner, also kein Löschen.
+      await tester.tap(find.text('Roots'));
+      await settle(tester);
+      expect(withdraw, findsNothing);
+    },
+  );
 
   testWidgets('nur über einen Buddy gesehen: kein Löschen', (tester) async {
     await openTrail(tester, 'Bobs Flow');
@@ -104,7 +129,9 @@ void main() {
     expect(trails.recordings.where((r) => r.trailId == solo), hasLength(1));
   });
 
-  testWidgets('ohne Netz: sichtbarer Fehler, nichts gelöscht, Blatt bleibt', (tester) async {
+  testWidgets('ohne Netz: sichtbarer Fehler, nichts gelöscht, Blatt bleibt', (
+    tester,
+  ) async {
     trails.failNextWithdraw = const SocketException('kein Netz');
     await openTrail(tester, 'Solo');
     await tapWithdraw(tester);

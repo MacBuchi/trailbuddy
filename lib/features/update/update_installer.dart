@@ -39,9 +39,9 @@ class UpdateInstaller {
     required ApkInstaller installer,
     http.Client? client,
     Future<Directory> Function()? directory,
-  })  : _installer = installer,
-        _client = client ?? http.Client(),
-        _directory = directory ?? getApplicationSupportDirectory;
+  }) : _installer = installer,
+       _client = client ?? http.Client(),
+       _directory = directory ?? getApplicationSupportDirectory;
 
   final ApkInstaller _installer;
   final http.Client _client;
@@ -141,4 +141,5 @@ class _Cancelled implements Exception {
 }
 
 final updateInstallerProvider = Provider<UpdateInstaller>(
-    (ref) => UpdateInstaller(installer: ref.watch(apkInstallerProvider)));
+  (ref) => UpdateInstaller(installer: ref.watch(apkInstallerProvider)),
+);

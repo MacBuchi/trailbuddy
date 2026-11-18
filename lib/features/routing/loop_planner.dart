@@ -59,7 +59,8 @@ const kLoopShortTimeS = 2 * 3600.0;
 
 /// Das Fenster um [timeS] (Konzept-Routing 12.5): ein Viertel der Zeit
 /// unter [kLoopShortTimeS], darüber [kLoopTimeWindowS].
-double loopWindowFor(double timeS) => timeS < kLoopShortTimeS ? timeS / 4 : kLoopTimeWindowS;
+double loopWindowFor(double timeS) =>
+    timeS < kLoopShortTimeS ? timeS / 4 : kLoopTimeWindowS;
 
 /// So viel besser muss der Trail-Anteil eines Stands UNTER dem Fenster
 /// sein, damit er gegen den besten im Fenster gewinnt (Betreiber,
@@ -98,8 +99,12 @@ const kLoopPrefMax = 0.8;
 /// 1 ohne beides.
 double loopPreferenceWeight({int? ownRating, int rides = 0}) {
   final r = ownRating ?? 0;
-  final byRating = r >= 5 ? kLoopPrefRatingMax : (r == 4 ? kLoopPrefRatingMax / 2 : 0.0);
-  final byRides = kLoopPrefRidesMax * (rides.clamp(0, kLoopPrefRidesFull) / kLoopPrefRidesFull);
+  final byRating = r >= 5
+      ? kLoopPrefRatingMax
+      : (r == 4 ? kLoopPrefRatingMax / 2 : 0.0);
+  final byRides =
+      kLoopPrefRidesMax *
+      (rides.clamp(0, kLoopPrefRidesFull) / kLoopPrefRidesFull);
   final bonus = byRating + byRides;
   return 1 + (bonus > kLoopPrefMax ? kLoopPrefMax : bonus);
 }
@@ -122,7 +127,12 @@ const kLoopSearchBudget = Duration(milliseconds: 300);
 /// die Zeit zur harten Obergrenze — so rechnet der spaßige Weg (#176),
 /// dessen Budget schon die Grenze IST.
 class LoopBudget {
-  const LoopBudget({required this.timeS, required this.climbM, required this.hikingM, this.windowS = kLoopTimeWindowS});
+  const LoopBudget({
+    required this.timeS,
+    required this.climbM,
+    required this.hikingM,
+    this.windowS = kLoopTimeWindowS,
+  });
 
   final double timeS;
   final double climbM;
@@ -144,8 +154,12 @@ class LoopBudget {
   /// Anteil gewinnen ([kLoopShareBelow]).
   double get floorTimeS => timeS - 2 * windowS;
 
-  LoopBudget copyWith({double? climbM}) =>
-      LoopBudget(timeS: timeS, climbM: climbM ?? this.climbM, hikingM: hikingM, windowS: windowS);
+  LoopBudget copyWith({double? climbM}) => LoopBudget(
+    timeS: timeS,
+    climbM: climbM ?? this.climbM,
+    hikingM: hikingM,
+    windowS: windowS,
+  );
 }
 
 /// Ein Trail im Pool: Punkte in Trail-Richtung, S-Grad und Sterne wie
@@ -168,8 +182,14 @@ class PoolTrail {
 
   /// Ein vorab gesetzter Zwischenpunkt (#331 Schritt 4) als Halt ohne
   /// Länge: Die Fahrt muss durch ihn, die Stelle wählt der Planer.
-  factory PoolTrail.waypoint(int k, LatLng p) =>
-      PoolTrail(id: '$kLoopWaypointPrefix$k', name: '', points: [p, p], lengthM: 0, mandatory: true, waypoint: true);
+  factory PoolTrail.waypoint(int k, LatLng p) => PoolTrail(
+    id: '$kLoopWaypointPrefix$k',
+    name: '',
+    points: [p, p],
+    lengthM: 0,
+    mandatory: true,
+    waypoint: true,
+  );
 
   final String id;
   final String name;
@@ -193,8 +213,9 @@ class PoolTrail {
   double get timeS => trailTimeS(lengthM: lengthM, grade: grade);
 
   /// Was die zweite Abfahrt noch an Trail-Metern bringt.
-  double get secondPassM =>
-      (rating ?? 0) >= kLoopSecondPassRating ? lengthM * kLoopSecondPassShare : 0;
+  double get secondPassM => (rating ?? 0) >= kLoopSecondPassRating
+      ? lengthM * kLoopSecondPassShare
+      : 0;
 
   /// Was er in der Zielfunktion wiegt: die Meter mal [weight].
   double get valueM => lengthM * weight;
@@ -229,7 +250,8 @@ class LoopTune {
 
   /// Aus einer gerechneten Runde: ihre Folge samt vorab gesetzten
   /// Zwischenpunkten ([LoopPlan.order]), mit [vias].
-  factory LoopTune.of(LoopPlan plan, RouteVias vias) => LoopTune(order: plan.order, vias: vias);
+  factory LoopTune.of(LoopPlan plan, RouteVias vias) =>
+      LoopTune(order: plan.order, vias: vias);
 
   final List<String> order;
   final RouteVias vias;
@@ -389,18 +411,18 @@ class LoopState {
   /// Derselbe Stand, nachgerechnet: Zahlen und Folge aus [refined], der
   /// Trail, der dazukam, bleibt dieser — [refined] kennt keinen Vorgänger.
   LoopState refinedBy(LoopState refined) => LoopState(
-        timeS: refined.timeS,
-        share: refined.share,
-        trailShare: refined.trailShare,
-        climbM: refined.climbM,
-        lengthM: refined.lengthM,
-        trails: refined.trails,
-        grade: refined.grade,
-        order: refined.order,
-        addedId: addedId,
-        addedName: addedName,
-        addedGrade: addedGrade,
-      );
+    timeS: refined.timeS,
+    share: refined.share,
+    trailShare: refined.trailShare,
+    climbM: refined.climbM,
+    lengthM: refined.lengthM,
+    trails: refined.trails,
+    grade: refined.grade,
+    order: refined.order,
+    addedId: addedId,
+    addedName: addedName,
+    addedGrade: addedGrade,
+  );
 }
 
 /// Ein Trail in der Runde, in Reihenfolge.
@@ -483,7 +505,8 @@ class LoopPlan {
     ];
     return kept.isEmpty
         ? this
-        : LoopPlan(outcome,
+        : LoopPlan(
+            outcome,
             sections: sections,
             summary: summary,
             stops: stops,
@@ -495,7 +518,8 @@ class LoopPlan {
             states: states,
             pick: pick,
             self: self,
-            over: over);
+            over: over,
+          );
   }
 }
 
@@ -507,7 +531,13 @@ enum SnapRole { start, end, waypoint, trailStart, trailEnd }
 /// wie weit ([meters]); bei [SnapRole.waypoint] welcher ([index], in der
 /// Folge des Setzens), bei einem Trail-Ende welcher Trail ([trailId]).
 class PointSnap {
-  const PointSnap(this.role, this.at, this.meters, {this.index = 0, this.trailId});
+  const PointSnap(
+    this.role,
+    this.at,
+    this.meters, {
+    this.index = 0,
+    this.trailId,
+  });
 
   final SnapRole role;
   final LatLng at;
@@ -557,13 +587,18 @@ class LoopSearchCache {
   /// Was der Speicher hält, für die Messung (#376): Knoten der Suchen,
   /// Verbindungen und deren Linienpunkte.
   ({int nodes, int conns, int points}) get footprint => (
-        nodes: _searches.values.fold(0, (s, r) => s + r.reachedCount),
-        conns: _conns.length,
-        points: _conns.values.fold(0, (s, c) => s + (c?.summary.points.length ?? 0)),
-      );
+    nodes: _searches.values.fold(0, (s, r) => s + r.reachedCount),
+    conns: _conns.length,
+    points: _conns.values.fold(
+      0,
+      (s, c) => s + (c?.summary.points.length ?? 0),
+    ),
+  );
 
   void _bind(RoadGraph g, Object scope) {
-    if (identical(g, _graph) && g.revision == _revision && scope == _scope) return;
+    if (identical(g, _graph) && g.revision == _revision && scope == _scope) {
+      return;
+    }
     _graph = g;
     _revision = g.revision;
     _scope = scope;
@@ -575,25 +610,34 @@ class LoopSearchCache {
 
 /// Alles am Profil, wovon Kosten und Zeit einer Kante abhängen.
 Object _riderKey(RiderParams p) => (
-      p.profile,
-      p.climbTrackMPerH,
-      p.climbPathMPerH,
-      p.pushRateMPerH,
-      p.vFlatKmh,
-      p.vPathUpKmh,
-      p.vPushKmh,
-      p.vDownKmh,
-      p.pathUpFactor,
-      p.pathDownFactor,
-      p.prefs,
-    );
+  p.profile,
+  p.climbTrackMPerH,
+  p.climbPathMPerH,
+  p.pushRateMPerH,
+  p.vFlatKmh,
+  p.vPathUpKmh,
+  p.vPushKmh,
+  p.vDownKmh,
+  p.pathUpFactor,
+  p.pathDownFactor,
+  p.prefs,
+);
 
 /// Der Zustand einer Runde als Folge von Pool-Indizes, mit den Summen
 /// und der gewählten Verbindung je Abschnitt ([legs]: eine je Halt, dazu
 /// die letzte zurück zum Ziel, wenn es eines gibt).
 class _Route {
-  _Route(this.seq, this.legs, this.timeS, this.climbM, this.hikingM, this.wastedM, this.trailM, this.lengthM,
-      this.valueM);
+  _Route(
+    this.seq,
+    this.legs,
+    this.timeS,
+    this.climbM,
+    this.hikingM,
+    this.wastedM,
+    this.trailM,
+    this.lengthM,
+    this.valueM,
+  );
 
   final List<int> seq;
   final List<_Conn> legs;
@@ -656,7 +700,11 @@ LoopPlan planLoop(
   bool overLimit = false,
 }) {
   final firstWaypoint = pool.length;
-  pool = [...pool, for (var k = 0; k < waypoints.length; k++) PoolTrail.waypoint(k, waypoints[k])];
+  pool = [
+    ...pool,
+    for (var k = 0; k < waypoints.length; k++)
+      PoolTrail.waypoint(k, waypoints[k]),
+  ];
   final out = Map<String, LoopExclusion>.of(excluded);
   // Gesetzte Punkte springen bis [kGraphSnapM] auf den nächsten Weg
   // (#374), seit #394 auch Anfang und Ende eines Trails: Ein Trailkopf
@@ -671,7 +719,15 @@ LoopPlan planLoop(
     final trailEnd = role == SnapRole.trailStart || role == SnapRole.trailEnd;
     final s = trailEnd ? g.anchor(p) : g.snap(p);
     if (s != null && s.meters > kGraphAttachM) {
-      snaps.add(PointSnap(role, g.nodeLatLng[s.node], s.meters, index: index, trailId: trailId));
+      snaps.add(
+        PointSnap(
+          role,
+          g.nodeLatLng[s.node],
+          s.meters,
+          index: index,
+          trailId: trailId,
+        ),
+      );
     }
     return s?.node;
   }
@@ -690,7 +746,11 @@ LoopPlan planLoop(
       for (final t in pool) {
         out.putIfAbsent(t.id, () => LoopExclusion.unreachable);
       }
-      return LoopPlan(LoopOutcome.endOffNetwork, excluded: _trailsOnly(out), snaps: snaps);
+      return LoopPlan(
+        LoopOutcome.endOffNetwork,
+        excluded: _trailsOnly(out),
+        snaps: snaps,
+      );
     }
   }
   // Jeder Trail an den Graphen — ein Ende ohne Weg heißt „nicht
@@ -712,30 +772,62 @@ LoopPlan planLoop(
     tails.add(e);
   }
   if (pool.any((t) => t.waypoint && out.containsKey(t.id))) {
-    return LoopPlan(LoopOutcome.viaFailed, excluded: _trailsOnly(out), snaps: snaps);
+    return LoopPlan(
+      LoopOutcome.viaFailed,
+      excluded: _trailsOnly(out),
+      snaps: snaps,
+    );
   }
   // Erst NACH dem Anheften: Hat es eine Kante geteilt, gilt nichts
   // Gemerktes mehr.
-  final searches = (cache ?? LoopSearchCache()).._bind(g, (_riderKey(profile), budget.timeS, budget.windowS));
+  final searches = (cache ?? LoopSearchCache())
+    .._bind(g, (_riderKey(profile), budget.timeS, budget.windowS));
   // Die Linie beginnt und endet am Weg, wo der Punkt gesprungen ist.
-  LatLng moved(SnapRole role, LatLng p) => snaps.where((s) => s.role == role).firstOrNull?.at ?? p;
+  LatLng moved(SnapRole role, LatLng p) =>
+      snaps.where((s) => s.role == role).firstOrNull?.at ?? p;
   final from = moved(SnapRole.start, start);
   final finish = end == null ? from : moved(SnapRole.end, end);
-  final planner = _Planner(g, from, src, dst, finish, profile, budget, pool, heads, tails, out, searches, bare: bare);
+  final planner = _Planner(
+    g,
+    from,
+    src,
+    dst,
+    finish,
+    profile,
+    budget,
+    pool,
+    heads,
+    tails,
+    out,
+    searches,
+    bare: bare,
+  );
   final plan = tune != null
       ? planner.runTuned(tune)
       : state != null
-          ? planner.runState(state, searchBudget)
-          : overLimit
-              ? planner.runOverLimit()
-              : planner.run(searchBudget);
+      ? planner.runState(state, searchBudget)
+      : overLimit
+      ? planner.runOverLimit()
+      : planner.run(searchBudget);
   return plan._withSnaps(snaps);
 }
 
 class _Planner {
-  _Planner(this.g, this.start, this.src, this.dst, this.finish, this.p, this.budget, this.pool, this.heads,
-      this.tails, this.excluded, this.cache,
-      {this.bare = false});
+  _Planner(
+    this.g,
+    this.start,
+    this.src,
+    this.dst,
+    this.finish,
+    this.p,
+    this.budget,
+    this.pool,
+    this.heads,
+    this.tails,
+    this.excluded,
+    this.cache, {
+    this.bare = false,
+  });
 
   /// Ohne Trail ist es auch eine Planung (#356): die Route von A nach B,
   /// durch die Zwischenpunkte. Sonst heißt „nur Punkte" [LoopOutcome.empty].
@@ -762,26 +854,46 @@ class _Planner {
   /// Verbindungen daraus.
   final LoopSearchCache cache;
 
-  bool usable(int i) => heads[i] != null && tails[i] != null && !excluded.containsKey(pool[i].id);
+  bool usable(int i) =>
+      heads[i] != null && tails[i] != null && !excluded.containsKey(pool[i].id);
 
-  SearchResult _search(int from, {required bool noHiking}) => cache._searches.putIfAbsent((from, noHiking), () {
+  SearchResult _search(int from, {required bool noHiking}) =>
+      cache._searches.putIfAbsent((from, noHiking), () {
         cache.searchesRun++;
-        final r = dijkstra(g, from, p,
-            limit: budget.ceilTimeS, allow: noHiking ? (e) => !e.hiking : null, costs: cache._costs ??= EdgeCosts(g, p));
+        final r = dijkstra(
+          g,
+          from,
+          p,
+          limit: budget.ceilTimeS,
+          allow: noHiking ? (e) => !e.hiking : null,
+          costs: cache._costs ??= EdgeCosts(g, p),
+        );
         // Der Ladebalken (#356): Die Zeit steckt in den Suchen, eine vom
         // Start und eine je Trail-Ende; was danach kommt, ist kurz. Die
         // Suchen ohne Wanderweg kommen nur manchmal dazu — daher die
         // Kappe, bis die Planung fertig ist.
-        if (PlanProgress.active) PlanProgress.report((++_searchesHere / _expectedSearches).clamp(0.0, 0.95));
+        if (PlanProgress.active) {
+          PlanProgress.report(
+            (++_searchesHere / _expectedSearches).clamp(0.0, 0.95),
+          );
+        }
         return r;
       });
 
   var _searchesHere = 0;
-  late final int _expectedSearches = 1 + [for (var i = 0; i < pool.length; i++) if (usable(i)) i].length;
+  late final int _expectedSearches =
+      1 +
+      [
+        for (var i = 0; i < pool.length; i++)
+          if (usable(i)) i,
+      ].length;
 
   /// Die Verbindung [from] → [to], oder null, wenn keine im Budget liegt.
-  _Conn? conn(int from, int to, {bool noHiking = false}) => cache._conns.putIfAbsent((from, to, noHiking), () {
-        if (from == to) return _Conn(from, const [], summarizePath(g, const [], from, p));
+  _Conn? conn(int from, int to, {bool noHiking = false}) =>
+      cache._conns.putIfAbsent((from, to, noHiking), () {
+        if (from == to) {
+          return _Conn(from, const [], summarizePath(g, const [], from, p));
+        }
         final path = _search(from, noHiking: noHiking).pathTo(to);
         if (path == null) return null;
         return _Conn(from, path, summarizePath(g, path, from, p));
@@ -813,20 +925,30 @@ class _Planner {
       if (c == null) return null;
       legs.add(c);
     }
-    double hikingOf(List<_Conn> l) => l.fold(0.0, (s, c) => s + c.summary.hikingM);
+    double hikingOf(List<_Conn> l) =>
+        l.fold(0.0, (s, c) => s + c.summary.hikingM);
     final tried = <int>{};
     while (hikingOf(legs) > budget.hikingM + 1e-6) {
       var worst = -1;
       for (var k = 0; k < legs.length; k++) {
         if (tried.contains(k) || legs[k].summary.hikingM <= 0) continue;
-        if (worst < 0 || legs[k].summary.hikingM > legs[worst].summary.hikingM) worst = k;
+        if (worst < 0 ||
+            legs[k].summary.hikingM > legs[worst].summary.hikingM) {
+          worst = k;
+        }
       }
       if (worst < 0) break;
       tried.add(worst);
       final alt = conn(froms[worst], tos[worst], noHiking: true);
       if (alt != null) legs[worst] = alt;
     }
-    var time = 0.0, climb = 0.0, hiking = 0.0, wasted = 0.0, trailM = 0.0, length = 0.0, value = 0.0;
+    var time = 0.0,
+        climb = 0.0,
+        hiking = 0.0,
+        wasted = 0.0,
+        trailM = 0.0,
+        length = 0.0,
+        value = 0.0;
     final seen = <int>{};
     for (var k = 0; k < seq.length; k++) {
       final t = pool[seq[k]];
@@ -844,7 +966,17 @@ class _Planner {
       wasted += c.summary.lossM;
       length += c.summary.lengthM;
     }
-    return _Route(seq, legs, time, climb, hiking, wasted, trailM, length, value);
+    return _Route(
+      seq,
+      legs,
+      time,
+      climb,
+      hiking,
+      wasted,
+      trailM,
+      length,
+      value,
+    );
   }
 
   /// Die Zeit, bis zu der eine Runde passt: zuerst Zeit + Fenster, für
@@ -869,7 +1001,11 @@ class _Planner {
 
   /// Die beste Stelle für [i] in [base]: der kleinste Zeitzuwachs, der
   /// in die Budgets passt. Null, wenn keine passt.
-  ({_Route route, double dt})? bestInsertion(_Route base, int i, {bool mustFit = true}) {
+  ({_Route route, double dt})? bestInsertion(
+    _Route base,
+    int i, {
+    bool mustFit = true,
+  }) {
     ({_Route route, double dt})? best;
     for (var pos = 0; pos <= base.seq.length; pos++) {
       final seq = [...base.seq]..insert(pos, i);
@@ -893,7 +1029,8 @@ class _Planner {
     bool better(_Route r, _Route? than) {
       if (than == null) return true;
       final d = r.share - than.share;
-      final closer = (r.timeS - budget.timeS).abs() < (than.timeS - budget.timeS).abs();
+      final closer =
+          (r.timeS - budget.timeS).abs() < (than.timeS - budget.timeS).abs();
       return d > kLoopShareTie || (d.abs() <= kLoopShareTie && closer);
     }
 
@@ -924,7 +1061,11 @@ class _Planner {
       for (final t in pool) {
         excluded.putIfAbsent(t.id, () => LoopExclusion.unreachable);
       }
-      return (route: null, fixed: const {}, failed: LoopPlan(LoopOutcome.empty, excluded: _trailsOnly(excluded)));
+      return (
+        route: null,
+        fixed: const {},
+        failed: LoopPlan(LoopOutcome.empty, excluded: _trailsOnly(excluded)),
+      );
     }
     var route = bare;
     // 0. Die vorab gesetzten Zwischenpunkte, je an die beste Stelle — auch
@@ -932,7 +1073,16 @@ class _Planner {
     for (var i = 0; i < pool.length; i++) {
       if (!pool[i].waypoint) continue;
       final ins = bestInsertion(route, i, mustFit: false);
-      if (ins == null) return (route: null, fixed: const {}, failed: LoopPlan(LoopOutcome.viaFailed, excluded: _trailsOnly(excluded)));
+      if (ins == null) {
+        return (
+          route: null,
+          fixed: const {},
+          failed: LoopPlan(
+            LoopOutcome.viaFailed,
+            excluded: _trailsOnly(excluded),
+          ),
+        );
+      }
       route = ins.route;
     }
     // 1. Pflicht-Trails, in Pool-Reihenfolge, je an die beste Stelle. Was
@@ -970,7 +1120,9 @@ class _Planner {
           final ins = bestInsertion(route, i);
           if (ins == null) continue;
           final ratio = gain / (ins.dt <= 1 ? 1 : ins.dt);
-          if (best == null || ratio > best.ratio) best = (i: i, route: ins.route, ratio: ratio);
+          if (best == null || ratio > best.ratio) {
+            best = (i: i, route: ins.route, ratio: ratio);
+          }
         }
         if (best == null) break;
         route = best.route;
@@ -1005,7 +1157,10 @@ class _Planner {
     final over = <LoopState>[];
     _Route? prev;
     for (final r in states) {
-      if (r.climbM > budget.climbM + 1e-6 && r.seq.any((i) => !pool[i].waypoint)) over.add(stateOf(r, prev));
+      if (r.climbM > budget.climbM + 1e-6 &&
+          r.seq.any((i) => !pool[i].waypoint)) {
+        over.add(stateOf(r, prev));
+      }
       prev = r;
     }
     over.sort((a, b) => a.timeS.compareTo(b.timeS));
@@ -1039,7 +1194,9 @@ class _Planner {
         final hasTrail = r.seq.any((i) => !pool[i].waypoint);
         if (hasTrail) {
           if (identical(r, chosen)) pick = strip.length;
-          strip.add(identical(r, chosen) ? stateOf(route, prev) : stateOf(r, prev));
+          strip.add(
+            identical(r, chosen) ? stateOf(route, prev) : stateOf(r, prev),
+          );
         }
         prev = r;
       }
@@ -1121,7 +1278,10 @@ class _Planner {
     while (improved && clock.elapsed < searchBudget) {
       improved = false;
       for (var a = 0; a < route.seq.length && !improved; a++) {
-        if (fixed.contains(route.seq[a]) && passes(route.seq, route.seq[a]) == 1) continue;
+        if (fixed.contains(route.seq[a]) &&
+            passes(route.seq, route.seq[a]) == 1) {
+          continue;
+        }
         final without = evaluate([...route.seq]..removeAt(a));
         if (without == null) continue;
         for (var i = 0; i < pool.length; i++) {
@@ -1161,7 +1321,9 @@ class _Planner {
   void giveReasons(_Route route) {
     for (var i = 0; i < pool.length; i++) {
       final t = pool[i];
-      if (t.waypoint || excluded.containsKey(t.id) || route.seq.contains(i)) continue;
+      if (t.waypoint || excluded.containsKey(t.id) || route.seq.contains(i)) {
+        continue;
+      }
       excluded[t.id] = bestInsertion(route, i, mustFit: false) == null
           ? LoopExclusion.unreachable
           : LoopExclusion.budget;
@@ -1194,10 +1356,20 @@ class _Planner {
     final legs = <_Conn>[];
     for (var k = 0; k < froms.length; k++) {
       final r = pathThrough(g, froms[k], tos[k], tune.vias.of(k), p);
-      if (r.edges == null) return LoopPlan(LoopOutcome.viaFailed, excluded: _trailsOnly(excluded));
-      legs.add(_Conn(froms[k], r.edges!, summarizePath(g, r.edges!, froms[k], p)));
+      if (r.edges == null) {
+        return LoopPlan(LoopOutcome.viaFailed, excluded: _trailsOnly(excluded));
+      }
+      legs.add(
+        _Conn(froms[k], r.edges!, summarizePath(g, r.edges!, froms[k], p)),
+      );
     }
-    var time = 0.0, climb = 0.0, hiking = 0.0, wasted = 0.0, trailM = 0.0, length = 0.0, value = 0.0;
+    var time = 0.0,
+        climb = 0.0,
+        hiking = 0.0,
+        wasted = 0.0,
+        trailM = 0.0,
+        length = 0.0,
+        value = 0.0;
     final seen = <int>{};
     for (final i in seq) {
       final t = pool[i];
@@ -1216,12 +1388,20 @@ class _Planner {
       length += c.summary.lengthM;
     }
     for (var i = 0; i < pool.length; i++) {
-      if (!seq.contains(i) && !pool[i].waypoint) excluded.putIfAbsent(pool[i].id, () => LoopExclusion.budget);
+      if (!seq.contains(i) && !pool[i].waypoint) {
+        excluded.putIfAbsent(pool[i].id, () => LoopExclusion.budget);
+      }
     }
-    return _assemble(_Route(seq, legs, time, climb, hiking, wasted, trailM, length, value));
+    return _assemble(
+      _Route(seq, legs, time, climb, hiking, wasted, trailM, length, value),
+    );
   }
 
-  LoopPlan _assemble(_Route route, {List<LoopState> states = const [], int? pick}) {
+  LoopPlan _assemble(
+    _Route route, {
+    List<LoopState> states = const [],
+    int? pick,
+  }) {
     // Nur Zwischenpunkte, kein Trail: Das ist keine Runde.
     if (!bare && route.seq.every((i) => pool[i].waypoint)) {
       return LoopPlan(LoopOutcome.empty, excluded: _trailsOnly(excluded));
@@ -1232,7 +1412,12 @@ class _Planner {
     final points = <LatLng>[start, g.nodeLatLng[src]];
     final mix = <WayClass, double>{};
     final upNames = <String>[];
-    var length = 0.0, gain = 0.0, loss = 0.0, trailLoss = 0.0, trailUp = 0.0, steep = 0.0;
+    var length = 0.0,
+        gain = 0.0,
+        loss = 0.0,
+        trailLoss = 0.0,
+        trailUp = 0.0,
+        steep = 0.0;
     var complete = true;
     final seen = <int>{};
     final stops = <LoopStop>[];
@@ -1241,7 +1426,15 @@ class _Planner {
       final k = leg++;
       final c = route.legs[k];
       for (final s in sectionsOf(g, c.edges, from)) {
-        sections.add(LoopSection(points: s.points, lengthM: s.lengthM, cls: s.cls, onTrail: s.trail, leg: k));
+        sections.add(
+          LoopSection(
+            points: s.points,
+            lengthM: s.lengthM,
+            cls: s.cls,
+            onTrail: s.trail,
+            leg: k,
+          ),
+        );
         final up = s.trail;
         if (up != null && up.connector) {
           // Uphill-Trails und Verbinder stehen für sich, nicht unter der
@@ -1271,7 +1464,14 @@ class _Planner {
         continue;
       }
       final second = !seen.add(i);
-      sections.add(LoopSection(points: t.points, lengthM: t.lengthM, trail: t, secondPass: second));
+      sections.add(
+        LoopSection(
+          points: t.points,
+          lengthM: t.lengthM,
+          trail: t,
+          secondPass: second,
+        ),
+      );
       stops.add((trail: t, secondPass: second));
       points.addAll(t.points);
       length += t.lengthM;
@@ -1318,15 +1518,23 @@ class _Planner {
 
 /// Die Gründe ohne die vorab gesetzten Zwischenpunkte — das Blatt nennt
 /// nur Trails.
-Map<String, LoopExclusion> _trailsOnly(Map<String, LoopExclusion> m) =>
-    {for (final e in m.entries) if (!e.key.startsWith(kLoopWaypointPrefix)) e.key: e.value};
+Map<String, LoopExclusion> _trailsOnly(Map<String, LoopExclusion> m) => {
+  for (final e in m.entries)
+    if (!e.key.startsWith(kLoopWaypointPrefix)) e.key: e.value,
+};
 
 /// Die Vorschau-Abschnitte einer Verbindung als [RouteSection] — damit
 /// das Blatt dieselbe Zeichenregel wie „Zum Trailkopf" nehmen kann.
 List<RouteSection> connectionSections(LoopPlan plan) => [
-      for (final s in plan.sections)
-        if (s.cls != null) RouteSection(cls: s.cls!, points: s.points, lengthM: s.lengthM, trail: s.onTrail),
-    ];
+  for (final s in plan.sections)
+    if (s.cls != null)
+      RouteSection(
+        cls: s.cls!,
+        points: s.points,
+        lengthM: s.lengthM,
+        trail: s.onTrail,
+      ),
+];
 
 // ─── Pool, Vorgaben, Name und GPX ──────────────────────────────────────
 
@@ -1362,18 +1570,23 @@ double? loopSuggestNextReachM(double reachM) =>
 
 /// Ein Trail der Karte als Pool-Eintrag: Punkte in Trail-Richtung, Grad
 /// und Sterne wie angezeigt, Höhenmeter aus seinem Profil (0 ohne Höhen).
-PoolTrail poolTrailOf(AppLocalizations l, Trail t, {bool mandatory = false, double weight = 1}) => PoolTrail(
-      id: t.id,
-      name: t.displayName(l),
-      points: t.directedPoints,
-      lengthM: t.lengthM,
-      grade: t.grade,
-      rating: t.rating,
-      gainM: t.elevation?.gainM ?? 0,
-      lossM: t.elevation?.lossM ?? 0,
-      mandatory: mandatory,
-      weight: weight,
-    );
+PoolTrail poolTrailOf(
+  AppLocalizations l,
+  Trail t, {
+  bool mandatory = false,
+  double weight = 1,
+}) => PoolTrail(
+  id: t.id,
+  name: t.displayName(l),
+  points: t.directedPoints,
+  lengthM: t.lengthM,
+  grade: t.grade,
+  rating: t.rating,
+  gainM: t.elevation?.gainM ?? 0,
+  lossM: t.elevation?.lossM ?? 0,
+  mandatory: mandatory,
+  weight: weight,
+);
 
 /// Was vom sichtbaren Netz für eine Runde ab [start] in Frage kommt:
 /// [inReach] mit beiden Enden in [kLoopReachM], davon getrennt die mit
@@ -1382,8 +1595,12 @@ PoolTrail poolTrailOf(AppLocalizations l, Trail t, {bool mandatory = false, doub
 /// #185: keine Abfahrt, sondern Weg bergauf — sie liegen auf dem Graphen,
 /// nicht im Pool), und wie viele zu weit liegen. Wartende Trails
 /// (Ausgangskorb) zählen nicht — sie haben noch keine Kennung.
-({List<Trail> inReach, List<Trail> warned, List<Trail> connectors, int tooFar}) loopPoolOf(
-    Iterable<Trail> trails, LatLng start, {double reachM = kLoopReachM}) {
+({List<Trail> inReach, List<Trail> warned, List<Trail> connectors, int tooFar})
+loopPoolOf(
+  Iterable<Trail> trails,
+  LatLng start, {
+  double reachM = kLoopReachM,
+}) {
   final inReach = <Trail>[], warned = <Trail>[], connectors = <Trail>[];
   var tooFar = 0;
   for (final t in trails) {
@@ -1399,7 +1616,12 @@ PoolTrail poolTrailOf(AppLocalizations l, Trail t, {bool mandatory = false, doub
     }
     (t.status.warns ? warned : inReach).add(t);
   }
-  return (inReach: inReach, warned: warned, connectors: connectors, tooFar: tooFar);
+  return (
+    inReach: inReach,
+    warned: warned,
+    connectors: connectors,
+    tooFar: tooFar,
+  );
 }
 
 /// Die Trails, die ein gezeichnetes Gebiet [ring] fasst (#178): die
@@ -1415,7 +1637,10 @@ Set<String> trailsInRing(Iterable<Trail> trails, List<LatLng> ring) {
       final a = ring[i], b = ring[j];
       if ((a.latitude > p.latitude) != (b.latitude > p.latitude) &&
           p.longitude <
-              (b.longitude - a.longitude) * (p.latitude - a.latitude) / (b.latitude - a.latitude) + a.longitude) {
+              (b.longitude - a.longitude) *
+                      (p.latitude - a.latitude) /
+                      (b.latitude - a.latitude) +
+                  a.longitude) {
         c = !c;
       }
     }
@@ -1424,7 +1649,9 @@ Set<String> trailsInRing(Iterable<Trail> trails, List<LatLng> ring) {
 
   return {
     for (final t in trails)
-      if (t.points.isNotEmpty && t.points.where(inside).length * 2 > t.points.length) t.id,
+      if (t.points.isNotEmpty &&
+          t.points.where(inside).length * 2 > t.points.length)
+        t.id,
   };
 }
 
@@ -1433,12 +1660,17 @@ Set<String> trailsInRing(Iterable<Trail> trails, List<LatLng> ring) {
 /// Abschnitt der offiziellen Quelle (`OfficialMatch.onClosed`, wie die
 /// Zeile im Trail-Blatt). Die Verbindungen meidet der Planer; im Plan
 /// stehen sie nur, weil der Fahrer sie gewählt hat — das Blatt sagt es.
-List<String> closedStopNames(LoopPlan plan, Set<String> closedIds, Iterable<OfficialTrail> official) {
+List<String> closedStopNames(
+  LoopPlan plan,
+  Set<String> closedIds,
+  Iterable<OfficialTrail> official,
+) {
   final names = <String>[];
   for (final s in plan.stops) {
     final t = s.trail;
     if (t.waypoint || names.contains(t.name)) continue;
-    final closed = closedIds.contains(t.id) ||
+    final closed =
+        closedIds.contains(t.id) ||
         matchOfficial(t.points, official).any((m) => m.onClosed);
     if (closed) names.add(t.name);
   }
@@ -1462,22 +1694,23 @@ TrailRole trailRoleOf(Trail t) {
 /// [blockClosures] sperrt ihre Kanten, eine selbst gewählte Abfahrt fährt
 /// der Planer trotzdem als Halt. „Verändert" (`changed`) sperrt nicht.
 List<GraphTrail> graphTrailsOf(AppLocalizations l, Iterable<Trail> trails) => [
-      for (final t in trails)
-        if (!t.pending && t.points.length >= 2)
-          GraphTrail(
-            id: t.id,
-            name: t.displayName(l),
-            points: t.directedPoints,
-            role: trailRoleOf(t),
-            twoWay: t.twoWay,
-            gainM: t.elevation?.gainM,
-            lossM: t.elevation?.lossM,
-            closed: t.status.blocksRouting,
-          ),
-    ];
+  for (final t in trails)
+    if (!t.pending && t.points.length >= 2)
+      GraphTrail(
+        id: t.id,
+        name: t.displayName(l),
+        points: t.directedPoints,
+        role: trailRoleOf(t),
+        twoWay: t.twoWay,
+        gainM: t.elevation?.gainM,
+        lossM: t.elevation?.lossM,
+        closed: t.status.blocksRouting,
+      ),
+];
 
 extension on LatLng {
-  double distanceToM(LatLng o) => haversineM(latitude, longitude, o.latitude, o.longitude);
+  double distanceToM(LatLng o) =>
+      haversineM(latitude, longitude, o.latitude, o.longitude);
 }
 
 /// Wo die Planung endet (#331, seit 0.123.0; bis dahin der Schalter
@@ -1533,9 +1766,11 @@ class LoopPrefs {
   /// Das Limit des Rads, mit dem gerade geplant wird.
   double get climbM => climbOf(bike);
 
-  double climbOf(RiderProfile p) => p == RiderProfile.ebike ? climbEbikeM : climbBioM;
+  double climbOf(RiderProfile p) =>
+      p == RiderProfile.ebike ? climbEbikeM : climbBioM;
 
-  double? declinedOf(RiderProfile p) => p == RiderProfile.ebike ? declinedEbikeM : declinedBioM;
+  double? declinedOf(RiderProfile p) =>
+      p == RiderProfile.ebike ? declinedEbikeM : declinedBioM;
 
   /// Dieselben Regler für ein anderes Rad — sein eigenes Limit.
   LoopPrefs withBike(RiderProfile p) => _with(bike: p);
@@ -1543,22 +1778,26 @@ class LoopPrefs {
   /// Das Limit eines Rads, geklemmt auf die Spanne des Reglers.
   LoopPrefs withClimb(RiderProfile p, double m) {
     final v = m.clamp(minClimb, maxClimb).toDouble();
-    return p == RiderProfile.ebike ? _with(climbEbikeM: v) : _with(climbBioM: v);
+    return p == RiderProfile.ebike
+        ? _with(climbEbikeM: v)
+        : _with(climbBioM: v);
   }
 
   /// Limits und „Nein" aus [other], alles andere bleibt — „Rückgängig"
   /// nach einer Antwort, ohne Regler zurückzudrehen, die seither standen.
   LoopPrefs withLimitsOf(LoopPrefs other) => _with(
-      climbBioM: other.climbBioM,
-      climbEbikeM: other.climbEbikeM,
-      declinedBioM: () => other.declinedBioM,
-      declinedEbikeM: () => other.declinedEbikeM);
+    climbBioM: other.climbBioM,
+    climbEbikeM: other.climbEbikeM,
+    declinedBioM: () => other.declinedBioM,
+    declinedEbikeM: () => other.declinedEbikeM,
+  );
 
   /// Ein „Nein" merken ([m]) oder vergessen (null).
   LoopPrefs withDeclined(RiderProfile p, double? m) => p == RiderProfile.ebike
       ? _with(declinedEbikeM: () => m)
       : _with(declinedBioM: () => m);
   final double hikingKm;
+
   /// Gemerkt wird der Modus, nicht das Ziel — das gilt wie ein getippter
   /// Start nur für die Sitzung.
   final LoopEndMode endMode;
@@ -1598,7 +1837,9 @@ class LoopPrefs {
   /// Bequem, sonst mit „Bergauf bequem" die Kosten des Stils — die Trails
   /// bleiben Trails (Zeit nach S-Grad).
   RoutePrefs get planRoute =>
-      (endMode == LoopEndMode.target ? style == RouteMode.easy : easyUp) ? route.copyWith(easy: true) : route;
+      (endMode == LoopEndMode.target ? style == RouteMode.easy : easyUp)
+      ? route.copyWith(easy: true)
+      : route;
 
   static const minHours = 1.0, maxHours = 6.0, hoursStep = 0.5;
   static const minClimb = 200.0, maxClimb = 2500.0, climbStep = 100.0;
@@ -1607,12 +1848,13 @@ class LoopPrefs {
 
   /// Die Vorgaben je Profil (die Höhenmeter hängen am Profil).
   static LoopPrefs defaults(RiderProfile p) => LoopPrefs(
-      hours: kBudgetHours,
-      bike: p,
-      climbBioM: RiderProfile.bio.budgetClimbM,
-      climbEbikeM: RiderProfile.ebike.budgetClimbM,
-      hikingKm: kBudgetHikingKm,
-      endMode: LoopEndMode.loop);
+    hours: kBudgetHours,
+    bike: p,
+    climbBioM: RiderProfile.bio.budgetClimbM,
+    climbEbikeM: RiderProfile.ebike.budgetClimbM,
+    hikingKm: kBudgetHikingKm,
+    endMode: LoopEndMode.loop,
+  );
 
   /// Liest, was gespeichert ist; Unlesbares oder Fehlendes ergibt die
   /// Vorgabe, jeder Wert einzeln auf seine Spanne geklemmt.
@@ -1625,7 +1867,9 @@ class LoopPrefs {
       if (i > 0) fields[part.substring(0, i)] = part.substring(i + 1);
     }
     double clamp(String key, double fallback, double lo, double hi) =>
-        (double.tryParse(fields[key] ?? '') ?? fallback).clamp(lo, hi).toDouble();
+        (double.tryParse(fields[key] ?? '') ?? fallback)
+            .clamp(lo, hi)
+            .toDouble();
     double? declined(String key) => double.tryParse(fields[key] ?? '');
     // Bis 0.176.0 eine Zahl für beide Räder (`c`): Sie gilt für das Rad,
     // das gerade gewählt ist, das andere beginnt mit seiner Vorgabe.
@@ -1633,8 +1877,18 @@ class LoopPrefs {
     return LoopPrefs(
       hours: clamp('h', d.hours, minHours, maxHours),
       bike: p,
-      climbBioM: clamp('cb', p == RiderProfile.bio ? old : d.climbBioM, minClimb, maxClimb),
-      climbEbikeM: clamp('ce', p == RiderProfile.ebike ? old : d.climbEbikeM, minClimb, maxClimb),
+      climbBioM: clamp(
+        'cb',
+        p == RiderProfile.bio ? old : d.climbBioM,
+        minClimb,
+        maxClimb,
+      ),
+      climbEbikeM: clamp(
+        'ce',
+        p == RiderProfile.ebike ? old : d.climbEbikeM,
+        minClimb,
+        maxClimb,
+      ),
       declinedBioM: declined('nb'),
       declinedEbikeM: declined('ne'),
       hikingKm: clamp('w', d.hikingKm, minHikingKm, maxHikingKm),
@@ -1663,14 +1917,27 @@ class LoopPrefs {
   }
 
   // `c` bleibt für ältere Apps: das Limit des Rads von eben.
-  String encode() => 'h=$hours;c=$climbM;cb=$climbBioM;ce=$climbEbikeM'
+  String encode() =>
+      'h=$hours;c=$climbM;cb=$climbBioM;ce=$climbEbikeM'
       '${declinedBioM == null ? '' : ';nb=$declinedBioM'}${declinedEbikeM == null ? '' : ';ne=$declinedEbikeM'}'
-      ';w=$hikingKm;r=${switch (endMode) { LoopEndMode.loop => 1, LoopEndMode.lastTrail => 0, LoopEndMode.target => 2 }};k=$radiusKm;o=${fillOnline ? 1 : 0}'
+      ';w=$hikingKm;r=${switch (endMode) {
+        LoopEndMode.loop => 1,
+        LoopEndMode.lastTrail => 0,
+        LoopEndMode.target => 2,
+      }};k=$radiusKm;o=${fillOnline ? 1 : 0}'
       ';sr=${route.avoidRoads ? 1 : 0};sw=${route.avoidHiking ? 1 : 0};ss=${route.avoidSteep ? 1 : 0}'
-      ';y=${switch (style) { RouteMode.direct => 'd', RouteMode.fun => 'f', RouteMode.easy => 'e' }};u=${easyUp ? 1 : 0};a=${intentRoute ? 1 : 0}';
+      ';y=${switch (style) {
+        RouteMode.direct => 'd',
+        RouteMode.fun => 'f',
+        RouteMode.easy => 'e',
+      }};u=${easyUp ? 1 : 0};a=${intentRoute ? 1 : 0}';
 
-  LoopBudget get budget =>
-      LoopBudget(timeS: hours * 3600, climbM: climbM, hikingM: hikingKm * 1000, windowS: loopWindowFor(hours * 3600));
+  LoopBudget get budget => LoopBudget(
+    timeS: hours * 3600,
+    climbM: climbM,
+    hikingM: hikingKm * 1000,
+    windowS: loopWindowFor(hours * 3600),
+  );
 
   /// Das Budget des Vorschlags (Konzept-Routing 12.4, #516 Schritt 4):
   /// die Höhenmeter des Limits mit der Zeit skaliert — das Limit gilt für
@@ -1678,65 +1945,70 @@ class LoopPrefs {
   LoopBudget get suggestBudget => budget.copyWith(climbM: suggestClimbM);
 
   double get suggestClimbM {
-    final scaled = (climbM * math.min(hours, kBudgetHours) / kBudgetHours / climbStep).round() * climbStep;
+    final scaled =
+        (climbM * math.min(hours, kBudgetHours) / kBudgetHours / climbStep)
+            .round() *
+        climbStep;
     return scaled.clamp(minClimb, math.max(minClimb, climbM)).toDouble();
   }
 
   /// [climbM] stellt das Limit des Rads [bike].
-  LoopPrefs copyWith(
-          {double? hours,
-          double? climbM,
-          double? hikingKm,
-          LoopEndMode? endMode,
-          double? radiusKm,
-          bool? fillOnline,
-          RoutePrefs? route,
-          RouteMode? style,
-          bool? easyUp,
-          bool? intentRoute}) =>
-      (climbM == null ? this : withClimb(bike, climbM))._with(
-        hours: hours,
-        hikingKm: hikingKm,
-        endMode: endMode,
-        radiusKm: radiusKm,
-        fillOnline: fillOnline,
-        route: route,
-        style: style,
-        easyUp: easyUp,
-        intentRoute: intentRoute,
-      );
+  LoopPrefs copyWith({
+    double? hours,
+    double? climbM,
+    double? hikingKm,
+    LoopEndMode? endMode,
+    double? radiusKm,
+    bool? fillOnline,
+    RoutePrefs? route,
+    RouteMode? style,
+    bool? easyUp,
+    bool? intentRoute,
+  }) => (climbM == null ? this : withClimb(bike, climbM))._with(
+    hours: hours,
+    hikingKm: hikingKm,
+    endMode: endMode,
+    radiusKm: radiusKm,
+    fillOnline: fillOnline,
+    route: route,
+    style: style,
+    easyUp: easyUp,
+    intentRoute: intentRoute,
+  );
 
-  LoopPrefs _with(
-          {double? hours,
-          RiderProfile? bike,
-          double? climbBioM,
-          double? climbEbikeM,
-          double? Function()? declinedBioM,
-          double? Function()? declinedEbikeM,
-          double? hikingKm,
-          LoopEndMode? endMode,
-          double? radiusKm,
-          bool? fillOnline,
-          RoutePrefs? route,
-          RouteMode? style,
-          bool? easyUp,
-          bool? intentRoute}) =>
-      LoopPrefs(
-        hours: hours ?? this.hours,
-        bike: bike ?? this.bike,
-        climbBioM: climbBioM ?? this.climbBioM,
-        climbEbikeM: climbEbikeM ?? this.climbEbikeM,
-        declinedBioM: declinedBioM == null ? this.declinedBioM : declinedBioM(),
-        declinedEbikeM: declinedEbikeM == null ? this.declinedEbikeM : declinedEbikeM(),
-        hikingKm: hikingKm ?? this.hikingKm,
-        endMode: endMode ?? this.endMode,
-        radiusKm: radiusKm ?? this.radiusKm,
-        fillOnline: fillOnline ?? this.fillOnline,
-        route: route ?? this.route,
-        style: style ?? this.style,
-        easyUp: easyUp ?? this.easyUp,
-        intentRoute: intentRoute ?? this.intentRoute,
-      );
+  LoopPrefs _with({
+    double? hours,
+    RiderProfile? bike,
+    double? climbBioM,
+    double? climbEbikeM,
+    double? Function()? declinedBioM,
+    double? Function()? declinedEbikeM,
+    double? hikingKm,
+    LoopEndMode? endMode,
+    double? radiusKm,
+    bool? fillOnline,
+    RoutePrefs? route,
+    RouteMode? style,
+    bool? easyUp,
+    bool? intentRoute,
+  }) => LoopPrefs(
+    hours: hours ?? this.hours,
+    bike: bike ?? this.bike,
+    climbBioM: climbBioM ?? this.climbBioM,
+    climbEbikeM: climbEbikeM ?? this.climbEbikeM,
+    declinedBioM: declinedBioM == null ? this.declinedBioM : declinedBioM(),
+    declinedEbikeM: declinedEbikeM == null
+        ? this.declinedEbikeM
+        : declinedEbikeM(),
+    hikingKm: hikingKm ?? this.hikingKm,
+    endMode: endMode ?? this.endMode,
+    radiusKm: radiusKm ?? this.radiusKm,
+    fillOnline: fillOnline ?? this.fillOnline,
+    route: route ?? this.route,
+    style: style ?? this.style,
+    easyUp: easyUp ?? this.easyUp,
+    intentRoute: intentRoute ?? this.intentRoute,
+  );
 }
 
 /// „Runde: Hexentanz, Steinbruch" — höchstens drei Namen, dann „und n
@@ -1750,6 +2022,8 @@ String loopName(AppLocalizations l, LoopPlan plan, {bool loop = true}) {
   if (names.isEmpty) return loop ? l.loopTitle : l.loopRouteTitle;
   final shown = names.take(3).join(', ');
   final rest = names.length - 3;
-  if (!loop) return rest > 0 ? l.loopRouteNameMore(shown, rest) : l.loopRouteName(shown);
+  if (!loop) {
+    return rest > 0 ? l.loopRouteNameMore(shown, rest) : l.loopRouteName(shown);
+  }
   return rest > 0 ? l.loopNameMore(shown, rest) : l.loopName(shown);
 }

@@ -26,24 +26,26 @@ Future<ProviderContainer> pumpCoach(WidgetTester tester, Widget home) async {
   addTearDown(container.dispose);
   addTearDown(() => tester.pumpWidget(const SizedBox()));
   addTearDown(() => container.read(coachProvider.notifier).finish());
-  await tester.pumpWidget(UncontrolledProviderScope(
-    container: container,
-    child: MaterialApp(
-      // Die Knöpfe der Maschine sprechen seit #209 aus den ARB-Dateien;
-      // die Tests prüfen die deutschen.
-      locale: const Locale('de'),
-      supportedLocales: AppLocalizations.supportedLocales,
-      localizationsDelegates: AppLocalizations.localizationsDelegates,
-      builder: (context, child) => Stack(
-        fit: StackFit.expand,
-        children: [
-          CoachSemanticsGate(child: child!),
-          CoachOverlay(onNavigate: (_) {}),
-        ],
+  await tester.pumpWidget(
+    UncontrolledProviderScope(
+      container: container,
+      child: MaterialApp(
+        // Die Knöpfe der Maschine sprechen seit #209 aus den ARB-Dateien;
+        // die Tests prüfen die deutschen.
+        locale: const Locale('de'),
+        supportedLocales: AppLocalizations.supportedLocales,
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        builder: (context, child) => Stack(
+          fit: StackFit.expand,
+          children: [
+            CoachSemanticsGate(child: child!),
+            CoachOverlay(onNavigate: (_) {}),
+          ],
+        ),
+        home: Scaffold(body: home),
       ),
-      home: Scaffold(body: home),
     ),
-  ));
+  );
   return container;
 }
 
@@ -54,8 +56,9 @@ Future<void> frames(WidgetTester tester, [int n = 6]) async {
 }
 
 void main() {
-  testWidgets('misst über die ganze Transformation, nicht nur die Position',
-      (tester) async {
+  testWidgets('misst über die ganze Transformation, nicht nur die Position', (
+    tester,
+  ) async {
     // Die Knopfleiste der Karte steckt in einem `FittedBox(scaleDown)`.
     // `localToGlobal(Offset.zero) & size` nähme dort die Position richtig
     // und die UNverkleinerte Größe — im Test der Karte ist die Leiste
@@ -67,12 +70,22 @@ void main() {
         child: Transform.scale(
           scale: 0.5,
           child: const CoachAnchor(
-              id: 'box', child: SizedBox(key: Key('box'), width: 200, height: 80)),
+            id: 'box',
+            child: SizedBox(key: Key('box'), width: 200, height: 80),
+          ),
         ),
       ),
     );
-    container.read(coachProvider.notifier).start(const CoachScript(
-        id: 't', steps: [CoachStep(title: 'T', text: 'x', lit: ['box'])]));
+    container
+        .read(coachProvider.notifier)
+        .start(
+          const CoachScript(
+            id: 't',
+            steps: [
+              CoachStep(title: 'T', text: 'x', lit: ['box']),
+            ],
+          ),
+        );
     await frames(tester);
     final lit = painter(tester).lit.single;
     final real = tester.getRect(find.byKey(const Key('box')));
@@ -80,8 +93,9 @@ void main() {
     expect(lit, rectMoreOrLessEquals(real));
   });
 
-  testWidgets('eine Szene wird geöffnet und am Ende wieder geschlossen',
-      (tester) async {
+  testWidgets('eine Szene wird geöffnet und am Ende wieder geschlossen', (
+    tester,
+  ) async {
     final container = await pumpCoach(tester, const SizedBox.expand());
     var opened = 0;
     var closed = 0;
@@ -89,11 +103,18 @@ void main() {
       opened++;
       return () => closed++;
     });
-    container.read(coachProvider.notifier).start(const CoachScript(id: 't', steps: [
-      CoachStep(title: 'A', text: 'x', scene: 's'),
-      CoachStep(title: 'B', text: 'x', scene: 's'),
-      CoachStep(title: 'C', text: 'x'),
-    ]));
+    container
+        .read(coachProvider.notifier)
+        .start(
+          const CoachScript(
+            id: 't',
+            steps: [
+              CoachStep(title: 'A', text: 'x', scene: 's'),
+              CoachStep(title: 'B', text: 'x', scene: 's'),
+              CoachStep(title: 'C', text: 'x'),
+            ],
+          ),
+        );
     await frames(tester);
     expect((opened, closed), (1, 0));
     container.read(coachProvider.notifier).next(); // dieselbe Szene
@@ -103,8 +124,14 @@ void main() {
     await frames(tester);
     expect((opened, closed), (1, 1));
 
-    container.read(coachProvider.notifier).start(const CoachScript(
-        id: 't', steps: [CoachStep(title: 'A', text: 'x', scene: 's')]));
+    container
+        .read(coachProvider.notifier)
+        .start(
+          const CoachScript(
+            id: 't',
+            steps: [CoachStep(title: 'A', text: 'x', scene: 's')],
+          ),
+        );
     await frames(tester);
     container.read(coachProvider.notifier).finish();
     await frames(tester);
@@ -118,15 +145,24 @@ void main() {
     // übersprungener Schritt (Feldmeldung 2026-09-25).
     final container = await pumpCoach(tester, const SizedBox.expand());
     var done = false;
-    container.read(coachProvider.notifier).start(
-        const CoachScript(id: 't', steps: [
-          CoachStep(title: 'A', text: 'x', lit: ['gibt-es-nicht']),
-        ]),
-        onDone: () => done = true);
+    container
+        .read(coachProvider.notifier)
+        .start(
+          const CoachScript(
+            id: 't',
+            steps: [
+              CoachStep(title: 'A', text: 'x', lit: ['gibt-es-nicht']),
+            ],
+          ),
+          onDone: () => done = true,
+        );
     await frames(tester, 3);
     expect(find.text('A'), findsOneWidget);
-    expect(find.byKey(const ValueKey('coach-target-lost')), findsNothing,
-        reason: 'nicht gleich — eine Szene braucht einen Moment');
+    expect(
+      find.byKey(const ValueKey('coach-target-lost')),
+      findsNothing,
+      reason: 'nicht gleich — eine Szene braucht einen Moment',
+    );
     await tester.pump(const Duration(seconds: 4));
     await frames(tester, 130);
     expect(done, isFalse);
@@ -138,16 +174,28 @@ void main() {
     // `requires`: Die erste Zeile einer leeren Liste gibt es nicht — der
     // Schritt darüber soll nicht zwei Sekunden auf nichts zeigen.
     final container = await pumpCoach(
-        tester,
-        const Center(
-            child: CoachAnchor(
-                id: 'da', child: SizedBox(width: 50, height: 50))));
-    container.read(coachProvider.notifier).start(const CoachScript(id: 't', steps: [
-      CoachStep(title: 'A', text: 'x', lit: ['da']),
-      CoachStep(
-          title: 'B', text: 'x', lit: ['fehlt'], requires: ['fehlt']),
-      CoachStep(title: 'C', text: 'x', lit: ['da'], requires: ['da']),
-    ]));
+      tester,
+      const Center(
+        child: CoachAnchor(id: 'da', child: SizedBox(width: 50, height: 50)),
+      ),
+    );
+    container
+        .read(coachProvider.notifier)
+        .start(
+          const CoachScript(
+            id: 't',
+            steps: [
+              CoachStep(title: 'A', text: 'x', lit: ['da']),
+              CoachStep(
+                title: 'B',
+                text: 'x',
+                lit: ['fehlt'],
+                requires: ['fehlt'],
+              ),
+              CoachStep(title: 'C', text: 'x', lit: ['da'], requires: ['da']),
+            ],
+          ),
+        );
     await frames(tester);
     container.read(coachProvider.notifier).next();
     await frames(tester, 2);
@@ -167,11 +215,18 @@ void main() {
         return () => log.add('zu $id');
       });
     }
-    container.read(coachProvider.notifier).start(const CoachScript(id: 't', steps: [
-      CoachStep(title: 'A', text: 'x', scene: 'a'),
-      CoachStep(title: 'B', text: 'x', scene: 'a/b'),
-      CoachStep(title: 'C', text: 'x', scene: 'a'),
-    ]));
+    container
+        .read(coachProvider.notifier)
+        .start(
+          const CoachScript(
+            id: 't',
+            steps: [
+              CoachStep(title: 'A', text: 'x', scene: 'a'),
+              CoachStep(title: 'B', text: 'x', scene: 'a/b'),
+              CoachStep(title: 'C', text: 'x', scene: 'a'),
+            ],
+          ),
+        );
     await frames(tester);
     container.read(coachProvider.notifier).next();
     await frames(tester);
@@ -182,8 +237,9 @@ void main() {
     expect(log, ['auf a', 'auf a/b', 'zu a/b', 'zu a']);
   });
 
-  testWidgets('eine Szene, die sich erst später anmeldet, geht trotzdem auf',
-      (tester) async {
+  testWidgets('eine Szene, die sich erst später anmeldet, geht trotzdem auf', (
+    tester,
+  ) async {
     // Die innere Szene meldet ihr Besitzer an, und der entsteht erst,
     // wenn die äußere steht — etwa ein Knopf AUF der Seite, die die
     // äußere Szene öffnet.
@@ -199,25 +255,40 @@ void main() {
       });
       return () {};
     });
-    container.read(coachProvider.notifier).start(const CoachScript(
-        id: 't', steps: [CoachStep(title: 'A', text: 'x', scene: 'a/b')]));
+    container
+        .read(coachProvider.notifier)
+        .start(
+          const CoachScript(
+            id: 't',
+            steps: [CoachStep(title: 'A', text: 'x', scene: 'a/b')],
+          ),
+        );
     await frames(tester, 10);
     expect(inner, 1);
   });
 
-  testWidgets('der Zähler und „Los geht\'s" zählen nur, was läuft',
-      (tester) async {
+  testWidgets('der Zähler und „Los geht\'s" zählen nur, was läuft', (
+    tester,
+  ) async {
     final container = await pumpCoach(
-        tester,
-        const Center(
-            child: CoachAnchor(
-                id: 'da', child: SizedBox(width: 50, height: 50))));
-    container.read(coachProvider.notifier).start(const CoachScript(id: 't', steps: [
-      CoachStep(title: 'A', text: 'x', lit: ['da']),
-      CoachStep(title: 'B', text: 'x', lit: ['da']),
-      // Ersatzschritt, der hier wegfällt — B ist also der letzte.
-      CoachStep(title: 'C', text: 'x', unless: ['da']),
-    ]));
+      tester,
+      const Center(
+        child: CoachAnchor(id: 'da', child: SizedBox(width: 50, height: 50)),
+      ),
+    );
+    container
+        .read(coachProvider.notifier)
+        .start(
+          const CoachScript(
+            id: 't',
+            steps: [
+              CoachStep(title: 'A', text: 'x', lit: ['da']),
+              CoachStep(title: 'B', text: 'x', lit: ['da']),
+              // Ersatzschritt, der hier wegfällt — B ist also der letzte.
+              CoachStep(title: 'C', text: 'x', unless: ['da']),
+            ],
+          ),
+        );
     await frames(tester);
     expect(find.text('1 von 2'), findsOneWidget);
     container.read(coachProvider.notifier).next();
@@ -226,22 +297,33 @@ void main() {
     expect(find.text('Los geht\'s'), findsOneWidget);
   });
 
-  testWidgets('„Animationen entfernen": Ring und Hand stehen still',
-      (tester) async {
+  testWidgets('„Animationen entfernen": Ring und Hand stehen still', (
+    tester,
+  ) async {
     tester.platformDispatcher.accessibilityFeaturesTestValue =
         const FakeAccessibilityFeatures(disableAnimations: true);
     addTearDown(tester.platformDispatcher.clearAccessibilityFeaturesTestValue);
     final container = await pumpCoach(
-        tester,
-        const Center(
-            child: CoachAnchor(
-                id: 'da', child: SizedBox(width: 50, height: 50))));
-    container.read(coachProvider.notifier).start(const CoachScript(
-        id: 't',
-        steps: [
-          CoachStep(
-              title: 'A', text: 'x', lit: ['da'], gesture: CoachGesture.tap)
-        ]));
+      tester,
+      const Center(
+        child: CoachAnchor(id: 'da', child: SizedBox(width: 50, height: 50)),
+      ),
+    );
+    container
+        .read(coachProvider.notifier)
+        .start(
+          const CoachScript(
+            id: 't',
+            steps: [
+              CoachStep(
+                title: 'A',
+                text: 'x',
+                lit: ['da'],
+                gesture: CoachGesture.tap,
+              ),
+            ],
+          ),
+        );
     await frames(tester);
     final seen = <(double, double)>{};
     for (var i = 0; i < 12; i++) {
@@ -256,52 +338,88 @@ void main() {
     expect(seen, {(0.0, gestureStillFrame(CoachGesture.tap))});
   });
 
-  testWidgets('der Bildschirmleser sieht während der Tour nur die Blase',
-      (tester) async {
+  testWidgets('der Bildschirmleser sieht während der Tour nur die Blase', (
+    tester,
+  ) async {
     final semantics = tester.ensureSemantics();
     final container = await pumpCoach(
-        tester,
-        Center(
-            child: CoachAnchor(
-                id: 'da',
-                child: ElevatedButton(
-                    onPressed: () {}, child: const Text('Darunter')))));
+      tester,
+      Center(
+        child: CoachAnchor(
+          id: 'da',
+          child: ElevatedButton(
+            onPressed: () {},
+            child: const Text('Darunter'),
+          ),
+        ),
+      ),
+    );
     expect(find.semantics.byLabel('Darunter'), findsOneWidget);
-    container.read(coachProvider.notifier).start(const CoachScript(
-        id: 't', steps: [CoachStep(title: 'Oben', text: 'x', lit: ['da'])]));
+    container
+        .read(coachProvider.notifier)
+        .start(
+          const CoachScript(
+            id: 't',
+            steps: [
+              CoachStep(title: 'Oben', text: 'x', lit: ['da']),
+            ],
+          ),
+        );
     await frames(tester);
-    expect(find.semantics.byLabel('Darunter'), findsNothing,
-        reason: 'ein Knopf, der unter der Tour keinen Tipp annimmt');
+    expect(
+      find.semantics.byLabel('Darunter'),
+      findsNothing,
+      reason: 'ein Knopf, der unter der Tour keinen Tipp annimmt',
+    );
     expect(find.semantics.byLabel(RegExp('Oben')), findsOneWidget);
     expect(
-        find.byWidgetPredicate(
-            (w) => w is Semantics && (w.properties.liveRegion ?? false)),
-        findsOneWidget,
-        reason: 'ein neuer Schritt wird angesagt');
+      find.byWidgetPredicate(
+        (w) => w is Semantics && (w.properties.liveRegion ?? false),
+      ),
+      findsOneWidget,
+      reason: 'ein neuer Schritt wird angesagt',
+    );
     container.read(coachProvider.notifier).finish();
     await frames(tester);
-    expect(find.semantics.byLabel('Darunter'), findsOneWidget,
-        reason: 'danach wieder da');
+    expect(
+      find.semantics.byLabel('Darunter'),
+      findsOneWidget,
+      reason: 'danach wieder da',
+    );
     semantics.dispose();
   });
 
-  testWidgets('die Illustration steht in der Blase, unter dem Text',
-      (tester) async {
+  testWidgets('die Illustration steht in der Blase, unter dem Text', (
+    tester,
+  ) async {
     // TrailBuddys Erweiterung: Trail-Linien sind keine Widgets, der
     // Schritt „Farbe heißt Schwierigkeit" zeigt deshalb ein Bild in der
     // Blase statt einer Aussparung.
     final container = await pumpCoach(tester, const SizedBox.expand());
-    container.read(coachProvider.notifier).start(const CoachScript(id: 't', steps: [
-      CoachStep(
-          title: 'A',
-          text: 'Text',
-          illustration: SizedBox(key: Key('bild'), width: 40, height: 20)),
-    ]));
+    container
+        .read(coachProvider.notifier)
+        .start(
+          const CoachScript(
+            id: 't',
+            steps: [
+              CoachStep(
+                title: 'A',
+                text: 'Text',
+                illustration: SizedBox(key: Key('bild'), width: 40, height: 20),
+              ),
+            ],
+          ),
+        );
     await frames(tester);
     final bubble = find.byKey(const ValueKey('coach-bubble'));
-    expect(find.descendant(of: bubble, matching: find.byKey(const Key('bild'))), findsOneWidget);
-    expect(tester.getTopLeft(find.byKey(const Key('bild'))).dy,
-        greaterThan(tester.getBottomLeft(find.text('Text')).dy));
+    expect(
+      find.descendant(of: bubble, matching: find.byKey(const Key('bild'))),
+      findsOneWidget,
+    );
+    expect(
+      tester.getTopLeft(find.byKey(const Key('bild'))).dy,
+      greaterThan(tester.getBottomLeft(find.text('Text')).dy),
+    );
     expect(painter(tester).lit, isEmpty, reason: 'nichts ausgespart');
   });
 
@@ -309,7 +427,7 @@ void main() {
     test('gedrückt wird AUF dem Ziel', () {
       for (final g in [CoachGesture.tap, CoachGesture.longPress]) {
         final pressed = [
-          for (var t = 0.0; t <= 1; t += 0.01) FingerMotion.of(g, t)
+          for (var t = 0.0; t <= 1; t += 0.01) FingerMotion.of(g, t),
         ].where((m) => m.pressed).toList();
         expect(pressed, isNotEmpty, reason: '$g');
         for (final m in pressed) {
@@ -321,22 +439,26 @@ void main() {
 
     test('der lange Druck hält deutlich länger als der Tipp', () {
       int pressedSteps(CoachGesture g) => [
-            for (var t = 0.0; t <= 1; t += 0.01) FingerMotion.of(g, t)
-          ].where((m) => m.pressed).length;
-      expect(pressedSteps(CoachGesture.longPress),
-          greaterThan(3 * pressedSteps(CoachGesture.tap)));
+        for (var t = 0.0; t <= 1; t += 0.01) FingerMotion.of(g, t),
+      ].where((m) => m.pressed).length;
+      expect(
+        pressedSteps(CoachGesture.longPress),
+        greaterThan(3 * pressedSteps(CoachGesture.tap)),
+      );
     });
 
     test('Wischen läuft von rechts nach links über das Ziel', () {
       final pressed = [
         for (var t = 0.0; t <= 1; t += 0.01)
-          FingerMotion.of(CoachGesture.swipe, t)
+          FingerMotion.of(CoachGesture.swipe, t),
       ].where((m) => m.pressed).toList();
       expect(pressed.first.tipShift.dx, greaterThan(30));
       expect(pressed.last.tipShift.dx, lessThan(-30));
       for (var i = 1; i < pressed.length; i++) {
-        expect(pressed[i].tipShift.dx,
-            lessThanOrEqualTo(pressed[i - 1].tipShift.dx));
+        expect(
+          pressed[i].tipShift.dx,
+          lessThanOrEqualTo(pressed[i - 1].tipShift.dx),
+        );
       }
     });
 
@@ -344,7 +466,7 @@ void main() {
       for (final g in [
         CoachGesture.tap,
         CoachGesture.longPress,
-        CoachGesture.swipe
+        CoachGesture.swipe,
       ]) {
         expect(FingerMotion.of(g, 0).opacity, 0, reason: '$g');
         expect(FingerMotion.of(g, 1).opacity, 0, reason: '$g');
@@ -355,8 +477,10 @@ void main() {
       for (final g in CoachGesture.values) {
         for (var t = 0.0; t <= 1; t += 0.05) {
           final recorder = ui.PictureRecorder();
-          FingerPainter(gesture: g, t: t)
-              .paint(Canvas(recorder), const Size(120, 120));
+          FingerPainter(
+            gesture: g,
+            t: t,
+          ).paint(Canvas(recorder), const Size(120, 120));
           recorder.endRecording().dispose();
         }
       }

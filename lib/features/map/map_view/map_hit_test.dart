@@ -38,8 +38,12 @@ Offset projectToScreen(MapViewCamera camera, LatLng p) {
   final lonSpan = b.east - b.west;
   final yTop = _mercY(b.north);
   final ySpan = yTop - _mercY(b.south);
-  final x = lonSpan == 0 ? 0.0 : (p.longitude - b.west) / lonSpan * camera.size.width;
-  final y = ySpan == 0 ? 0.0 : (yTop - _mercY(p.latitude)) / ySpan * camera.size.height;
+  final x = lonSpan == 0
+      ? 0.0
+      : (p.longitude - b.west) / lonSpan * camera.size.width;
+  final y = ySpan == 0
+      ? 0.0
+      : (yTop - _mercY(p.latitude)) / ySpan * camera.size.height;
   return Offset(x, y);
 }
 
@@ -91,23 +95,35 @@ LatLng unprojectFromScreen(MapViewCamera camera, Offset at) {
   }
   final yN = _mercY(n), yS = _mercY(s);
   final yMid = (yN + yS) / 2;
-  final inset = bottomInset.clamp(0.0, math.max(0.0, size.height - 2 * padding - 1)).toDouble();
-  final usableW = size.width - 2 * padding, usableH = size.height - 2 * padding - inset;
+  final inset = bottomInset
+      .clamp(0.0, math.max(0.0, size.height - 2 * padding - 1))
+      .toDouble();
+  final usableW = size.width - 2 * padding,
+      usableH = size.height - 2 * padding - inset;
   var zoom = maxZoom;
   if (usableW > 0 && usableH > 0) {
     final lonSpan = e - w, ySpan = yN - yS;
     if (lonSpan > 0) {
-      zoom = math.min(zoom, math.log(usableW * 360 / (256 * lonSpan)) / math.ln2);
+      zoom = math.min(
+        zoom,
+        math.log(usableW * 360 / (256 * lonSpan)) / math.ln2,
+      );
     }
     if (ySpan > 0) {
-      zoom = math.min(zoom, math.log(usableH * 2 * math.pi / (256 * ySpan)) / math.ln2);
+      zoom = math.min(
+        zoom,
+        math.log(usableH * 2 * math.pi / (256 * ySpan)) / math.ln2,
+      );
     }
   }
   final z = zoom.clamp(minZoom, maxZoom).toDouble();
   // Die sichtbare Mitte liegt [inset]/2 Pixel über der Bildmitte — die
   // Kamera also um so viel südlicher (Mercator-y wächst nach Norden).
   final yCenter = yMid - (inset / 2) / (256 * math.pow(2, z) / (2 * math.pi));
-  final center = LatLng((2 * math.atan(math.exp(yCenter)) - math.pi / 2) * 180 / math.pi, (w + e) / 2);
+  final center = LatLng(
+    (2 * math.atan(math.exp(yCenter)) - math.pi / 2) * 180 / math.pi,
+    (w + e) / 2,
+  );
   return (center: center, zoom: z);
 }
 

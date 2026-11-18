@@ -17,7 +17,8 @@ Uint8List segment(int marker, List<int> payload) {
 /// Schiebt [segments] direkt hinter den SOI von [jpeg].
 Uint8List withSegments(Uint8List jpeg, List<Uint8List> segments) =>
     Uint8List.fromList([
-      0xFF, 0xD8,
+      0xFF,
+      0xD8,
       for (final s in segments) ...s,
       ...jpeg.sublist(2),
     ]);
@@ -33,8 +34,14 @@ bool hasText(Uint8List bytes, String text) =>
 Uint8List dirtyJpeg({int width = 640, int height = 480, int? orientation}) {
   final image = img.Image(width: width, height: height);
   img.fill(image, color: img.ColorRgb8(200, 120, 40));
-  img.fillRect(image,
-      x1: 0, y1: 0, x2: 60, y2: 60, color: img.ColorRgb8(255, 255, 255));
+  img.fillRect(
+    image,
+    x1: 0,
+    y1: 0,
+    x2: 60,
+    y2: 60,
+    color: img.ColorRgb8(255, 255, 255),
+  );
   image.exif.imageIfd['Make'] = 'Testphone';
   if (orientation != null) image.exif.imageIfd.orientation = orientation;
   // GPS-IFD: Breite als Rational, Referenz als ASCII — die Tags, die
@@ -45,12 +52,17 @@ Uint8List dirtyJpeg({int width = 640, int height = 480, int? orientation}) {
   image.exif.gpsIfd[0x0004] = img.IfdValueRational(7, 1);
   final jpeg = img.encodeJpg(image, quality: 90);
   final xmp = segment(0xE1, [
-    ...utf8.encode('http://ns.adobe.com/xap/1.0/'), 0,
-    ...utf8.encode('<x:xmpmeta><rdf:Description exif:GPSLatitude="49,26.5N"'
-        ' exif:GPSLongitude="7,30E"/></x:xmpmeta>'),
+    ...utf8.encode('http://ns.adobe.com/xap/1.0/'),
+    0,
+    ...utf8.encode(
+      '<x:xmpmeta><rdf:Description exif:GPSLatitude="49,26.5N"'
+      ' exif:GPSLongitude="7,30E"/></x:xmpmeta>',
+    ),
   ]);
-  final comment =
-      segment(0xFE, utf8.encode('Aufgenommen am Trailkopf, 49.44N 7.5E'));
+  final comment = segment(
+    0xFE,
+    utf8.encode('Aufgenommen am Trailkopf, 49.44N 7.5E'),
+  );
   return withSegments(jpeg, [xmp, comment]);
 }
 

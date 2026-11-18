@@ -20,18 +20,31 @@ const kWatchFreeMinM = 250.0;
 double lineLengthM(List<LatLng> line) {
   var m = 0.0;
   for (var i = 1; i < line.length; i++) {
-    m += geo.distanceMeters(line[i - 1].latitude, line[i - 1].longitude, line[i].latitude, line[i].longitude);
+    m += geo.distanceMeters(
+      line[i - 1].latitude,
+      line[i - 1].longitude,
+      line[i].latitude,
+      line[i].longitude,
+    );
   }
   return m;
 }
 
-typedef NearestLine = ({Trail trail, List<LatLng> points, double distanceM, double lengthM});
+typedef NearestLine = ({
+  Trail trail,
+  List<LatLng> points,
+  double distanceM,
+  double lengthM,
+});
 
 /// Der Trail, dessen Linie der Uhr am nächsten liegt — und die Linie so,
 /// dass sie dort anfängt, wo die Uhr steht. null, wenn keiner in Reichweite
 /// liegt oder keiner lang genug ist.
 NearestLine? nearestTrailLine(
-    List<Trail> trails, LatLng at, {double radiusM = kWatchFreeRadiusM}) {
+  List<Trail> trails,
+  LatLng at, {
+  double radiusM = kWatchFreeRadiusM,
+}) {
   Trail? best;
   List<LatLng>? line;
   double bestD = double.infinity;
@@ -41,7 +54,12 @@ NearestLine? nearestTrailLine(
     int near = 0;
     double d = double.infinity;
     for (var i = 0; i < pts.length; i++) {
-      final dd = geo.distanceMeters(at.latitude, at.longitude, pts[i].latitude, pts[i].longitude);
+      final dd = geo.distanceMeters(
+        at.latitude,
+        at.longitude,
+        pts[i].latitude,
+        pts[i].longitude,
+      );
       if (dd < d) {
         d = dd;
         near = i;
@@ -60,15 +78,20 @@ NearestLine? nearestTrailLine(
     bestD = d;
   }
   if (best == null || line == null) return null;
-  return (trail: best, points: line, distanceM: bestD, lengthM: lineLengthM(line));
+  return (
+    trail: best,
+    points: line,
+    distanceM: bestD,
+    lengthM: lineLengthM(line),
+  );
 }
 
 /// Die Abschnitte dazu: der ganze Rest der Linie ist genau dieser Trail.
 NavSections freeSections(Trail trail, List<LatLng> line) => NavSections([
-      NavTrailSection(
-        startM: 0,
-        endM: lineLengthM(line),
-        trailId: trail.id,
-        name: trail.name ?? '',
-      ),
-    ]);
+  NavTrailSection(
+    startM: 0,
+    endM: lineLengthM(line),
+    trailId: trail.id,
+    name: trail.name ?? '',
+  ),
+]);

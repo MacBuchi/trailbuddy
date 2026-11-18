@@ -31,14 +31,19 @@ class AirtimeLiveWindow extends ConsumerStatefulWidget {
   ConsumerState<AirtimeLiveWindow> createState() => _AirtimeLiveWindowState();
 }
 
-class _AirtimeLiveWindowState extends ConsumerState<AirtimeLiveWindow> with SingleTickerProviderStateMixin {
+class _AirtimeLiveWindowState extends ConsumerState<AirtimeLiveWindow>
+    with SingleTickerProviderStateMixin {
   late final Ticker _ticker = createTicker((_) => _advance());
   FusionLive? _shown;
 
   @override
   void initState() {
     super.initState();
-    ref.listenManual<AirtimeLiveState>(airtimeLiveProvider, (_, next) => _play(next), fireImmediately: true);
+    ref.listenManual<AirtimeLiveState>(
+      airtimeLiveProvider,
+      (_, next) => _play(next),
+      fireImmediately: true,
+    );
   }
 
   @override
@@ -62,7 +67,9 @@ class _AirtimeLiveWindowState extends ConsumerState<AirtimeLiveWindow> with Sing
     if (!identical(tick, _shown)) setState(() => _shown = tick);
     // Beim letzten Takt angekommen: warten auf den nächsten Schub. Die
     // Lage jetzt ist immer die neueste — jede Nachricht zeichnet neu.
-    if (tick == null || identical(tick, state.now) || identical(tick, state.ticks.last)) {
+    if (tick == null ||
+        identical(tick, state.now) ||
+        identical(tick, state.ticks.last)) {
       _ticker.stop();
     }
   }
@@ -108,8 +115,12 @@ class _AirtimeLiveWindowState extends ConsumerState<AirtimeLiveWindow> with Sing
                   Icon(Icons.sensors, size: 16, color: palette.muted),
                   const SizedBox(width: 6),
                   Expanded(
-                    child: Text(l.airtimeLiveTitle,
-                        style: Theme.of(context).textTheme.labelMedium?.copyWith(color: palette.muted)),
+                    child: Text(
+                      l.airtimeLiveTitle,
+                      style: Theme.of(
+                        context,
+                      ).textTheme.labelMedium?.copyWith(color: palette.muted),
+                    ),
                   ),
                   PopupMenuButton<String>(
                     key: const ValueKey('airtime-live-missed'),
@@ -117,9 +128,18 @@ class _AirtimeLiveWindowState extends ConsumerState<AirtimeLiveWindow> with Sing
                     icon: const Icon(Icons.flag_outlined, size: 20),
                     onSelected: (actionId) => _missed(actionId),
                     itemBuilder: (context) => [
-                      PopupMenuItem(value: kWheelieMissed, child: Text(l.wheelieMissedButton)),
-                      PopupMenuItem(value: kJumpMissed, child: Text(l.jumpMissedButton)),
-                      PopupMenuItem(value: kStoppieMissed, child: Text(l.stoppieMissedButton)),
+                      PopupMenuItem(
+                        value: kWheelieMissed,
+                        child: Text(l.wheelieMissedButton),
+                      ),
+                      PopupMenuItem(
+                        value: kJumpMissed,
+                        child: Text(l.jumpMissedButton),
+                      ),
+                      PopupMenuItem(
+                        value: kStoppieMissed,
+                        child: Text(l.stoppieMissedButton),
+                      ),
                     ],
                   ),
                   IconButton(
@@ -130,7 +150,10 @@ class _AirtimeLiveWindowState extends ConsumerState<AirtimeLiveWindow> with Sing
                   ),
                 ],
               ),
-              _LiveBody(tick: tick, lagUs: state.shownLagUs(ref.read(airtimeClockProvider)())),
+              _LiveBody(
+                tick: tick,
+                lagUs: state.shownLagUs(ref.read(airtimeClockProvider)()),
+              ),
               if (event != null) ...[
                 const Divider(height: 16),
                 _PendingQuestion(
@@ -151,8 +174,15 @@ class _AirtimeLiveWindowState extends ConsumerState<AirtimeLiveWindow> with Sing
     if (!mounted) return;
     final now = DateTime.now();
     String two(int v) => v.toString().padLeft(2, '0');
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(context.l10n.wheelieMissedNoted('${two(now.hour)}:${two(now.minute)}:${two(now.second)}'))));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          context.l10n.wheelieMissedNoted(
+            '${two(now.hour)}:${two(now.minute)}:${two(now.second)}',
+          ),
+        ),
+      ),
+    );
   }
 }
 
@@ -174,17 +204,19 @@ class _LiveBody extends StatelessWidget {
     final status = tick == null
         ? l.airtimeLiveWaiting
         : !tick.upKnown
-            ? l.airtimeLiveLearningUp
-            : pitch == null
-                ? l.airtimeLiveLearningForward
-                : switch (phase) {
-                    FusionPhase.none => l.airtimeLivePhaseNone,
-                    FusionPhase.wheelie => l.airtimeLivePhaseWheelie,
-                    FusionPhase.stoppie => l.airtimeLivePhaseStoppie,
-                    FusionPhase.airborne => l.airtimeLivePhaseAirborne,
-                  };
+        ? l.airtimeLiveLearningUp
+        : pitch == null
+        ? l.airtimeLiveLearningForward
+        : switch (phase) {
+            FusionPhase.none => l.airtimeLivePhaseNone,
+            FusionPhase.wheelie => l.airtimeLivePhaseWheelie,
+            FusionPhase.stoppie => l.airtimeLivePhaseStoppie,
+            FusionPhase.airborne => l.airtimeLivePhaseAirborne,
+          };
     final start = tick?.phaseStartUs;
-    final running = tick == null || start == null ? null : _num(l, (tick.tUs - start) / 1e6, 1);
+    final running = tick == null || start == null
+        ? null
+        : _num(l, (tick.tUs - start) / 1e6, 1);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -206,35 +238,59 @@ class _LiveBody extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(pitch == null ? '–°' : '${_num(l, pitch, 0)}°',
-                      key: const ValueKey('airtime-live-angle'),
-                      style: mono.copyWith(
-                          fontSize: 28, height: 1.1, color: active ? palette.accentText : palette.text)),
-                  Text(status,
-                      key: const ValueKey('airtime-live-status'),
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600)),
+                  Text(
+                    pitch == null ? '–°' : '${_num(l, pitch, 0)}°',
+                    key: const ValueKey('airtime-live-angle'),
+                    style: mono.copyWith(
+                      fontSize: 28,
+                      height: 1.1,
+                      color: active ? palette.accentText : palette.text,
+                    ),
+                  ),
+                  Text(
+                    status,
+                    key: const ValueKey('airtime-live-status'),
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                   if (running != null)
                     Text(
-                        phase == FusionPhase.airborne
-                            ? l.airtimeLiveSeconds(running)
-                            : l.airtimeLiveRunning(running, _num(l, tick!.peakDeg, 0)),
-                        key: const ValueKey('airtime-live-running'),
-                        style: mono.copyWith(fontSize: 13)),
+                      phase == FusionPhase.airborne
+                          ? l.airtimeLiveSeconds(running)
+                          : l.airtimeLiveRunning(
+                              running,
+                              _num(l, tick!.peakDeg, 0),
+                            ),
+                      key: const ValueKey('airtime-live-running'),
+                      style: mono.copyWith(fontSize: 13),
+                    ),
                 ],
               ),
             ),
           ],
         ),
         if (tick != null)
-          Text(l.airtimeLiveFooter(_num(l, tick.speedKmh, 0), _num(l, lagUs / 1e6, 1)),
-              style: Theme.of(context).textTheme.labelSmall?.copyWith(color: palette.muted)),
+          Text(
+            l.airtimeLiveFooter(
+              _num(l, tick.speedKmh, 0),
+              _num(l, lagUs / 1e6, 1),
+            ),
+            style: Theme.of(
+              context,
+            ).textTheme.labelSmall?.copyWith(color: palette.muted),
+          ),
       ],
     );
   }
 }
 
 class _PendingQuestion extends StatelessWidget {
-  const _PendingQuestion({required this.event, required this.more, required this.onAnswer});
+  const _PendingQuestion({
+    required this.event,
+    required this.more,
+    required this.onAnswer,
+  });
 
   final FusionEvent event;
   final int more;
@@ -246,19 +302,33 @@ class _PendingQuestion extends StatelessWidget {
     final seconds = _num(l, event.duration.inMilliseconds / 1000, 1);
     final (title, body) = switch (event) {
       WheelieEvent e => (
-          l.wheelieNoticeTitle,
-          l.wheelieNoticeBody(seconds, _num(l, e.lengthM, 0), _num(l, e.maxTiltDeg, 0))
+        l.wheelieNoticeTitle,
+        l.wheelieNoticeBody(
+          seconds,
+          _num(l, e.lengthM, 0),
+          _num(l, e.maxTiltDeg, 0),
         ),
+      ),
       JumpEvent e => (
-          l.jumpNoticeTitle,
-          e.plausible
-              ? l.jumpNoticeBody(_num(l, e.duration.inMilliseconds / 1000, 2), _num(l, e.landingG, 1))
-              : l.jumpNoticeBodyImplausible(_num(l, e.duration.inMilliseconds / 1000, 2), _num(l, e.landingG, 1))
-        ),
+        l.jumpNoticeTitle,
+        e.plausible
+            ? l.jumpNoticeBody(
+                _num(l, e.duration.inMilliseconds / 1000, 2),
+                _num(l, e.landingG, 1),
+              )
+            : l.jumpNoticeBodyImplausible(
+                _num(l, e.duration.inMilliseconds / 1000, 2),
+                _num(l, e.landingG, 1),
+              ),
+      ),
       StoppieEvent e => (
-          l.stoppieNoticeTitle,
-          l.stoppieNoticeBody(seconds, _num(l, e.maxTiltDeg, 0), _num(l, e.decel, 1))
+        l.stoppieNoticeTitle,
+        l.stoppieNoticeBody(
+          seconds,
+          _num(l, e.maxTiltDeg, 0),
+          _num(l, e.decel, 1),
         ),
+      ),
     };
     return Padding(
       padding: const EdgeInsets.only(right: 8),
@@ -269,8 +339,12 @@ class _PendingQuestion extends StatelessWidget {
           Text(title, style: Theme.of(context).textTheme.titleSmall),
           Text(body, style: Theme.of(context).textTheme.bodySmall),
           if (more > 0)
-            Text(l.airtimeLivePendingMore(more),
-                style: Theme.of(context).textTheme.labelSmall?.copyWith(color: AppPalette.of(context).muted)),
+            Text(
+              l.airtimeLivePendingMore(more),
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                color: AppPalette.of(context).muted,
+              ),
+            ),
           const SizedBox(height: 6),
           // Je die Hälfte: Groß genug für den Daumen mit Handschuh.
           Row(
@@ -279,7 +353,11 @@ class _PendingQuestion extends StatelessWidget {
                 child: OutlinedButton(
                   key: const ValueKey('airtime-live-no'),
                   onPressed: () => onAnswer(false),
-                  child: Text(l.wheelieNoticeNo, maxLines: 1, overflow: TextOverflow.ellipsis),
+                  child: Text(
+                    l.wheelieNoticeNo,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
               ),
               const SizedBox(width: 8),
@@ -287,7 +365,11 @@ class _PendingQuestion extends StatelessWidget {
                 child: FilledButton(
                   key: const ValueKey('airtime-live-yes'),
                   onPressed: () => onAnswer(true),
-                  child: Text(l.wheelieNoticeYes, maxLines: 1, overflow: TextOverflow.ellipsis),
+                  child: Text(
+                    l.wheelieNoticeYes,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
               ),
             ],
@@ -310,7 +392,12 @@ String _num(AppLocalizations l, double v, int digits) {
 /// höchstens 80°, über dem Rad bleibt Platz bis etwa 60°, darüber schneidet
 /// der Rand ab.
 class BikeSideView extends StatelessWidget {
-  const BikeSideView({super.key, required this.pitchDeg, required this.color, required this.ground});
+  const BikeSideView({
+    super.key,
+    required this.pitchDeg,
+    required this.color,
+    required this.ground,
+  });
 
   final double pitchDeg;
   final Color color, ground;
@@ -332,34 +419,46 @@ class BikeSideView extends StatelessWidget {
   Widget build(BuildContext context) {
     final pitch = pitchDeg.clamp(-80.0, 80.0);
     final pivot = pitch >= 0 ? rearAxle : frontAxle;
-    return LayoutBuilder(builder: (context, box) {
-      final scale = math.min(box.maxWidth / imageSize.width, box.maxHeight / (imageSize.height * (1 + headroom)));
-      final w = imageSize.width * scale, h = imageSize.height * scale;
-      final groundY = box.maxHeight - (imageSize.height - tyreBottom) * scale;
-      return ClipRect(
-        child: Stack(
-          children: [
-            Positioned(
-              left: 0,
-              right: 0,
-              top: groundY,
-              child: Container(height: 1.2, color: ground),
-            ),
-            Positioned(
-              left: (box.maxWidth - w) / 2,
-              top: box.maxHeight - h,
-              width: w,
-              height: h,
-              child: Transform.rotate(
-                angle: -pitch * math.pi / 180,
-                alignment: Alignment(
-                    pivot.dx / imageSize.width * 2 - 1, pivot.dy / imageSize.height * 2 - 1),
-                child: Image.asset(asset, color: color, colorBlendMode: BlendMode.srcIn, filterQuality: FilterQuality.medium),
+    return LayoutBuilder(
+      builder: (context, box) {
+        final scale = math.min(
+          box.maxWidth / imageSize.width,
+          box.maxHeight / (imageSize.height * (1 + headroom)),
+        );
+        final w = imageSize.width * scale, h = imageSize.height * scale;
+        final groundY = box.maxHeight - (imageSize.height - tyreBottom) * scale;
+        return ClipRect(
+          child: Stack(
+            children: [
+              Positioned(
+                left: 0,
+                right: 0,
+                top: groundY,
+                child: Container(height: 1.2, color: ground),
               ),
-            ),
-          ],
-        ),
-      );
-    });
+              Positioned(
+                left: (box.maxWidth - w) / 2,
+                top: box.maxHeight - h,
+                width: w,
+                height: h,
+                child: Transform.rotate(
+                  angle: -pitch * math.pi / 180,
+                  alignment: Alignment(
+                    pivot.dx / imageSize.width * 2 - 1,
+                    pivot.dy / imageSize.height * 2 - 1,
+                  ),
+                  child: Image.asset(
+                    asset,
+                    color: color,
+                    colorBlendMode: BlendMode.srcIn,
+                    filterQuality: FilterQuality.medium,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 }

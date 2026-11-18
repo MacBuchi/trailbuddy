@@ -47,7 +47,12 @@ class FakeNearbyRepository implements NearbyRepository {
 
   /// Ein Buddy legt im Paarkanal seine genaue Position ab (null: geht).
   void setPosition(String buddyId, double? lat, double? lon, {DateTime? at}) {
-    final e = (buddyId: buddyId, lat: lat, lon: lon, at: lat == null ? null : (at ?? DateTime.now()).toUtc());
+    final e = (
+      buddyId: buddyId,
+      lat: lat,
+      lon: lon,
+      at: lat == null ? null : (at ?? DateTime.now()).toUtc(),
+    );
     if (lat == null) {
       positionsOf.remove(buddyId);
     } else {
@@ -61,7 +66,8 @@ class FakeNearbyRepository implements NearbyRepository {
   bool _mayRead(String owner) {
     final me = _uid;
     if (me == null) return false;
-    return backend.areFriends(owner, me) && !(hiddenBy[owner]?.contains(me) ?? false);
+    return backend.areFriends(owner, me) &&
+        !(hiddenBy[owner]?.contains(me) ?? false);
   }
 
   /// Ein Buddy legt [cell] in seinen Kanal (null: geht weg).
@@ -73,7 +79,9 @@ class FakeNearbyRepository implements NearbyRepository {
       cellsOf[buddyId] = cell;
       liveOf[buddyId] = live;
     }
-    if (listening.contains(buddyId)) _cells.add((buddyId: buddyId, cell: cell, live: cell != null && live));
+    if (listening.contains(buddyId)) {
+      _cells.add((buddyId: buddyId, cell: cell, live: cell != null && live));
+    }
   }
 
   @override
@@ -106,7 +114,10 @@ class FakeNearbyRepository implements NearbyRepository {
     if (me == null) return const {};
     return {
       for (final e in homieBy.entries)
-        if (e.value.contains(me) && backend.areFriends(e.key, me) && !(hiddenBy[e.key]?.contains(me) ?? false)) e.key,
+        if (e.value.contains(me) &&
+            backend.areFriends(e.key, me) &&
+            !(hiddenBy[e.key]?.contains(me) ?? false))
+          e.key,
     };
   }
 

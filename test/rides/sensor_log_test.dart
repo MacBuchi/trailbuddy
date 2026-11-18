@@ -39,7 +39,8 @@ class FakeWheelieNotices implements WheelieNotices {
   }
 
   @override
-  Future<void> showMissed({required String file}) async => calls.add('showMissed $file');
+  Future<void> showMissed({required String file}) async =>
+      calls.add('showMissed $file');
 
   @override
   Future<void> cancelMissed() async => calls.add('cancelMissed');
@@ -60,7 +61,11 @@ void main() {
     accel = StreamController<List<double>>.broadcast();
     gyro = StreamController<List<double>>.broadcast();
     gps = StreamController<List<double>>.broadcast();
-    sources = SensorSources(accel: () => accel.stream, gyro: () => gyro.stream, gps: () => gps.stream);
+    sources = SensorSources(
+      accel: () => accel.stream,
+      gyro: () => gyro.stream,
+      gps: () => gps.stream,
+    );
     notices = FakeWheelieNotices();
     toApp = [];
     bridge = {
@@ -77,8 +82,13 @@ void main() {
   });
 
   Future<T?> read<T>(String key) async => bridge[key] as T?;
-  Future<void> tick() =>
-      sensorLogTick(sources: sources, read: read, flushEvery: every, notices: notices, toApp: toApp.add);
+  Future<void> tick() => sensorLogTick(
+    sources: sources,
+    read: read,
+    flushEvery: every,
+    notices: notices,
+    toApp: toApp.add,
+  );
   Future<void> wait() => Future<void>.delayed(every * 4);
   File logFile() => sensorLogFile(dir.path, '20261030T091503Z');
   final t = DateTime.utc(2026, 10, 30, 9, 16).microsecondsSinceEpoch.toDouble();
@@ -88,51 +98,77 @@ void main() {
   /// bremsen mit 2,5 m/s² bis 1 m/s, die Front 18° unten von 35,3 bis
   /// 36,6 s, dann wieder antreten.
   Future<void> feedRide() async {
-      const g = 9.80665;
-      final us = t.toInt();
-      double ramp(double s, double t0, double t1) => math.max(0.0, math.min(1.0, math.min((s - t0) / 0.3, (t1 - s) / 0.3)));
-      double pitch(double s) => math.pi / 180 * (25 * ramp(s, 20, 23) - 18 * ramp(s, 35.3, 36.6));
-      double speed(double s) => s < 35
-          ? 5.0
-          : s < 36.6
-              ? 5 - 2.5 * (s - 35)
-              : math.min(5.0, 1 + 2 * (s - 36.6));
-      for (var i = 0; i < 4000; i++) {
-        final s = i / 100;
-        final at = us + i * 10000.0;
-        if (i % 100 == 0) gps.add([at, 7.1, 9.2, 4.0, speed(s), 800.0]);
-        final p = pitch(s);
-        final dv = (speed(s + 0.005) - speed(s - 0.005)) / 0.01;
-        var f = [g * math.sin(p) + dv * math.cos(p), 0.0, g * math.cos(p) - dv * math.sin(p)];
-        if (s >= 30 && s < 30.5) f = [0.0, 0.0, 0.0];
-        if (s >= 30.5 && s < 30.55) f = [0.0, 0.0, 3 * g];
-        accel.add([at, ...f]);
-        gyro.add([at + 2000, 0.0, -(pitch(s + 0.005) - pitch(s - 0.005)) / 0.01, 0.0]);
-        if (i % 500 == 0) await Future<void>.delayed(Duration.zero);
-      }
+    const g = 9.80665;
+    final us = t.toInt();
+    double ramp(double s, double t0, double t1) =>
+        math.max(0.0, math.min(1.0, math.min((s - t0) / 0.3, (t1 - s) / 0.3)));
+    double pitch(double s) =>
+        math.pi / 180 * (25 * ramp(s, 20, 23) - 18 * ramp(s, 35.3, 36.6));
+    double speed(double s) => s < 35
+        ? 5.0
+        : s < 36.6
+        ? 5 - 2.5 * (s - 35)
+        : math.min(5.0, 1 + 2 * (s - 36.6));
+    for (var i = 0; i < 4000; i++) {
+      final s = i / 100;
+      final at = us + i * 10000.0;
+      if (i % 100 == 0) gps.add([at, 7.1, 9.2, 4.0, speed(s), 800.0]);
+      final p = pitch(s);
+      final dv = (speed(s + 0.005) - speed(s - 0.005)) / 0.01;
+      var f = [
+        g * math.sin(p) + dv * math.cos(p),
+        0.0,
+        g * math.cos(p) - dv * math.sin(p),
+      ];
+      if (s >= 30 && s < 30.5) f = [0.0, 0.0, 0.0];
+      if (s >= 30.5 && s < 30.55) f = [0.0, 0.0, 3 * g];
+      accel.add([at, ...f]);
+      gyro.add([
+        at + 2000,
+        0.0,
+        -(pitch(s + 0.005) - pitch(s - 0.005)) / 0.01,
+        0.0,
+      ]);
+      if (i % 500 == 0) await Future<void>.delayed(Duration.zero);
+    }
   }
 
-  test('Fahrt mit Schalter: Kopf, dann je Ereignis eine Zeile mit der Zeit des Sensors', () async {
-    await tick();
-    expect(currentSensorLogger?.running, isTrue);
-    expect(logFile().path, endsWith('/rides/sensors/20261030T091503Z.csv'),
-        reason: 'dieselbe Kennung wie die Fahrt, unter rides/ (Backup-Ausschluss)');
-    accel.add([t, 0.1, 9.81, -0.25]);
-    gyro.add([t + 10000, 0.01, -0.02, 0.5]);
-    gps.add([t + 20000, 7.1, 9.2, 4.5, 6.25, 812.0]);
-    await wait();
+  test(
+    'Fahrt mit Schalter: Kopf, dann je Ereignis eine Zeile mit der Zeit des Sensors',
+    () async {
+      await tick();
+      expect(currentSensorLogger?.running, isTrue);
+      expect(
+        logFile().path,
+        endsWith('/rides/sensors/20261030T091503Z.csv'),
+        reason:
+            'dieselbe Kennung wie die Fahrt, unter rides/ (Backup-Ausschluss)',
+      );
+      accel.add([t, 0.1, 9.81, -0.25]);
+      gyro.add([t + 10000, 0.01, -0.02, 0.5]);
+      gps.add([t + 20000, 7.1, 9.2, 4.5, 6.25, 812.0]);
+      await wait();
 
-    final lines = (await logFile().readAsString()).split('\n');
-    expect(lines.first, '# trailbuddy sensor log v3');
-    expect(lines.where((l) => l.startsWith('# mount,') || l.startsWith('# range,')), isEmpty,
-        reason: 'ohne Halterung der letzten Fahrt und ohne Messbereich keine Zeile');
-    final data = lines.where((l) => l.isNotEmpty && !l.startsWith('#')).toList();
-    expect(data, [
-      'a,${t.toInt()},0.1000,9.8100,-0.2500',
-      'w,${t.toInt() + 10000},0.0100,-0.0200,0.5000',
-      'g,${t.toInt() + 20000},7.1000,9.2000,4.5000,6.2500,812.0000',
-    ]);
-  });
+      final lines = (await logFile().readAsString()).split('\n');
+      expect(lines.first, '# trailbuddy sensor log v3');
+      expect(
+        lines.where(
+          (l) => l.startsWith('# mount,') || l.startsWith('# range,'),
+        ),
+        isEmpty,
+        reason:
+            'ohne Halterung der letzten Fahrt und ohne Messbereich keine Zeile',
+      );
+      final data = lines
+          .where((l) => l.isNotEmpty && !l.startsWith('#'))
+          .toList();
+      expect(data, [
+        'a,${t.toInt()},0.1000,9.8100,-0.2500',
+        'w,${t.toInt() + 10000},0.0100,-0.0200,0.5000',
+        'g,${t.toInt() + 20000},7.1000,9.2000,4.5000,6.2500,812.0000',
+      ]);
+    },
+  );
 
   test('ohne Schalter oder ohne Fahrt schreibt niemand', () async {
     bridge[kRideDataSensorLog] = false;
@@ -153,269 +189,497 @@ void main() {
     expect(accel.hasListener, isTrue);
   });
 
-  test('endet die Fahrt ohne Takt, hört der Logger beim nächsten Schreiben selbst auf', () async {
-    await tick();
-    final logger = currentSensorLogger!;
-    accel.add([t, 0, 0, 9.81]);
-    bridge[kRideDataActive] = false;
-    await wait();
-    expect(logger.running, isFalse);
-    expect(accel.hasListener, isFalse, reason: 'der Sensor ist abgemeldet');
-    expect(await logFile().readAsString(), contains('a,${t.toInt()},'),
-        reason: 'was gesammelt war, steht noch in der Datei');
-  });
+  test(
+    'endet die Fahrt ohne Takt, hört der Logger beim nächsten Schreiben selbst auf',
+    () async {
+      await tick();
+      final logger = currentSensorLogger!;
+      accel.add([t, 0, 0, 9.81]);
+      bridge[kRideDataActive] = false;
+      await wait();
+      expect(logger.running, isFalse);
+      expect(accel.hasListener, isFalse, reason: 'der Sensor ist abgemeldet');
+      expect(
+        await logFile().readAsString(),
+        contains('a,${t.toInt()},'),
+        reason: 'was gesammelt war, steht noch in der Datei',
+      );
+    },
+  );
 
   test('eine neue Fahrt schreibt in ihre eigene Datei', () async {
     await tick();
     final first = currentSensorLogger!;
-    bridge[kRideDataStartedAt] = DateTime.utc(2026, 10, 30, 11).toIso8601String();
+    bridge[kRideDataStartedAt] = DateTime.utc(
+      2026,
+      10,
+      30,
+      11,
+    ).toIso8601String();
     await tick();
     expect(first.running, isFalse);
     expect(currentSensorLogger!.file.path, endsWith('20261030T110000Z.csv'));
   });
 
-  test('Löschen der Fahrt nimmt die Rohdaten mit; der Pfad nur, wenn es sie gibt', () async {
-    final store = FileRideStore(baseDir: dir);
-    const id = '20261030T091503Z';
-    expect(await store.sensorLogPath(id), isNull);
-    await logFile().parent.create(recursive: true);
-    await logFile().writeAsString(kSensorLogHeader);
-    expect(await store.sensorLogPath(id), logFile().path);
-    expect(await store.sensorLogPath('../x'), isNull);
-    final events = File(sensorEventsPath(logFile().path));
-    await events.writeAsString('e,1,1.00,5.0,20.0\n');
-    await store.delete(id);
-    expect(await logFile().exists(), isFalse);
-    expect(await events.exists(), isFalse, reason: 'die Ereignisse gehen mit (#36 Schritt 5)');
-  });
+  test(
+    'Löschen der Fahrt nimmt die Rohdaten mit; der Pfad nur, wenn es sie gibt',
+    () async {
+      final store = FileRideStore(baseDir: dir);
+      const id = '20261030T091503Z';
+      expect(await store.sensorLogPath(id), isNull);
+      await logFile().parent.create(recursive: true);
+      await logFile().writeAsString(kSensorLogHeader);
+      expect(await store.sensorLogPath(id), logFile().path);
+      expect(await store.sensorLogPath('../x'), isNull);
+      final events = File(sensorEventsPath(logFile().path));
+      await events.writeAsString('e,1,1.00,5.0,20.0\n');
+      await store.delete(id);
+      expect(await logFile().exists(), isFalse);
+      expect(
+        await events.exists(),
+        isFalse,
+        reason: 'die Ereignisse gehen mit (#36 Schritt 5)',
+      );
+    },
+  );
 
-  test('Wheelie, Sprung und Stoppie in den Strömen: Zeilen e, j und s, je ein Banner, die Halterung für die nächste Fahrt',
-      () async {
-    // Die Halterung der letzten Fahrt: Telefon flach, oben = z, vorn = x.
-    final mountFile = File('${dir.path}/rides/sensors/$kSensorMountFile');
-    await mountFile.parent.create(recursive: true);
-    await mountFile.writeAsString(
-        jsonEncode(const FusionMount(up: (0.0, 0.0, 1.0), forward: (1.0, 0.0, 0.0)).toJson()));
-    bridge[kRideDataSensorRange] = '78.453,34.907';
-    await tick();
-    expect(notices.calls, ['showMissed ${logFile().path}']);
-    final us = t.toInt();
-    await feedRide();
-    await wait();
-    await stopSensorLog();
+  test(
+    'Wheelie, Sprung und Stoppie in den Strömen: Zeilen e, j und s, je ein Banner, die Halterung für die nächste Fahrt',
+    () async {
+      // Die Halterung der letzten Fahrt: Telefon flach, oben = z, vorn = x.
+      final mountFile = File('${dir.path}/rides/sensors/$kSensorMountFile');
+      await mountFile.parent.create(recursive: true);
+      await mountFile.writeAsString(
+        jsonEncode(
+          const FusionMount(
+            up: (0.0, 0.0, 1.0),
+            forward: (1.0, 0.0, 0.0),
+          ).toJson(),
+        ),
+      );
+      bridge[kRideDataSensorRange] = '78.453,34.907';
+      await tick();
+      expect(notices.calls, ['showMissed ${logFile().path}']);
+      final us = t.toInt();
+      await feedRide();
+      await wait();
+      await stopSensorLog();
 
-    expect(notices.calls, ['showMissed ${logFile().path}', 'wheelie', 'jump', 'stoppie', 'cancelMissed']);
-    final wheelie = notices.shown[0].$1 as WheelieEvent;
-    final jump = notices.shown[1].$1 as JumpEvent;
-    expect(notices.shown.map((e) => e.$2), everyElement(logFile().path));
-    expect((wheelie.startUs - us) / 1e6, closeTo(20.2, 0.2));
-    // 20° hoch, 15° runter (seit 2026-11-01; mit 15°/10° waren es 2,8 s).
-    expect(wheelie.duration.inMilliseconds / 1000, closeTo(2.5, 0.2));
-    expect(wheelie.maxTiltDeg, closeTo(25, 2));
-    expect((jump.startUs - us) / 1e6, closeTo(30.0, 0.05));
-    expect(jump.landingG, closeTo(3, 0.1));
-    expect(jump.plausible, isTrue);
-    final stoppie = notices.shown[2].$1 as StoppieEvent;
-    expect((stoppie.startUs - us) / 1e6, closeTo(35.4, 0.3));
-    expect(stoppie.maxTiltDeg, greaterThan(12));
-    expect(stoppie.decel, greaterThan(kFusionStoppieDecel));
+      expect(notices.calls, [
+        'showMissed ${logFile().path}',
+        'wheelie',
+        'jump',
+        'stoppie',
+        'cancelMissed',
+      ]);
+      final wheelie = notices.shown[0].$1 as WheelieEvent;
+      final jump = notices.shown[1].$1 as JumpEvent;
+      expect(notices.shown.map((e) => e.$2), everyElement(logFile().path));
+      expect((wheelie.startUs - us) / 1e6, closeTo(20.2, 0.2));
+      // 20° hoch, 15° runter (seit 2026-11-01; mit 15°/10° waren es 2,8 s).
+      expect(wheelie.duration.inMilliseconds / 1000, closeTo(2.5, 0.2));
+      expect(wheelie.maxTiltDeg, closeTo(25, 2));
+      expect((jump.startUs - us) / 1e6, closeTo(30.0, 0.05));
+      expect(jump.landingG, closeTo(3, 0.1));
+      expect(jump.plausible, isTrue);
+      final stoppie = notices.shown[2].$1 as StoppieEvent;
+      expect((stoppie.startUs - us) / 1e6, closeTo(35.4, 0.3));
+      expect(stoppie.maxTiltDeg, greaterThan(12));
+      expect(stoppie.decel, greaterThan(kFusionStoppieDecel));
 
-    final lines = (await logFile().readAsString()).split('\n');
-    expect(lines.first, '# trailbuddy sensor log v3');
-    expect(lines, contains('# mount,0.000000,0.000000,1.000000,1.000000,0.000000,0.000000'));
-    expect(lines, contains('# range,78.453,34.907'));
-    expect(lines.where((l) => l.startsWith('e,')), [wheelieEventLine(wheelie).trim()]);
-    expect(lines.where((l) => l.startsWith('j,')), [jumpEventLine(jump).trim()]);
-    expect(jumpEventLine(jump), matches(RegExp(r'^j,\d+,0\.\d{3},3\.\d\d,1\n$')));
-    expect(lines.where((l) => l.startsWith('s,')), [stoppieEventLine(stoppie).trim()]);
-    expect(stoppieEventLine(stoppie), matches(RegExp(r'^s,\d+,\d\.\d\d,\d+\.\d,\d\.\d\d,\d\.\d\d\n$')));
+      final lines = (await logFile().readAsString()).split('\n');
+      expect(lines.first, '# trailbuddy sensor log v3');
+      expect(
+        lines,
+        contains(
+          '# mount,0.000000,0.000000,1.000000,1.000000,0.000000,0.000000',
+        ),
+      );
+      expect(lines, contains('# range,78.453,34.907'));
+      expect(lines.where((l) => l.startsWith('e,')), [
+        wheelieEventLine(wheelie).trim(),
+      ]);
+      expect(lines.where((l) => l.startsWith('j,')), [
+        jumpEventLine(jump).trim(),
+      ]);
+      expect(
+        jumpEventLine(jump),
+        matches(RegExp(r'^j,\d+,0\.\d{3},3\.\d\d,1\n$')),
+      );
+      expect(lines.where((l) => l.startsWith('s,')), [
+        stoppieEventLine(stoppie).trim(),
+      ]);
+      expect(
+        stoppieEventLine(stoppie),
+        matches(RegExp(r'^s,\d+,\d\.\d\d,\d+\.\d,\d\.\d\d,\d\.\d\d\n$')),
+      );
 
-    // Die Ereignisse stehen auch allein in ihrer Datei — daraus liest die
-    // App die Trail-Werte (#36 Schritt 5), nicht aus 30 MB Rohdaten.
-    expect(await File(sensorEventsPath(logFile().path)).readAsString(),
-        wheelieEventLine(wheelie) + jumpEventLine(jump) + stoppieEventLine(stoppie));
-    final log = await FileRideStore(baseDir: dir).airtimeLog('20261030T091503Z');
-    expect(log.kept.map((e) => '${e.runtimeType} ${e.startUs}'),
-        [wheelie, jump, stoppie].map((e) => '${e.runtimeType} ${e.startUs}'));
-    expect(currentSensorLogger, isNull);
+      // Die Ereignisse stehen auch allein in ihrer Datei — daraus liest die
+      // App die Trail-Werte (#36 Schritt 5), nicht aus 30 MB Rohdaten.
+      expect(
+        await File(sensorEventsPath(logFile().path)).readAsString(),
+        wheelieEventLine(wheelie) +
+            jumpEventLine(jump) +
+            stoppieEventLine(stoppie),
+      );
+      final log = await FileRideStore(
+        baseDir: dir,
+      ).airtimeLog('20261030T091503Z');
+      expect(
+        log.kept.map((e) => '${e.runtimeType} ${e.startUs}'),
+        [wheelie, jump, stoppie].map((e) => '${e.runtimeType} ${e.startUs}'),
+      );
+      expect(currentSensorLogger, isNull);
 
-    // Die offene App bekommt dieselben drei Ereignisse und die Takte dazu.
-    final messages = toApp.map(decodeAirtimeMessage).toList();
-    expect(messages, everyElement(isNotNull));
-    expect(messages.map((m) => m!.file), everyElement(logFile().path));
-    final sent = [for (final m in messages.whereType<AirtimeEventMessage>()) m.event];
-    expect(sent.map((e) => '${e.runtimeType} ${e.startUs}'),
-        [wheelie, jump, stoppie].map((e) => '${e.runtimeType} ${e.startUs}'));
-    final ticks = [for (final m in messages.whereType<AirtimeLiveMessage>()) ...m.ticks];
-    expect(ticks.length, closeTo(400, 30), reason: '40 s mit 10 Hz');
-    final up = ticks.firstWhere((l) => l.tUs >= us + 22000000);
-    expect(up.phase, FusionPhase.wheelie);
-    expect(up.pitchDeg, closeTo(25, 2));
+      // Die offene App bekommt dieselben drei Ereignisse und die Takte dazu.
+      final messages = toApp.map(decodeAirtimeMessage).toList();
+      expect(messages, everyElement(isNotNull));
+      expect(messages.map((m) => m!.file), everyElement(logFile().path));
+      final sent = [
+        for (final m in messages.whereType<AirtimeEventMessage>()) m.event,
+      ];
+      expect(
+        sent.map((e) => '${e.runtimeType} ${e.startUs}'),
+        [wheelie, jump, stoppie].map((e) => '${e.runtimeType} ${e.startUs}'),
+      );
+      final ticks = [
+        for (final m in messages.whereType<AirtimeLiveMessage>()) ...m.ticks,
+      ];
+      expect(ticks.length, closeTo(400, 30), reason: '40 s mit 10 Hz');
+      final up = ticks.firstWhere((l) => l.tUs >= us + 22000000);
+      expect(up.phase, FusionPhase.wheelie);
+      expect(up.pitchDeg, closeTo(25, 2));
 
-    final saved = FusionMount.fromJson(jsonDecode(await mountFile.readAsString()))!;
-    expect(saved.up.$3, closeTo(1, 1e-3), reason: 'die gelernte Halterung liegt für die nächste Fahrt bereit');
-  });
+      final saved = FusionMount.fromJson(
+        jsonDecode(await mountFile.readAsString()),
+      )!;
+      expect(
+        saved.up.$3,
+        closeTo(1, 1e-3),
+        reason: 'die gelernte Halterung liegt für die nächste Fahrt bereit',
+      );
+    },
+  );
 
-  test('Handy in der Tasche (#491): keine Halterung, kein Wheelie oder Stoppie, nur harte Landungen', () async {
-    final mountFile = File('${dir.path}/rides/sensors/$kSensorMountFile');
-    await mountFile.parent.create(recursive: true);
-    final before = jsonEncode(const FusionMount(up: (0.0, 0.0, 1.0), forward: (1.0, 0.0, 0.0)).toJson());
-    await mountFile.writeAsString(before);
-    bridge[kRideDataPhonePocket] = true;
-    await tick();
-    await feedRide();
-    await wait();
-    await stopSensorLog();
+  test(
+    'Handy in der Tasche (#491): keine Halterung, kein Wheelie oder Stoppie, nur harte Landungen',
+    () async {
+      final mountFile = File('${dir.path}/rides/sensors/$kSensorMountFile');
+      await mountFile.parent.create(recursive: true);
+      final before = jsonEncode(
+        const FusionMount(
+          up: (0.0, 0.0, 1.0),
+          forward: (1.0, 0.0, 0.0),
+        ).toJson(),
+      );
+      await mountFile.writeAsString(before);
+      bridge[kRideDataPhonePocket] = true;
+      await tick();
+      await feedRide();
+      await wait();
+      await stopSensorLog();
 
-    // Der Sprung landet mit 3 g — in der Tasche zu weich (3,5 g).
-    expect(notices.calls, ['showMissed ${logFile().path}', 'cancelMissed']);
-    final lines = (await logFile().readAsString()).split('\n');
-    expect(lines, contains('# pocket'));
-    expect(lines.where((l) => l.startsWith('# mount,')), isEmpty, reason: 'keine mitgebrachte Halterung');
-    expect(lines.where((l) => RegExp(r'^[ejs],').hasMatch(l)), isEmpty);
-    expect(await mountFile.readAsString(), before, reason: 'die Halterung vom Rad bleibt für die nächste Fahrt');
-    final messages = toApp.map(decodeAirtimeMessage).toList();
-    expect(messages.whereType<AirtimeEventMessage>(), isEmpty);
-    final pocket = messages.whereType<AirtimePocketMessage>().toList();
-    expect(pocket, isNotEmpty);
-    expect(pocket.every((m) => m.pocket && m.declared), isTrue);
-  });
+      // Der Sprung landet mit 3 g — in der Tasche zu weich (3,5 g).
+      expect(notices.calls, ['showMissed ${logFile().path}', 'cancelMissed']);
+      final lines = (await logFile().readAsString()).split('\n');
+      expect(lines, contains('# pocket'));
+      expect(
+        lines.where((l) => l.startsWith('# mount,')),
+        isEmpty,
+        reason: 'keine mitgebrachte Halterung',
+      );
+      expect(lines.where((l) => RegExp(r'^[ejs],').hasMatch(l)), isEmpty);
+      expect(
+        await mountFile.readAsString(),
+        before,
+        reason: 'die Halterung vom Rad bleibt für die nächste Fahrt',
+      );
+      final messages = toApp.map(decodeAirtimeMessage).toList();
+      expect(messages.whereType<AirtimeEventMessage>(), isEmpty);
+      final pocket = messages.whereType<AirtimePocketMessage>().toList();
+      expect(pocket, isNotEmpty);
+      expect(pocket.every((m) => m.pocket && m.declared), isTrue);
+    },
+  );
 
-  test('die Tasche erkannt (#491): Zeile o, die App erfährt es, und keine Halterung wird gespeichert', () async {
-    // Die Halterung vom Rad, in einer Schreibweise, die `jsonEncode` nie
-    // erzeugt: Schreibt der Logger, ändert sich der Text.
-    final mountFile = File('${dir.path}/rides/sensors/$kSensorMountFile');
-    await mountFile.parent.create(recursive: true);
-    const before = '{ "up": [0.0, 0.0, 1.0], "forward": [1.0, 0.0, 0.0] }';
-    await mountFile.writeAsString(before);
-    expect(FusionMount.fromJson(jsonDecode(before)), isNotNull);
-    await tick();
-    final us = t.toInt();
-    // 140 s ruhig in Fahrt, der Oberschenkel schwingt im Tritt.
-    for (var i = 0; i < 14000; i++) {
-      final at = us + i * 10000.0;
-      if (i % 100 == 0) gps.add([at, 7.1, 9.2, 4.0, 6.0, 800.0]);
-      accel.add([at, 0.0, 0.0, 9.81 + (i.isEven ? 0.5 : -0.5)]);
-      gyro.add([at, 1.0 * math.sin(2 * math.pi * 1.3 * i / 100), 0.0, 0.0]);
-      if (i % 500 == 0) await Future<void>.delayed(Duration.zero);
-    }
-    gps.add([us + 14000 * 10000.0, 7.1, 9.2, 4.0, 6.0, 800.0]);
-    await wait();
-    expect(currentSensorLogger!.inPocket, isTrue);
-    await stopSensorLog();
-    final lines = (await logFile().readAsString()).split('\n');
-    expect(lines.where((l) => l.startsWith('o,')), hasLength(1));
-    expect(lines.firstWhere((l) => l.startsWith('o,')), endsWith(',1'));
-    expect(lines, isNot(contains('# pocket')));
-    final pocket = toApp.map(decodeAirtimeMessage).whereType<AirtimePocketMessage>().toList();
-    expect(pocket.first.pocket, isFalse, reason: 'erst unentschieden');
-    expect(pocket.last.pocket, isTrue);
-    expect(pocket.last.declared, isFalse);
-    expect(await mountFile.readAsString(), before, reason: 'in der Tasche gilt keine Halterung als gelernt');
-  });
+  test(
+    'die Tasche erkannt (#491): Zeile o, die App erfährt es, und keine Halterung wird gespeichert',
+    () async {
+      // Die Halterung vom Rad, in einer Schreibweise, die `jsonEncode` nie
+      // erzeugt: Schreibt der Logger, ändert sich der Text.
+      final mountFile = File('${dir.path}/rides/sensors/$kSensorMountFile');
+      await mountFile.parent.create(recursive: true);
+      const before = '{ "up": [0.0, 0.0, 1.0], "forward": [1.0, 0.0, 0.0] }';
+      await mountFile.writeAsString(before);
+      expect(FusionMount.fromJson(jsonDecode(before)), isNotNull);
+      await tick();
+      final us = t.toInt();
+      // 140 s ruhig in Fahrt, der Oberschenkel schwingt im Tritt.
+      for (var i = 0; i < 14000; i++) {
+        final at = us + i * 10000.0;
+        if (i % 100 == 0) gps.add([at, 7.1, 9.2, 4.0, 6.0, 800.0]);
+        accel.add([at, 0.0, 0.0, 9.81 + (i.isEven ? 0.5 : -0.5)]);
+        gyro.add([at, 1.0 * math.sin(2 * math.pi * 1.3 * i / 100), 0.0, 0.0]);
+        if (i % 500 == 0) await Future<void>.delayed(Duration.zero);
+      }
+      gps.add([us + 14000 * 10000.0, 7.1, 9.2, 4.0, 6.0, 800.0]);
+      await wait();
+      expect(currentSensorLogger!.inPocket, isTrue);
+      await stopSensorLog();
+      final lines = (await logFile().readAsString()).split('\n');
+      expect(lines.where((l) => l.startsWith('o,')), hasLength(1));
+      expect(lines.firstWhere((l) => l.startsWith('o,')), endsWith(',1'));
+      expect(lines, isNot(contains('# pocket')));
+      final pocket = toApp
+          .map(decodeAirtimeMessage)
+          .whereType<AirtimePocketMessage>()
+          .toList();
+      expect(pocket.first.pocket, isFalse, reason: 'erst unentschieden');
+      expect(pocket.last.pocket, isTrue);
+      expect(pocket.last.declared, isFalse);
+      expect(
+        await mountFile.readAsString(),
+        before,
+        reason: 'in der Tasche gilt keine Halterung als gelernt',
+      );
+    },
+  );
 
-  test('die Lage jetzt geht alle paar Takte an die App, vor der Rechnung und nur mit neuen Werten', () async {
-    final mountFile = File('${dir.path}/rides/sensors/$kSensorMountFile');
-    await mountFile.parent.create(recursive: true);
-    await mountFile.writeAsString(
-        jsonEncode(const FusionMount(up: (0.0, 0.0, 1.0), forward: (1.0, 0.0, 0.0)).toJson()));
-    await sensorLogTick(
-        sources: sources, read: read, flushEvery: every, previewEvery: every, notices: notices, toApp: toApp.add);
-    const g = 9.80665;
-    final us = t.toInt();
-    // 6 s flach mit 5 m/s, in den letzten 0,3 s geht die Front 25° hoch —
-    // die Rechnung ist da noch 1,5 s dahinter.
-    double pitch(double s) => math.pi / 180 * 25 * math.max(0.0, math.min(1.0, (s - 5.7) / 0.3));
-    for (var i = 0; i <= 600; i++) {
-      final s = i / 100;
-      final at = us + i * 10000.0;
-      if (i % 100 == 0) gps.add([at, 7.1, 9.2, 4.0, 5.0, 800.0]);
-      final p = pitch(s);
-      accel.add([at, g * math.sin(p), 0.0, g * math.cos(p)]);
-      gyro.add([at + 2000, 0.0, -(pitch(s + 0.005) - pitch(s - 0.005)) / 0.01, 0.0]);
-    }
-    await wait();
-    final now = [for (final m in toApp.map(decodeAirtimeMessage)) if (m is AirtimeNowMessage) m.tick];
-    expect(now, isNotEmpty);
-    final last = now.last;
-    expect(last.tUs, us + 600 * 10000 + 2000, reason: 'der neueste Kreisel-Wert');
-    expect(last.pitchDeg, closeTo(25, 2));
-    final ticks = [for (final m in toApp.map(decodeAirtimeMessage)) if (m is AirtimeLiveMessage) ...m.ticks];
-    expect(ticks.last.tUs, lessThan(last.tUs - 1000000), reason: 'die Takte hinken nach');
-    // Kommt nichts Neues, schweigt sie.
-    final count = now.length;
-    await wait();
-    expect([for (final m in toApp.map(decodeAirtimeMessage)) if (m is AirtimeNowMessage) m], hasLength(count));
-  });
+  test(
+    'die Lage jetzt geht alle paar Takte an die App, vor der Rechnung und nur mit neuen Werten',
+    () async {
+      final mountFile = File('${dir.path}/rides/sensors/$kSensorMountFile');
+      await mountFile.parent.create(recursive: true);
+      await mountFile.writeAsString(
+        jsonEncode(
+          const FusionMount(
+            up: (0.0, 0.0, 1.0),
+            forward: (1.0, 0.0, 0.0),
+          ).toJson(),
+        ),
+      );
+      await sensorLogTick(
+        sources: sources,
+        read: read,
+        flushEvery: every,
+        previewEvery: every,
+        notices: notices,
+        toApp: toApp.add,
+      );
+      const g = 9.80665;
+      final us = t.toInt();
+      // 6 s flach mit 5 m/s, in den letzten 0,3 s geht die Front 25° hoch —
+      // die Rechnung ist da noch 1,5 s dahinter.
+      double pitch(double s) =>
+          math.pi / 180 * 25 * math.max(0.0, math.min(1.0, (s - 5.7) / 0.3));
+      for (var i = 0; i <= 600; i++) {
+        final s = i / 100;
+        final at = us + i * 10000.0;
+        if (i % 100 == 0) gps.add([at, 7.1, 9.2, 4.0, 5.0, 800.0]);
+        final p = pitch(s);
+        accel.add([at, g * math.sin(p), 0.0, g * math.cos(p)]);
+        gyro.add([
+          at + 2000,
+          0.0,
+          -(pitch(s + 0.005) - pitch(s - 0.005)) / 0.01,
+          0.0,
+        ]);
+      }
+      await wait();
+      final now = [
+        for (final m in toApp.map(decodeAirtimeMessage))
+          if (m is AirtimeNowMessage) m.tick,
+      ];
+      expect(now, isNotEmpty);
+      final last = now.last;
+      expect(
+        last.tUs,
+        us + 600 * 10000 + 2000,
+        reason: 'der neueste Kreisel-Wert',
+      );
+      expect(last.pitchDeg, closeTo(25, 2));
+      final ticks = [
+        for (final m in toApp.map(decodeAirtimeMessage))
+          if (m is AirtimeLiveMessage) ...m.ticks,
+      ];
+      expect(
+        ticks.last.tUs,
+        lessThan(last.tUs - 1000000),
+        reason: 'die Takte hinken nach',
+      );
+      // Kommt nichts Neues, schweigt sie.
+      final count = now.length;
+      await wait();
+      expect([
+        for (final m in toApp.map(decodeAirtimeMessage))
+          if (m is AirtimeNowMessage) m,
+      ], hasLength(count));
+    },
+  );
 
-  test('die Antwort im Banner: l mit 1 oder 0, „verpasst": m — die Frage an den Trail bleibt unberührt',
-      () async {
-    final file = logFile();
-    await file.parent.create(recursive: true);
-    await file.writeAsString(kSensorLogHeader);
-    final at = DateTime.utc(2026, 10, 30, 9, 30);
-    const start = 1761816600000000;
-    final payload = encodeWheeliePayload(file: file.path, startUs: start);
-    var confirmed = 0;
-    Future<void> noted() async => confirmed++;
+  test(
+    'die Antwort im Banner: l mit 1 oder 0, „verpasst": m — die Frage an den Trail bleibt unberührt',
+    () async {
+      final file = logFile();
+      await file.parent.create(recursive: true);
+      await file.writeAsString(kSensorLogHeader);
+      final at = DateTime.utc(2026, 10, 30, 9, 30);
+      const start = 1761816600000000;
+      final payload = encodeWheeliePayload(file: file.path, startUs: start);
+      var confirmed = 0;
+      Future<void> noted() async => confirmed++;
 
-    expect(await handleWheelieResponse(actionId: kWheelieYes, payload: payload, now: at), isTrue);
-    expect(await handleWheelieResponse(actionId: kWheelieNo, payload: payload, now: at), isTrue);
-    expect(
+      expect(
         await handleWheelieResponse(
-            actionId: kWheelieMissed,
-            payload: encodeWheeliePayload(file: file.path),
-            now: at,
-            confirmMissed: noted),
-        isTrue);
-    expect(confirmed, 1, reason: 'die stehende Benachrichtigung zeigt, dass der Tipp ankam');
-    expect(await handleWheelieResponse(actionId: null, payload: payload, now: at), isTrue,
-        reason: 'Tipp auf das Banner: kein Trail, keine Zeile');
-
-    final us = at.microsecondsSinceEpoch;
-    final data = (await file.readAsString()).split('\n').where((l) => l.isNotEmpty && !l.startsWith('#'));
-    expect(await handleWheelieResponse(actionId: kJumpYes, payload: payload, now: at), isTrue);
-    expect(await handleWheelieResponse(actionId: kJumpNo, payload: payload, now: at), isTrue);
-    expect(
+          actionId: kWheelieYes,
+          payload: payload,
+          now: at,
+        ),
+        isTrue,
+      );
+      expect(
         await handleWheelieResponse(
-            actionId: kJumpMissed,
-            payload: encodeWheeliePayload(file: file.path),
-            now: at,
-            confirmMissed: noted),
-        isTrue);
-    expect(confirmed, 2);
-    expect(await handleWheelieResponse(actionId: kStoppieYes, payload: payload, now: at), isTrue);
-    expect(await handleWheelieResponse(actionId: kStoppieNo, payload: payload, now: at), isTrue);
-    expect(
+          actionId: kWheelieNo,
+          payload: payload,
+          now: at,
+        ),
+        isTrue,
+      );
+      expect(
         await handleWheelieResponse(
-            actionId: kStoppieMissed,
-            payload: encodeWheeliePayload(file: file.path),
-            now: at,
-            confirmMissed: noted),
-        isTrue);
-    expect(confirmed, 3);
-    expect(data, ['l,$us,$start,1', 'l,$us,$start,0', 'm,$us']);
-    final all = (await file.readAsString()).split('\n').where((l) => l.isNotEmpty && !l.startsWith('#'));
-    expect(all.skip(3), ['k,$us,$start,1', 'k,$us,$start,0', 'n,$us', 'p,$us,$start,1', 'p,$us,$start,0', 'q,$us']);
-    // Neben die Ereignisse nur die Antworten, kein „verpasst".
-    expect((await File(sensorEventsPath(file.path)).readAsString()).split('\n').where((l) => l.isNotEmpty), [
-      'l,$us,$start,1', 'l,$us,$start,0', 'k,$us,$start,1', 'k,$us,$start,0', 'p,$us,$start,1', 'p,$us,$start,0', //
-    ]);
+          actionId: kWheelieMissed,
+          payload: encodeWheeliePayload(file: file.path),
+          now: at,
+          confirmMissed: noted,
+        ),
+        isTrue,
+      );
+      expect(
+        confirmed,
+        1,
+        reason: 'die stehende Benachrichtigung zeigt, dass der Tipp ankam',
+      );
+      expect(
+        await handleWheelieResponse(actionId: null, payload: payload, now: at),
+        isTrue,
+        reason: 'Tipp auf das Banner: kein Trail, keine Zeile',
+      );
 
-    const trailPayload = '{"dir":"/x","uid":"u","ride":"2026-10-30T09:00:00.000Z","trail":"t"}';
-    expect(await handleWheelieResponse(actionId: 'confirm_yes', payload: trailPayload), isFalse);
-    expect(await handleWheelieResponse(actionId: null, payload: trailPayload), isFalse);
-  });
+      final us = at.microsecondsSinceEpoch;
+      final data = (await file.readAsString())
+          .split('\n')
+          .where((l) => l.isNotEmpty && !l.startsWith('#'));
+      expect(
+        await handleWheelieResponse(
+          actionId: kJumpYes,
+          payload: payload,
+          now: at,
+        ),
+        isTrue,
+      );
+      expect(
+        await handleWheelieResponse(
+          actionId: kJumpNo,
+          payload: payload,
+          now: at,
+        ),
+        isTrue,
+      );
+      expect(
+        await handleWheelieResponse(
+          actionId: kJumpMissed,
+          payload: encodeWheeliePayload(file: file.path),
+          now: at,
+          confirmMissed: noted,
+        ),
+        isTrue,
+      );
+      expect(confirmed, 2);
+      expect(
+        await handleWheelieResponse(
+          actionId: kStoppieYes,
+          payload: payload,
+          now: at,
+        ),
+        isTrue,
+      );
+      expect(
+        await handleWheelieResponse(
+          actionId: kStoppieNo,
+          payload: payload,
+          now: at,
+        ),
+        isTrue,
+      );
+      expect(
+        await handleWheelieResponse(
+          actionId: kStoppieMissed,
+          payload: encodeWheeliePayload(file: file.path),
+          now: at,
+          confirmMissed: noted,
+        ),
+        isTrue,
+      );
+      expect(confirmed, 3);
+      expect(data, ['l,$us,$start,1', 'l,$us,$start,0', 'm,$us']);
+      final all = (await file.readAsString())
+          .split('\n')
+          .where((l) => l.isNotEmpty && !l.startsWith('#'));
+      expect(all.skip(3), [
+        'k,$us,$start,1',
+        'k,$us,$start,0',
+        'n,$us',
+        'p,$us,$start,1',
+        'p,$us,$start,0',
+        'q,$us',
+      ]);
+      // Neben die Ereignisse nur die Antworten, kein „verpasst".
+      expect(
+        (await File(
+          sensorEventsPath(file.path),
+        ).readAsString()).split('\n').where((l) => l.isNotEmpty),
+        [
+          'l,$us,$start,1',
+          'l,$us,$start,0',
+          'k,$us,$start,1',
+          'k,$us,$start,0',
+          'p,$us,$start,1',
+          'p,$us,$start,0', //
+        ],
+      );
 
-  test('der EINE Hintergrund-Empfänger des Pakets reicht die Wheelie-Knöpfe weiter', () async {
-    final file = logFile();
-    await file.parent.create(recursive: true);
-    await file.writeAsString(kSensorLogHeader);
-    rideConfirmBackgroundResponse(NotificationResponse(
-        notificationResponseType: NotificationResponseType.selectedNotificationAction,
-        actionId: kWheelieNo,
-        payload: encodeWheeliePayload(file: file.path, startUs: 42)));
-    await wait();
-    expect(await file.readAsString(), matches(RegExp(r'\nl,\d+,42,0\n$')));
-  });
+      const trailPayload =
+          '{"dir":"/x","uid":"u","ride":"2026-10-30T09:00:00.000Z","trail":"t"}';
+      expect(
+        await handleWheelieResponse(
+          actionId: 'confirm_yes',
+          payload: trailPayload,
+        ),
+        isFalse,
+      );
+      expect(
+        await handleWheelieResponse(actionId: null, payload: trailPayload),
+        isFalse,
+      );
+    },
+  );
+
+  test(
+    'der EINE Hintergrund-Empfänger des Pakets reicht die Wheelie-Knöpfe weiter',
+    () async {
+      final file = logFile();
+      await file.parent.create(recursive: true);
+      await file.writeAsString(kSensorLogHeader);
+      rideConfirmBackgroundResponse(
+        NotificationResponse(
+          notificationResponseType:
+              NotificationResponseType.selectedNotificationAction,
+          actionId: kWheelieNo,
+          payload: encodeWheeliePayload(file: file.path, startUs: 42),
+        ),
+      );
+      await wait();
+      expect(await file.readAsString(), matches(RegExp(r'\nl,\d+,42,0\n$')));
+    },
+  );
 }

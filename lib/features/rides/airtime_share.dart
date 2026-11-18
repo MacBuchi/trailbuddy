@@ -68,15 +68,20 @@ AirtimeShare computeAirtimeShare({
   var glider = false;
   final since = now.subtract(kAirtimeWindow);
   for (final (:ride, :log, :measured) in rides) {
-    if (ride.planned || ride.imported || !measured || ride.points.length < 2) continue;
-    final inWindow = ride.startedAt.isAfter(since) && !ride.startedAt.isAfter(now);
+    if (ride.planned || ride.imported || !measured || ride.points.length < 2) {
+      continue;
+    }
+    final inWindow =
+        ride.startedAt.isAfter(since) && !ride.startedAt.isAfter(now);
     if (inWindow) windowMeasured = true;
     if (log.isEmpty) continue;
     final latLng = [for (final p in ride.points) LatLng(p.lat, p.lng)];
     for (final s in knownTrailSectionsOf(latLng, trails)) {
-      final v = TrailValues.of(log.kept,
-          fromUs: ride.points[s.start].at.microsecondsSinceEpoch,
-          toUs: ride.points[s.end].at.microsecondsSinceEpoch);
+      final v = TrailValues.of(
+        log.kept,
+        fromUs: ride.points[s.start].at.microsecondsSinceEpoch,
+        toUs: ride.points[s.end].at.microsecondsSinceEpoch,
+      );
       if (v.jumps == 0) continue;
       if (inWindow) {
         windowAir += v.airS;
@@ -101,7 +106,12 @@ AirtimeShare computeAirtimeShare({
   return AirtimeShare(
     bests: [
       for (final e in best.entries)
-        TrailAirtimeUpload(trailId: e.key, airDs: e.value.air, longestDs: e.value.longest, month: e.value.month),
+        TrailAirtimeUpload(
+          trailId: e.key,
+          airDs: e.value.air,
+          longestDs: e.value.longest,
+          month: e.value.month,
+        ),
     ],
     airDs: _ds(windowAir),
     jumps: windowJumps,
@@ -117,7 +127,9 @@ AirtimeShare computeAirtimeShare({
 bool airtimeCounterFresh(AirtimeCounter c, DateTime now) =>
     // Im Kalender gerechnet, nicht mit `subtract`: über die Zeitumstellung
     // läge die Grenze sonst eine Stunde neben Mitternacht.
-    !c.asOf.isBefore(DateTime(now.year, now.month, now.day - kAirtimeWindow.inDays));
+    !c.asOf.isBefore(
+      DateTime(now.year, now.month, now.day - kAirtimeWindow.inDays),
+    );
 
 /// Ein Platz in der Rangliste eines Trails.
 class AirtimeRank {
@@ -131,15 +143,23 @@ class AirtimeRank {
 /// Die Rangliste eines Trails, beste Airtime je Durchfahrt zuerst (Konzept
 /// 5: gewertet wird die Summe, nicht der längste Sprung). Bei Gleichstand
 /// steht der frühere Monat vorn — wer es zuerst schaffte.
-List<AirtimeRank> trailAirtimeRanking(Iterable<TrailAirtime> bests, String trailId) {
-  final rows = [for (final b in bests) if (b.trailId == trailId) b]
-    ..sort((a, b) {
-      final c = b.airDs.compareTo(a.airDs);
-      return c != 0 ? c : a.month.compareTo(b.month);
-    });
+List<AirtimeRank> trailAirtimeRanking(
+  Iterable<TrailAirtime> bests,
+  String trailId,
+) {
+  final rows =
+      [
+        for (final b in bests)
+          if (b.trailId == trailId) b,
+      ]..sort((a, b) {
+        final c = b.airDs.compareTo(a.airDs);
+        return c != 0 ? c : a.month.compareTo(b.month);
+      });
   final out = <AirtimeRank>[];
   for (var i = 0; i < rows.length; i++) {
-    final place = i > 0 && rows[i].airDs == rows[i - 1].airDs ? out[i - 1].place : i + 1;
+    final place = i > 0 && rows[i].airDs == rows[i - 1].airDs
+        ? out[i - 1].place
+        : i + 1;
     out.add(AirtimeRank(place: place, best: rows[i]));
   }
   return out;
@@ -175,9 +195,15 @@ Map<String, int> trailKingCounts(Iterable<TrailAirtime> bests) {
 /// Vielflieger: wer unter den gezeigten Zählern die meisten Sprünge hat
 /// (mindestens einen, mindestens zwei Zähler im Vergleich).
 Set<String> frequentFlyers(Iterable<AirtimeCounter> counters, DateTime now) {
-  final fresh = [for (final c in counters) if (airtimeCounterFresh(c, now)) c];
+  final fresh = [
+    for (final c in counters)
+      if (airtimeCounterFresh(c, now)) c,
+  ];
   if (fresh.length < 2) return const {};
   final most = fresh.map((c) => c.jumps).reduce((a, b) => a > b ? a : b);
   if (most == 0) return const {};
-  return {for (final c in fresh) if (c.jumps == most) c.userId};
+  return {
+    for (final c in fresh)
+      if (c.jumps == most) c.userId,
+  };
 }

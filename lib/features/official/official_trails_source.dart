@@ -22,7 +22,8 @@ abstract interface class OfficialTrailsSource {
 /// Datenschutzerklärung. Übertragen wird nur, WELCHE Datei; welche
 /// Region, verrät der Ausschnitt, mehr nicht.
 class GithubOfficialTrailsSource implements OfficialTrailsSource {
-  GithubOfficialTrailsSource([http.Client? client]) : _client = client ?? http.Client();
+  GithubOfficialTrailsSource([http.Client? client])
+    : _client = client ?? http.Client();
 
   final http.Client _client;
 
@@ -60,7 +61,7 @@ abstract interface class OfficialTrailsCache {
 /// hält die App sie nur für die Laufzeit.
 class FileOfficialTrailsCache implements OfficialTrailsCache {
   FileOfficialTrailsCache({Future<Directory> Function()? directory})
-      : _directory = directory ?? getApplicationSupportDirectory;
+    : _directory = directory ?? getApplicationSupportDirectory;
 
   final Future<Directory> Function() _directory;
   final _memory = <String, String>{};
@@ -91,11 +92,13 @@ class FileOfficialTrailsCache implements OfficialTrailsCache {
   }
 }
 
-final officialTrailsSourceProvider =
-    Provider<OfficialTrailsSource>((ref) => GithubOfficialTrailsSource());
+final officialTrailsSourceProvider = Provider<OfficialTrailsSource>(
+  (ref) => GithubOfficialTrailsSource(),
+);
 
-final officialTrailsCacheProvider =
-    Provider<OfficialTrailsCache>((ref) => FileOfficialTrailsCache());
+final officialTrailsCacheProvider = Provider<OfficialTrailsCache>(
+  (ref) => FileOfficialTrailsCache(),
+);
 
 /// Der Schalter der Ebene, gerätelokal. Aus heißt: keine Anfrage.
 final officialTrailsEnabledProvider = NotifierProvider<RememberedFlag, bool>(
@@ -108,7 +111,11 @@ final officialTrailsEnabledProvider = NotifierProvider<RememberedFlag, bool>(
 
 @immutable
 class OfficialTrailsState {
-  const OfficialTrailsState({this.index, this.byRegion = const {}, this.unavailable = false});
+  const OfficialTrailsState({
+    this.index,
+    this.byRegion = const {},
+    this.unavailable = false,
+  });
 
   final OfficialIndex? index;
 
@@ -138,12 +145,11 @@ class OfficialTrailsState {
     OfficialIndex? index,
     Map<String, List<OfficialTrail>>? byRegion,
     bool? unavailable,
-  }) =>
-      OfficialTrailsState(
-        index: index ?? this.index,
-        byRegion: byRegion ?? this.byRegion,
-        unavailable: unavailable ?? this.unavailable,
-      );
+  }) => OfficialTrailsState(
+    index: index ?? this.index,
+    byRegion: byRegion ?? this.byRegion,
+    unavailable: unavailable ?? this.unavailable,
+  );
 }
 
 /// Lädt, was der Ausschnitt braucht. Der Index wird je App-Lauf einmal
@@ -187,7 +193,8 @@ class OfficialTrailsController extends Notifier<OfficialTrailsState> {
     }
     var unavailable = false;
     for (final r in index.regions) {
-      if (state.byRegion.containsKey(r.id) || !r.touches(view.s, view.w, view.n, view.e)) {
+      if (state.byRegion.containsKey(r.id) ||
+          !r.touches(view.s, view.w, view.n, view.e)) {
         continue;
       }
       final trails = await _loadRegion(r);
@@ -284,11 +291,16 @@ class OfficialTrailsController extends Notifier<OfficialTrailsState> {
   /// Ein Funkloch ist am Trail der Normalfall und kein Bericht wert,
   /// ebenso ein Server, der gerade nicht will; eine kaputte Datei schon.
   void _report(String context, Object e, StackTrace s) {
-    if (looksOffline(e) || e is OfficialTrailsUnavailable || e is TimeoutException) return;
+    if (looksOffline(e) ||
+        e is OfficialTrailsUnavailable ||
+        e is TimeoutException) {
+      return;
+    }
     logError(context, e, s);
   }
 }
 
 final officialTrailsControllerProvider =
     NotifierProvider<OfficialTrailsController, OfficialTrailsState>(
-        OfficialTrailsController.new);
+      OfficialTrailsController.new,
+    );

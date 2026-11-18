@@ -14,8 +14,11 @@ Key aliasButtonKey(String friendId) => ValueKey('alias-button-$friendId');
 
 /// Der Knopf, der den Dialog öffnet.
 class AliasButton extends ConsumerWidget {
-  const AliasButton(
-      {super.key, required this.friendId, required this.username});
+  const AliasButton({
+    super.key,
+    required this.friendId,
+    required this.username,
+  });
 
   final String friendId;
   final String username;
@@ -27,14 +30,18 @@ class AliasButton extends ConsumerWidget {
       key: aliasButtonKey(friendId),
       tooltip: alias == null ? context.l10n.aliasSet : context.l10n.aliasChange,
       icon: const Icon(Icons.edit_outlined),
-      onPressed: () => showAliasDialog(context, ref,
-          friendId: friendId, username: username),
+      onPressed: () =>
+          showAliasDialog(context, ref, friendId: friendId, username: username),
     );
   }
 }
 
-Future<void> showAliasDialog(BuildContext context, WidgetRef ref,
-    {required String friendId, required String username}) async {
+Future<void> showAliasDialog(
+  BuildContext context,
+  WidgetRef ref, {
+  required String friendId,
+  required String username,
+}) async {
   final current = ref.read(buddyNamesViewProvider).aliasOf(friendId);
   final text = await showDialog<String>(
     context: context,
@@ -103,12 +110,14 @@ class _AliasDialogState extends State<_AliasDialog> {
       ),
       actions: [
         TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: Text(l.commonCancel)),
+          onPressed: () => Navigator.of(context).pop(),
+          child: Text(l.commonCancel),
+        ),
         FilledButton(
-            key: kAliasSaveKey,
-            onPressed: () => Navigator.of(context).pop(_controller.text),
-            child: Text(l.commonSave)),
+          key: kAliasSaveKey,
+          onPressed: () => Navigator.of(context).pop(_controller.text),
+          child: Text(l.commonSave),
+        ),
       ],
     );
   }

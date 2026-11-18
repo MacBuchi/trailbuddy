@@ -19,17 +19,26 @@ void main() {
     backend.addFriendship(anna.id, bob.id);
     backend.signInAs(anna.id);
     trails = FakeTrailRepository(
-        myId: () => backend.currentUserId ?? '', areFriends: backend.areFriends);
+      myId: () => backend.currentUserId ?? '',
+      areFriends: backend.areFriends,
+    );
     trails.usernames[bob.id] = 'bob';
     // Bob hat „Vereinslinie" nur als Datei, Anna ist sie gefahren.
-    final shared = trails.seedTrail(bob.id,
-        name: 'Vereinslinie', source: RecordingSource.planned);
+    final shared = trails.seedTrail(
+      bob.id,
+      name: 'Vereinslinie',
+      source: RecordingSource.planned,
+    );
     trails.seedTrail(anna.id, trailId: shared);
     // „Gefahren" ist ganz normal.
     trails.seedTrail(bob.id, name: 'Gefahren', lat: 48.2);
     // „Aus Datei" kennt niemand aus einer Fahrt.
-    trails.seedTrail(bob.id,
-        name: 'Aus Datei', lat: 48.1, source: RecordingSource.planned);
+    trails.seedTrail(
+      bob.id,
+      name: 'Aus Datei',
+      lat: 48.1,
+      source: RecordingSource.planned,
+    );
   });
 
   Future<void> openSheet(WidgetTester tester, String name) async {
@@ -53,8 +62,12 @@ void main() {
 
     await openSheet(tester, 'Aus Datei');
     expect(find.byKey(const ValueKey('trail-planned')), findsOneWidget);
-    expect(find.textContaining('Jeder Beleg hier kommt aus einer Datei ohne Fahrzeiten'),
-        findsOneWidget);
+    expect(
+      find.textContaining(
+        'Jeder Beleg hier kommt aus einer Datei ohne Fahrzeiten',
+      ),
+      findsOneWidget,
+    );
     await tester.tapAt(const Offset(10, 10));
     await settle(tester);
 

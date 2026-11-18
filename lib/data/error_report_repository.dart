@@ -52,7 +52,8 @@ class ErrorReportRepository {
       for (final line in lines.skip(i))
         if (line.contains(_appFrame)) line,
     ];
-    final marker = '… ${lines.length - i} Zeilen gekürzt'
+    final marker =
+        '… ${lines.length - i} Zeilen gekürzt'
         '${own.isEmpty ? '' : ', eigene davon:'}';
     final out = [...head, marker];
     used += marker.length + 1;
@@ -67,8 +68,7 @@ class ErrorReportRepository {
 
   static const _appFrame = 'package:trailbuddy/';
 
-  static String get _platform =>
-      kIsWeb ? 'web' : defaultTargetPlatform.name;
+  static String get _platform => kIsWeb ? 'web' : defaultTargetPlatform.name;
 
   Future<void> report(
     String context,

@@ -145,10 +145,16 @@ PreparedPhoto _prepare(Uint8List original, int maxEdge, int quality) {
 img.Image _shrink(img.Image image, int maxEdge) {
   if (math.max(image.width, image.height) <= maxEdge) return image;
   return image.width >= image.height
-      ? img.copyResize(image,
-          width: maxEdge, interpolation: img.Interpolation.average)
-      : img.copyResize(image,
-          height: maxEdge, interpolation: img.Interpolation.average);
+      ? img.copyResize(
+          image,
+          width: maxEdge,
+          interpolation: img.Interpolation.average,
+        )
+      : img.copyResize(
+          image,
+          height: maxEdge,
+          interpolation: img.Interpolation.average,
+        );
 }
 
 /// Die Segmente, die ein JPEG zum Bild braucht — und sonst keines.

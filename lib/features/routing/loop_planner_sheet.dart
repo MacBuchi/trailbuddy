@@ -29,7 +29,8 @@ import '../../core/gpx_share.dart';
 import '../../models/trail.dart';
 import '../map/map_view/map_view.dart';
 import '../garmin/watch_providers.dart' show watchSyncProvider;
-import '../garmin/watch_shelf_actions.dart' show putOnWatch, watchShelfAvailableProvider;
+import '../garmin/watch_shelf_actions.dart'
+    show putOnWatch, watchShelfAvailableProvider;
 import '../official/official_trails_source.dart';
 import '../rides/ride_providers.dart';
 import '../rides/ride_track.dart';
@@ -89,15 +90,24 @@ class LoopStartFlag extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Icon(
-        finish ? Icons.sports_score : Icons.flag,
-        size: size,
-        color: AppColors.brand,
-        shadows: [
-          for (final (dx, dy) in const [(-1.0, -1.0), (0.0, -1.5), (1.0, -1.0), (1.5, 0.0), (1.0, 1.0), (0.0, 1.5), (-1.0, 1.0), (-1.5, 0.0)])
-            Shadow(color: _contour, offset: Offset(dx, dy)),
-          Shadow(color: _contour.withValues(alpha: 0.6), blurRadius: 6),
-        ],
-      );
+    finish ? Icons.sports_score : Icons.flag,
+    size: size,
+    color: AppColors.brand,
+    shadows: [
+      for (final (dx, dy) in const [
+        (-1.0, -1.0),
+        (0.0, -1.5),
+        (1.0, -1.0),
+        (1.5, 0.0),
+        (1.0, 1.0),
+        (0.0, 1.5),
+        (-1.0, 1.0),
+        (-1.5, 0.0),
+      ])
+        Shadow(color: _contour, offset: Offset(dx, dy)),
+      Shadow(color: _contour.withValues(alpha: 0.6), blurRadius: 6),
+    ],
+  );
 }
 
 /// Ein vorab gesetzter Zwischenpunkt (#331 Schritt 4): eine Lime-Scheibe
@@ -114,21 +124,33 @@ class LoopWaypointPin extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Center(
-        child: Container(
-          width: _dot,
-          height: _dot,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: AppColors.brand,
-            shape: BoxShape.circle,
-            border: Border.all(color: AppColors.onBrand, width: 2),
-            boxShadow: const [BoxShadow(blurRadius: 4, offset: Offset(0, 1), color: Color(0x55000000))],
+    child: Container(
+      width: _dot,
+      height: _dot,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: AppColors.brand,
+        shape: BoxShape.circle,
+        border: Border.all(color: AppColors.onBrand, width: 2),
+        boxShadow: const [
+          BoxShadow(
+            blurRadius: 4,
+            offset: Offset(0, 1),
+            color: Color(0x55000000),
           ),
-          child: Text('$number',
-              style: AppFonts.numbers(Theme.of(context).textTheme.labelMedium)
-                  .copyWith(color: AppColors.onBrand, fontWeight: FontWeight.w700, height: 1)),
-        ),
-      );
+        ],
+      ),
+      child: Text(
+        '$number',
+        style: AppFonts.numbers(Theme.of(context).textTheme.labelMedium)
+            .copyWith(
+              color: AppColors.onBrand,
+              fontWeight: FontWeight.w700,
+              height: 1,
+            ),
+      ),
+    ),
+  );
 }
 
 // ─── Anpassen ───────────────────────────────────────────────────────────
@@ -137,7 +159,8 @@ class LoopWaypointPin extends StatelessWidget {
 /// zwei Stufen — Rad, Zeit und Höhenmeter sofort, alles, was man einmal
 /// stellt, eingeklappt unter „Feinheiten". Start, Ziel und Zwischenpunkte
 /// stehen nicht mehr hier, sondern im Kopf und auf der Karte.
-Future<void> showLoopParamsSheet(BuildContext context) => showModalBottomSheet<void>(
+Future<void> showLoopParamsSheet(BuildContext context) =>
+    showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       showDragHandle: true,
@@ -165,12 +188,19 @@ class _ParamsSheet extends ConsumerWidget {
       controller: scroll,
       padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
       children: [
-        Text(prefs.endMode == LoopEndMode.loop ? l.loopParamsTitle : l.routeParamsTitle,
-            style: theme.textTheme.titleLarge),
+        Text(
+          prefs.endMode == LoopEndMode.loop
+              ? l.loopParamsTitle
+              : l.routeParamsTitle,
+          style: theme.textTheme.titleLarge,
+        ),
         const SizedBox(height: 12),
         SegmentedButton<RiderProfile>(
           key: const ValueKey('loop-profile'),
-          segments: [for (final p in RiderProfile.values) ButtonSegment(value: p, label: Text(p.label(l)))],
+          segments: [
+            for (final p in RiderProfile.values)
+              ButtonSegment(value: p, label: Text(p.label(l))),
+          ],
           selected: {session.profile},
           showSelectedIcon: false,
           onSelectionChanged: (sel) => notifier.setProfile(sel.single),
@@ -206,12 +236,15 @@ class _ParamsSheet extends ConsumerWidget {
             children: [
               _LoopSlider(
                 key: const ValueKey('loop-hiking'),
-                label: prefs.hikingKm == 0 ? l.loopNoHiking : l.loopMaxHiking(formatMeters(prefs.hikingKm * 1000)),
+                label: prefs.hikingKm == 0
+                    ? l.loopNoHiking
+                    : l.loopMaxHiking(formatMeters(prefs.hikingKm * 1000)),
                 value: prefs.hikingKm,
                 min: LoopPrefs.minHikingKm,
                 max: LoopPrefs.maxHikingKm,
                 step: LoopPrefs.hikingStep,
-                onChanged: (v) => notifier.setPrefs(prefs.copyWith(hikingKm: v)),
+                onChanged: (v) =>
+                    notifier.setPrefs(prefs.copyWith(hikingKm: v)),
               ),
               _LoopSlider(
                 key: const ValueKey('loop-radius'),
@@ -220,7 +253,8 @@ class _ParamsSheet extends ConsumerWidget {
                 min: LoopPrefs.minRadiusKm,
                 max: LoopPrefs.maxRadiusKm,
                 step: LoopPrefs.radiusStep,
-                onChanged: (v) => notifier.setPrefs(prefs.copyWith(radiusKm: v)),
+                onChanged: (v) =>
+                    notifier.setPrefs(prefs.copyWith(radiusKm: v)),
               ),
               const SizedBox(height: 4),
               Text(l.loopOnTheWay, style: theme.textTheme.titleSmall),
@@ -232,7 +266,8 @@ class _ParamsSheet extends ConsumerWidget {
                   on: l.loopEasyUpOn,
                   off: l.loopEasyUpOff,
                   value: prefs.easyUp,
-                  onChanged: (v) => notifier.setPrefs(prefs.copyWith(easyUp: v)),
+                  onChanged: (v) =>
+                      notifier.setPrefs(prefs.copyWith(easyUp: v)),
                 ),
               _PrefSwitch(
                 tileKey: const ValueKey('loop-pref-roads'),
@@ -240,7 +275,9 @@ class _ParamsSheet extends ConsumerWidget {
                 on: l.loopPrefRoadsOn,
                 off: l.loopPrefRoadsOff,
                 value: prefs.route.avoidRoads,
-                onChanged: (v) => notifier.setPrefs(prefs.copyWith(route: prefs.route.copyWith(avoidRoads: v))),
+                onChanged: (v) => notifier.setPrefs(
+                  prefs.copyWith(route: prefs.route.copyWith(avoidRoads: v)),
+                ),
               ),
               _PrefSwitch(
                 tileKey: const ValueKey('loop-pref-hiking'),
@@ -248,7 +285,9 @@ class _ParamsSheet extends ConsumerWidget {
                 on: l.loopPrefHikingOn,
                 off: l.loopPrefHikingOff,
                 value: prefs.route.avoidHiking,
-                onChanged: (v) => notifier.setPrefs(prefs.copyWith(route: prefs.route.copyWith(avoidHiking: v))),
+                onChanged: (v) => notifier.setPrefs(
+                  prefs.copyWith(route: prefs.route.copyWith(avoidHiking: v)),
+                ),
               ),
               _PrefSwitch(
                 tileKey: const ValueKey('loop-pref-steep'),
@@ -256,20 +295,29 @@ class _ParamsSheet extends ConsumerWidget {
                 on: l.loopPrefSteepOn,
                 off: l.loopPrefSteepOff,
                 value: prefs.route.avoidSteep,
-                onChanged: (v) => notifier.setPrefs(prefs.copyWith(route: prefs.route.copyWith(avoidSteep: v))),
+                onChanged: (v) => notifier.setPrefs(
+                  prefs.copyWith(route: prefs.route.copyWith(avoidSteep: v)),
+                ),
               ),
               Text(
                 l.loopPrefsNote,
-                style: theme.textTheme.bodySmall?.copyWith(color: theme.hintColor),
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.hintColor,
+                ),
               ),
               const SizedBox(height: 4),
               SwitchListTile(
                 key: const ValueKey('loop-fill-online'),
                 contentPadding: EdgeInsets.zero,
                 title: Text(l.loopFillOnline),
-                subtitle: Text(prefs.fillOnline ? l.loopFillOnlineOn(kOnlineFillMaxTiles) : l.loopFillOnlineOff),
+                subtitle: Text(
+                  prefs.fillOnline
+                      ? l.loopFillOnlineOn(kOnlineFillMaxTiles)
+                      : l.loopFillOnlineOff,
+                ),
                 value: prefs.fillOnline,
-                onChanged: (v) => notifier.setPrefs(prefs.copyWith(fillOnline: v)),
+                onChanged: (v) =>
+                    notifier.setPrefs(prefs.copyWith(fillOnline: v)),
               ),
             ],
           ),
@@ -305,13 +353,13 @@ class _PrefSwitch extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => SwitchListTile(
-        key: tileKey,
-        contentPadding: EdgeInsets.zero,
-        title: Text(title),
-        subtitle: Text(value ? on : off),
-        value: value,
-        onChanged: onChanged,
-      );
+    key: tileKey,
+    contentPadding: EdgeInsets.zero,
+    title: Text(title),
+    subtitle: Text(value ? on : off),
+    value: value,
+    onChanged: onChanged,
+  );
 }
 
 class _LoopSlider extends StatelessWidget {
@@ -333,16 +381,24 @@ class _LoopSlider extends StatelessWidget {
   final ValueChanged<double> onChanged;
 
   @override
-  Widget build(BuildContext context) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(label, style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontFamily: AppFonts.mono)),
-        Slider(
-          value: value.clamp(min, max).toDouble(),
-          min: min,
-          max: max,
-          divisions: ((max - min) / step).round(),
-          onChanged: onChanged,
-        ),
-      ]);
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text(
+        label,
+        style: Theme.of(
+          context,
+        ).textTheme.bodyMedium?.copyWith(fontFamily: AppFonts.mono),
+      ),
+      Slider(
+        value: value.clamp(min, max).toDouble(),
+        min: min,
+        max: max,
+        divisions: ((max - min) / step).round(),
+        onChanged: onChanged,
+      ),
+    ],
+  );
 }
 
 // ─── Liste ──────────────────────────────────────────────────────────────
@@ -354,8 +410,12 @@ Future<void> showLoopListSheet(BuildContext context, WidgetRef ref) async {
   final center = await ref.read(loopPlannerProvider.notifier).listCenter();
   if (!context.mounted) return;
   if (center == null) {
-    messenger.showSnackBar(SnackBar(
-        key: const ValueKey('loop-list-no-center'), content: Text(context.l10n.loopListNoCenter)));
+    messenger.showSnackBar(
+      SnackBar(
+        key: const ValueKey('loop-list-no-center'),
+        content: Text(context.l10n.loopListNoCenter),
+      ),
+    );
     return;
   }
   await showModalBottomSheet<void>(
@@ -397,47 +457,70 @@ class _ListSheet extends ConsumerWidget {
       controller: scroll,
       padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
       children: [
-        Text(l.loopListTitle(radius.round()), style: theme.textTheme.titleLarge),
+        Text(
+          l.loopListTitle(radius.round()),
+          style: theme.textTheme.titleLarge,
+        ),
         Text(
           session.start == null ? l.loopListAroundMe : l.loopListAroundStart,
           style: theme.textTheme.bodySmall?.copyWith(color: theme.hintColor),
         ),
-        Row(children: [
-          TextButton(
-            key: const ValueKey('loop-list-all'),
-            onPressed: ids.isEmpty ? null : () => notifier.setSelected(ids, true),
-            child: Text(l.loopListAll),
-          ),
-          TextButton(
-            key: const ValueKey('loop-list-none'),
-            onPressed: session.selected.isEmpty ? null : notifier.clearSelection,
-            child: Text(l.loopListNone),
-          ),
-        ]),
+        Row(
+          children: [
+            TextButton(
+              key: const ValueKey('loop-list-all'),
+              onPressed: ids.isEmpty
+                  ? null
+                  : () => notifier.setSelected(ids, true),
+              child: Text(l.loopListAll),
+            ),
+            TextButton(
+              key: const ValueKey('loop-list-none'),
+              onPressed: session.selected.isEmpty
+                  ? null
+                  : notifier.clearSelection,
+              child: Text(l.loopListNone),
+            ),
+          ],
+        ),
         if (outside > 0)
           Text(
             key: const ValueKey('loop-list-outside'),
             l.loopListOutside(outside),
-            style: theme.textTheme.bodySmall?.copyWith(color: palette.warningText),
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: palette.warningText,
+            ),
           ),
         if (pool.inReach.isEmpty)
           Text(
             key: const ValueKey('loop-list-empty'),
-            pool.warned.isEmpty ? l.loopListEmpty(radius.round()) : l.loopListOnlyWarned(radius.round()),
+            pool.warned.isEmpty
+                ? l.loopListEmpty(radius.round())
+                : l.loopListOnlyWarned(radius.round()),
           ),
         for (final t in pool.inReach) _row(l, session, notifier, t),
         if (pool.warned.isNotEmpty) ...[
           const SizedBox(height: 8),
-          Text(l.loopListWarned(pool.warned.length), style: theme.textTheme.titleMedium),
-          Text(l.loopListWarnedHint,
-              style: theme.textTheme.bodySmall?.copyWith(color: palette.warningText)),
+          Text(
+            l.loopListWarned(pool.warned.length),
+            style: theme.textTheme.titleMedium,
+          ),
+          Text(
+            l.loopListWarnedHint,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: palette.warningText,
+            ),
+          ),
           for (final t in pool.warned) _row(l, session, notifier, t),
         ],
         if (pool.connectors.isNotEmpty) ...[
           const SizedBox(height: 8),
           Text(
             key: const ValueKey('loop-connectors'),
-            l.loopListConnectors(pool.connectors.length, pool.connectors.map((t) => t.displayName(l)).join(', ')),
+            l.loopListConnectors(
+              pool.connectors.length,
+              pool.connectors.map((t) => t.displayName(l)).join(', '),
+            ),
             style: theme.textTheme.bodySmall?.copyWith(color: theme.hintColor),
           ),
         ],
@@ -452,7 +535,12 @@ class _ListSheet extends ConsumerWidget {
     );
   }
 
-  Widget _row(AppLocalizations l, LoopSession session, LoopPlannerNotifier notifier, Trail t) {
+  Widget _row(
+    AppLocalizations l,
+    LoopSession session,
+    LoopPlannerNotifier notifier,
+    Trail t,
+  ) {
     final on = session.selected.contains(t.id);
     final must = session.mandatory.contains(t.id);
     final parts = [
@@ -466,7 +554,11 @@ class _ListSheet extends ConsumerWidget {
       controlAffinity: ListTileControlAffinity.leading,
       value: on,
       onChanged: (v) => notifier.setSelected([t.id], v == true),
-      title: Text(t.displayName(l), maxLines: 1, overflow: TextOverflow.ellipsis),
+      title: Text(
+        t.displayName(l),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      ),
       subtitle: Text(parts.join(' · ')),
       secondary: IconButton(
         key: ValueKey('loop-must-${t.id}'),
@@ -486,14 +578,19 @@ class _ListSheet extends ConsumerWidget {
 ///
 /// Mit [suggest] rechnet es den Vorschlag (#516 Schritt 4, „Runde
 /// vorschlagen").
-Future<void> showLoopResultPanel(ScaffoldState scaffold, {bool compute = true, bool suggest = false}) async {
+Future<void> showLoopResultPanel(
+  ScaffoldState scaffold, {
+  bool compute = true,
+  bool suggest = false,
+}) async {
   final container = ProviderScope.containerOf(scaffold.context, listen: false);
   final planner = container.read(loopPlannerProvider.notifier);
   if (compute) unawaited(suggest ? planner.suggest() : planner.compute());
   await showMapPanel(
     scaffold,
     initialSize: kMapPanelPool,
-    builder: (context, scroll, panel) => _ResultPanel(scroll: scroll, panel: panel),
+    builder: (context, scroll, panel) =>
+        _ResultPanel(scroll: scroll, panel: panel),
   );
   container.read(loopPlannerProvider.notifier).clearResult();
 }
@@ -516,13 +613,20 @@ class _ResultPanelState extends ConsumerState<_ResultPanel> {
   void initState() {
     super.initState();
     // Steht schon ein Ergebnis, gleich einpassen.
-    WidgetsBinding.instance.addPostFrameCallback((_) => _maybeFit(ref.read(loopPlannerProvider)));
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => _maybeFit(ref.read(loopPlannerProvider)),
+    );
   }
 
   /// Einmal je Ergebnis: einklappen, dann über dem Blatt einpassen.
   Future<void> _maybeFit(LoopSession s) async {
     final plan = s.plan;
-    if (!mounted || plan == null || plan.outcome != LoopOutcome.ok || identical(plan, _fitted)) return;
+    if (!mounted ||
+        plan == null ||
+        plan.outcome != LoopOutcome.ok ||
+        identical(plan, _fitted)) {
+      return;
+    }
     // Getunt (#234): Die Karte bleibt, wo der Finger den Punkt hingelegt hat.
     if (s.tuned) return;
     _fitted = plan;
@@ -541,10 +645,17 @@ class _ResultPanelState extends ConsumerState<_ResultPanel> {
     final buttons = _buttonsKey.currentContext?.findRenderObject();
     final list = context.findRenderObject();
     final full = widget.panel.fullHeight;
-    if (buttons is! RenderBox || list is! RenderBox || !buttons.attached || !list.attached || full == null) {
+    if (buttons is! RenderBox ||
+        list is! RenderBox ||
+        !buttons.attached ||
+        !list.attached ||
+        full == null) {
       return kMapPanelResult;
     }
-    final needed = buttons.localToGlobal(Offset(0, buttons.size.height)).dy - list.localToGlobal(Offset.zero).dy + 12;
+    final needed =
+        buttons.localToGlobal(Offset(0, buttons.size.height)).dy -
+        list.localToGlobal(Offset.zero).dy +
+        12;
     return (needed / full).clamp(kMapPanelResult, kMapPanelResultMax);
   }
 
@@ -563,9 +674,11 @@ class _ResultPanelState extends ConsumerState<_ResultPanel> {
             final t? => l.routeNameTrailHead(t.displayName(l)),
             // Vor dem ersten Ergebnis zählt der Regler, danach das Gezeigte —
             // sonst hieß eine Route bis zum Ergebnis „Runde".
-            null => (plan != null ? session.planEnd : session.prefs.endMode) == LoopEndMode.loop
-                ? l.loopTitle
-                : l.loopRouteTitle,
+            null =>
+              (plan != null ? session.planEnd : session.prefs.endMode) ==
+                      LoopEndMode.loop
+                  ? l.loopTitle
+                  : l.loopRouteTitle,
           },
           // Kein Untertitel: Die Summe steht direkt darunter, auch
           // eingeklappt — zweimal dieselben Zahlen nahmen dem Profil den
@@ -586,23 +699,47 @@ class _ResultPanelState extends ConsumerState<_ResultPanel> {
                 const SizedBox(height: 12),
               ],
               ...switch (session.phase) {
-              LoopPhase.locating => [_progress(l.routingLocating)],
-              LoopPhase.loading => [_progressBar(context, l.routingLoadingWays, null, cancel: true)],
-              LoopPhase.building => [_progressBar(context, l.loopBuildingGraph, session.progress, cancel: true)],
-              LoopPhase.idle when session.changed => [_changedCard(context)],
-              LoopPhase.computing || LoopPhase.idle => [
+                LoopPhase.locating => [_progress(l.routingLocating)],
+                LoopPhase.loading => [
                   _progressBar(
                     context,
-                    session.prefs.endMode == LoopEndMode.target ? l.routeComputing : l.loopComputing,
+                    l.routingLoadingWays,
+                    null,
+                    cancel: true,
+                  ),
+                ],
+                LoopPhase.building => [
+                  _progressBar(
+                    context,
+                    l.loopBuildingGraph,
+                    session.progress,
+                    cancel: true,
+                  ),
+                ],
+                LoopPhase.idle when session.changed => [_changedCard(context)],
+                LoopPhase.computing || LoopPhase.idle => [
+                  _progressBar(
+                    context,
+                    session.prefs.endMode == LoopEndMode.target
+                        ? l.routeComputing
+                        : l.loopComputing,
                     session.progress,
                     cancel: session.phase == LoopPhase.computing,
                   ),
                 ],
-              // Geht es nicht, bleibt zu einem Ziel die Navi-App (#151).
-              LoopPhase.result => session.blocker != null || plan == null
-                  ? [_blockerCard(context, session, session.blocker ?? LoopBlocker.failed), ?_external(context, session)]
-                  : _result(context, session, plan),
-            },
+                // Geht es nicht, bleibt zu einem Ziel die Navi-App (#151).
+                LoopPhase.result =>
+                  session.blocker != null || plan == null
+                      ? [
+                          _blockerCard(
+                            context,
+                            session,
+                            session.blocker ?? LoopBlocker.failed,
+                          ),
+                          ?_external(context, session),
+                        ]
+                      : _result(context, session, plan),
+              },
             ],
           ),
         ),
@@ -615,81 +752,128 @@ class _ResultPanelState extends ConsumerState<_ResultPanel> {
     return SegmentedButton<RouteMode>(
       key: const ValueKey('loop-route-mode'),
       segments: [
-        ButtonSegment(value: RouteMode.direct, label: Text(l.routeModeDirect), icon: const Icon(Icons.straight)),
-        ButtonSegment(value: RouteMode.fun, label: Text(l.routeModeFun), icon: const Icon(Icons.downhill_skiing)),
-        ButtonSegment(value: RouteMode.easy, label: Text(l.routeModeEasy), icon: const Icon(Icons.directions_bike)),
+        ButtonSegment(
+          value: RouteMode.direct,
+          label: Text(l.routeModeDirect),
+          icon: const Icon(Icons.straight),
+        ),
+        ButtonSegment(
+          value: RouteMode.fun,
+          label: Text(l.routeModeFun),
+          icon: const Icon(Icons.downhill_skiing),
+        ),
+        ButtonSegment(
+          value: RouteMode.easy,
+          label: Text(l.routeModeEasy),
+          icon: const Icon(Icons.directions_bike),
+        ),
       ],
       selected: {session.prefs.style},
       showSelectedIcon: false,
-      onSelectionChanged: (sel) => unawaited(ref.read(loopPlannerProvider.notifier).setStyle(sel.single)),
+      onSelectionChanged: (sel) => unawaited(
+        ref.read(loopPlannerProvider.notifier).setStyle(sel.single),
+      ),
     );
   }
 
-  Widget _progress(String text) => Row(children: [
-        const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)),
-        const SizedBox(width: 12),
-        Expanded(child: Text(text)),
-      ]);
+  Widget _progress(String text) => Row(
+    children: [
+      const SizedBox(
+        width: 20,
+        height: 20,
+        child: CircularProgressIndicator(strokeWidth: 2),
+      ),
+      const SizedBox(width: 12),
+      Expanded(child: Text(text)),
+    ],
+  );
 
   /// Der Ladebalken (#356): Bau und Rechnung melden ihren Anteil aus dem
   /// Rechen-Isolate; ohne Meldung läuft er unbestimmt. Mit [cancel] steht
   /// „Abbrechen" daneben (#372) — X und Zurück schlössen den Planer.
-  Widget _progressBar(BuildContext context, String text, double? value, {bool cancel = false}) {
+  Widget _progressBar(
+    BuildContext context,
+    String text,
+    double? value, {
+    bool cancel = false,
+  }) {
     final theme = Theme.of(context);
     return Column(
       key: const ValueKey('loop-progress'),
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Expanded(child: Text(text, style: theme.textTheme.bodyMedium)),
-          if (value != null) ...[
-            const SizedBox(width: 12),
-            Text(context.l10n.loopProgressPercent((value * 100).round()),
-                style: AppFonts.numbers(theme.textTheme.bodyMedium)),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(child: Text(text, style: theme.textTheme.bodyMedium)),
+            if (value != null) ...[
+              const SizedBox(width: 12),
+              Text(
+                context.l10n.loopProgressPercent((value * 100).round()),
+                style: AppFonts.numbers(theme.textTheme.bodyMedium),
+              ),
+            ],
           ],
-        ]),
+        ),
         const SizedBox(height: 8),
-        Row(children: [
-          Expanded(
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(4),
-              child: LinearProgressIndicator(value: value, minHeight: 6),
+        Row(
+          children: [
+            Expanded(
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(4),
+                child: LinearProgressIndicator(value: value, minHeight: 6),
+              ),
             ),
-          ),
-          if (cancel) ...[
-            const SizedBox(width: 8),
-            TextButton(
-              key: const ValueKey('loop-cancel'),
-              onPressed: ref.read(loopPlannerProvider.notifier).cancel,
-              child: Text(context.l10n.commonCancel),
-            ),
+            if (cancel) ...[
+              const SizedBox(width: 8),
+              TextButton(
+                key: const ValueKey('loop-cancel'),
+                onPressed: ref.read(loopPlannerProvider.notifier).cancel,
+                child: Text(context.l10n.commonCancel),
+              ),
+            ],
           ],
-        ]),
+        ),
       ],
     );
   }
 
-  Widget _notice(BuildContext context, String text) =>
-      Text(key: const ValueKey('loop-notice'), text, style: Theme.of(context).textTheme.bodyMedium);
+  Widget _notice(BuildContext context, String text) => Text(
+    key: const ValueKey('loop-notice'),
+    text,
+    style: Theme.of(context).textTheme.bodyMedium,
+  );
 
-  Widget _blockerCard(BuildContext context, LoopSession session, LoopBlocker b) {
+  Widget _blockerCard(
+    BuildContext context,
+    LoopSession session,
+    LoopBlocker b,
+  ) {
     final palette = AppPalette.of(context);
     return Card(
       key: const ValueKey('loop-blocker'),
       margin: EdgeInsets.zero,
       child: Padding(
         padding: const EdgeInsets.all(12),
-        child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Icon(Icons.info_outline, color: palette.warningText),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              _notice(context, _blockerText(context.l10n, session, b)),
-              if (b == LoopBlocker.noTrailsInReach)
-                if (ref.read(loopPlannerProvider.notifier).widerReachM case final wider?) _widerButton(context, wider),
-            ]),
-          ),
-        ]),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(Icons.info_outline, color: palette.warningText),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _notice(context, _blockerText(context.l10n, session, b)),
+                  if (b == LoopBlocker.noTrailsInReach)
+                    if (ref.read(loopPlannerProvider.notifier).widerReachM
+                        case final wider?)
+                      _widerButton(context, wider),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -697,14 +881,15 @@ class _ResultPanelState extends ConsumerState<_ResultPanel> {
   /// „Weiter suchen" (Konzept-Routing 12.5): derselbe Vorschlag aus dem
   /// nächsten Umkreis [wider].
   Widget _widerButton(BuildContext context, double wider) => Align(
-        alignment: Alignment.centerLeft,
-        child: TextButton.icon(
-          key: const ValueKey('loop-wider'),
-          onPressed: () => unawaited(ref.read(loopPlannerProvider.notifier).suggestWider()),
-          icon: const Icon(Icons.zoom_out_map),
-          label: Text(context.l10n.loopSuggestWider(loopReachLabel(wider))),
-        ),
-      );
+    alignment: Alignment.centerLeft,
+    child: TextButton.icon(
+      key: const ValueKey('loop-wider'),
+      onPressed: () =>
+          unawaited(ref.read(loopPlannerProvider.notifier).suggestWider()),
+      icon: const Icon(Icons.zoom_out_map),
+      label: Text(context.l10n.loopSuggestWider(loopReachLabel(wider))),
+    ),
+  );
 
   /// Eine Eingabe hat sich geändert (#356, D3): Die Linie ist weg, und
   /// gerechnet wird erst auf Wunsch — wer mehrere Trails dazunimmt, will
@@ -716,47 +901,71 @@ class _ResultPanelState extends ConsumerState<_ResultPanel> {
       margin: EdgeInsets.zero,
       child: Padding(
         padding: const EdgeInsets.all(12),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-          Text(l.loopChangedTitle, style: Theme.of(context).textTheme.titleMedium),
-          const SizedBox(height: 4),
-          Text(l.loopChangedText, style: Theme.of(context).textTheme.bodyMedium),
-          const SizedBox(height: 8),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: FilledButton.icon(
-              key: const ValueKey('loop-recompute'),
-              onPressed: () => unawaited(ref.read(loopPlannerProvider.notifier).compute()),
-              icon: const Icon(Icons.refresh),
-              label: Text(l.loopRecompute),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              l.loopChangedTitle,
+              style: Theme.of(context).textTheme.titleMedium,
             ),
-          ),
-        ]),
+            const SizedBox(height: 4),
+            Text(
+              l.loopChangedText,
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+            const SizedBox(height: 8),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: FilledButton.icon(
+                key: const ValueKey('loop-recompute'),
+                onPressed: () =>
+                    unawaited(ref.read(loopPlannerProvider.notifier).compute()),
+                icon: const Icon(Icons.refresh),
+                label: Text(l.loopRecompute),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
   bool _fitsBudget(LoopSummary s, LoopBudget b) =>
-      s.timeS <= b.maxTimeS + 1 && s.gainM <= b.climbM + 1 && s.hikingM <= b.hikingM + 1;
+      s.timeS <= b.maxTimeS + 1 &&
+      s.gainM <= b.climbM + 1 &&
+      s.hikingM <= b.hikingM + 1;
 
-  List<Widget> _result(BuildContext context, LoopSession session, LoopPlan plan) {
+  List<Widget> _result(
+    BuildContext context,
+    LoopSession session,
+    LoopPlan plan,
+  ) {
     final theme = Theme.of(context);
     final palette = AppPalette.of(context);
     final l = context.l10n;
     if (plan.outcome != LoopOutcome.ok) {
       return [
         _notice(context, _outcomeText(l, plan.outcome)),
-        if (plan.excluded.isNotEmpty) ...[const SizedBox(height: 8), ..._excludedRows(context, plan)],
+        if (plan.excluded.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          ..._excludedRows(context, plan),
+        ],
         ?_external(context, session),
       ];
     }
     final s = plan.summary!;
     final trails = ref.read(trailsProvider).valueOrNull ?? const <Trail>[];
     final byId = {for (final t in trails) t.id: t};
-    final canRecord = ref.watch(rideRecordingAvailableProvider) && ref.watch(rideProvider) == null;
+    final canRecord =
+        ref.watch(rideRecordingAvailableProvider) &&
+        ref.watch(rideProvider) == null;
     // Das Budget, an dem eine Runde gerechnet wurde (Runde oder Ende am
     // letzten Trail); eine Route zu einem Ziel rechnet ohne Zeit als
     // Richtwert, die Skalen sagten dort nichts.
-    final budget = !plan.isEmpty && !session.planBare && session.planEnd != LoopEndMode.target
+    final budget =
+        !plan.isEmpty &&
+            !session.planBare &&
+            session.planEnd != LoopEndMode.target
         ? session.planBudget
         : null;
     final reach = session.suggestReachM;
@@ -766,7 +975,9 @@ class _ResultPanelState extends ConsumerState<_ResultPanel> {
     // Kacheln, bis die Linie nachgerechnet ist.
     final strip = budget != null && session.hasStrip ? session : null;
     final other = strip != null && strip.stripShown != strip.stripPick;
-    final raw = strip != null && strip.stripRaw ? strip.strip[strip.stripShown!] : null;
+    final raw = strip != null && strip.stripRaw
+        ? strip.strip[strip.stripShown!]
+        : null;
     final lengthM = raw?.lengthM ?? s.lengthM;
     final gainM = raw?.climbM ?? s.gainM;
     final trailM = raw == null ? s.trailM : raw.trailShare * raw.lengthM;
@@ -785,7 +996,10 @@ class _ResultPanelState extends ConsumerState<_ResultPanel> {
       else if (reach != null) ...[
         Text(
           key: const ValueKey('loop-suggest'),
-          l.loopSuggestLine({for (final st in plan.stops) st.trail.id}.length, loopReachLabel(reach)),
+          l.loopSuggestLine(
+            {for (final st in plan.stops) st.trail.id}.length,
+            loopReachLabel(reach),
+          ),
           style: theme.textTheme.titleSmall,
         ),
         const SizedBox(height: 6),
@@ -799,24 +1013,43 @@ class _ResultPanelState extends ConsumerState<_ResultPanel> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           for (final (i, tile) in [
-            _SummaryTile(key: const ValueKey('loop-tile-length'), label: l.loopTileLength, value: formatMeters(lengthM)),
+            _SummaryTile(
+              key: const ValueKey('loop-tile-length'),
+              label: l.loopTileLength,
+              value: formatMeters(lengthM),
+            ),
             _SummaryTile(
               key: const ValueKey('loop-tile-climb'),
               label: l.loopTileClimb,
               value: '${gainM.round()} hm',
-              trailing: budget == null ? null : l.loopTileOf('${budget.climbM.round()}'),
+              trailing: budget == null
+                  ? null
+                  : l.loopTileOf('${budget.climbM.round()}'),
               scale: budget == null
                   ? null
-                  : LoopBudgetScale(key: const ValueKey('loop-scale-climb'), value: gainM, mark: budget.climbM),
+                  : LoopBudgetScale(
+                      key: const ValueKey('loop-scale-climb'),
+                      value: gainM,
+                      mark: budget.climbM,
+                    ),
             ),
             plan.isEmpty
                 ? _SummaryTile(
-                    key: const ValueKey('loop-tile-descent'), label: l.loopTileDescent, value: '${s.lossM.round()} hm')
-                : _SummaryTile(key: const ValueKey('loop-tile-trail'), label: l.loopTileTrail, value: formatMeters(trailM)),
+                    key: const ValueKey('loop-tile-descent'),
+                    label: l.loopTileDescent,
+                    value: '${s.lossM.round()} hm',
+                  )
+                : _SummaryTile(
+                    key: const ValueKey('loop-tile-trail'),
+                    label: l.loopTileTrail,
+                    value: formatMeters(trailM),
+                  ),
             _SummaryTile(
               key: const ValueKey('loop-tile-time'),
               label: l.loopTileTime,
-              value: budget == null ? routeTimeLabel(l, timeS) : l.loopTimeAbout(routeTimeLabel(l, timeS)),
+              value: budget == null
+                  ? routeTimeLabel(l, timeS)
+                  : l.loopTimeAbout(routeTimeLabel(l, timeS)),
               // Mit der Leiste behält die Kachel nur die Zahl (#549): Die
               // Skala ist dort zur Leiste über die ganze Breite geworden.
               scale: budget == null || strip != null
@@ -826,7 +1059,8 @@ class _ResultPanelState extends ConsumerState<_ResultPanel> {
                       value: s.timeS,
                       mark: budget.timeS,
                       windowFrom: budget.minTimeS,
-                      windowTo: budget.maxTimeS),
+                      windowTo: budget.maxTimeS,
+                    ),
             ),
           ].indexed) ...[
             if (i > 0) const SizedBox(width: 6),
@@ -841,7 +1075,8 @@ class _ResultPanelState extends ConsumerState<_ResultPanel> {
           pick: strip.stripPick!,
           shown: strip.stripShown!,
           budget: budget!,
-          onShow: (k) => unawaited(ref.read(loopPlannerProvider.notifier).showState(k)),
+          onShow: (k) =>
+              unawaited(ref.read(loopPlannerProvider.notifier).showState(k)),
           onCompare: () => unawaited(showLoopCompare(context)),
         ),
       ],
@@ -854,7 +1089,10 @@ class _ResultPanelState extends ConsumerState<_ResultPanel> {
       // 124 px darunter) — dann rückt das Profil unter die Knöpfe, nicht
       // die Leiste (Konzept-Routing 12.10).
       if (strip == null) ...[
-        RouteElevationProfile(plan.points, key: const ValueKey('loop-elevation')),
+        RouteElevationProfile(
+          plan.points,
+          key: const ValueKey('loop-elevation'),
+        ),
         const SizedBox(height: 8),
       ] else
         const SizedBox(height: 4),
@@ -862,68 +1100,89 @@ class _ResultPanelState extends ConsumerState<_ResultPanel> {
       // Chips, EIN Knopf — kein zweites Blatt mehr.
       NavStartOptions(
         canRecord: canRecord,
-        onWatchFound: () => ref.read(watchSyncProvider.notifier).prepare(plan.points),
+        onWatchFound: () =>
+            ref.read(watchSyncProvider.notifier).prepare(plan.points),
       ),
       const SizedBox(height: 8),
       KeyedSubtree(
         key: _buttonsKey,
         child: NavStartButton(
           buttonKey: 'loop-navigate',
-          onPressed: () => ref.read(navRequestProvider.notifier).state = NavRequest(
-              points: plan.points,
-              title: _name(l, session, plan),
-              sections: navSectionsOfLoop(context.l10n, plan,
-                  trailById: trailByIdOf(ref), beyond: _targetTrail(session)),
-              fromPlanner: true,
-              profile: session.profile,
-              routePrefs: session.prefs.planRoute,
-              start: navStartChoiceOf(ref, canRecord: canRecord)),
+          onPressed: () =>
+              ref.read(navRequestProvider.notifier).state = NavRequest(
+                points: plan.points,
+                title: _name(l, session, plan),
+                sections: navSectionsOfLoop(
+                  context.l10n,
+                  plan,
+                  trailById: trailByIdOf(ref),
+                  beyond: _targetTrail(session),
+                ),
+                fromPlanner: true,
+                profile: session.profile,
+                routePrefs: session.prefs.planRoute,
+                start: navStartChoiceOf(ref, canRecord: canRecord),
+              ),
         ),
       ),
       // Speichern und GPX darunter, beim Vorschlag zuerst „Bearbeiten":
       // in die Bearbeitung, mit den Trails des Vorschlags gewählt.
-      Wrap(children: [
-        if (reach != null)
+      Wrap(
+        children: [
+          if (reach != null)
+            TextButton.icon(
+              key: const ValueKey('loop-edit'),
+              onPressed: widget.panel.close,
+              icon: const Icon(Icons.edit_outlined),
+              label: Text(l.loopSuggestEdit),
+            ),
           TextButton.icon(
-            key: const ValueKey('loop-edit'),
-            onPressed: widget.panel.close,
-            icon: const Icon(Icons.edit_outlined),
-            label: Text(l.loopSuggestEdit),
+            key: const ValueKey('loop-save'),
+            onPressed: () => _saveRide(session, plan),
+            icon: const Icon(Icons.bookmark_add_outlined),
+            label: Text(l.commonSave),
           ),
-        TextButton.icon(
-          key: const ValueKey('loop-save'),
-          onPressed: () => _saveRide(session, plan),
-          icon: const Icon(Icons.bookmark_add_outlined),
-          label: Text(l.commonSave),
-        ),
-        TextButton.icon(
-          key: const ValueKey('loop-gpx'),
-          onPressed: () => _exportGpx(session, plan),
-          icon: const Icon(Icons.share_outlined),
-          label: Text(l.routingAsGpx),
-        ),
-        // Die Ablage auf der Uhr (#515): ohne die Navigation zu starten.
-        if (ref.watch(watchShelfAvailableProvider) && plan.summary != null)
           TextButton.icon(
-            key: const ValueKey('loop-watch'),
-            onPressed: () => putOnWatch(context, ref,
+            key: const ValueKey('loop-gpx'),
+            onPressed: () => _exportGpx(session, plan),
+            icon: const Icon(Icons.share_outlined),
+            label: Text(l.routingAsGpx),
+          ),
+          // Die Ablage auf der Uhr (#515): ohne die Navigation zu starten.
+          if (ref.watch(watchShelfAvailableProvider) && plan.summary != null)
+            TextButton.icon(
+              key: const ValueKey('loop-watch'),
+              onPressed: () => putOnWatch(
+                context,
+                ref,
                 points: plan.points,
                 name: _name(l, session, plan),
-                sections: navSectionsOfLoop(l, plan, trailById: trailByIdOf(ref), beyond: _targetTrail(session))),
-            icon: const Icon(Icons.watch_outlined),
-            label: Text(l.watchShelfPut),
-          ),
-        ?_external(context, session),
-      ]),
+                sections: navSectionsOfLoop(
+                  l,
+                  plan,
+                  trailById: trailByIdOf(ref),
+                  beyond: _targetTrail(session),
+                ),
+              ),
+              icon: const Icon(Icons.watch_outlined),
+              label: Text(l.watchShelfPut),
+            ),
+          ?_external(context, session),
+        ],
+      ),
       if (strip != null) ...[
         const SizedBox(height: 4),
-        RouteElevationProfile(plan.points, key: const ValueKey('loop-elevation')),
+        RouteElevationProfile(
+          plan.points,
+          key: const ValueKey('loop-elevation'),
+        ),
       ],
       const SizedBox(height: 4),
       Text(
         key: const ValueKey('loop-details'),
         [
-          if (!plan.isEmpty) l.loopDescents(s.trailLossM.round(), s.wastedLossM.round()),
+          if (!plan.isEmpty)
+            l.loopDescents(s.trailLossM.round(), s.wastedLossM.round()),
           if (s.mix.isNotEmpty) wayMixLine(l, s.mix),
           // Die Schätzung kennt keine Pausen (Konzept-Routing 12.5) — als
           // Satz, seit die Reserve nicht mehr still in der Rechnung steckt.
@@ -935,7 +1194,10 @@ class _ResultPanelState extends ConsumerState<_ResultPanel> {
       // Trail-Anteil deutlich besser war (Betreiber, 2026-11-14) — oder
       // weil nichts mehr passte; dann beim Vorschlag „Weiter suchen" im
       // nächsten Umkreis. Beim Bearbeiten ist der Pool die Auswahl.
-      if (budget != null && !session.tuned && !other && s.timeS < budget.minTimeS) ...[
+      if (budget != null &&
+          !session.tuned &&
+          !other &&
+          s.timeS < budget.minTimeS) ...[
         const SizedBox(height: 4),
         Text(
           key: ValueKey(plan.shortForShare ? 'loop-short-share' : 'loop-short'),
@@ -948,34 +1210,57 @@ class _ResultPanelState extends ConsumerState<_ResultPanel> {
       ],
       if (session.planBare && session.prefs.style == RouteMode.easy) ...[
         const SizedBox(height: 4),
-        Text(key: const ValueKey('loop-easy-note'), l.routeEasyNote, style: theme.textTheme.bodyMedium),
+        Text(
+          key: const ValueKey('loop-easy-note'),
+          l.routeEasyNote,
+          style: theme.textTheme.bodyMedium,
+        ),
       ] else if (!session.planBare && session.prefs.planRoute.easy) ...[
         // Mit Auswahl rechnen nur die Verbindungen bequem (#356 PR 7b).
         const SizedBox(height: 4),
-        Text(key: const ValueKey('loop-easy-note'), l.loopEasyUpNote, style: theme.textTheme.bodyMedium),
+        Text(
+          key: const ValueKey('loop-easy-note'),
+          l.loopEasyUpNote,
+          style: theme.textTheme.bodyMedium,
+        ),
       ],
       if (!session.planBare &&
           session.planEnd == LoopEndMode.target &&
           session.prefs.style == RouteMode.direct &&
           !session.selected.every(session.mandatory.contains)) ...[
         const SizedBox(height: 4),
-        Text(key: const ValueKey('loop-direct-note'), l.routeDirectStarredNote, style: theme.textTheme.bodyMedium),
+        Text(
+          key: const ValueKey('loop-direct-note'),
+          l.routeDirectStarredNote,
+          style: theme.textTheme.bodyMedium,
+        ),
       ],
       if (session.funEmpty) ...[
         const SizedBox(height: 4),
-        Text(key: const ValueKey('loop-fun-empty'), l.routeFunEmpty, style: theme.textTheme.bodyMedium),
+        Text(
+          key: const ValueKey('loop-fun-empty'),
+          l.routeFunEmpty,
+          style: theme.textTheme.bodyMedium,
+        ),
       ],
       if (closedStopNames(
-        plan,
-        {for (final t in trails) if (t.status.blocksRouting) t.id},
-        ref.read(officialTrailsEnabledProvider) ? ref.read(officialTrailsControllerProvider).trails : const [],
-      )
+            plan,
+            {
+              for (final t in trails)
+                if (t.status.blocksRouting) t.id,
+            },
+            ref.read(officialTrailsEnabledProvider)
+                ? ref.read(officialTrailsControllerProvider).trails
+                : const [],
+          )
           case final closed when closed.isNotEmpty) ...[
         const SizedBox(height: 4),
         Text(
           key: const ValueKey('loop-closed'),
           l.loopClosedStops(closed.join(', ')),
-          style: theme.textTheme.bodyMedium?.copyWith(color: palette.warningText),
+          style: theme.textTheme.bodyMedium?.copyWith(
+            color: palette.warningText,
+          ),
         ),
       ],
       for (final snap in plan.snaps) ...[
@@ -988,14 +1273,17 @@ class _ResultPanelState extends ConsumerState<_ResultPanel> {
       ],
       RouteTuneNote(
         tuned: session.tuned,
-        onReset: () => unawaited(ref.read(loopPlannerProvider.notifier).resetTuning()),
+        onReset: () =>
+            unawaited(ref.read(loopPlannerProvider.notifier).resetTuning()),
         keyPrefix: 'loop',
       ),
       if (session.tuned && !_fitsBudget(s, session.planBudget))
         Text(
           key: const ValueKey('loop-tuned-over'),
           l.loopTunedOver,
-          style: theme.textTheme.bodySmall?.copyWith(color: palette.warningText),
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: palette.warningText,
+          ),
         ),
       if (s.trailUpM > 0) ...[
         const SizedBox(height: 4),
@@ -1009,10 +1297,14 @@ class _ResultPanelState extends ConsumerState<_ResultPanel> {
         const SizedBox(height: 8),
         Text(
           l.routingHikingWarning(formatMeters(s.hikingM)),
-          style: theme.textTheme.bodyMedium?.copyWith(color: palette.warningText),
+          style: theme.textTheme.bodyMedium?.copyWith(
+            color: palette.warningText,
+          ),
         ),
       ],
-      if (session.coverage == null ? null : planningCoverageNote(l, session.coverage!, loop: true)
+      if (session.coverage == null
+              ? null
+              : planningCoverageNote(l, session.coverage!, loop: true)
           case final note?) ...[
         const SizedBox(height: 8),
         Text(
@@ -1026,7 +1318,9 @@ class _ResultPanelState extends ConsumerState<_ResultPanel> {
         Text(
           key: const ValueKey('loop-steep'),
           note,
-          style: theme.textTheme.bodySmall?.copyWith(color: palette.warningText),
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: palette.warningText,
+          ),
         ),
       ],
       if (!s.heightsComplete) ...[
@@ -1040,10 +1334,15 @@ class _ResultPanelState extends ConsumerState<_ResultPanel> {
       const SizedBox(height: 12),
       SegmentedButton<RiderProfile>(
         key: const ValueKey('loop-result-profile'),
-        segments: [for (final p in RiderProfile.values) ButtonSegment(value: p, label: Text(p.label(l)))],
+        segments: [
+          for (final p in RiderProfile.values)
+            ButtonSegment(value: p, label: Text(p.label(l))),
+        ],
         selected: {session.profile},
         showSelectedIcon: false,
-        onSelectionChanged: (sel) => unawaited(ref.read(loopPlannerProvider.notifier).switchProfile(sel.single)),
+        onSelectionChanged: (sel) => unawaited(
+          ref.read(loopPlannerProvider.notifier).switchProfile(sel.single),
+        ),
       ),
       if (plan.stops.isNotEmpty) ...[
         const SizedBox(height: 12),
@@ -1054,13 +1353,22 @@ class _ResultPanelState extends ConsumerState<_ResultPanel> {
           key: ValueKey('loop-stop-$i'),
           dense: true,
           contentPadding: EdgeInsets.zero,
-          leading: CircleAvatar(radius: 12, child: Text('${i + 1}', style: const TextStyle(fontSize: 12))),
-          title: Text(plan.stops[i].trail.name, maxLines: 1, overflow: TextOverflow.ellipsis),
-          subtitle: Text([
-            formatMeters(plan.stops[i].trail.lengthM),
-            if (byId[plan.stops[i].trail.id]?.grade case final g?) 'S$g',
-            if (plan.stops[i].secondPass) l.loopSecondPass,
-          ].join(' · ')),
+          leading: CircleAvatar(
+            radius: 12,
+            child: Text('${i + 1}', style: const TextStyle(fontSize: 12)),
+          ),
+          title: Text(
+            plan.stops[i].trail.name,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          subtitle: Text(
+            [
+              formatMeters(plan.stops[i].trail.lengthM),
+              if (byId[plan.stops[i].trail.id]?.grade case final g?) 'S$g',
+              if (plan.stops[i].secondPass) l.loopSecondPass,
+            ].join(' · '),
+          ),
         ),
       // Was der spaßige Umweg nicht mitnahm, hat niemand gewählt.
       if (plan.excluded.isNotEmpty && !session.planBare) ...[
@@ -1084,7 +1392,10 @@ class _ResultPanelState extends ConsumerState<_ResultPanel> {
       for (final e in plan.excluded.entries)
         Text(
           key: ValueKey('loop-excluded-${e.key}'),
-          context.l10n.loopExcludedRow(byId[e.key]?.displayName(context.l10n) ?? e.key, _exclusionText(context.l10n, e.value)),
+          context.l10n.loopExcludedRow(
+            byId[e.key]?.displayName(context.l10n) ?? e.key,
+            _exclusionText(context.l10n, e.value),
+          ),
           style: theme.textTheme.bodySmall,
         ),
     ];
@@ -1095,13 +1406,19 @@ class _ResultPanelState extends ConsumerState<_ResultPanel> {
   /// sie bräuchte.
   Widget? _external(BuildContext context, LoopSession session) {
     final target = session.target;
-    if (session.prefs.endMode != LoopEndMode.target || target == null) return null;
-    final trail = session.targetTrailId == null ? null : trailByIdOf(ref)(session.targetTrailId!);
+    if (session.prefs.endMode != LoopEndMode.target || target == null) {
+      return null;
+    }
+    final trail = session.targetTrailId == null
+        ? null
+        : trailByIdOf(ref)(session.targetTrailId!);
     return Align(
       alignment: Alignment.centerLeft,
       child: TextButton.icon(
         key: const ValueKey('loop-external'),
-        onPressed: () => trail != null ? navigateToTrailHead(context, trail) : navigateToPoint(context, target),
+        onPressed: () => trail != null
+            ? navigateToTrailHead(context, trail)
+            : navigateToPoint(context, target),
         icon: const Icon(Icons.directions_outlined),
         label: Text(context.l10n.sheetNavigate),
       ),
@@ -1117,11 +1434,13 @@ class _ResultPanelState extends ConsumerState<_ResultPanel> {
 
   /// Nach dem Trailkopf HEISST die Route nur ohne gewählte Trails — mit
   /// Auswahl sagen deren Namen mehr („Route: Hexentanz, Steinbruch").
-  Trail? _namedTarget(LoopSession session) => session.planBare ? _targetTrail(session) : null;
+  Trail? _namedTarget(LoopSession session) =>
+      session.planBare ? _targetTrail(session) : null;
 
   /// Der Name für Fahrt, GPX und Navigation: zum Trailkopf nach dem Trail,
   /// sonst nach den Trails der Planung.
-  String _name(AppLocalizations l, LoopSession session, LoopPlan plan) => switch (_namedTarget(session)) {
+  String _name(AppLocalizations l, LoopSession session, LoopPlan plan) =>
+      switch (_namedTarget(session)) {
         final t? => l.routeNameTrailHead(t.displayName(l)),
         null => loopName(l, plan, loop: session.planEnd == LoopEndMode.loop),
       };
@@ -1131,62 +1450,94 @@ class _ResultPanelState extends ConsumerState<_ResultPanel> {
     final messenger = ScaffoldMessenger.of(context);
     final l = context.l10n;
     final now = DateTime.now().toUtc();
-    final ride = await ref.read(ridesProvider.notifier).savePlanned(
+    final ride = await ref
+        .read(ridesProvider.notifier)
+        .savePlanned(
           name: _name(l, session, plan),
           points: [
-            for (final p in plan.points) RidePoint(lat: p.latitude, lng: p.longitude, at: now, accuracyM: 0),
+            for (final p in plan.points)
+              RidePoint(
+                lat: p.latitude,
+                lng: p.longitude,
+                at: now,
+                accuracyM: 0,
+              ),
           ],
           duration: Duration(seconds: routeSeconds(plan.summary!.timeS)),
           profile: session.profile.name,
         );
     if (!mounted) return;
-    messenger.showSnackBar(SnackBar(
-        content: Text(ride == null ? l.loopSaveFailed : l.routingSavedAsRide)));
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text(ride == null ? l.loopSaveFailed : l.routingSavedAsRide),
+      ),
+    );
   }
 
   void _exportGpx(LoopSession session, LoopPlan plan) {
     if (plan.summary == null) return;
     final track = GpxTrack(
-        name: _name(context.l10n, session, plan),
-        points: [for (final p in plan.points) TrackPoint(p.latitude, p.longitude)]);
-    shareGpx(context, ref, fileName: gpxFileName(track.name), xml: writeGpx(name: track.name, points: track.points));
+      name: _name(context.l10n, session, plan),
+      points: [
+        for (final p in plan.points) TrackPoint(p.latitude, p.longitude),
+      ],
+    );
+    shareGpx(
+      context,
+      ref,
+      fileName: gpxFileName(track.name),
+      xml: writeGpx(name: track.name, points: track.points),
+    );
   }
 
   /// Eine Route ohne gewählten Trail (#356) hat ihre eigenen Sätze — sie
   /// nennen den Trailkopf oder das Ziel und die Navi-App, nicht „die Runde"
   /// und „weniger Trails".
   String _blockerText(AppLocalizations l, LoopSession session, LoopBlocker b) {
-    final route = session.prefs.endMode == LoopEndMode.target && session.selected.isEmpty;
+    final route =
+        session.prefs.endMode == LoopEndMode.target && session.selected.isEmpty;
     return switch (b) {
       LoopBlocker.noTrails => l.loopBlockerNoTrails,
-      LoopBlocker.noTrailsInReach => l.loopBlockerNoTrailsInReach(loopReachLabel(session.suggestReachM ?? kLoopReachM)),
-      LoopBlocker.noPosition => route ? l.routeBlockerNoPosition : l.loopBlockerNoPosition,
+      LoopBlocker.noTrailsInReach => l.loopBlockerNoTrailsInReach(
+        loopReachLabel(session.suggestReachM ?? kLoopReachM),
+      ),
+      LoopBlocker.noPosition =>
+        route ? l.routeBlockerNoPosition : l.loopBlockerNoPosition,
       LoopBlocker.noTarget => l.loopBlockerNoTarget,
-      LoopBlocker.noArea => !route
-          ? l.loopBlockerNoArea
-          : session.targetTrailId != null
-              ? l.routeBlockerNoAreaTrailHead
-              : l.routeBlockerNoAreaPoint,
+      LoopBlocker.noArea =>
+        !route
+            ? l.loopBlockerNoArea
+            : session.targetTrailId != null
+            ? l.routeBlockerNoAreaTrailHead
+            : l.routeBlockerNoAreaPoint,
       LoopBlocker.failed => route ? l.routeBlockerFailed : l.loopBlockerFailed,
-      LoopBlocker.tooLarge => route
-          ? l.routeBlockerTooLarge(session.coverage?.tilesNeeded ?? 0, kPlanMaxTiles)
-          : l.loopBlockerTooLarge(session.coverage?.tilesNeeded ?? 0, kPlanMaxTiles),
+      LoopBlocker.tooLarge =>
+        route
+            ? l.routeBlockerTooLarge(
+                session.coverage?.tilesNeeded ?? 0,
+                kPlanMaxTiles,
+              )
+            : l.loopBlockerTooLarge(
+                session.coverage?.tilesNeeded ?? 0,
+                kPlanMaxTiles,
+              ),
     };
   }
 
   String _outcomeText(AppLocalizations l, LoopOutcome o) => switch (o) {
-        LoopOutcome.ok => '',
-        LoopOutcome.startOffNetwork => l.loopOutcomeStartOff(kGraphSnapM.round()),
-        LoopOutcome.endOffNetwork => l.loopOutcomeEndOff(kGraphSnapM.round()),
-        // Wird nie gezeigt: Ein getuntes Ergebnis, das nicht geht, ersetzt
-        // das gezeigte nicht (#234).
-        LoopOutcome.viaFailed => l.loopOutcomeViaFailed,
-        LoopOutcome.empty => l.loopOutcomeEmpty,
-      };
+    LoopOutcome.ok => '',
+    LoopOutcome.startOffNetwork => l.loopOutcomeStartOff(kGraphSnapM.round()),
+    LoopOutcome.endOffNetwork => l.loopOutcomeEndOff(kGraphSnapM.round()),
+    // Wird nie gezeigt: Ein getuntes Ergebnis, das nicht geht, ersetzt
+    // das gezeigte nicht (#234).
+    LoopOutcome.viaFailed => l.loopOutcomeViaFailed,
+    LoopOutcome.empty => l.loopOutcomeEmpty,
+  };
 
   String _snapText(AppLocalizations l, LoopPlan plan, PointSnap s) {
     final d = formatMeters(s.meters);
-    String name() => plan.stops.firstWhere((t) => t.trail.id == s.trailId).trail.name;
+    String name() =>
+        plan.stops.firstWhere((t) => t.trail.id == s.trailId).trail.name;
     return switch (s.role) {
       SnapRole.start => l.loopSnapStart(d),
       SnapRole.end => l.loopSnapEnd(d),
@@ -1196,41 +1547,53 @@ class _ResultPanelState extends ConsumerState<_ResultPanel> {
     };
   }
 
-    String _exclusionText(AppLocalizations l, LoopExclusion e) => switch (e) {
-        LoopExclusion.tooFar => l.loopExclTooFar,
-        LoopExclusion.offNetwork => l.loopExclOffNetwork(formatMeters(kGraphSnapM)),
-        LoopExclusion.unreachable => l.loopExclUnreachable,
-        LoopExclusion.budget => l.loopExclBudget,
-      };
+  String _exclusionText(AppLocalizations l, LoopExclusion e) => switch (e) {
+    LoopExclusion.tooFar => l.loopExclTooFar,
+    LoopExclusion.offNetwork => l.loopExclOffNetwork(formatMeters(kGraphSnapM)),
+    LoopExclusion.unreachable => l.loopExclUnreachable,
+    LoopExclusion.budget => l.loopExclBudget,
+  };
 }
 
 /// „3 h" oder „2 h 30" — die Zeit des Budgets, im Kopf und in „Anpassen".
 String loopHoursLabel(AppLocalizations l, double h) {
   final whole = h.floor();
   final half = h - whole >= 0.5;
-  return half ? l.routingTimeHoursMinutes(whole, 30) : l.routingTimeHours(whole);
+  return half
+      ? l.routingTimeHoursMinutes(whole, 30)
+      : l.routingTimeHours(whole);
 }
 
 /// „Forstweg 2,1 km · Nebenstraße 300 m" — die Klassen nach Länge; EINE
 /// Fassung für Runde und Weg.
 String wayMixLine(AppLocalizations l, Map<WayClass, double> mix) {
-  final entries = mix.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
-  return entries.map((e) => l.routingWayMix(e.key.label(l), formatMeters(e.value))).join(' · ');
+  final entries = mix.entries.toList()
+    ..sort((a, b) => b.value.compareTo(a.value));
+  return entries
+      .map((e) => l.routingWayMix(e.key.label(l), formatMeters(e.value)))
+      .join(' · ');
 }
 
 /// Die gewählten Trails leuchten, solange der Planer offen ist und keine
 /// Runde auf der Karte liegt (#178); ein Pflicht-Trail kräftiger.
-List<MapViewPolyline> loopSelectionLines(Iterable<Trail> trails, LoopSession s) => [
-      for (final t in trails)
-        if (s.selected.contains(t.id) && t.points.length >= 2)
-          MapViewPolyline(
-            points: t.directedPoints,
-            color: AppColors.brand,
-            width: kLoopPickWidth,
-            borderColor: AppColors.onBrand.withValues(alpha: s.mandatory.contains(t.id) ? 1 : 0.7),
-            borderWidth: s.mandatory.contains(t.id) ? kLoopPickBorderMandatory : kLoopPickBorder,
-          ),
-    ];
+List<MapViewPolyline> loopSelectionLines(
+  Iterable<Trail> trails,
+  LoopSession s,
+) => [
+  for (final t in trails)
+    if (s.selected.contains(t.id) && t.points.length >= 2)
+      MapViewPolyline(
+        points: t.directedPoints,
+        color: AppColors.brand,
+        width: kLoopPickWidth,
+        borderColor: AppColors.onBrand.withValues(
+          alpha: s.mandatory.contains(t.id) ? 1 : 0.7,
+        ),
+        borderWidth: s.mandatory.contains(t.id)
+            ? kLoopPickBorderMandatory
+            : kLoopPickBorder,
+      ),
+];
 
 /// Die Vorschau: das Band der Route (#295) unter dem Netz — die
 /// Trail-Linien behalten ihre Farbe, das Band an ihren Seiten sagt
@@ -1242,18 +1605,32 @@ List<MapViewPolyline> loopPreviewLines(LoopPlan plan) {
     for (final s in plan.sections)
       if (s.leg != null) (s.leg!, s.points),
   ]);
-  return routeBandLines(plan.points, opacity: kRoutePreviewOpacity, pieces: [
-    for (final s in plan.sections)
-      if (!s.isTrail)
-        (points: s.points, hiking: s.hiking, hitValue: s.leg == null ? null : RouteLegHit(s.leg!, legs[s.leg]!)),
-  ]);
+  return routeBandLines(
+    plan.points,
+    opacity: kRoutePreviewOpacity,
+    pieces: [
+      for (final s in plan.sections)
+        if (!s.isTrail)
+          (
+            points: s.points,
+            hiking: s.hiking,
+            hitValue: s.leg == null ? null : RouteLegHit(s.leg!, legs[s.leg]!),
+          ),
+    ],
+  );
 }
 
 /// Eine Kachel der Summe (#517): Beschriftung klein, Zahl in Mono; bei
 /// einer Runde rechts neben der Beschriftung das Limit ([trailing]) und
 /// unter der Zahl die Skala ([scale], Konzept-Routing 12.5a).
 class _SummaryTile extends StatelessWidget {
-  const _SummaryTile({super.key, required this.label, required this.value, this.trailing, this.scale});
+  const _SummaryTile({
+    super.key,
+    required this.label,
+    required this.value,
+    this.trailing,
+    this.scale,
+  });
 
   final String label;
   final String value;
@@ -1273,20 +1650,38 @@ class _SummaryTile extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(children: [
-            Flexible(child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, style: small)),
-            if (trailing case final t?) ...[
-              const SizedBox(width: 4),
-              Expanded(
-                child: Text(t,
-                    maxLines: 1, overflow: TextOverflow.ellipsis, textAlign: TextAlign.end, style: AppFonts.numbers(small)),
+          Row(
+            children: [
+              Flexible(
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: small,
+                ),
               ),
+              if (trailing case final t?) ...[
+                const SizedBox(width: 4),
+                Expanded(
+                  child: Text(
+                    t,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.end,
+                    style: AppFonts.numbers(small),
+                  ),
+                ),
+              ],
             ],
-          ]),
+          ),
           FittedBox(
             fit: BoxFit.scaleDown,
             alignment: Alignment.centerLeft,
-            child: Text(value, maxLines: 1, style: AppFonts.numbers(theme.textTheme.titleMedium)),
+            child: Text(
+              value,
+              maxLines: 1,
+              style: AppFonts.numbers(theme.textTheme.titleMedium),
+            ),
           ),
           if (scale case final w?) ...[const SizedBox(height: 3), w],
         ],
@@ -1302,7 +1697,13 @@ class _SummaryTile extends StatelessWidget {
 /// die Füllung in der Warnfarbe: Form (der Strich mitten in der Füllung)
 /// UND Farbe, A13.
 class LoopBudgetScale extends StatelessWidget {
-  const LoopBudgetScale({super.key, required this.value, required this.mark, this.windowFrom, this.windowTo});
+  const LoopBudgetScale({
+    super.key,
+    required this.value,
+    required this.mark,
+    this.windowFrom,
+    this.windowTo,
+  });
 
   final double value;
   final double mark;
@@ -1359,14 +1760,30 @@ class _ScalePainter extends CustomPainter {
     const barH = 4.0;
     final top = (size.height - barH) / 2;
     final r = const Radius.circular(barH / 2);
-    canvas.drawRRect(RRect.fromLTRBR(0, top, size.width, top + barH, r), Paint()..color = track);
+    canvas.drawRRect(
+      RRect.fromLTRBR(0, top, size.width, top + barH, r),
+      Paint()..color = track,
+    );
     if (windowFrom != null && windowTo != null) {
-      canvas.drawRect(Rect.fromLTRB(x(math.max(0, windowFrom!)), top, x(windowTo!), top + barH),
-          Paint()..color = fill.withValues(alpha: 0.3));
+      canvas.drawRect(
+        Rect.fromLTRB(
+          x(math.max(0, windowFrom!)),
+          top,
+          x(windowTo!),
+          top + barH,
+        ),
+        Paint()..color = fill.withValues(alpha: 0.3),
+      );
     }
-    canvas.drawRRect(RRect.fromLTRBR(0, top, x(value), top + barH, r), Paint()..color = fill);
+    canvas.drawRRect(
+      RRect.fromLTRBR(0, top, x(value), top + barH, r),
+      Paint()..color = fill,
+    );
     final m = x(mark);
-    canvas.drawRect(Rect.fromLTRB(m - 1, 0, m + 1, size.height), Paint()..color = tick);
+    canvas.drawRect(
+      Rect.fromLTRB(m - 1, 0, m + 1, size.height),
+      Paint()..color = tick,
+    );
   }
 
   @override

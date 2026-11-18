@@ -239,8 +239,10 @@ Barlow Condensed für Titel, JetBrains Mono für Zahlen), kein
 
 ## Tests
 
-`flutter analyze` + `flutter test` nach jeder Änderung, **kein `dart
-format .`**. Harness `test/fakes/test_app.dart` (`pumpApp`) gegen die Fakes
+`tool/dart_format.sh` + `flutter analyze` + `flutter test` nach jeder
+Änderung — formatiert wird mit dem Skript, nicht mit `dart format .`
+(es lässt erzeugte Dateien aus; CI prüft mit `--check`, seit 2026-11-18).
+Harness `test/fakes/test_app.dart` (`pumpApp`) gegen die Fakes
 in `test/fakes/`, die die RLS-Regeln spiegeln (`fake_trails.dart` für die
 Trail-Sichtbarkeit). Kein Netz in Tests; Kartenkacheln kommen aus dem
 Fake-Tile-Provider.

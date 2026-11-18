@@ -38,12 +38,12 @@ class RidePoint {
   final double? altM;
 
   Map<String, dynamic> toJson() => {
-        'lat': lat,
-        'lng': lng,
-        'at': at.toUtc().toIso8601String(),
-        'acc': accuracyM,
-        if (altM != null) 'alt': altM,
-      };
+    'lat': lat,
+    'lng': lng,
+    'at': at.toUtc().toIso8601String(),
+    'acc': accuracyM,
+    if (altM != null) 'alt': altM,
+  };
 
   static RidePoint? fromJson(Map<String, dynamic> json) {
     final lat = (json['lat'] as num?)?.toDouble();
@@ -93,10 +93,10 @@ class RideMark {
   static bool isMark(Map<String, dynamic> json) => json.containsKey('mark');
 
   Map<String, dynamic> toJson() => {
-        'mark': kind.name,
-        'at': at.toUtc().toIso8601String(),
-        if (name != null) 'name': name,
-      };
+    'mark': kind.name,
+    'at': at.toUtc().toIso8601String(),
+    if (name != null) 'name': name,
+  };
 
   static RideMark? fromJson(Map<String, dynamic> json) {
     final kind = switch (json['mark']) {
@@ -109,8 +109,14 @@ class RideMark {
     final at = DateTime.tryParse(json['at'] as String? ?? '');
     if (kind == null || at == null) return null;
     final name = (json['name'] as String?)?.trim();
-    if (kind == RideMarkKind.label && (name == null || name.isEmpty)) return null;
-    return RideMark(kind: kind, at: at.toUtc(), name: name == null || name.isEmpty ? null : name);
+    if (kind == RideMarkKind.label && (name == null || name.isEmpty)) {
+      return null;
+    }
+    return RideMark(
+      kind: kind,
+      at: at.toUtc(),
+      name: name == null || name.isEmpty ? null : name,
+    );
   }
 }
 
@@ -124,7 +130,9 @@ List<RideMark> foldRideMarks(List<RideMark> marks) {
   final out = <RideMark>[];
   int? endAt(DateTime at) {
     for (var i = out.length - 1; i >= 0; i--) {
-      if (out[i].kind == RideMarkKind.end && out[i].at.isAtSameMomentAs(at)) return i;
+      if (out[i].kind == RideMarkKind.end && out[i].at.isAtSameMomentAs(at)) {
+        return i;
+      }
     }
     return null;
   }
@@ -136,7 +144,13 @@ List<RideMark> foldRideMarks(List<RideMark> marks) {
         out.add(m);
       case RideMarkKind.label:
         final i = endAt(m.at);
-        if (i != null) out[i] = RideMark(kind: RideMarkKind.end, at: out[i].at, name: m.name);
+        if (i != null) {
+          out[i] = RideMark(
+            kind: RideMarkKind.end,
+            at: out[i].at,
+            name: m.name,
+          );
+        }
       case RideMarkKind.discard:
         final i = endAt(m.at);
         if (i == null) continue;
@@ -157,7 +171,11 @@ bool markedTrailOpen(List<RideMark> marks) {
 
 /// Die laufende Fahrt: wann sie begann, was seither gemessen und was
 /// markiert wurde.
-typedef RecordedRide = ({DateTime startedAt, List<RidePoint> points, List<RideMark> marks});
+typedef RecordedRide = ({
+  DateTime startedAt,
+  List<RidePoint> points,
+  List<RideMark> marks,
+});
 
 /// Eine abgeschlossene Fahrt auf dem Gerät. [id] ist der Dateiname ohne
 /// Endung, abgeleitet aus dem Start — eindeutig genug, zwei Fahrten
@@ -233,8 +251,12 @@ class Ride {
 double rideLengthM(List<RidePoint> points) {
   var sum = 0.0;
   for (var i = 1; i < points.length; i++) {
-    sum += haversineM(points[i - 1].lat, points[i - 1].lng, points[i].lat,
-        points[i].lng);
+    sum += haversineM(
+      points[i - 1].lat,
+      points[i - 1].lng,
+      points[i].lat,
+      points[i].lng,
+    );
   }
   return sum;
 }
@@ -249,7 +271,10 @@ const kRideTrackMaxDots = 500;
 /// Jeder n-te Punkt, damit höchstens [max] übrig bleiben — und der
 /// LETZTE ist immer dabei: Er ist die Stelle, an der man gerade steht;
 /// fiele er weg, hinkte die Spur sichtbar hinterher.
-List<RidePoint> thinnedRide(List<RidePoint> points, {int max = kRideTrackMaxDots}) {
+List<RidePoint> thinnedRide(
+  List<RidePoint> points, {
+  int max = kRideTrackMaxDots,
+}) {
   if (points.length <= max) return points;
   final step = (points.length / max).ceil();
   final kept = <RidePoint>[

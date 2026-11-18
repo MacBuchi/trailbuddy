@@ -72,7 +72,8 @@ const kMapAttribution = '© OpenStreetMap contributors · Protomaps';
 
 /// Die Adresse, die MapLibre bekommt: PMTiles mit `pmtiles://` davor,
 /// der Kachelspeicher als `mbtiles://`, wie er ist.
-String mapLibreSourceUrl(String url) => url.startsWith('mbtiles://') ? url : 'pmtiles://$url';
+String mapLibreSourceUrl(String url) =>
+    url.startsWith('mbtiles://') ? url : 'pmtiles://$url';
 
 /// Setzt aus dem erzeugten Protomaps-Basis-Style und den Quellen EIN
 /// Style-Dokument zusammen: eine background-Ebene im Landton, dann für
@@ -107,7 +108,9 @@ String composeMapLibreStyle({
   final seenAttributions = <String>{};
   String? attributionOnce(String text) {
     if (!seenAttributions.add(text)) return null;
-    final extras = seenAttributions.length == 1 ? extraAttributions : const <String>[];
+    final extras = seenAttributions.length == 1
+        ? extraAttributions
+        : const <String>[];
     return [text, ...extras].join(' · ');
   }
 
@@ -132,7 +135,9 @@ String composeMapLibreStyle({
       'attribution': ?attribution,
     };
     for (final layer in _layersFor(baseLayers, source.id)) {
-      (source.labelsOnTop && layer['type'] == 'symbol' ? labels : layers).add(layer);
+      (source.labelsOnTop && layer['type'] == 'symbol' ? labels : layers).add(
+        layer,
+      );
     }
   }
 
@@ -176,15 +181,18 @@ String composeMapLibreStyle({
 /// Kopiert alle Nicht-background-Ebenen des Basis-Styles auf eine Quelle
 /// um: Id mit Quellen-Präfix (Ids müssen im Style eindeutig sein),
 /// `source` umgehängt, Schriften umgeschrieben.
-List<Map<String, dynamic>> _layersFor(List<dynamic> baseLayers, String sourceId) => [
-      for (final layer in baseLayers.cast<Map<String, dynamic>>())
-        if (layer['type'] != 'background')
-          {
-            ...(_rewriteFonts(layer)! as Map<String, dynamic>),
-            'id': '$sourceId/${layer['id']}',
-            'source': sourceId,
-          },
-    ];
+List<Map<String, dynamic>> _layersFor(
+  List<dynamic> baseLayers,
+  String sourceId,
+) => [
+  for (final layer in baseLayers.cast<Map<String, dynamic>>())
+    if (layer['type'] != 'background')
+      {
+        ...(_rewriteFonts(layer)! as Map<String, dynamic>),
+        'id': '$sourceId/${layer['id']}',
+        'source': sourceId,
+      },
+];
 
 /// Ersetzt die Schriftnamen des Protomaps-Styles durch die selbst
 /// erzeugten Stacks aus `assets/map_glyphs/`. Rekursiv über das ganze
@@ -218,12 +226,16 @@ Object? _rewriteFonts(Object? node) {
 /// Null, wenn der Stil mit einer Kartenfläche endet — dann gehören die
 /// Linien zuoberst in den Stil.
 String? contourAnchorIn(String style, {required String overlayPrefix}) {
-  final layers = (jsonDecode(style) as Map<String, dynamic>)['layers'] as List<dynamic>;
+  final layers =
+      (jsonDecode(style) as Map<String, dynamic>)['layers'] as List<dynamic>;
   String? anchor;
   for (final layer in layers.reversed.cast<Map<String, dynamic>>()) {
     final type = layer['type'];
     final source = layer['source'];
-    final above = type == 'symbol' || type == 'raster' || (source is String && source.startsWith(overlayPrefix));
+    final above =
+        type == 'symbol' ||
+        type == 'raster' ||
+        (source is String && source.startsWith(overlayPrefix));
     if (!above) break;
     anchor = layer['id'] as String?;
   }

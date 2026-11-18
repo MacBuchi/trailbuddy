@@ -30,7 +30,10 @@ class IsolateLoopPlanRunner implements LoopPlanRunner {
   bool get hasGraph => _hasGraph;
 
   @override
-  Future<GraphReport> build(GraphInput input, {void Function(double value)? onProgress}) async {
+  Future<GraphReport> build(
+    GraphInput input, {
+    void Function(double value)? onProgress,
+  }) async {
     final worker = await _ensure();
     builds++;
     // Kopiert die Bytes — Kacheln und Höhenraster, nicht den Graphen.
@@ -40,7 +43,10 @@ class IsolateLoopPlanRunner implements LoopPlanRunner {
   }
 
   @override
-  Future<LoopPlan> plan(LoopRequest request, {void Function(double value)? onProgress}) async {
+  Future<LoopPlan> plan(
+    LoopRequest request, {
+    void Function(double value)? onProgress,
+  }) async {
     if (!_hasGraph) throw StateError('kein Graph gebaut');
     final worker = await _ensure();
     return await _ask(worker, request, onProgress) as LoopPlan;
@@ -68,7 +74,11 @@ class IsolateLoopPlanRunner implements LoopPlanRunner {
     return worker;
   }
 
-  Future<Object?> _ask(SendPort worker, Object payload, [void Function(double value)? onProgress]) {
+  Future<Object?> _ask(
+    SendPort worker,
+    Object payload, [
+    void Function(double value)? onProgress,
+  ]) {
     final id = _nextId++;
     final done = Completer<Object?>();
     _pending[id] = done;
@@ -91,7 +101,8 @@ class IsolateLoopPlanRunner implements LoopPlanRunner {
         _progress[id]?.call(value);
         return;
       }
-      final (id, result, error, stack) = msg as (int, Object?, String?, String?);
+      final (id, result, error, stack) =
+          msg as (int, Object?, String?, String?);
       _progress.remove(id);
       final done = _pending.remove(id);
       if (done == null) return;
@@ -108,8 +119,13 @@ class IsolateLoopPlanRunner implements LoopPlanRunner {
       _reset(RemoteError('${parts.first}', '${parts.last}'));
     });
     exits.listen((_) => _reset(StateError('Rechen-Isolate beendet')));
-    Isolate.spawn(_workerMain, inbox.sendPort, onError: errors.sendPort, onExit: exits.sendPort, debugName: 'loop-planner')
-        .then(
+    Isolate.spawn(
+      _workerMain,
+      inbox.sendPort,
+      onError: errors.sendPort,
+      onExit: exits.sendPort,
+      debugName: 'loop-planner',
+    ).then(
       (isolate) {
         // Schon freigegeben, während er startete: gleich wieder weg.
         if (!identical(_ready, ready)) {
@@ -165,7 +181,10 @@ void _workerMain(SendPort reply) {
         if (payload is GraphInput) {
           built = null; // der alte Graph darf gehen, bevor der neue entsteht
           cache = LoopSearchCache();
-          final b = built = buildGraphFrom(payload, builtIn: Isolate.current.debugName ?? 'isolate');
+          final b = built = buildGraphFrom(
+            payload,
+            builtIn: Isolate.current.debugName ?? 'isolate',
+          );
           return b.report;
         }
         if (payload is BakeInput) return bakeFrom(payload);
@@ -174,7 +193,9 @@ void _workerMain(SendPort reply) {
         return (payload as GraphJob<Object?>).runOn(g, cache) as Object;
       }
 
-      final result = wantsProgress ? PlanProgress.run((v) => reply.send((id, v)), work) : work();
+      final result = wantsProgress
+          ? PlanProgress.run((v) => reply.send((id, v)), work)
+          : work();
       reply.send((id, result, null, null));
     } catch (e, s) {
       reply.send((id, null, '$e', '$s'));

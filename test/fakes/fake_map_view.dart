@@ -84,13 +84,24 @@ class FakeMapViewState extends State<FakeMapView>
   }
 
   @override
-  void fit(List<LatLng> points, {required double padding, required double maxZoom, double bottomInset = 0}) {
+  void fit(
+    List<LatLng> points, {
+    required double padding,
+    required double maxZoom,
+    double bottomInset = 0,
+  }) {
     // DIESELBE Rechnung wie die MapLibre-Engine (#68) — der Fake prüft
     // sie damit bei jedem Einpassen mit.
     lastFitBottomInset = bottomInset;
     bearing = 0;
-    final cam = cameraToFit(points, _size,
-        padding: padding, maxZoom: maxZoom, minZoom: widget.config.minZoom, bottomInset: bottomInset);
+    final cam = cameraToFit(
+      points,
+      _size,
+      padding: padding,
+      maxZoom: maxZoom,
+      minZoom: widget.config.minZoom,
+      bottomInset: bottomInset,
+    );
     _center = cam.center;
     _zoom = cam.zoom.clamp(widget.config.minZoom, widget.config.maxZoom);
     _idleAfterFrame();
@@ -120,7 +131,8 @@ class FakeMapViewState extends State<FakeMapView>
     final cy = _mercY(_center.latitude) * scale;
     final halfW = _size.width / 2, halfH = _size.height / 2;
     double lonOf(double x) => x / scale * 180 / math.pi;
-    double latOf(double y) => (2 * math.atan(math.exp(y / scale)) - math.pi / 2) * 180 / math.pi;
+    double latOf(double y) =>
+        (2 * math.atan(math.exp(y / scale)) - math.pi / 2) * 180 / math.pi;
     return MapViewCamera(
       center: _center,
       bounds: MapViewBounds(
@@ -137,7 +149,11 @@ class FakeMapViewState extends State<FakeMapView>
   void tapAt(LatLng point) {
     final cam = camera;
     widget.config.handleTap(
-      MapTap(point: point, screenPoint: projectToScreen(cam, point), camera: cam),
+      MapTap(
+        point: point,
+        screenPoint: projectToScreen(cam, point),
+        camera: cam,
+      ),
       widget.layers,
     );
   }
@@ -145,14 +161,21 @@ class FakeMapViewState extends State<FakeMapView>
   /// Ein langer Druck auf [point] — wie die Engines: immer der Punkt.
   void longPressAt(LatLng point) {
     final cam = camera;
-    widget.config.onLongPress?.call(MapTap(point: point, screenPoint: projectToScreen(cam, point), camera: cam));
+    widget.config.onLongPress?.call(
+      MapTap(
+        point: point,
+        screenPoint: projectToScreen(cam, point),
+        camera: cam,
+      ),
+    );
   }
 
   void _tapMarker(MapViewMarker m) {
     final cam = camera;
     // Die Mitte der Markerfläche, nicht der Punkt: Bei `topCenter` liegt
     // der Punkt am unteren Rand der Nadel.
-    final at = projectToScreen(cam, m.point) +
+    final at =
+        projectToScreen(cam, m.point) +
         Offset(0.5 * m.width * m.alignment.x, 0.5 * m.height * m.alignment.y);
     widget.config.handleTap(
       MapTap(point: m.point, screenPoint: at, camera: cam),
@@ -161,41 +184,46 @@ class FakeMapViewState extends State<FakeMapView>
   }
 
   @override
-  Widget build(BuildContext context) => LayoutBuilder(builder: (context, constraints) {
-        if (constraints.hasBoundedWidth && constraints.hasBoundedHeight) {
-          _size = constraints.biggest;
-        }
-        final l = widget.layers;
-        return ColoredBox(
-          color: widget.config.backgroundColor,
-          child: Wrap(
-            children: [
-              // Linien als schlichte Kästchen: Der Fake zeichnet keine
-              // Geometrie, aber eine Linie, die hier fehlt, wäre im Test
-              // unsichtbar — genau der blinde Fleck, den er nicht haben
-              // darf.
-              for (final polygon in l.polygons)
-                SizedBox(
-                    width: 1,
-                    height: 1,
-                    child: ColoredBox(color: polygon.fillColor)),
-              for (final line in l.polylines)
-                SizedBox(
-                    width: 1,
-                    height: 1,
-                    child: ColoredBox(color: line.color)),
-              for (final marker in l.markers)
-                GestureDetector(
-                  onTap: () => _tapMarker(marker),
-                  child: SizedBox(
-                      width: marker.width,
-                      height: marker.height,
-                      child: KeyedSubtree(key: marker.key, child: marker.child)),
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, constraints) {
+      if (constraints.hasBoundedWidth && constraints.hasBoundedHeight) {
+        _size = constraints.biggest;
+      }
+      final l = widget.layers;
+      return ColoredBox(
+        color: widget.config.backgroundColor,
+        child: Wrap(
+          children: [
+            // Linien als schlichte Kästchen: Der Fake zeichnet keine
+            // Geometrie, aber eine Linie, die hier fehlt, wäre im Test
+            // unsichtbar — genau der blinde Fleck, den er nicht haben
+            // darf.
+            for (final polygon in l.polygons)
+              SizedBox(
+                width: 1,
+                height: 1,
+                child: ColoredBox(color: polygon.fillColor),
+              ),
+            for (final line in l.polylines)
+              SizedBox(
+                width: 1,
+                height: 1,
+                child: ColoredBox(color: line.color),
+              ),
+            for (final marker in l.markers)
+              GestureDetector(
+                onTap: () => _tapMarker(marker),
+                child: SizedBox(
+                  width: marker.width,
+                  height: marker.height,
+                  child: KeyedSubtree(key: marker.key, child: marker.child),
                 ),
-            ],
-          ),
-        );
-      });
+              ),
+          ],
+        ),
+      );
+    },
+  );
 }
 
 /// Die Ebenen, wie der Screen sie der Karte gerade gibt.

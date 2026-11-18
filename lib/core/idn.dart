@@ -35,7 +35,8 @@ int? _value(int c) {
 /// Ein Label nach Punycode, ohne „xn--".
 String _encode(String label) {
   final input = label.runes.toList();
-  final out = StringBuffer()..writeAll(input.where((c) => c < 0x80).map(String.fromCharCode));
+  final out = StringBuffer()
+    ..writeAll(input.where((c) => c < 0x80).map(String.fromCharCode));
   final basic = out.length;
   var handled = basic;
   if (basic > 0) out.write('-');
@@ -48,7 +49,7 @@ String _encode(String label) {
       if (c < n) delta++;
       if (c != n) continue;
       var q = delta;
-      for (var k = _base;; k += _base) {
+      for (var k = _base; ; k += _base) {
         final t = _threshold(k, bias);
         if (q < t) break;
         out.write(_digit(t + (q - t) % (_base - t)));
@@ -75,7 +76,7 @@ String? _decode(String label) {
   while (pos < label.length) {
     final oldI = i;
     var w = 1;
-    for (var k = _base;; k += _base) {
+    for (var k = _base; ; k += _base) {
       if (pos >= label.length) return null;
       final d = _value(label.codeUnitAt(pos++));
       if (d == null) return null;
@@ -103,7 +104,10 @@ String hostToAscii(String host) => host
     .join('.');
 
 /// Umkehrung von [hostToAscii]; ein kaputtes „xn--"-Label bleibt, wie es ist.
-String hostToUnicode(String host) => host.split('.').map((l) {
+String hostToUnicode(String host) => host
+    .split('.')
+    .map((l) {
       if (!l.toLowerCase().startsWith(_prefix)) return l;
       return _decode(l.substring(_prefix.length)) ?? l;
-    }).join('.');
+    })
+    .join('.');

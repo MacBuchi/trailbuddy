@@ -27,7 +27,9 @@ class _AndroidGarminBridge implements GarminBridge {
     _listening = true;
     _channel.setMethodCallHandler((call) async {
       if (call.method == 'message') _messages.add(call.arguments);
-      if (call.method == 'device' && call.arguments == 'CONNECTED') _connected.add(null);
+      if (call.method == 'device' && call.arguments == 'CONNECTED') {
+        _connected.add(null);
+      }
     });
   }
 
@@ -36,8 +38,10 @@ class _AndroidGarminBridge implements GarminBridge {
     if (!supported) return WatchStatus.none;
     _listen();
     try {
-      final raw = await _channel.invokeMethod<Object?>(
-          'status', {'appId': kWatchAppId, 'tethered': kGarminTethered});
+      final raw = await _channel.invokeMethod<Object?>('status', {
+        'appId': kWatchAppId,
+        'tethered': kGarminTethered,
+      });
       return WatchStatus.fromChannel(raw);
     } catch (e, s) {
       logError('Garmin-Status', e, s);
@@ -49,7 +53,9 @@ class _AndroidGarminBridge implements GarminBridge {
   Future<WatchSendResult> send(List<Map<String, Object>> messages) async {
     if (!supported) return const WatchSendResult('NOT_SUPPORTED', 0);
     try {
-      final raw = await _channel.invokeMethod<Object?>('send', {'messages': messages});
+      final raw = await _channel.invokeMethod<Object?>('send', {
+        'messages': messages,
+      });
       return WatchSendResult.fromChannel(raw);
     } catch (e, s) {
       logError('Route an die Uhr', e, s);
@@ -61,7 +67,9 @@ class _AndroidGarminBridge implements GarminBridge {
   Future<WatchOpen> open() async {
     if (!supported) return WatchOpen.unknown;
     try {
-      return WatchOpen.fromChannel(await _channel.invokeMethod<Object?>('open'));
+      return WatchOpen.fromChannel(
+        await _channel.invokeMethod<Object?>('open'),
+      );
     } catch (e, s) {
       logError('Uhr-App öffnen', e, s);
       return WatchOpen.unknown;
@@ -73,7 +81,10 @@ class _AndroidGarminBridge implements GarminBridge {
     if (!supported) return false;
     _listen();
     try {
-      return await _channel.invokeMethod<bool>('listen', {'appId': kWatchAppId, 'tethered': kGarminTethered}) ??
+      return await _channel.invokeMethod<bool>('listen', {
+            'appId': kWatchAppId,
+            'tethered': kGarminTethered,
+          }) ??
           false;
     } catch (e, s) {
       logError('Auf die Uhr lauschen', e, s);

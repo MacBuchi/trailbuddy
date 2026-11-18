@@ -12,7 +12,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:trailbuddy/l10n/l10n.dart' show chosenAppLocale, debugDeviceLocales;
+import 'package:trailbuddy/l10n/l10n.dart'
+    show chosenAppLocale, debugDeviceLocales;
 import 'package:trailbuddy/app.dart';
 import 'package:trailbuddy/core/app_info.dart';
 import 'package:trailbuddy/core/connectivity.dart';
@@ -25,9 +26,11 @@ import 'package:trailbuddy/core/widgets/start_splash.dart';
 import 'package:trailbuddy/data/providers.dart';
 import 'package:trailbuddy/features/garmin/garmin_bridge.dart';
 import 'package:trailbuddy/features/garmin/watch_event_store.dart';
-import 'package:trailbuddy/features/garmin/watch_shelf.dart' show MemoryWatchShelfStore, watchShelfStoreProvider;
+import 'package:trailbuddy/features/garmin/watch_shelf.dart'
+    show MemoryWatchShelfStore, watchShelfStoreProvider;
 import 'package:trailbuddy/features/map/base_map_providers.dart';
-import 'package:trailbuddy/features/map/contour_layer.dart' show computeContours;
+import 'package:trailbuddy/features/map/contour_layer.dart'
+    show computeContours;
 import 'package:trailbuddy/features/map/contour_providers.dart';
 import 'package:trailbuddy/features/map/map_regions.dart';
 import 'package:trailbuddy/features/map/online_map.dart';
@@ -47,7 +50,8 @@ import 'package:trailbuddy/features/rides/ride_confirm_notify.dart';
 import 'package:trailbuddy/features/rides/ride_providers.dart';
 import 'package:trailbuddy/features/rides/ride_service.dart';
 import 'package:trailbuddy/features/routing/loop_plan_runner.dart';
-import 'package:trailbuddy/features/routing/routing_bake.dart' show routingBakeOnStartProvider;
+import 'package:trailbuddy/features/routing/routing_bake.dart'
+    show routingBakeOnStartProvider;
 import 'package:trailbuddy/features/trails/outbox_providers.dart';
 import 'package:trailbuddy/features/trails/trail_providers.dart';
 
@@ -67,20 +71,25 @@ import 'fake_keep_alive.dart';
 
 /// Test-Position ohne Geolocator-Plugin (alle Pflichtfelder gefüllt).
 /// [heading]/[speed] für die Folgeansicht der Navigation (#232).
-Position fakePosition(double lat, double lon,
-        {double accuracy = 8, double heading = 0, double speed = 0, DateTime? at}) =>
-    Position(
-      latitude: lat,
-      longitude: lon,
-      timestamp: at ?? DateTime(2026, 9, 28, 12),
-      accuracy: accuracy,
-      altitude: 0,
-      altitudeAccuracy: 0,
-      heading: heading,
-      headingAccuracy: 0,
-      speed: speed,
-      speedAccuracy: 0,
-    );
+Position fakePosition(
+  double lat,
+  double lon, {
+  double accuracy = 8,
+  double heading = 0,
+  double speed = 0,
+  DateTime? at,
+}) => Position(
+  latitude: lat,
+  longitude: lon,
+  timestamp: at ?? DateTime(2026, 9, 28, 12),
+  accuracy: accuracy,
+  altitude: 0,
+  altitudeAccuracy: 0,
+  heading: heading,
+  headingAccuracy: 0,
+  speed: speed,
+  speedAccuracy: 0,
+);
 
 /// Der EINZELNE Fix hinter „Meine Position" — zählt, wie oft gefragt
 /// wurde (nur dort darf nach der Berechtigung gefragt werden).
@@ -101,212 +110,247 @@ class FakePositionFix {
   }
 }
 
-List<Override> overridesFor(FakeBackend backend,
-        {FakeAppConfigRepository? appConfig,
-        String appVersion = '1.0.0',
-        Settings? settings,
-        FakeTrailRepository? trails,
-        FakePoiSource? pois,
-        FakeOfficialTrailsSource? official,
-        MemoryOfficialTrailsCache? officialCache,
-        Position? position,
-        Stream<Position?>? positionStream,
-        FakePositionFix? positionFix,
-        FakeRideStore? rideStore,
-        MemoryWatchEventStore? watchEvents,
-        FakeRideFix? rideFix,
-        FakeRideServiceBridge? rideBridge,
-        FakeRideService? rideService,
-        FakeNavServiceBridge? navBridge,
-        FakeGarminBridge? garmin,
-        FakeOutbox? outbox,
-        FakeTrailCache? trailCache,
-        MemoryAreaStore? areaStore,
-        MemoryTileStore? tileStore,
-        FakeKeepAlive? keepAlive,
-        Stream<List<ConnectivityResult>>? connectivity,
-        FakePushRepository? push,
-        Stream<RemoteMessage>? pushMessages,
-        FakeAirtimeRepository? airtime,
-        FakeNearbyRepository? nearby,
-        bool useRealMap = false,
-        List<Override> extra = const []}) =>
-    [
-      // Die Karten-Engine ist standardmäßig die Fake (Marker in einem
-      // Wrap, Kamera synchron simuliert, Tipps über die Trefferprüfung
-      // der Fassade) — die Flow-Suiten beweisen Verhalten, nicht
-      // Rendering. Tests, die flutter_map-Interna prüfen, pumpen mit
-      // `useRealMap: true`; die MapLibre-Platform-View ist im Widget-Test
-      // nicht renderbar, ihr Gate ist das Gerät.
-      mapViewBuilderProvider.overrideWithValue(useRealMap
-          ? (config, controller, layers) =>
-              FlutterMapView(config: config, controller: controller, layers: layers)
-          : (config, controller, layers) =>
-              FakeMapView(config: config, controller: controller, layers: layers)),
-      // Die Übersichtskarte kommt aus einem Asset, das der Test-Runner
-      // nicht liefert — und ohne Empfang würde die echte Karte sie öffnen.
-      overviewOpenerProvider.overrideWithValue(() async => null),
-      // Der Start-Splash (1p) läge sonst über jedem Flow-Test und
-      // schluckte die ersten Tipps; er hat seinen eigenen Test.
-      startSplashEnabledProvider.overrideWithValue(false),
-      settingsProvider.overrideWithValue(settings ?? FakeSettings()),
-      authRepositoryProvider.overrideWithValue(FakeAuthRepository(backend)),
-      profileRepositoryProvider
-          .overrideWithValue(FakeProfileRepository(backend)),
-      friendRepositoryProvider.overrideWithValue(FakeFriendRepository(backend)),
-      messageRepositoryProvider.overrideWithValue(FakeMessageRepository(backend)),
-      // Airtime unter Buddys (#36 Schritt 6): im Speicher, ab Werk leer.
-      airtimeRepositoryProvider.overrideWithValue(airtime ?? FakeAirtimeRepository(backend)),
-      // Buddy in der Nähe (#526): Kanäle im Speicher, ohne Realtime.
-      nearbyRepositoryProvider.overrideWithValue(nearby ?? FakeNearbyRepository(backend)),
-      feedbackRepositoryProvider
-          .overrideWithValue(FakeFeedbackRepository(backend)),
-      // Die Karte beobachtet die Trails, und die kämen sonst aus
-      // `Supabase.instance` — das gibt es im Widget-Test nicht. Vorgabe
-      // ist ein leeres Trail-Netz mit den Buddy-Regeln dieses Backends;
-      // Tests mit Trails reichen ihr eigenes Fake herein.
-      trailRepositoryProvider.overrideWithValue(trails ??
-          FakeTrailRepository(
-              myId: () => backend.currentUserId ?? '',
-              areFriends: backend.areFriends)),
-      // Kein Netz in Tests: kein Manifest vom Kartenhost, also keine
-      // Online-Karte — und die Übersicht kommt aus keinem Asset (oben).
-      mapManifestLoaderProvider.overrideWithValue(() async => null),
-      // Kein Regionen-Index (#220): DACH allein, wie bis 0.103 — und kein
-      // Manifest einer anderen Region.
-      regionsLoaderProvider.overrideWithValue(() async => null),
-      regionManifestLoaderProvider.overrideWithValue((_) async => null),
-      // Und keine Übersicht einer Region als Datei (#220 Schritt 4).
-      overviewFetcherProvider.overrideWithValue((_, {onProgress, check}) async => null),
-      poiBundleFetcherProvider.overrideWithValue((_, {onProgress, check}) async => null),
-      areaHeightsManifestLoaderProvider.overrideWithValue(() async => null),
-      heightsManifestLoaderProvider.overrideWithValue(() async => null),
-      // Die Wege (#212) sind ab Werk an — ohne diese Zeile fragte jeder
-      // Kartentest den Host.
-      waysManifestLoaderProvider.overrideWithValue(() async => null),
-      areaWaysManifestLoaderProvider.overrideWithValue(() async => null),
-      // Und keine Orte-Dateien vom Host: Eine Karte, die auf einen Trail
-      // zoomt, liegt über Zoom 12 und fragte sonst wirklich an.
-      poiSourceProvider.overrideWithValue(pois ?? FakePoiSource()),
-      // Ebenso die offiziellen Trails: Vorgabe ist ein Index ohne
-      // Regionen, gemerkt wird im Speicher statt im App-Verzeichnis.
-      officialTrailsSourceProvider
-          .overrideWithValue(official ?? FakeOfficialTrailsSource()),
-      officialTrailsCacheProvider
-          .overrideWithValue(officialCache ?? MemoryOfficialTrailsCache()),
-      // Kein Plattform-Kanal für den Standort: Die Position kommt aus dem
-      // Test (Vorgabe: keine, wie ohne Berechtigung). Ein Strom für Tests,
-      // die Fixe nacheinander brauchen — als Broadcast, weil
-      // `ref.invalidate` ihn neu abonniert.
-      positionStreamProvider.overrideWith((ref) => positionStream ?? Stream.value(position)),
-      positionFixProvider
-          .overrideWithValue((positionFix ?? FakePositionFix(position)).call),
-      // Die Fahrt (#28): im Speicher statt auf der Platte, ohne
-      // Foreground-Service und ohne Berechtigungsdialog. Ohne diese
-      // Zeilen ginge jeder Kartentest beim ersten Frame (`restore`) an
-      // `path_provider`.
-      rideStoreProvider.overrideWithValue(rideStore ?? FakeRideStore()),
-      watchEventStoreProvider.overrideWithValue(watchEvents ?? MemoryWatchEventStore()),
-      // Die Ablage der Uhr (#515) liegt sonst als Datei unter `rides/`.
-      watchShelfStoreProvider.overrideWithValue(MemoryWatchShelfStore()),
-      rideFixProvider.overrideWithValue((rideFix ?? FakeRideFix()).call),
-      rideServiceBridgeProvider.overrideWithValue(rideBridge ?? FakeRideServiceBridge()),
-      rideServiceProvider.overrideWithValue(rideService ?? FakeRideService()),
-      // Die Navigation im Dienst (#232) legt eine Datei ab — ohne die
-      // Naht ginge jeder Navigations-Test an `path_provider`.
-      navServiceBridgeProvider.overrideWithValue(navBridge ?? FakeNavServiceBridge()),
-      // Ab Werk keine Uhr (#449) — ohne die Zeile fragte der Kanal.
-      garminBridgeProvider.overrideWithValue(garmin ?? FakeGarminBridge()),
-      ridePermissionProvider.overrideWithValue(() async => null),
-      // Der Ausgangskorb (#30) im Speicher; der Netzwechsel kommt aus dem
-      // Test (Vorgabe: WLAN, ohne Wechsel).
-      outboxProvider.overrideWithValue(outbox ?? FakeOutbox()),
-      // Die Kopie des Netzes (#32) im Speicher — ohne Override ginge
-      // jeder Abruf an `path_provider`.
-      trailCacheProvider.overrideWithValue(trailCache ?? FakeTrailCache()),
-      // Gespeicherte Bereiche (Konzept-Schritt 3) im Speicher, der
-      // Foreground-Service als Fake — ohne beides ginge der Kartenstart
-      // an `path_provider` und den Plattform-Kanal.
-      areaStoreProvider.overrideWithValue(areaStore ?? MemoryAreaStore()),
-      // Der Kachelspeicher der Bereiche (#229) — ohne die Zeile öffnete
-      // jeder Kartentest eine SQLite-Datei unter `path_provider`.
-      tileStoreProvider.overrideWithValue(tileStore ?? MemoryTileStore()),
-      keepAliveProvider.overrideWithValue(keepAlive ?? FakeKeepAlive()),
-      // Ein echter Rechen-Isolate antwortet in der Test-Zone nie (#188).
-      loopPlanRunnerFactoryProvider.overrideWithValue(InlineLoopPlanRunner.new),
-      // Kein Backen beim Kartenstart (#410): Es legte in jedem Test mit
-      // Bereichen einen Runner an, und die Planer-Tests zählen Runner.
-      // `offline_areas_flow_test` schaltet es für seinen Fall ein.
-      routingBakeOnStartProvider.overrideWithValue(false),
-      // Dasselbe für die Höhenlinien (#271): an Ort und Stelle rechnen.
-      contourComputeProvider.overrideWithValue((job) async => computeContours(job)),
-      connectivityProvider.overrideWith(
-          (ref) => connectivity ?? Stream.value(const [ConnectivityResult.wifi])),
-      updateInfoProvider.overrideWith((ref) => Future.value(null)),
-      // Push (#34): Im Widget-Test gibt es weder FCM noch
-      // Berechtigungsdialoge. Ohne diese Naht liefe ein Test, der den
-      // Schalter im Profil antippt, in echtes Plattform-IO — und das löst
-      // in der Fake-Zone NIE auf. Vorgabe ist ein Token: Der interessante
-      // Weg ist „eingeschaltet"; wer die Ablehnung prüfen will,
-      // überschreibt gezielt. Und die Ströme: `PushListener` hängt sich
-      // beim ersten Frame an `onMessage`, also in JEDEM Test.
-      pushRepositoryProvider
-          .overrideWithValue(push ?? FakePushRepository(backend)),
-      pushTokenProvider.overrideWithValue(
-          () async => (token: 'test-token', denied: false, unavailable: false)),
-      pushMessageListenerProvider
-          .overrideWithValue(() => pushMessages ?? const Stream.empty()),
-      pushTapListenerProvider.overrideWithValue(() => const Stream.empty()),
-      rideConfirmTapsProvider.overrideWithValue(() => const Stream.empty()),
-      pushInitialMessageProvider.overrideWithValue(() async => null),
-      // Mindestversion: ohne Angabe sperrt nichts. PackageInfo gibt es im
-      // Test nicht, deshalb kommt die eigene Version aus dem Harness.
-      appConfigRepositoryProvider
-          .overrideWithValue(appConfig ?? FakeAppConfigRepository()),
-      appVersionProvider.overrideWith((ref) => Future.value(appVersion)),
-      // Foto am Hinweis (#37): kein Plattform-Kanal im Test (der Wähler
-      // bricht ab, bis ein Test ein Bild vorgibt), und die Pipeline läuft
-      // direkt — `compute` braucht ein echtes Isolate, das es unter
-      // FakeAsync nicht gibt. Es bleibt DIESELBE `preparePhoto`.
-      photoPickerProvider.overrideWithValue((_) async => null),
-      photoPreparerProvider.overrideWithValue((bytes) async => preparePhoto(bytes)),
-      // Zuletzt, damit ein Test gezielt etwas aus der Liste oben ersetzen
-      // kann — bei Riverpod gewinnt der spätere Eintrag.
-      ...extra,
-    ];
+List<Override> overridesFor(
+  FakeBackend backend, {
+  FakeAppConfigRepository? appConfig,
+  String appVersion = '1.0.0',
+  Settings? settings,
+  FakeTrailRepository? trails,
+  FakePoiSource? pois,
+  FakeOfficialTrailsSource? official,
+  MemoryOfficialTrailsCache? officialCache,
+  Position? position,
+  Stream<Position?>? positionStream,
+  FakePositionFix? positionFix,
+  FakeRideStore? rideStore,
+  MemoryWatchEventStore? watchEvents,
+  FakeRideFix? rideFix,
+  FakeRideServiceBridge? rideBridge,
+  FakeRideService? rideService,
+  FakeNavServiceBridge? navBridge,
+  FakeGarminBridge? garmin,
+  FakeOutbox? outbox,
+  FakeTrailCache? trailCache,
+  MemoryAreaStore? areaStore,
+  MemoryTileStore? tileStore,
+  FakeKeepAlive? keepAlive,
+  Stream<List<ConnectivityResult>>? connectivity,
+  FakePushRepository? push,
+  Stream<RemoteMessage>? pushMessages,
+  FakeAirtimeRepository? airtime,
+  FakeNearbyRepository? nearby,
+  bool useRealMap = false,
+  List<Override> extra = const [],
+}) => [
+  // Die Karten-Engine ist standardmäßig die Fake (Marker in einem
+  // Wrap, Kamera synchron simuliert, Tipps über die Trefferprüfung
+  // der Fassade) — die Flow-Suiten beweisen Verhalten, nicht
+  // Rendering. Tests, die flutter_map-Interna prüfen, pumpen mit
+  // `useRealMap: true`; die MapLibre-Platform-View ist im Widget-Test
+  // nicht renderbar, ihr Gate ist das Gerät.
+  mapViewBuilderProvider.overrideWithValue(
+    useRealMap
+        ? (config, controller, layers) => FlutterMapView(
+            config: config,
+            controller: controller,
+            layers: layers,
+          )
+        : (config, controller, layers) => FakeMapView(
+            config: config,
+            controller: controller,
+            layers: layers,
+          ),
+  ),
+  // Die Übersichtskarte kommt aus einem Asset, das der Test-Runner
+  // nicht liefert — und ohne Empfang würde die echte Karte sie öffnen.
+  overviewOpenerProvider.overrideWithValue(() async => null),
+  // Der Start-Splash (1p) läge sonst über jedem Flow-Test und
+  // schluckte die ersten Tipps; er hat seinen eigenen Test.
+  startSplashEnabledProvider.overrideWithValue(false),
+  settingsProvider.overrideWithValue(settings ?? FakeSettings()),
+  authRepositoryProvider.overrideWithValue(FakeAuthRepository(backend)),
+  profileRepositoryProvider.overrideWithValue(FakeProfileRepository(backend)),
+  friendRepositoryProvider.overrideWithValue(FakeFriendRepository(backend)),
+  messageRepositoryProvider.overrideWithValue(FakeMessageRepository(backend)),
+  // Airtime unter Buddys (#36 Schritt 6): im Speicher, ab Werk leer.
+  airtimeRepositoryProvider.overrideWithValue(
+    airtime ?? FakeAirtimeRepository(backend),
+  ),
+  // Buddy in der Nähe (#526): Kanäle im Speicher, ohne Realtime.
+  nearbyRepositoryProvider.overrideWithValue(
+    nearby ?? FakeNearbyRepository(backend),
+  ),
+  feedbackRepositoryProvider.overrideWithValue(FakeFeedbackRepository(backend)),
+  // Die Karte beobachtet die Trails, und die kämen sonst aus
+  // `Supabase.instance` — das gibt es im Widget-Test nicht. Vorgabe
+  // ist ein leeres Trail-Netz mit den Buddy-Regeln dieses Backends;
+  // Tests mit Trails reichen ihr eigenes Fake herein.
+  trailRepositoryProvider.overrideWithValue(
+    trails ??
+        FakeTrailRepository(
+          myId: () => backend.currentUserId ?? '',
+          areFriends: backend.areFriends,
+        ),
+  ),
+  // Kein Netz in Tests: kein Manifest vom Kartenhost, also keine
+  // Online-Karte — und die Übersicht kommt aus keinem Asset (oben).
+  mapManifestLoaderProvider.overrideWithValue(() async => null),
+  // Kein Regionen-Index (#220): DACH allein, wie bis 0.103 — und kein
+  // Manifest einer anderen Region.
+  regionsLoaderProvider.overrideWithValue(() async => null),
+  regionManifestLoaderProvider.overrideWithValue((_) async => null),
+  // Und keine Übersicht einer Region als Datei (#220 Schritt 4).
+  overviewFetcherProvider.overrideWithValue(
+    (_, {onProgress, check}) async => null,
+  ),
+  poiBundleFetcherProvider.overrideWithValue(
+    (_, {onProgress, check}) async => null,
+  ),
+  areaHeightsManifestLoaderProvider.overrideWithValue(() async => null),
+  heightsManifestLoaderProvider.overrideWithValue(() async => null),
+  // Die Wege (#212) sind ab Werk an — ohne diese Zeile fragte jeder
+  // Kartentest den Host.
+  waysManifestLoaderProvider.overrideWithValue(() async => null),
+  areaWaysManifestLoaderProvider.overrideWithValue(() async => null),
+  // Und keine Orte-Dateien vom Host: Eine Karte, die auf einen Trail
+  // zoomt, liegt über Zoom 12 und fragte sonst wirklich an.
+  poiSourceProvider.overrideWithValue(pois ?? FakePoiSource()),
+  // Ebenso die offiziellen Trails: Vorgabe ist ein Index ohne
+  // Regionen, gemerkt wird im Speicher statt im App-Verzeichnis.
+  officialTrailsSourceProvider.overrideWithValue(
+    official ?? FakeOfficialTrailsSource(),
+  ),
+  officialTrailsCacheProvider.overrideWithValue(
+    officialCache ?? MemoryOfficialTrailsCache(),
+  ),
+  // Kein Plattform-Kanal für den Standort: Die Position kommt aus dem
+  // Test (Vorgabe: keine, wie ohne Berechtigung). Ein Strom für Tests,
+  // die Fixe nacheinander brauchen — als Broadcast, weil
+  // `ref.invalidate` ihn neu abonniert.
+  positionStreamProvider.overrideWith(
+    (ref) => positionStream ?? Stream.value(position),
+  ),
+  positionFixProvider.overrideWithValue(
+    (positionFix ?? FakePositionFix(position)).call,
+  ),
+  // Die Fahrt (#28): im Speicher statt auf der Platte, ohne
+  // Foreground-Service und ohne Berechtigungsdialog. Ohne diese
+  // Zeilen ginge jeder Kartentest beim ersten Frame (`restore`) an
+  // `path_provider`.
+  rideStoreProvider.overrideWithValue(rideStore ?? FakeRideStore()),
+  watchEventStoreProvider.overrideWithValue(
+    watchEvents ?? MemoryWatchEventStore(),
+  ),
+  // Die Ablage der Uhr (#515) liegt sonst als Datei unter `rides/`.
+  watchShelfStoreProvider.overrideWithValue(MemoryWatchShelfStore()),
+  rideFixProvider.overrideWithValue((rideFix ?? FakeRideFix()).call),
+  rideServiceBridgeProvider.overrideWithValue(
+    rideBridge ?? FakeRideServiceBridge(),
+  ),
+  rideServiceProvider.overrideWithValue(rideService ?? FakeRideService()),
+  // Die Navigation im Dienst (#232) legt eine Datei ab — ohne die
+  // Naht ginge jeder Navigations-Test an `path_provider`.
+  navServiceBridgeProvider.overrideWithValue(
+    navBridge ?? FakeNavServiceBridge(),
+  ),
+  // Ab Werk keine Uhr (#449) — ohne die Zeile fragte der Kanal.
+  garminBridgeProvider.overrideWithValue(garmin ?? FakeGarminBridge()),
+  ridePermissionProvider.overrideWithValue(() async => null),
+  // Der Ausgangskorb (#30) im Speicher; der Netzwechsel kommt aus dem
+  // Test (Vorgabe: WLAN, ohne Wechsel).
+  outboxProvider.overrideWithValue(outbox ?? FakeOutbox()),
+  // Die Kopie des Netzes (#32) im Speicher — ohne Override ginge
+  // jeder Abruf an `path_provider`.
+  trailCacheProvider.overrideWithValue(trailCache ?? FakeTrailCache()),
+  // Gespeicherte Bereiche (Konzept-Schritt 3) im Speicher, der
+  // Foreground-Service als Fake — ohne beides ginge der Kartenstart
+  // an `path_provider` und den Plattform-Kanal.
+  areaStoreProvider.overrideWithValue(areaStore ?? MemoryAreaStore()),
+  // Der Kachelspeicher der Bereiche (#229) — ohne die Zeile öffnete
+  // jeder Kartentest eine SQLite-Datei unter `path_provider`.
+  tileStoreProvider.overrideWithValue(tileStore ?? MemoryTileStore()),
+  keepAliveProvider.overrideWithValue(keepAlive ?? FakeKeepAlive()),
+  // Ein echter Rechen-Isolate antwortet in der Test-Zone nie (#188).
+  loopPlanRunnerFactoryProvider.overrideWithValue(InlineLoopPlanRunner.new),
+  // Kein Backen beim Kartenstart (#410): Es legte in jedem Test mit
+  // Bereichen einen Runner an, und die Planer-Tests zählen Runner.
+  // `offline_areas_flow_test` schaltet es für seinen Fall ein.
+  routingBakeOnStartProvider.overrideWithValue(false),
+  // Dasselbe für die Höhenlinien (#271): an Ort und Stelle rechnen.
+  contourComputeProvider.overrideWithValue((job) async => computeContours(job)),
+  connectivityProvider.overrideWith(
+    (ref) => connectivity ?? Stream.value(const [ConnectivityResult.wifi]),
+  ),
+  updateInfoProvider.overrideWith((ref) => Future.value(null)),
+  // Push (#34): Im Widget-Test gibt es weder FCM noch
+  // Berechtigungsdialoge. Ohne diese Naht liefe ein Test, der den
+  // Schalter im Profil antippt, in echtes Plattform-IO — und das löst
+  // in der Fake-Zone NIE auf. Vorgabe ist ein Token: Der interessante
+  // Weg ist „eingeschaltet"; wer die Ablehnung prüfen will,
+  // überschreibt gezielt. Und die Ströme: `PushListener` hängt sich
+  // beim ersten Frame an `onMessage`, also in JEDEM Test.
+  pushRepositoryProvider.overrideWithValue(push ?? FakePushRepository(backend)),
+  pushTokenProvider.overrideWithValue(
+    () async => (token: 'test-token', denied: false, unavailable: false),
+  ),
+  pushMessageListenerProvider.overrideWithValue(
+    () => pushMessages ?? const Stream.empty(),
+  ),
+  pushTapListenerProvider.overrideWithValue(() => const Stream.empty()),
+  rideConfirmTapsProvider.overrideWithValue(() => const Stream.empty()),
+  pushInitialMessageProvider.overrideWithValue(() async => null),
+  // Mindestversion: ohne Angabe sperrt nichts. PackageInfo gibt es im
+  // Test nicht, deshalb kommt die eigene Version aus dem Harness.
+  appConfigRepositoryProvider.overrideWithValue(
+    appConfig ?? FakeAppConfigRepository(),
+  ),
+  appVersionProvider.overrideWith((ref) => Future.value(appVersion)),
+  // Foto am Hinweis (#37): kein Plattform-Kanal im Test (der Wähler
+  // bricht ab, bis ein Test ein Bild vorgibt), und die Pipeline läuft
+  // direkt — `compute` braucht ein echtes Isolate, das es unter
+  // FakeAsync nicht gibt. Es bleibt DIESELBE `preparePhoto`.
+  photoPickerProvider.overrideWithValue((_) async => null),
+  photoPreparerProvider.overrideWithValue((bytes) async => preparePhoto(bytes)),
+  // Zuletzt, damit ein Test gezielt etwas aus der Liste oben ersetzen
+  // kann — bei Riverpod gewinnt der spätere Eintrag.
+  ...extra,
+];
 
 /// App starten und den ersten Aufbau abwarten.
-Future<void> pumpApp(WidgetTester tester, FakeBackend backend,
-    {FakeAppConfigRepository? appConfig,
-    String appVersion = '1.0.0',
-    Settings? settings,
-    FakeTrailRepository? trails,
-    FakePoiSource? pois,
-    FakeOfficialTrailsSource? official,
-    MemoryOfficialTrailsCache? officialCache,
-    Position? position,
-    Stream<Position?>? positionStream,
-    FakePositionFix? positionFix,
-    FakeRideStore? rideStore,
-    MemoryWatchEventStore? watchEvents,
-    FakeRideFix? rideFix,
-    FakeRideServiceBridge? rideBridge,
-    FakeRideService? rideService,
-    FakeNavServiceBridge? navBridge,
-    FakeGarminBridge? garmin,
-    FakeOutbox? outbox,
-    FakeTrailCache? trailCache,
-    MemoryAreaStore? areaStore,
-    MemoryTileStore? tileStore,
-    FakeKeepAlive? keepAlive,
-    Stream<List<ConnectivityResult>>? connectivity,
-    FakePushRepository? push,
-    Stream<RemoteMessage>? pushMessages,
-    FakeAirtimeRepository? airtime,
-    FakeNearbyRepository? nearby,
-    bool useRealMap = false,
-    List<Locale> deviceLocales = const [Locale('de', 'DE')],
-    List<Override> extraOverrides = const []}) async {
+Future<void> pumpApp(
+  WidgetTester tester,
+  FakeBackend backend, {
+  FakeAppConfigRepository? appConfig,
+  String appVersion = '1.0.0',
+  Settings? settings,
+  FakeTrailRepository? trails,
+  FakePoiSource? pois,
+  FakeOfficialTrailsSource? official,
+  MemoryOfficialTrailsCache? officialCache,
+  Position? position,
+  Stream<Position?>? positionStream,
+  FakePositionFix? positionFix,
+  FakeRideStore? rideStore,
+  MemoryWatchEventStore? watchEvents,
+  FakeRideFix? rideFix,
+  FakeRideServiceBridge? rideBridge,
+  FakeRideService? rideService,
+  FakeNavServiceBridge? navBridge,
+  FakeGarminBridge? garmin,
+  FakeOutbox? outbox,
+  FakeTrailCache? trailCache,
+  MemoryAreaStore? areaStore,
+  MemoryTileStore? tileStore,
+  FakeKeepAlive? keepAlive,
+  Stream<List<ConnectivityResult>>? connectivity,
+  FakePushRepository? push,
+  Stream<RemoteMessage>? pushMessages,
+  FakeAirtimeRepository? airtime,
+  FakeNearbyRepository? nearby,
+  bool useRealMap = false,
+  List<Locale> deviceLocales = const [Locale('de', 'DE')],
+  List<Override> extraOverrides = const [],
+}) async {
   addTearDown(backend.dispose);
   // Das Testgerät spricht Deutsch (#209). Ab Werk meldet flutter_test
   // `en_US` — folgt die App der Gerätesprache, fänden die Tests ihre
@@ -321,8 +365,10 @@ Future<void> pumpApp(WidgetTester tester, FakeBackend backend,
     chosenAppLocale = null;
     debugDeviceLocales = null;
   });
-  await tester.pumpWidget(ProviderScope(
-    overrides: overridesFor(backend,
+  await tester.pumpWidget(
+    ProviderScope(
+      overrides: overridesFor(
+        backend,
         appConfig: appConfig,
         appVersion: appVersion,
         settings: settings,
@@ -351,9 +397,11 @@ Future<void> pumpApp(WidgetTester tester, FakeBackend backend,
         push: push,
         pushMessages: pushMessages,
         useRealMap: useRealMap,
-        extra: extraOverrides),
-    child: const TrailBuddyApp(),
-  ));
+        extra: extraOverrides,
+      ),
+      child: const TrailBuddyApp(),
+    ),
+  );
   await tester.pump();
   await settle(tester);
 }
@@ -362,8 +410,9 @@ Future<void> pumpApp(WidgetTester tester, FakeBackend backend,
 /// nackten Text: „Trails" und „Profil" stehen auch im Inhalt (AppBar-
 /// Titel, Überschriften), `find.text` träfe dann zwei Widgets.
 Future<void> openTab(WidgetTester tester, String label) async {
-  await tester.tap(find.descendant(
-      of: find.byType(NavigationBar), matching: find.text(label)));
+  await tester.tap(
+    find.descendant(of: find.byType(NavigationBar), matching: find.text(label)),
+  );
   await settle(tester);
 }
 
@@ -379,8 +428,12 @@ Future<void> settle(WidgetTester tester, {int frames = 8}) async {
 /// Chip antippen, im Blatt die Schieber ziehen, „Fertig". Gezogen wird
 /// von der Stelle des Daumens um so viele Stufen, wie fehlen — der
 /// Schieber rastet auf ganze Grade ein, ein paar Pixel Rand verzeihen.
-Future<void> setGradeRange(WidgetTester tester,
-    {int min = 0, int max = 5, String keyPrefix = 'trail'}) async {
+Future<void> setGradeRange(
+  WidgetTester tester, {
+  int min = 0,
+  int max = 5,
+  String keyPrefix = 'trail',
+}) async {
   await tester.tap(find.byKey(ValueKey('$keyPrefix-filter-grade')));
   await settle(tester);
   final slider = find.byKey(const ValueKey('grade-range-slider'));
@@ -397,7 +450,11 @@ Future<void> setGradeRange(WidgetTester tester,
   if (values.end != max) await drag(values.end, max.toDouble());
   if (values.start != min) await drag(values.start, min.toDouble());
   final now = tester.widget<RangeSlider>(slider).values;
-  expect((now.start, now.end), (min.toDouble(), max.toDouble()), reason: 'Schieber gezogen');
+  expect(
+    (now.start, now.end),
+    (min.toDouble(), max.toDouble()),
+    reason: 'Schieber gezogen',
+  );
   await tester.tap(find.byKey(const ValueKey('grade-range-done')));
   await settle(tester);
 }
@@ -435,14 +492,19 @@ Future<void> scrollTo(WidgetTester tester, Finder finder) async {
 /// Kacheln des Trail-Blatts (seit 0.39.0) zeigen „S2" und „S1–S3 · 4×",
 /// ihre Aussage „S2 · S1–S3 · 4 Einschätzungen" steht als Beschriftung
 /// an der Kachel — geprüft wird derselbe Satz wie vorher im Chip.
-Finder findLabel(String label) =>
-    find.byWidgetPredicate((w) => w is Semantics && w.properties.label == label);
+Finder findLabel(String label) => find.byWidgetPredicate(
+  (w) => w is Semantics && w.properties.label == label,
+);
 
 /// Eine Unterseite des Profils öffnen (seit 0.41.0, Design 1l): Reiter
 /// „Profil", dann die Zeile [id] (`profile-<id>`: account,
 /// notifications, appearance, about, import, rides, areas). [tab] ist der
 /// Name des Reiters — unter Englisch „Profile".
-Future<void> openProfilePage(WidgetTester tester, String id, {String tab = 'Profil'}) async {
+Future<void> openProfilePage(
+  WidgetTester tester,
+  String id, {
+  String tab = 'Profil',
+}) async {
   await openTab(tester, tab);
   final row = find.byKey(ValueKey('profile-$id'));
   await scrollTo(tester, row);

@@ -28,7 +28,10 @@ class AreaTrim {
 
 /// Der Plan des Entfernens über alle betroffenen Bereiche.
 class TrimPlan {
-  const TrimPlan(this.trims, {this.orphans = (tiles: const <LayerOrphans>[], poiFiles: const <String>[])});
+  const TrimPlan(
+    this.trims, {
+    this.orphans = (tiles: const <LayerOrphans>[], poiFiles: const <String>[]),
+  });
 
   final List<AreaTrim> trims;
 
@@ -60,7 +63,10 @@ class AreaTrimmer {
     };
     return area.copyWith(
       shape: shape,
-      poiFiles: [for (final f in area.poiFiles) if (wanted.contains(f)) f],
+      poiFiles: [
+        for (final f in area.poiFiles)
+          if (wanted.contains(f)) f,
+      ],
     );
   }
 
@@ -77,10 +83,14 @@ class AreaTrimmer {
       final keys = area.shape.keysAt(kAreaShapeZoom);
       if (!keys.any(removes.contains)) continue;
       final remaining = keys.difference(removes);
-      trims.add(AreaTrim(
-        area: area,
-        shape: remaining.isEmpty ? null : TileSetShape(zoom: kAreaShapeZoom, keys: remaining),
-      ));
+      trims.add(
+        AreaTrim(
+          area: area,
+          shape: remaining.isEmpty
+              ? null
+              : TileSetShape(zoom: kAreaShapeZoom, keys: remaining),
+        ),
+      );
     }
     if (trims.isEmpty) return const TrimPlan([]);
     final orphans = await orphansAfter(

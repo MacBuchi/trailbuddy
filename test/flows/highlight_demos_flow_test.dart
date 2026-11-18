@@ -38,16 +38,26 @@ void main() {
     backend = FakeBackend();
     final me = backend.addUser(username: 'testrail').id;
     backend.signInAs(me);
-    trails = FakeTrailRepository(myId: () => backend.currentUserId ?? '', areFriends: backend.areFriends);
-    if (trail) trails.seedTrail(me, name: 'Hexentanz', grade: 2, traits: {TrailTrait.flowy});
+    trails = FakeTrailRepository(
+      myId: () => backend.currentUserId ?? '',
+      areFriends: backend.areFriends,
+    );
+    if (trail) {
+      trails.seedTrail(
+        me,
+        name: 'Hexentanz',
+        grade: 2,
+        traits: {TrailTrait.flowy},
+      );
+    }
     if (buddy) backend.addFriendship(me, backend.addUser(username: 'mira').id);
     return backend;
   }
 
   Future<void> openDiscover(WidgetTester tester) async {
-    ProviderScope.containerOf(tester.element(find.byType(Scaffold).first))
-        .read(routerProvider)
-        .go('/profile/discover');
+    ProviderScope.containerOf(
+      tester.element(find.byType(Scaffold).first),
+    ).read(routerProvider).go('/profile/discover');
     await settle(tester);
   }
 
@@ -56,8 +66,15 @@ void main() {
     final button = find.byKey(ValueKey('show-$id'));
     // Mehr als die Vorgabe von 50 Zügen: Auf 360×740 ist „Entdecken" seit
     // 0.93.0 länger als 50 × 300 px — der letzte Eintrag kam nie ins Bild.
-    await tester.scrollUntilVisible(button, 300, maxScrolls: 120,
-        scrollable: find.descendant(of: find.byKey(const ValueKey('discover-list')), matching: find.byType(Scrollable)));
+    await tester.scrollUntilVisible(
+      button,
+      300,
+      maxScrolls: 120,
+      scrollable: find.descendant(
+        of: find.byKey(const ValueKey('discover-list')),
+        matching: find.byType(Scrollable),
+      ),
+    );
     await tester.ensureVisible(button);
     await settle(tester, frames: 3);
     await tester.tap(button);
@@ -66,37 +83,69 @@ void main() {
     final script = highlightDemos(l10nDe)[id]!.script;
     final shown = <String>[];
     for (var i = 0; i < 12 && bubble.evaluate().isNotEmpty; i++) {
-      final step = script.steps
-          .firstWhere((s) => find.descendant(of: bubble, matching: find.text(s.title)).evaluate().isNotEmpty);
+      final step = script.steps.firstWhere(
+        (s) => find
+            .descendant(of: bubble, matching: find.text(s.title))
+            .evaluate()
+            .isNotEmpty,
+      );
       shown.add(step.title);
-      for (var f = 0; f < 40 && painter(tester).lit.length != step.lit.length; f++) {
+      for (
+        var f = 0;
+        f < 40 && painter(tester).lit.length != step.lit.length;
+        f++
+      ) {
         await tester.pump(const Duration(milliseconds: 16));
       }
-      expect(painter(tester).lit, hasLength(step.lit.length), reason: '$id, „${step.title}": Ziel nicht gefunden');
-      final screen = Offset.zero & tester.view.physicalSize / tester.view.devicePixelRatio;
+      expect(
+        painter(tester).lit,
+        hasLength(step.lit.length),
+        reason: '$id, „${step.title}": Ziel nicht gefunden',
+      );
+      final screen =
+          Offset.zero & tester.view.physicalSize / tester.view.devicePixelRatio;
       final box = tester.getRect(bubble);
-      expect(screen.contains(box.topLeft) && screen.contains(box.bottomRight - const Offset(1, 1)), isTrue,
-          reason: '$id, „${step.title}": Blase $box außerhalb');
-      final last = find.descendant(of: bubble, matching: find.text('Los geht\'s'));
-      await tester.tap(last.evaluate().isNotEmpty ? last : find.descendant(of: bubble, matching: find.text('Weiter')));
+      expect(
+        screen.contains(box.topLeft) &&
+            screen.contains(box.bottomRight - const Offset(1, 1)),
+        isTrue,
+        reason: '$id, „${step.title}": Blase $box außerhalb',
+      );
+      final last = find.descendant(
+        of: bubble,
+        matching: find.text('Los geht\'s'),
+      );
+      await tester.tap(
+        last.evaluate().isNotEmpty
+            ? last
+            : find.descendant(of: bubble, matching: find.text('Weiter')),
+      );
       await settle(tester);
     }
     expect(bubble, findsNothing, reason: '$id: läuft noch');
     expect(find.byType(BottomSheet), findsNothing, reason: '$id: Blatt offen');
     expect(find.byType(Dialog), findsNothing, reason: '$id: Dialog offen');
-    expect(find.byKey(const ValueKey('offline-tool-rail')), findsNothing, reason: '$id: Leiste offen');
+    expect(
+      find.byKey(const ValueKey('offline-tool-rail')),
+      findsNothing,
+      reason: '$id: Leiste offen',
+    );
     return shown;
   }
 
   test('jeder Eintrag hat eine Vorführung, und keine ist leer', () {
-    expect(highlightDemos(l10nDe).keys.toSet(), {for (final h in kFeatureHighlights) h.id});
+    expect(highlightDemos(l10nDe).keys.toSet(), {
+      for (final h in kFeatureHighlights) h.id,
+    });
     for (final demo in highlightDemos(l10nDe).values) {
       expect(demo.script.steps, isNotEmpty, reason: demo.script.id);
     }
   });
 
   for (final h in kFeatureHighlights) {
-    testWidgets('„${h.title(l10nDe)}": vorgeführt, danach nichts offen', (tester) async {
+    testWidgets('„${h.title(l10nDe)}": vorgeführt, danach nichts offen', (
+      tester,
+    ) async {
       await pumpApp(tester, world(), trails: trails);
       expect(await run(tester, h.id), isNotEmpty, reason: h.id);
     });
@@ -123,13 +172,22 @@ void main() {
     expect(await run(tester, 'buddy-alias'), ['Erst einen Buddy finden']);
   });
 
-  testWidgets('Melden: endet im echten Blatt, und das geht wieder zu', (tester) async {
+  testWidgets('Melden: endet im echten Blatt, und das geht wieder zu', (
+    tester,
+  ) async {
     await pumpApp(tester, world(), trails: trails);
     expect(await run(tester, 'reports'), ['Einen Trail öffnen', 'Hier melden']);
   });
 
-  testWidgets('die Tour des Reiters fällt nicht über die Vorführung her', (tester) async {
-    await pumpApp(tester, world(), trails: trails, settings: FakeSettings(seenCoachTours: const {'split'}));
+  testWidgets('die Tour des Reiters fällt nicht über die Vorführung her', (
+    tester,
+  ) async {
+    await pumpApp(
+      tester,
+      world(),
+      trails: trails,
+      settings: FakeSettings(seenCoachTours: const {'split'}),
+    );
     final shown = await run(tester, 'reports');
     expect(shown.first, 'Einen Trail öffnen');
     await settle(tester);

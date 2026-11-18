@@ -19,5 +19,8 @@ class _NoPictureInPicture implements PictureInPicture {
   Future<void> enter() async {}
 
   @override
-  void listen({required void Function(bool inPip) onMode, required VoidCallback onStop}) {}
+  void listen({
+    required void Function(bool inPip) onMode,
+    required VoidCallback onStop,
+  }) {}
 }

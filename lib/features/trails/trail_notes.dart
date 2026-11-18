@@ -29,7 +29,11 @@ const kNotePhotoDays = 90;
 /// was jetzt neu ist, bleibt im Blatt getönt, auch wenn es beim Öffnen als
 /// gesehen gemerkt wird.
 class TrailEntriesSection extends ConsumerWidget {
-  const TrailEntriesSection({super.key, required this.trail, this.seenBefore = const {}});
+  const TrailEntriesSection({
+    super.key,
+    required this.trail,
+    this.seenBefore = const {},
+  });
   final Trail trail;
   final Set<String> seenBefore;
 
@@ -43,16 +47,25 @@ class TrailEntriesSection extends ConsumerWidget {
       key: const ValueKey('trail-reports'),
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(l.reportHistoryTitle,
-            style: theme.textTheme.labelSmall?.copyWith(
-                color: palette.muted, fontWeight: FontWeight.w700, letterSpacing: 0.8)),
+        Text(
+          l.reportHistoryTitle,
+          style: theme.textTheme.labelSmall?.copyWith(
+            color: palette.muted,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 0.8,
+          ),
+        ),
         if (entries.isEmpty)
-          Text(l.noteEmpty, style: theme.textTheme.bodySmall?.copyWith(color: palette.muted)),
+          Text(
+            l.noteEmpty,
+            style: theme.textTheme.bodySmall?.copyWith(color: palette.muted),
+          ),
         for (final e in entries)
           _EntryTile(
             entry: e,
             trail: trail,
-            fresh: e.note != null && trail.isFreshNote(e.note!, seen: seenBefore),
+            fresh:
+                e.note != null && trail.isFreshNote(e.note!, seen: seenBefore),
           ),
       ],
     );
@@ -60,7 +73,11 @@ class TrailEntriesSection extends ConsumerWidget {
 }
 
 class _EntryTile extends ConsumerWidget {
-  const _EntryTile({required this.entry, required this.trail, required this.fresh});
+  const _EntryTile({
+    required this.entry,
+    required this.trail,
+    required this.fresh,
+  });
   final TrailEntry entry;
   final Trail trail;
   final bool fresh;
@@ -74,7 +91,9 @@ class _EntryTile extends ConsumerWidget {
     final report = entry.report;
     final note = entry.note;
     final userId = report?.userId ?? note!.userId;
-    final who = userId == trail.myId ? l.reportYou : names.of(userId, report?.username ?? note?.username);
+    final who = userId == trail.myId
+        ? l.reportYou
+        : names.of(userId, report?.username ?? note?.username);
     final pending = report?.pending ?? note!.pending;
     final sending = report?.sending ?? note!.sending;
     final caption = [
@@ -94,7 +113,9 @@ class _EntryTile extends ConsumerWidget {
       // Ein neuer Text gelb umrandet (Design 1i) — der Rand, der auf der
       // Karte um die Linie leuchtet.
       decoration: BoxDecoration(
-        color: fresh ? palette.map.note.withValues(alpha: 0.12) : theme.colorScheme.surfaceContainerHighest,
+        color: fresh
+            ? palette.map.note.withValues(alpha: 0.12)
+            : theme.colorScheme.surfaceContainerHighest,
         border: fresh ? Border.all(color: palette.map.note, width: 1.5) : null,
         borderRadius: BorderRadius.circular(12),
       ),
@@ -112,18 +133,35 @@ class _EntryTile extends ConsumerWidget {
                     opacity: report.confirmed ? 1 : 0.6,
                     child: Row(
                       children: [
-                        Icon(report.status!.warns ? Icons.warning_amber : Icons.check_circle_outline, size: 18),
+                        Icon(
+                          report.status!.warns
+                              ? Icons.warning_amber
+                              : Icons.check_circle_outline,
+                          size: 18,
+                        ),
                         const SizedBox(width: 6),
-                        Flexible(child: Text(report.status!.label(l), style: theme.textTheme.titleSmall)),
+                        Flexible(
+                          child: Text(
+                            report.status!.label(l),
+                            style: theme.textTheme.titleSmall,
+                          ),
+                        ),
                       ],
                     ),
                   ),
                 if (note != null) Text(note.body),
                 const SizedBox(height: 2),
-                Text(caption,
-                    style: fresh
-                        ? theme.textTheme.bodySmall?.copyWith(color: palette.noteText, fontWeight: FontWeight.w600)
-                        : theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+                Text(
+                  caption,
+                  style: fresh
+                      ? theme.textTheme.bodySmall?.copyWith(
+                          color: palette.noteText,
+                          fontWeight: FontWeight.w600,
+                        )
+                      : theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                ),
               ],
             ),
           ),
@@ -136,7 +174,11 @@ class _EntryTile extends ConsumerWidget {
             IconButton(
               tooltip: userId == trail.myId ? l.noteDelete : l.noteResolve,
               visualDensity: VisualDensity.compact,
-              icon: Icon(userId == trail.myId ? Icons.delete_outline : Icons.check_circle_outline),
+              icon: Icon(
+                userId == trail.myId
+                    ? Icons.delete_outline
+                    : Icons.check_circle_outline,
+              ),
               onPressed: () => _remove(context, ref, note),
             ),
         ],
@@ -149,15 +191,23 @@ class _EntryTile extends ConsumerWidget {
   /// fragt die Rückfrage, ob der Trail wieder offen ist (Konzept 6, A10:
   /// sagen, nicht raten) — sonst bliebe eine Sperre nach dem Wegräumen des
   /// Baums stehen.
-  Future<void> _remove(BuildContext context, WidgetRef ref, TrailNote note) async {
+  Future<void> _remove(
+    BuildContext context,
+    WidgetRef ref,
+    TrailNote note,
+  ) async {
     final l = context.l10n;
     final mine = note.userId == trail.myId;
-    final name = ref.read(buddyNamesViewProvider).of(note.userId, note.username);
+    final name = ref
+        .read(buddyNamesViewProvider)
+        .of(note.userId, note.username);
     final report = entry.report;
     final shown = trail.shownStatus;
-    final asksReopen = report != null &&
+    final asksReopen =
+        report != null &&
         report.status!.warns &&
-        (identical(report, shown.confirmed) || identical(report, shown.unconfirmed));
+        (identical(report, shown.confirmed) ||
+            identical(report, shown.unconfirmed));
     final body = switch ((mine, note.photo != null)) {
       (true, false) => l.noteDeleteBody(note.body),
       (true, true) => l.noteDeleteBodyPhoto(note.body),
@@ -169,7 +219,9 @@ class _EntryTile extends ConsumerWidget {
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: Text(mine ? l.noteDeleteTitle : l.noteResolveTitle),
-        content: Text(asksReopen ? '$body\n\n${l.reportResolveReopenQuestion}' : body),
+        content: Text(
+          asksReopen ? '$body\n\n${l.reportResolveReopenQuestion}' : body,
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(),
@@ -201,18 +253,27 @@ class _EntryTile extends ConsumerWidget {
     try {
       final fresh = await notifier.deleteNote(note.id);
       if (!choice) {
-        messenger.showSnackBar(SnackBar(content: Text(doneOrStale(l, l.noteRemoved, fresh: fresh))));
+        messenger.showSnackBar(
+          SnackBar(content: Text(doneOrStale(l, l.noteRemoved, fresh: fresh))),
+        );
         return;
       }
       // Bestätigt nach der üblichen Regel: gefahren — „vor Ort" fragt hier
       // niemand, die Frage galt dem Text.
-      final outcome = await notifier.report(trail.id, status: TrailStatus.open, onSite: false);
-      messenger.showSnackBar(SnackBar(
+      final outcome = await notifier.report(
+        trail.id,
+        status: TrailStatus.open,
+        onSite: false,
+      );
+      messenger.showSnackBar(
+        SnackBar(
           content: Text(switch (outcome) {
-        WriteOutcome.done => l.reportReopened,
-        WriteOutcome.doneStale => l.staleAfterWrite(l.reportReopened),
-        WriteOutcome.queued => l.queuedHint,
-      })));
+            WriteOutcome.done => l.reportReopened,
+            WriteOutcome.doneStale => l.staleAfterWrite(l.reportReopened),
+            WriteOutcome.queued => l.queuedHint,
+          }),
+        ),
+      );
     } catch (e, st) {
       logError('Text entfernen', e, st);
       messenger.showSnackBar(SnackBar(content: Text(friendlyError(l, e))));
@@ -222,8 +283,9 @@ class _EntryTile extends ConsumerWidget {
 
 /// Der Satz neben dem angehängten Foto: wer es sieht, wie lange, und was
 /// nicht darin steht — und was trotzdem bleibt.
-String notePhotoNote(AppLocalizations l, {required bool private}) =>
-    private ? l.notePhotoPrivate(kNotePhotoDays) : l.notePhotoShared(kNotePhotoDays);
+String notePhotoNote(AppLocalizations l, {required bool private}) => private
+    ? l.notePhotoPrivate(kNotePhotoDays)
+    : l.notePhotoShared(kNotePhotoDays);
 
 /// Die Vorschau am Hinweis (#37): lädt nur die 200er Fassung, das Bild
 /// erst auf Tipp. Kann sie nicht laden (kein Netz, schon abgeräumt), steht
@@ -245,8 +307,15 @@ class NotePhotoThumb extends ConsumerWidget {
       color: theme.colorScheme.surfaceContainer,
       alignment: Alignment.center,
       child: bytes.isLoading
-          ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
-          : Icon(Icons.image_not_supported_outlined, color: theme.colorScheme.onSurfaceVariant),
+          ? const SizedBox(
+              width: 18,
+              height: 18,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          : Icon(
+              Icons.image_not_supported_outlined,
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
     );
     return Semantics(
       button: true,
@@ -258,8 +327,13 @@ class NotePhotoThumb extends ConsumerWidget {
         child: ClipRRect(
           borderRadius: BorderRadius.circular(8),
           child: switch (bytes) {
-            AsyncData(:final value) =>
-              Image.memory(value, width: size, height: size, fit: BoxFit.cover, gaplessPlayback: true),
+            AsyncData(:final value) => Image.memory(
+              value,
+              width: size,
+              height: size,
+              fit: BoxFit.cover,
+              gaplessPlayback: true,
+            ),
             _ => placeholder,
           },
         ),
@@ -269,7 +343,11 @@ class NotePhotoThumb extends ConsumerWidget {
 }
 
 /// Das volle Bild über dem Blatt; schließt mit X, Zurück oder Tipp daneben.
-Future<void> showNotePhoto(BuildContext context, {required NotePhoto photo, required TrailNote note}) {
+Future<void> showNotePhoto(
+  BuildContext context, {
+  required NotePhoto photo,
+  required TrailNote note,
+}) {
   return showDialog<void>(
     context: context,
     builder: (_) => _NotePhotoView(photo: photo, note: note),
@@ -286,7 +364,9 @@ class _NotePhotoView extends ConsumerWidget {
     final full = ref.watch(notePhotoFullProvider(photo.fullPath));
     // Solange das große Bild lädt, steht die Vorschau da (sie liegt schon
     // im Speicher) — kein leerer Rahmen.
-    final thumb = ref.watch(notePhotoThumbProvider(photo.thumbPath)).valueOrNull;
+    final thumb = ref
+        .watch(notePhotoThumbProvider(photo.thumbPath))
+        .valueOrNull;
     final shown = full.valueOrNull ?? thumb;
     return Dialog(
       key: const ValueKey('note-photo-view'),
@@ -313,21 +393,29 @@ class _NotePhotoView extends ConsumerWidget {
           Flexible(
             child: shown != null
                 ? InteractiveViewer(
-                    child: Image.memory(shown,
-                        fit: BoxFit.contain, gaplessPlayback: true, semanticLabel: context.l10n.notePhotoLabel),
+                    child: Image.memory(
+                      shown,
+                      fit: BoxFit.contain,
+                      gaplessPlayback: true,
+                      semanticLabel: context.l10n.notePhotoLabel,
+                    ),
                   )
-                : const SizedBox(height: 200, child: Center(child: CircularProgressIndicator())),
+                : const SizedBox(
+                    height: 200,
+                    child: Center(child: CircularProgressIndicator()),
+                  ),
           ),
           if (full.hasError)
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-              child: Text(context.l10n.notePhotoFullFailed(friendlyError(context.l10n, full.error!)),
-                  style: Theme.of(context).textTheme.bodySmall),
+              child: Text(
+                context.l10n.notePhotoFullFailed(
+                  friendlyError(context.l10n, full.error!),
+                ),
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
             ),
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Text(note.body),
-          ),
+          Padding(padding: const EdgeInsets.all(16), child: Text(note.body)),
         ],
       ),
     );

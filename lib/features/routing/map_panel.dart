@@ -56,14 +56,19 @@ class MapPanelController {
   Future<void> resizeTo(double size) async {
     if (!_sheet.isAttached) return;
     if ((_sheet.size - size).abs() < 0.01) return;
-    await _sheet.animateTo(size, duration: const Duration(milliseconds: 250), curve: Curves.easeOut);
+    await _sheet.animateTo(
+      size,
+      duration: const Duration(milliseconds: 250),
+      curve: Curves.easeOut,
+    );
   }
 
   void close() => _close();
 
   /// Die volle Höhe, auf die sich die Anteile beziehen, in logischen
   /// Pixeln; null, solange das Blatt nicht steht.
-  double? get fullHeight => _sheet.isAttached && _sheet.size > 0 ? _sheet.pixels / _sheet.size : null;
+  double? get fullHeight =>
+      _sheet.isAttached && _sheet.size > 0 ? _sheet.pixels / _sheet.size : null;
 }
 
 /// Öffnet das Blatt am Scaffold [scaffold] (das der Karte) und wartet,
@@ -72,7 +77,12 @@ Future<void> showMapPanel(
   ScaffoldState scaffold, {
   required double initialSize,
   double maxSize = 0.92,
-  required Widget Function(BuildContext context, ScrollController scroll, MapPanelController panel) builder,
+  required Widget Function(
+    BuildContext context,
+    ScrollController scroll,
+    MapPanelController panel,
+  )
+  builder,
 }) {
   final container = ProviderScope.containerOf(scaffold.context, listen: false);
   final sheet = DraggableScrollableController();
@@ -103,7 +113,12 @@ PersistentBottomSheetController? _current;
 void closeMapPanel() => _current?.close();
 
 class _MapPanel extends ConsumerWidget {
-  const _MapPanel({required this.sheet, required this.initialSize, required this.maxSize, required this.builder});
+  const _MapPanel({
+    required this.sheet,
+    required this.initialSize,
+    required this.maxSize,
+    required this.builder,
+  });
 
   final DraggableScrollableController sheet;
   final double initialSize;
@@ -112,46 +127,61 @@ class _MapPanel extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return LayoutBuilder(builder: (context, constraints) {
-      final height = constraints.maxHeight.isFinite ? constraints.maxHeight : MediaQuery.sizeOf(context).height;
-      void report(double extent) {
-        final inset = extent * height;
-        final notifier = ref.read(mapPanelInsetProvider.notifier);
-        if ((notifier.state - inset).abs() > 1) notifier.state = inset;
-      }
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final height = constraints.maxHeight.isFinite
+            ? constraints.maxHeight
+            : MediaQuery.sizeOf(context).height;
+        void report(double extent) {
+          final inset = extent * height;
+          final notifier = ref.read(mapPanelInsetProvider.notifier);
+          if ((notifier.state - inset).abs() > 1) notifier.state = inset;
+        }
 
-      // Die Anfangshöhe gleich melden — die erste Notification kommt erst
-      // mit der ersten Bewegung.
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (sheet.isAttached) report(sheet.size);
-      });
-      return NotificationListener<DraggableScrollableNotification>(
-        onNotification: (n) {
-          report(n.extent);
-          return false;
-        },
-        child: DraggableScrollableSheet(
-          controller: sheet,
-          expand: false,
-          initialChildSize: initialSize,
-          minChildSize: kMapPanelPeek,
-          maxChildSize: maxSize,
-          // Sonst schließt das Scaffold ein Persistent Sheet, sobald es
-          // ganz unten ankommt — genau der Fehler aus dem Feldbericht.
-          shouldCloseOnMinExtent: false,
-          snap: true,
-          snapSizes: [kMapPanelResult, kMapPanelPool, if (initialSize > kMapPanelPool && initialSize < maxSize) initialSize],
-          builder: (context, scroll) => builder(context, scroll),
-        ),
-      );
-    });
+        // Die Anfangshöhe gleich melden — die erste Notification kommt erst
+        // mit der ersten Bewegung.
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (sheet.isAttached) report(sheet.size);
+        });
+        return NotificationListener<DraggableScrollableNotification>(
+          onNotification: (n) {
+            report(n.extent);
+            return false;
+          },
+          child: DraggableScrollableSheet(
+            controller: sheet,
+            expand: false,
+            initialChildSize: initialSize,
+            minChildSize: kMapPanelPeek,
+            maxChildSize: maxSize,
+            // Sonst schließt das Scaffold ein Persistent Sheet, sobald es
+            // ganz unten ankommt — genau der Fehler aus dem Feldbericht.
+            shouldCloseOnMinExtent: false,
+            snap: true,
+            snapSizes: [
+              kMapPanelResult,
+              kMapPanelPool,
+              if (initialSize > kMapPanelPool && initialSize < maxSize)
+                initialSize,
+            ],
+            builder: (context, scroll) => builder(context, scroll),
+          ),
+        );
+      },
+    );
   }
 }
 
 /// Der Kopf des Blatts: Griff, Titel, Untertitel und X. Gehört als
 /// ERSTES Kind in die Liste des Blatts — so zieht auch der Kopf.
 class MapPanelHeader extends StatelessWidget {
-  const MapPanelHeader({super.key, required this.title, this.subtitle, required this.onClose, this.closeKey});
+  const MapPanelHeader({
+    super.key,
+    required this.title,
+    this.subtitle,
+    required this.onClose,
+    this.closeKey,
+  });
 
   final String title;
   final String? subtitle;
@@ -178,14 +208,21 @@ class MapPanelHeader extends StatelessWidget {
         Row(
           children: [
             Expanded(
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(title, style: theme.textTheme.titleLarge),
-                if (subtitle != null)
-                  Text(subtitle!,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: theme.textTheme.titleLarge),
+                  if (subtitle != null)
+                    Text(
+                      subtitle!,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.bodyMedium?.copyWith(color: theme.hintColor)),
-              ]),
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.hintColor,
+                      ),
+                    ),
+                ],
+              ),
             ),
             IconButton(
               key: closeKey,

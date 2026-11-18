@@ -13,12 +13,12 @@ import '../../l10n/l10n.dart';
 /// Protokoll, der Login-Screen steht oft ohne Empfang da.
 final enabledSignInProvidersProvider =
     FutureProvider.autoDispose<Set<SignInProvider>>((ref) async {
-  try {
-    return await ref.read(authRepositoryProvider).enabledProviders();
-  } catch (_) {
-    return const {};
-  }
-});
+      try {
+        return await ref.read(authRepositoryProvider).enabledProviders();
+      } catch (_) {
+        return const {};
+      }
+    });
 
 /// Was ein gescheiterter Rücksprung vom Anbieter sagt (#398) — die
 /// Gründe aus GoTrues `error_description`, die bei der Einrichtung
@@ -37,13 +37,13 @@ String providerReturnErrorMessage(AppLocalizations l, AuthException error) {
 /// damit GitHub im Dunkeln nicht verschwindet).
 extension SignInProviderLook on SignInProvider {
   String get label => switch (this) {
-        SignInProvider.google => 'Google',
-        SignInProvider.microsoft => 'Microsoft',
-        SignInProvider.facebook => 'Facebook',
-        SignInProvider.github => 'GitHub',
-        SignInProvider.discord => 'Discord',
-        SignInProvider.linkedin => 'LinkedIn',
-      };
+    SignInProvider.google => 'Google',
+    SignInProvider.microsoft => 'Microsoft',
+    SignInProvider.facebook => 'Facebook',
+    SignInProvider.github => 'GitHub',
+    SignInProvider.discord => 'Discord',
+    SignInProvider.linkedin => 'LinkedIn',
+  };
 
   String get asset => 'assets/auth/$name.svg';
 
@@ -77,9 +77,12 @@ class _ProviderSignInButtonsState extends ConsumerState<ProviderSignInButtons> {
       // später über den Rücksprung, der Router folgt ihr.
       await ref.read(authRepositoryProvider).signInWithProvider(provider);
     } catch (e, stackTrace) {
-      if (!looksOffline(e)) logError('Anmelden über ${provider.label}', e, stackTrace);
+      if (!looksOffline(e)) {
+        logError('Anmelden über ${provider.label}', e, stackTrace);
+      }
       messenger.showSnackBar(
-          SnackBar(content: Text(l.authProviderFailed(provider.label))));
+        SnackBar(content: Text(l.authProviderFailed(provider.label))),
+      );
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -97,18 +100,21 @@ class _ProviderSignInButtonsState extends ConsumerState<ProviderSignInButtons> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const SizedBox(height: 16),
-        Row(children: [
-          const Expanded(child: Divider()),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            child: Text(l.authProviderDivider,
-                style: Theme.of(context)
-                    .textTheme
-                    .bodySmall
-                    ?.copyWith(color: scheme.onSurfaceVariant)),
-          ),
-          const Expanded(child: Divider()),
-        ]),
+        Row(
+          children: [
+            const Expanded(child: Divider()),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: Text(
+                l.authProviderDivider,
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
+              ),
+            ),
+            const Expanded(child: Divider()),
+          ],
+        ),
         const SizedBox(height: 12),
         Wrap(
           alignment: WrapAlignment.center,
@@ -133,7 +139,10 @@ class _ProviderSignInButtonsState extends ConsumerState<ProviderSignInButtons> {
                         width: 22,
                         height: 22,
                         colorFilter: p.monochrome
-                            ? ColorFilter.mode(scheme.onSurface, BlendMode.srcIn)
+                            ? ColorFilter.mode(
+                                scheme.onSurface,
+                                BlendMode.srcIn,
+                              )
                             : null,
                         excludeFromSemantics: true,
                       ),

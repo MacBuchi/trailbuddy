@@ -28,12 +28,17 @@ Future<void> _fill(
   String? repeat,
 }) async {
   await tester.enterText(
-      find.widgetWithText(TextField, 'Aktuelles Passwort'), current);
+    find.widgetWithText(TextField, 'Aktuelles Passwort'),
+    current,
+  );
   await tester.enterText(
-      find.widgetWithText(TextField, 'Neues Passwort (mind. 8 Zeichen)'), neu);
+    find.widgetWithText(TextField, 'Neues Passwort (mind. 8 Zeichen)'),
+    neu,
+  );
   await tester.enterText(
-      find.widgetWithText(TextField, 'Neues Passwort wiederholen'),
-      repeat ?? neu);
+    find.widgetWithText(TextField, 'Neues Passwort wiederholen'),
+    repeat ?? neu,
+  );
   await settle(tester);
 }
 
@@ -47,24 +52,30 @@ FakeBackend _signedIn({String password = 'AlterTrail#2026!'}) {
 }
 
 void main() {
-  testWidgets('Der Knopf bleibt gesperrt, bis die Eingaben stimmen',
-      (tester) async {
+  testWidgets('Der Knopf bleibt gesperrt, bis die Eingaben stimmen', (
+    tester,
+  ) async {
     final backend = _signedIn();
     await pumpApp(tester, backend);
     await _openDialog(tester);
 
-    expect(tester.widget<FilledButton>(_saveButton).onPressed, isNull,
-        reason: 'Leer darf nichts passieren.');
+    expect(
+      tester.widget<FilledButton>(_saveButton).onPressed,
+      isNull,
+      reason: 'Leer darf nichts passieren.',
+    );
 
     // Zu kurz — die Mindestlänge gilt hier wie beim Reset.
     await _fill(tester, current: 'AlterTrail#2026!', neu: 'kurz');
     expect(tester.widget<FilledButton>(_saveButton).onPressed, isNull);
 
     // Lang genug, aber die Wiederholung passt nicht.
-    await _fill(tester,
-        current: 'AlterTrail#2026!',
-        neu: 'NeuerTrail#2026!',
-        repeat: 'NeuerTrail#2026');
+    await _fill(
+      tester,
+      current: 'AlterTrail#2026!',
+      neu: 'NeuerTrail#2026!',
+      repeat: 'NeuerTrail#2026',
+    );
     expect(tester.widget<FilledButton>(_saveButton).onPressed, isNull);
     expect(find.text('Passwörter stimmen noch nicht überein'), findsOneWidget);
 
@@ -72,8 +83,9 @@ void main() {
     expect(tester.widget<FilledButton>(_saveButton).onPressed, isNotNull);
   });
 
-  testWidgets('Mit dem richtigen aktuellen Passwort greift die Änderung',
-      (tester) async {
+  testWidgets('Mit dem richtigen aktuellen Passwort greift die Änderung', (
+    tester,
+  ) async {
     final backend = _signedIn();
     await pumpApp(tester, backend);
     await _openDialog(tester);
@@ -84,10 +96,16 @@ void main() {
 
     // Der Effekt, nicht nur der Aufruf.
     expect(backend.users.single.password, 'NeuerTrail#2026!');
-    expect(find.widgetWithText(TextField, 'Aktuelles Passwort'), findsNothing,
-        reason: 'Nach dem Speichern schließt der Dialog.');
-    expect(backend.currentUserId, isNotNull,
-        reason: 'Wer sein Passwort ändert, bleibt angemeldet.');
+    expect(
+      find.widgetWithText(TextField, 'Aktuelles Passwort'),
+      findsNothing,
+      reason: 'Nach dem Speichern schließt der Dialog.',
+    );
+    expect(
+      backend.currentUserId,
+      isNotNull,
+      reason: 'Wer sein Passwort ändert, bleibt angemeldet.',
+    );
     await drainSnackbars(tester);
   });
 
@@ -103,9 +121,13 @@ void main() {
 
     expect(find.text('Das aktuelle Passwort stimmt nicht.'), findsOneWidget);
     expect(backend.users.single.password, 'AlterTrail#2026!');
-    expect(backend.currentUserId, isNotNull,
-        reason: 'Die erneute Anmeldung scheitert — die laufende Sitzung darf '
-            'davon nicht mitgerissen werden.');
+    expect(
+      backend.currentUserId,
+      isNotNull,
+      reason:
+          'Die erneute Anmeldung scheitert — die laufende Sitzung darf '
+          'davon nicht mitgerissen werden.',
+    );
   });
 
   testWidgets('Dasselbe Passwort noch einmal wird abgelehnt', (tester) async {
@@ -120,8 +142,7 @@ void main() {
     expect(find.textContaining('bisherige Passwort'), findsOneWidget);
   });
 
-  testWidgets('Ein bekannt unsicheres Passwort wird abgelehnt',
-      (tester) async {
+  testWidgets('Ein bekannt unsicheres Passwort wird abgelehnt', (tester) async {
     final backend = _signedIn();
     await pumpApp(tester, backend);
     await _openDialog(tester);

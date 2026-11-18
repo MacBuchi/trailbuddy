@@ -52,7 +52,9 @@ class TrailBuddyApp extends ConsumerWidget {
                 child: PushListener(
                   child: WatchRideListener(
                     child: NearbyHost(
-                      child: UpdateGate(child: child ?? const SizedBox.shrink()),
+                      child: UpdateGate(
+                        child: child ?? const SizedBox.shrink(),
+                      ),
                     ),
                   ),
                 ),

@@ -1,6 +1,5 @@
 import 'dart:io';
 
-
 import 'package:flutter_test/flutter_test.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:trailbuddy/data/auth_repository.dart';
@@ -38,24 +37,33 @@ void main() {
     // Ein fehlendes SVG fiele erst am Gerät auf (leerer Knopf).
     for (final p in SignInProvider.values) {
       expect(
-          File('assets/auth/${p.name}.svg').existsSync(), isTrue, reason: p.name);
+        File('assets/auth/${p.name}.svg').existsSync(),
+        isTrue,
+        reason: p.name,
+      );
     }
   });
 
   test('Nur OAuth-Fehler des Rücksprungs zählen, nicht eine abgelaufene '
       'Sitzung (#398)', () {
     expect(
-        AuthRepository.isProviderReturnError(
-            const AuthException('OAuth state has expired', code: 'server_error')),
-        isTrue);
+      AuthRepository.isProviderReturnError(
+        const AuthException('OAuth state has expired', code: 'server_error'),
+      ),
+      isTrue,
+    );
     expect(
-        AuthRepository.isProviderReturnError(
-            const AuthException('denied', code: 'access_denied')),
-        isTrue);
+      AuthRepository.isProviderReturnError(
+        const AuthException('denied', code: 'access_denied'),
+      ),
+      isTrue,
+    );
     expect(
-        AuthRepository.isProviderReturnError(
-            const AuthException('Session expired.', code: 'session_expired')),
-        isFalse);
+      AuthRepository.isProviderReturnError(
+        const AuthException('Session expired.', code: 'session_expired'),
+      ),
+      isFalse,
+    );
     expect(AuthRepository.isProviderReturnError(Exception('x')), isFalse);
   });
 
@@ -65,7 +73,8 @@ void main() {
     final repo = AuthRepository(client);
     // ignore: invalid_use_of_internal_member
     client.auth.notifyException(
-        const AuthException('OAuth state has expired', code: 'server_error'));
+      const AuthException('OAuth state has expired', code: 'server_error'),
+    );
 
     final first = await repo.providerReturnErrors.first;
     expect(first.message, 'OAuth state has expired');

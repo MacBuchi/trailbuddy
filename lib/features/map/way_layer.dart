@@ -19,7 +19,8 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
-import 'package:vector_map_tiles/vector_map_tiles.dart' show TileProviders, VectorTileProvider;
+import 'package:vector_map_tiles/vector_map_tiles.dart'
+    show TileProviders, VectorTileProvider;
 import 'package:vector_tile_renderer/vector_tile_renderer.dart' as vtr;
 
 import '../../core/connectivity.dart';
@@ -54,13 +55,13 @@ const kWaysSourceId = 'ways';
 /// Die Metadaten eines Wege-Archivs, das ein gespeicherter Bereich auf
 /// dem Gerät schreibt (`area_downloader.dart`, `area_trim.dart`).
 Map<String, dynamic> waysMetadata(String name, String? build) => {
-      'name': name,
-      'format': kWaysFormat,
-      'zoom': kWaysZoom,
-      'layer': kWaysLayer,
-      'build': ?build,
-      'attribution': '© OpenStreetMap contributors (ODbL)',
-    };
+  'name': name,
+  'format': kWaysFormat,
+  'zoom': kWaysZoom,
+  'layer': kWaysLayer,
+  'build': ?build,
+  'attribution': '© OpenStreetMap contributors (ODbL)',
+};
 
 /// Forstweg oder Pfad — die Basiskarte unterscheidet beide schon (Farbe,
 /// Breite), die Ebene übernimmt das.
@@ -80,16 +81,97 @@ const kWayTrackCore = Color(0xFFF3F1EC);
 /// Zoom 15 immer ÜBER der Basislinie (Forstweg 1,4, Pfad 0,8), sonst
 /// stünde sie neben der Ebene.
 enum WayClass {
-  trackGood(1, WayKind.track, Color(0xFF7F6649), null, Color(0xFF7F6649), 3.0, null, kWayTrackCore),
-  trackMedium(2, WayKind.track, Color(0xFFA58A6A), Color(0xFFD3C5B3), Color(0xFFA58A6A), 2.8, [3, 1.5], kWayTrackCore),
-  trackPoor(3, WayKind.track, Color(0xFFA58A6A), Color(0xFFDDD2C4), Color(0xFFC7B49D), 2.6, [1, 2], kWayTrackCore),
-  trackVeryPoor(7, WayKind.track, Color(0xFFB39C80), Color(0xFFE4DBCF), Color(0xFFD3C4B1), 2.4, [1, 3.5], kWayTrackCore),
-  pathEasy(4, WayKind.path, Color(0xFF8F7860), null, Color(0xFF8F7860), 1.4, null, null),
-  pathMedium(5, WayKind.path, Color(0xFFA8907A), Color(0xFFD8CCBD), Color(0xFFB6A08A), 1.1, [3, 1.5], null),
-  pathHard(6, WayKind.path, Color(0xFFA8907A), Color(0xFFE0D6CA), Color(0xFFCDBFAE), 1.0, [1, 2], null),
-  pathVeryHard(8, WayKind.path, Color(0xFFB5A08B), Color(0xFFE6DED4), Color(0xFFD9CDBF), 0.9, [1, 3.5], null);
+  trackGood(
+    1,
+    WayKind.track,
+    Color(0xFF7F6649),
+    null,
+    Color(0xFF7F6649),
+    3.0,
+    null,
+    kWayTrackCore,
+  ),
+  trackMedium(
+    2,
+    WayKind.track,
+    Color(0xFFA58A6A),
+    Color(0xFFD3C5B3),
+    Color(0xFFA58A6A),
+    2.8,
+    [3, 1.5],
+    kWayTrackCore,
+  ),
+  trackPoor(
+    3,
+    WayKind.track,
+    Color(0xFFA58A6A),
+    Color(0xFFDDD2C4),
+    Color(0xFFC7B49D),
+    2.6,
+    [1, 2],
+    kWayTrackCore,
+  ),
+  trackVeryPoor(
+    7,
+    WayKind.track,
+    Color(0xFFB39C80),
+    Color(0xFFE4DBCF),
+    Color(0xFFD3C4B1),
+    2.4,
+    [1, 3.5],
+    kWayTrackCore,
+  ),
+  pathEasy(
+    4,
+    WayKind.path,
+    Color(0xFF8F7860),
+    null,
+    Color(0xFF8F7860),
+    1.4,
+    null,
+    null,
+  ),
+  pathMedium(
+    5,
+    WayKind.path,
+    Color(0xFFA8907A),
+    Color(0xFFD8CCBD),
+    Color(0xFFB6A08A),
+    1.1,
+    [3, 1.5],
+    null,
+  ),
+  pathHard(
+    6,
+    WayKind.path,
+    Color(0xFFA8907A),
+    Color(0xFFE0D6CA),
+    Color(0xFFCDBFAE),
+    1.0,
+    [1, 2],
+    null,
+  ),
+  pathVeryHard(
+    8,
+    WayKind.path,
+    Color(0xFFB5A08B),
+    Color(0xFFE6DED4),
+    Color(0xFFD9CDBF),
+    0.9,
+    [1, 3.5],
+    null,
+  );
 
-  const WayClass(this.code, this.kind, this.color, this.band, this.webColor, this.width, this.dash, this.core);
+  const WayClass(
+    this.code,
+    this.kind,
+    this.color,
+    this.band,
+    this.webColor,
+    this.width,
+    this.dash,
+    this.core,
+  );
 
   /// Der Wert von `k` im Archiv.
   final int code;
@@ -98,15 +180,15 @@ enum WayClass {
   /// Das Wort der Legende, unter der Überschrift der Wegart (#209: aus den
   /// ARB-Dateien).
   String label(AppLocalizations l) => switch (this) {
-        trackGood => l.wayTrackGood,
-        trackMedium => l.wayTrackMedium,
-        trackPoor => l.wayTrackPoor,
-        trackVeryPoor => l.wayTrackVeryPoor,
-        pathEasy => l.wayPathEasy,
-        pathMedium => l.wayPathMedium,
-        pathHard => l.wayPathHard,
-        pathVeryHard => l.wayPathVeryHard,
-      };
+    trackGood => l.wayTrackGood,
+    trackMedium => l.wayTrackMedium,
+    trackPoor => l.wayTrackPoor,
+    trackVeryPoor => l.wayTrackVeryPoor,
+    pathEasy => l.wayPathEasy,
+    pathMedium => l.wayPathMedium,
+    pathHard => l.wayPathHard,
+    pathVeryHard => l.wayPathVeryHard,
+  };
   final Color color;
   final Color? band;
   final Color webColor;
@@ -133,11 +215,19 @@ const kWayCoreShare = 0.55;
 /// Die Breite über den Zoom, wie die Wege der Basiskarte
 /// (`tool/transform_map_style.py`, exponentiell 1,6).
 List<Object> _width(double atZ15) => [
-      'interpolate', ['exponential', 1.6], ['zoom'],
-      kWaysZoom, atZ15 * 0.55, 15, atZ15, 20, atZ15 * 3.3,
-    ];
+  'interpolate',
+  ['exponential', 1.6],
+  ['zoom'],
+  kWaysZoom,
+  atZ15 * 0.55,
+  15,
+  atZ15,
+  20,
+  atZ15 * 3.3,
+];
 
-String _css(Color c) => '#${(c.toARGB32() & 0xFFFFFF).toRadixString(16).padLeft(6, '0')}';
+String _css(Color c) =>
+    '#${(c.toARGB32() & 0xFFFFFF).toRadixString(16).padLeft(6, '0')}';
 
 /// Die Stil-Ebenen der Wege für eine Quelle [sourceId]. Mit [dashes]
 /// (MapLibre) je gestrichelter Klasse ein Band und darüber der Strich;
@@ -145,33 +235,49 @@ String _css(Color c) => '#${(c.toARGB32() & 0xFFFFFF).toRadixString(16).padLeft(
 /// Erst alle Bänder, dann die Forstwege samt Mittelstreifen, zuletzt die
 /// Pfade — ein Band darf keinen Strich einer Nachbarklasse zudecken, und
 /// ein Mittelstreifen keinen Pfad, der den Forstweg kreuzt.
-List<Map<String, dynamic>> wayStyleLayers(String sourceId, {required bool dashes}) {
-  Map<String, dynamic> line(String id, WayClass c, Color color, double width, {List<double>? dash}) => {
-        'id': '$sourceId/$id-${c.name}',
-        'type': 'line',
-        'source': sourceId,
-        'source-layer': kWaysLayer,
-        'minzoom': kWaysZoom,
-        'filter': ['==', ['get', kWaysKey], c.code],
-        'layout': {'line-cap': 'butt', 'line-join': 'round'},
-        'paint': {
-          'line-color': _css(color),
-          'line-width': _width(width),
-          'line-dasharray': ?dash,
-        },
-      };
+List<Map<String, dynamic>> wayStyleLayers(
+  String sourceId, {
+  required bool dashes,
+}) {
+  Map<String, dynamic> line(
+    String id,
+    WayClass c,
+    Color color,
+    double width, {
+    List<double>? dash,
+  }) => {
+    'id': '$sourceId/$id-${c.name}',
+    'type': 'line',
+    'source': sourceId,
+    'source-layer': kWaysLayer,
+    'minzoom': kWaysZoom,
+    'filter': [
+      '==',
+      ['get', kWaysKey],
+      c.code,
+    ],
+    'layout': {'line-cap': 'butt', 'line-join': 'round'},
+    'paint': {
+      'line-color': _css(color),
+      'line-width': _width(width),
+      'line-dasharray': ?dash,
+    },
+  };
   Iterable<Map<String, dynamic>> strokes(WayKind kind) => [
-        for (final c in WayClass.values)
-          if (c.kind == kind)
-            dashes ? line('line', c, c.color, c.width, dash: c.dash) : line('line', c, c.webColor, c.width),
-      ];
+    for (final c in WayClass.values)
+      if (c.kind == kind)
+        dashes
+            ? line('line', c, c.color, c.width, dash: c.dash)
+            : line('line', c, c.webColor, c.width),
+  ];
   return [
     if (dashes)
       for (final c in WayClass.values)
         if (c.band case final band?) line('band', c, band, c.width),
     ...strokes(WayKind.track),
     for (final c in WayClass.values)
-      if (c.core case final core?) line('core', c, core, c.width * kWayCoreShare),
+      if (c.core case final core?)
+        line('core', c, core, c.width * kWayCoreShare),
     ...strokes(WayKind.path),
   ];
 }
@@ -179,7 +285,12 @@ List<Map<String, dynamic>> wayStyleLayers(String sourceId, {required bool dashes
 /// Das Manifest des Wege-Archivs (`ways.json`, geschrieben von
 /// `way-data.yml`): welche Datei gilt, mit welchem Format.
 class WaysManifest {
-  const WaysManifest({required this.file, required this.bytes, required this.build, this.dir = ''});
+  const WaysManifest({
+    required this.file,
+    required this.bytes,
+    required this.build,
+    this.dir = '',
+  });
 
   final String file;
   final int bytes;
@@ -204,33 +315,43 @@ class WaysManifest {
     if (j['format'] != kWaysFormat || j['zoom'] != kWaysZoom) {
       throw FormatException('Wegeformat ${j['format']}/${j['zoom']} unbekannt');
     }
-    return WaysManifest(file: file, bytes: j['bytes'] as int, build: j['build'] as String, dir: folder);
+    return WaysManifest(
+      file: file,
+      bytes: j['bytes'] as int,
+      build: j['build'] as String,
+      dir: folder,
+    );
   }
 
   /// Zum Merken auf dem Gerät (#155), mit Format und Zoom der App — ein
   /// gemerktes Manifest gilt nur für die Fassung, die es geschrieben hat.
   Map<String, dynamic> toJson() => {
-        'file': file,
-        'format': kWaysFormat,
-        'zoom': kWaysZoom,
-        'bytes': bytes,
-        'build': build,
-        if (dir.isNotEmpty) 'dir': dir,
-      };
+    'file': file,
+    'format': kWaysFormat,
+    'zoom': kWaysZoom,
+    'bytes': bytes,
+    'build': build,
+    if (dir.isNotEmpty) 'dir': dir,
+  };
 }
 
 /// Holt das Manifest vom Host; wirft bei allem, was nicht passt.
 Future<WaysManifest?> fetchWaysManifest() async {
-  final response = await http.get(Uri.parse(kWaysManifestUrl)).timeout(kMapManifestTimeout);
+  final response = await http
+      .get(Uri.parse(kWaysManifestUrl))
+      .timeout(kMapManifestTimeout);
   if (response.statusCode != 200) {
     throw http.ClientException('Wege-Manifest: HTTP ${response.statusCode}');
   }
-  return WaysManifest.fromJson(jsonDecode(response.body) as Map<String, dynamic>);
+  return WaysManifest.fromJson(
+    jsonDecode(response.body) as Map<String, dynamic>,
+  );
 }
 
 /// Die Naht für Tests (kein Netz).
-final waysManifestLoaderProvider =
-    Provider<Future<WaysManifest?> Function()>((ref) => fetchWaysManifest);
+final waysManifestLoaderProvider = Provider<Future<WaysManifest?> Function()>(
+  (ref) => fetchWaysManifest,
+);
 
 /// Der Schalter in „Kartenebenen", gerätelokal, Vorgabe an. Aus heißt:
 /// keine Anfrage.
@@ -254,7 +375,9 @@ final waysManifestProvider = FutureProvider<WaysManifest?>((ref) async {
   try {
     return await ref.watch(waysManifestLoaderProvider)();
   } catch (e, s) {
-    if (!looksOffline(e) && e is! FormatException && e is! http.ClientException) {
+    if (!looksOffline(e) &&
+        e is! FormatException &&
+        e is! http.ClientException) {
       logError('Wege-Manifest laden', e, s);
     }
     return null;
@@ -263,35 +386,60 @@ final waysManifestProvider = FutureProvider<WaysManifest?>((ref) async {
 
 /// Das Thema der Ebene für flutter_map — ohne Strich, siehe oben.
 vtr.Theme wayTheme() => vtr.ThemeReader().read({
-      'version': 8,
-      'layers': wayStyleLayers(kWaysSourceId, dashes: false),
-    });
+  'version': 8,
+  'layers': wayStyleLayers(kWaysSourceId, dashes: false),
+});
 
 /// Das Wege-Archiv EINER Region für flutter_map — frisch, im Browser
 /// sonst das gemerkte (#155, je Region), solange die Ebene an ist.
-Future<VectorTileProvider?> _regionWaysArchive(Ref ref, MapRegion region) async {
+Future<VectorTileProvider?> _regionWaysArchive(
+  Ref ref,
+  MapRegion region,
+) async {
   final fresh = await ref.watch(regionWaysManifestProvider(region).future);
   WaysManifest? manifest = fresh;
-  if (ref.watch(seenTileStoreProvider) != null && ref.watch(wayLayerEnabledProvider)) {
+  if (ref.watch(seenTileStoreProvider) != null &&
+      ref.watch(wayLayerEnabledProvider)) {
     final settings = ref.watch(settingsProvider);
     if (region.isDach) {
       if (fresh != null) {
-        rememberManifest(settings.seenWaysManifest, fresh.toJson(), settings.setSeenWaysManifest);
+        rememberManifest(
+          settings.seenWaysManifest,
+          fresh.toJson(),
+          settings.setSeenWaysManifest,
+        );
       }
-      manifest ??= rememberedManifest(settings.seenWaysManifest, WaysManifest.fromJson);
+      manifest ??= rememberedManifest(
+        settings.seenWaysManifest,
+        WaysManifest.fromJson,
+      );
     } else {
-      if (fresh != null) rememberRegionManifest(settings, region, RegionLayer.ways, fresh.toJson());
-      manifest ??= rememberedRegionManifest(settings, region, RegionLayer.ways, WaysManifest.fromJson);
+      if (fresh != null) {
+        rememberRegionManifest(
+          settings,
+          region,
+          RegionLayer.ways,
+          fresh.toJson(),
+        );
+      }
+      manifest ??= rememberedRegionManifest(
+        settings,
+        region,
+        RegionLayer.ways,
+        WaysManifest.fromJson,
+      );
     }
   }
   if (manifest == null) return null;
-  return openHostArchive(ref,
-      file: '${manifest.dir}${manifest.file}',
-      uri: manifest.archiveUri,
-      fresh: fresh != null,
-      minZoom: kWaysZoom,
-      maxZoom: kWaysZoom,
-      label: 'Wege-Archiv öffnen');
+  return openHostArchive(
+    ref,
+    file: '${manifest.dir}${manifest.file}',
+    uri: manifest.archiveUri,
+    fresh: fresh != null,
+    minZoom: kWaysZoom,
+    maxZoom: kWaysZoom,
+    label: 'Wege-Archiv öffnen',
+  );
 }
 
 /// Die Ebene für die flutter_map-Engine: Archiv vom Host per Range,
@@ -300,22 +448,35 @@ Future<VectorTileProvider?> _regionWaysArchive(Ref ref, MapRegion region) async 
 /// (#155): ohne frisches Manifest das gemerkte, solange die Ebene an ist.
 /// Je Region ein Archiv (#220), verteilt nach Lage wie die Karte.
 final onlineWaysStyleProvider = FutureProvider<BaseMapStyle?>((ref) async {
-  final (dach, regions) = await (_regionWaysArchive(ref, kDachRegion), regionsPatiently(ref)).wait;
+  final (dach, regions) = await (
+    _regionWaysArchive(ref, kDachRegion),
+    regionsPatiently(ref),
+  ).wait;
   final opened = [
     (region: kDachRegion, provider: dach),
     for (final region in regions)
-      if (!region.isDach) (region: region, provider: await _regionWaysArchive(ref, region)),
+      if (!region.isDach)
+        (region: region, provider: await _regionWaysArchive(ref, region)),
   ];
   final archive = regionSource(regions, opened);
   if (archive == null) return null;
-  return BaseMapStyle(theme: wayTheme(), tileProviders: TileProviders({kWaysSourceId: archive}));
+  return BaseMapStyle(
+    theme: wayTheme(),
+    tileProviders: TileProviders({kWaysSourceId: archive}),
+  );
 });
 
 /// Zeichnet ein Stück Weg in einer Klasse, wie MapLibre es zeichnet: das
 /// Band, darüber der Strich, das Muster in Vielfachen der Breite, beim
 /// Forstweg obenauf der Mittelstreifen. Für
 /// Legende und Schalter — dieselbe Tabelle wie die Karte.
-void paintWayStroke(Canvas canvas, Offset a, Offset b, WayClass c, double width) {
+void paintWayStroke(
+  Canvas canvas,
+  Offset a,
+  Offset b,
+  WayClass c,
+  double width,
+) {
   void stroke(Color color, List<double>? dash) {
     final paint = Paint()
       ..color = color
@@ -329,7 +490,13 @@ void paintWayStroke(Canvas canvas, Offset a, Offset b, WayClass c, double width)
     var i = 0;
     while (x < b.dx) {
       final len = dash[i % dash.length] * width;
-      if (i.isEven) canvas.drawLine(Offset(x, a.dy), Offset((x + len).clamp(a.dx, b.dx), a.dy), paint);
+      if (i.isEven) {
+        canvas.drawLine(
+          Offset(x, a.dy),
+          Offset((x + len).clamp(a.dx, b.dx), a.dy),
+          paint,
+        );
+      }
       x += len;
       i++;
     }
@@ -338,10 +505,14 @@ void paintWayStroke(Canvas canvas, Offset a, Offset b, WayClass c, double width)
   if (c.band case final band?) stroke(band, null);
   stroke(c.color, c.dash);
   if (c.core case final core?) {
-    canvas.drawLine(a, b, Paint()
-      ..color = core
-      ..strokeWidth = width * kWayCoreShare
-      ..strokeCap = StrokeCap.butt);
+    canvas.drawLine(
+      a,
+      b,
+      Paint()
+        ..color = core
+        ..strokeWidth = width * kWayCoreShare
+        ..strokeCap = StrokeCap.butt,
+    );
   }
 }
 

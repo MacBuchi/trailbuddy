@@ -19,7 +19,8 @@ import 'package:latlong2/latlong.dart';
 
 import '../map/map_view/map_hit_test.dart' show kMercatorMaxLat;
 import '../map/map_view/map_view.dart';
-import 'area_overlay.dart' show mergeTileRects, offlineOverlayBox, rectRing, tileOutline;
+import 'area_overlay.dart'
+    show mergeTileRects, offlineOverlayBox, rectRing, tileOutline;
 import 'area_plan.dart';
 import 'area_providers.dart' show storedAreasProvider;
 import 'area_store.dart' show visibleAreas;
@@ -38,7 +39,6 @@ const kAreaDraftHistory = 20;
 /// Ausschnitt selbst, ohne Rand — nie gröber (wie die Maske).
 const kAreaDraftMaxRects = 3000;
 
-
 double _tileX(double lon, int n) => (lon + 180) / 360 * n;
 
 double _tileY(double lat, int n) {
@@ -50,11 +50,16 @@ double _tileY(double lat, int n) {
 /// geschlossene Fläche [ring] berührt oder umschließt. Null, wenn der
 /// Rahmen des Strichs mehr als [maxSpanTiles] Kacheln umfasst — leer bei
 /// weniger als zwei Punkten.
-Set<int>? tilesTouchedByRing(List<LatLng> ring,
-    {int zoom = kAreaShapeZoom, int maxSpanTiles = kAreaDrawMaxSpanTiles}) {
+Set<int>? tilesTouchedByRing(
+  List<LatLng> ring, {
+  int zoom = kAreaShapeZoom,
+  int maxSpanTiles = kAreaDrawMaxSpanTiles,
+}) {
   if (ring.length < 2) return <int>{};
   final n = 1 << zoom;
-  final pts = [for (final p in ring) (x: _tileX(p.longitude, n), y: _tileY(p.latitude, n))];
+  final pts = [
+    for (final p in ring) (x: _tileX(p.longitude, n), y: _tileY(p.latitude, n)),
+  ];
   var minX = double.infinity, maxX = -double.infinity;
   var minY = double.infinity, maxY = -double.infinity;
   for (final p in pts) {
@@ -63,7 +68,8 @@ Set<int>? tilesTouchedByRing(List<LatLng> ring,
     minY = math.min(minY, p.y);
     maxY = math.max(maxY, p.y);
   }
-  final span = (maxX.floor() - minX.floor() + 1) * (maxY.floor() - minY.floor() + 1);
+  final span =
+      (maxX.floor() - minX.floor() + 1) * (maxY.floor() - minY.floor() + 1);
   if (span > maxSpanTiles) return null;
 
   final keys = <int>{};
@@ -99,14 +105,17 @@ Set<int>? tilesTouchedByRing(List<LatLng> ring,
     }
     xs.sort();
     for (var i = 0; i + 1 < xs.length; i += 2) {
-      for (var col = (xs[i] - 0.5).ceil(); col <= (xs[i + 1] - 0.5).floor(); col++) {
+      for (
+        var col = (xs[i] - 0.5).ceil();
+        col <= (xs[i + 1] - 0.5).floor();
+        col++
+      ) {
         add(col, row);
       }
     }
   }
   return keys;
 }
-
 
 /// Wie ein Strich wirkt: dazu oder weg.
 enum AreaDrawTool { add, remove }
@@ -118,9 +127,19 @@ enum AreaDrawTool { add, remove }
 /// [removes] nur gespeicherte Kacheln — dafür sorgt der Notifier.
 @immutable
 class AreaDraft {
-  AreaDraft({Set<int> adds = const {}, Set<int> removes = const {}, this.history = const [], this.tool})
-      : addShape = TileSetShape(zoom: kAreaShapeZoom, keys: Set.unmodifiable(adds)),
-        removeShape = TileSetShape(zoom: kAreaShapeZoom, keys: Set.unmodifiable(removes));
+  AreaDraft({
+    Set<int> adds = const {},
+    Set<int> removes = const {},
+    this.history = const [],
+    this.tool,
+  }) : addShape = TileSetShape(
+         zoom: kAreaShapeZoom,
+         keys: Set.unmodifiable(adds),
+       ),
+       removeShape = TileSetShape(
+         zoom: kAreaShapeZoom,
+         keys: Set.unmodifiable(removes),
+       );
 
   /// Was geladen wird — geht so in den Plan.
   final TileSetShape addShape;
@@ -135,23 +154,28 @@ class AreaDraft {
   bool get isEmpty => adds.isEmpty && removes.isEmpty;
 
   AreaDraft _with({AreaDrawTool? tool, bool clearTool = false}) => AreaDraft(
-        adds: adds,
-        removes: removes,
-        history: history,
-        tool: clearTool ? null : (tool ?? this.tool),
-      );
+    adds: adds,
+    removes: removes,
+    history: history,
+    tool: clearTool ? null : (tool ?? this.tool),
+  );
 
-  static bool _same(Set<int> a, Set<int> b) => a.length == b.length && a.containsAll(b);
+  static bool _same(Set<int> a, Set<int> b) =>
+      a.length == b.length && a.containsAll(b);
 
   /// Ein neuer Stand; der alte wandert in die Geschichte. Ohne Änderung
   /// kein Schritt — „Rückgängig" soll immer etwas tun.
   AreaDraft _step(Set<int> nextAdds, Set<int> nextRemoves) {
-    if (_same(nextAdds, adds) && _same(nextRemoves, removes)) return _with(clearTool: true);
+    if (_same(nextAdds, adds) && _same(nextRemoves, removes)) {
+      return _with(clearTool: true);
+    }
     final h = [...history, (adds: adds, removes: removes)];
     return AreaDraft(
       adds: nextAdds,
       removes: nextRemoves,
-      history: h.length > kAreaDraftHistory ? h.sublist(h.length - kAreaDraftHistory) : h,
+      history: h.length > kAreaDraftHistory
+          ? h.sublist(h.length - kAreaDraftHistory)
+          : h,
     );
   }
 }
@@ -164,7 +188,9 @@ class AreaDraft {
 final storedTileKeysProvider = Provider<Set<int>>((ref) {
   // Ohne die Halter „Unterwegs geladen" (#478): Was sie halten, ist kein
   // Bereich — der Entwurf darf es dazunehmen.
-  final areas = visibleAreas(ref.watch(storedAreasProvider).valueOrNull ?? const []);
+  final areas = visibleAreas(
+    ref.watch(storedAreasProvider).valueOrNull ?? const [],
+  );
   return {
     for (final a in areas)
       if (a.shape is! RegionShape) ...a.shape.keysAt(kAreaShapeZoom),
@@ -175,8 +201,13 @@ final storedTileKeysProvider = Provider<Set<int>>((ref) {
 /// nicht dazu — es liegt schon. Der Radierer lässt sie aus; eine Region
 /// geht nur im Ganzen (in „Meine Bereiche").
 final storedRegionBoundsProvider = Provider<List<AreaBounds>>((ref) {
-  final areas = visibleAreas(ref.watch(storedAreasProvider).valueOrNull ?? const []);
-  return [for (final a in areas) if (a.shape case final RegionShape r) r.bounds];
+  final areas = visibleAreas(
+    ref.watch(storedAreasProvider).valueOrNull ?? const [],
+  );
+  return [
+    for (final a in areas)
+      if (a.shape case final RegionShape r) r.bounds,
+  ];
 });
 
 /// Liegt die Kachel [key] (bei [kAreaShapeZoom]) ganz in einem der
@@ -185,7 +216,13 @@ bool insideRegions(int key, List<AreaBounds> regions) {
   if (regions.isEmpty) return false;
   const z = kAreaShapeZoom;
   final b = tileBounds(z, key >> z, key & ((1 << z) - 1));
-  return regions.any((r) => b.south >= r.south && b.north <= r.north && b.west >= r.west && b.east <= r.east);
+  return regions.any(
+    (r) =>
+        b.south >= r.south &&
+        b.north <= r.north &&
+        b.west >= r.west &&
+        b.east <= r.east,
+  );
 }
 
 /// Der Entwurf — null heißt leer. Er lebt, solange die Werkzeugleiste
@@ -227,27 +264,31 @@ class AreaDraftNotifier extends Notifier<AreaDraft?> {
     final d = _draft;
     final stored = ref.read(storedTileKeysProvider);
     final regions = ref.read(storedRegionBoundsProvider);
-    state = d._step(
-      {...d.adds, ...keys.where((k) => !stored.contains(k) && !insideRegions(k, regions))},
-      {...d.removes}..removeAll(keys),
-    );
+    state = d._step({
+      ...d.adds,
+      ...keys.where((k) => !stored.contains(k) && !insideRegions(k, regions)),
+    }, {...d.removes}..removeAll(keys));
   }
 
   /// Weg: was dazukommen sollte, kommt nicht; was liegt, fällt weg.
   void removeAll(Set<int> keys) {
     final d = _draft;
     final stored = ref.read(storedTileKeysProvider);
-    state = d._step(
-      {...d.adds}..removeAll(keys),
-      {...d.removes, ...keys.where(stored.contains)},
-    );
+    state = d._step({...d.adds}..removeAll(keys), {
+      ...d.removes,
+      ...keys.where(stored.contains),
+    });
   }
 
   void undo() {
     final d = state;
     if (d == null || d.history.isEmpty) return;
     final last = d.history.last;
-    state = AreaDraft(adds: last.adds, removes: last.removes, history: d.history.sublist(0, d.history.length - 1));
+    state = AreaDraft(
+      adds: last.adds,
+      removes: last.removes,
+      history: d.history.sublist(0, d.history.length - 1),
+    );
   }
 
   void discard() => state = null;
@@ -264,16 +305,24 @@ class AreaDraftNotifier extends Notifier<AreaDraft?> {
   }
 }
 
-final areaDraftProvider = NotifierProvider<AreaDraftNotifier, AreaDraft?>(AreaDraftNotifier.new);
+final areaDraftProvider = NotifierProvider<AreaDraftNotifier, AreaDraft?>(
+  AreaDraftNotifier.new,
+);
 
 /// Die Kacheln bei [zoom], die [bounds] berühren — der „Schnappschuss"
 /// des Ausschnitts. Null über [maxSpanTiles] (weit draußen wäre das halb
 /// Mitteleuropa bei Zoom 13).
-Set<int>? tilesInBounds(AreaBounds bounds,
-    {int zoom = kAreaShapeZoom, int maxSpanTiles = kAreaDrawMaxSpanTiles}) {
-  if (countTilesCovering(bounds, minZoom: zoom, maxZoom: zoom) > maxSpanTiles) return null;
+Set<int>? tilesInBounds(
+  AreaBounds bounds, {
+  int zoom = kAreaShapeZoom,
+  int maxSpanTiles = kAreaDrawMaxSpanTiles,
+}) {
+  if (countTilesCovering(bounds, minZoom: zoom, maxZoom: zoom) > maxSpanTiles) {
+    return null;
+  }
   return {
-    for (final t in tilesCovering(bounds, minZoom: zoom, maxZoom: zoom)) TileSetShape.keyOf(t.x, t.y, zoom),
+    for (final t in tilesCovering(bounds, minZoom: zoom, maxZoom: zoom))
+      TileSetShape.keyOf(t.x, t.y, zoom),
   };
 }
 
@@ -331,8 +380,13 @@ const kAreaRemoveHalfTone = Color(0x33000000);
 
 /// Die Schraffurlinien über [rects] bei [zoom] (256er-Stufen): `/` für
 /// „kommt dazu", gespiegelt `\` für „fällt weg". Null über [maxLines].
-List<List<LatLng>>? hatchLines(List<AreaBounds> rects, double zoom,
-    {required bool mirrored, double spacingPx = kAreaHatchSpacingPx, int maxLines = kAreaHatchMaxLines}) {
+List<List<LatLng>>? hatchLines(
+  List<AreaBounds> rects,
+  double zoom, {
+  required bool mirrored,
+  double spacingPx = kAreaHatchSpacingPx,
+  int maxLines = kAreaHatchMaxLines,
+}) {
   final world = 256 * math.pow(2, zoom).toDouble();
   double wx(double lon) => (lon + 180) / 360 * world;
   double wy(double lat) {
@@ -352,7 +406,11 @@ List<List<LatLng>>? hatchLines(List<AreaBounds> rects, double zoom,
     // `/` auf dem Schirm (y nach unten): x + y = c. Gespiegelt: x − y = c.
     final cMin = mirrored ? x0 - y1 : x0 + y0;
     final cMax = mirrored ? x1 - y0 : x1 + y1;
-    for (var c = (cMin / spacingPx).ceil() * spacingPx; c <= cMax; c += spacingPx) {
+    for (
+      var c = (cMin / spacingPx).ceil() * spacingPx;
+      c <= cMax;
+      c += spacingPx
+    ) {
       final double xa, xb;
       if (mirrored) {
         xa = math.max(x0, c + y0);
@@ -376,7 +434,9 @@ List<List<LatLng>>? hatchLines(List<AreaBounds> rects, double zoom,
 /// bei [kAreaShapeZoom] wie die Maske, im Ausschnitt mit Rand. Flächen
 /// gibt es nur im Rückfall 2e (zu viele Linien).
 ({List<MapViewPolygon> polygons, List<MapViewPolyline> lines}) draftLayers(
-    AreaDraft draft, MapViewCamera camera) {
+  AreaDraft draft,
+  MapViewCamera camera,
+) {
   final view = camera.bounds;
   if (draft.isEmpty || view.east <= view.west || view.north <= view.south) {
     return (polygons: const [], lines: const []);
@@ -405,12 +465,20 @@ List<List<LatLng>>? hatchLines(List<AreaBounds> rects, double zoom,
       }
     } else {
       for (final l in hatched) {
-        hatches.add(MapViewPolyline(points: l, color: ink, width: kAreaHatchWidth));
+        hatches.add(
+          MapViewPolyline(points: l, color: ink, width: kAreaHatchWidth),
+        );
       }
     }
     for (final l in tileOutline(tiles, box) ?? const <List<LatLng>>[]) {
-      borders.add(MapViewPolyline(
-          points: l, color: ink, width: kAreaChangeBorderWidth, dash: kAreaChangeBorderDash));
+      borders.add(
+        MapViewPolyline(
+          points: l,
+          color: ink,
+          width: kAreaChangeBorderWidth,
+          dash: kAreaChangeBorderDash,
+        ),
+      );
     }
   }
   // Die Ränder über der Schraffur: Sie sagen „bis hier", auch wo die

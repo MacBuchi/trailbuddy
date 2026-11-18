@@ -52,84 +52,149 @@ RoadGraph _graph() {
 final _line = [for (var y = 0.0; y <= 1000; y += 50) _m(0, y)];
 
 void main() {
-  test('je Kreuzung der Route ein Stummel je abgehender Kante, 40 m oder bis zum Ende der Kante', () {
-    final br = watchBranchesOn(_graph(), _line);
-    expect(br, hasLength(3), reason: 'Querweg zweimal, Nordost einmal — nicht die 5-m-Kante, nicht der Weg daneben');
-    final ends = [for (final b in br) _proj.xy(b.end)];
-    final ats = [for (final b in br) _proj.xy(b.at)];
-    expect(br.map((b) => b.index), [10, 10, 16], reason: 'nach Punkt sortiert, der Punkt der Kreuzung');
-    for (var k = 0; k < 2; k++) {
-      expect(ats[k].y, closeTo(500, 0.01));
-    }
-    expect(ends.take(2).map((p) => p.x.round()).toSet(), {40, -30}, reason: 'Osten 40 m, Westen nur bis zum Ende der Kante');
-    expect(ends[2].distanceTo(ats[2]), greaterThan(39));
-    expect(ends[2].x, greaterThan(25), reason: 'Nordost: die Richtung des Wegs, nicht der Route');
-  });
+  test(
+    'je Kreuzung der Route ein Stummel je abgehender Kante, 40 m oder bis zum Ende der Kante',
+    () {
+      final br = watchBranchesOn(_graph(), _line);
+      expect(
+        br,
+        hasLength(3),
+        reason:
+            'Querweg zweimal, Nordost einmal — nicht die 5-m-Kante, nicht der Weg daneben',
+      );
+      final ends = [for (final b in br) _proj.xy(b.end)];
+      final ats = [for (final b in br) _proj.xy(b.at)];
+      expect(br.map((b) => b.index), [
+        10,
+        10,
+        16,
+      ], reason: 'nach Punkt sortiert, der Punkt der Kreuzung');
+      for (var k = 0; k < 2; k++) {
+        expect(ats[k].y, closeTo(500, 0.01));
+      }
+      expect(ends.take(2).map((p) => p.x.round()).toSet(), {
+        40,
+        -30,
+      }, reason: 'Osten 40 m, Westen nur bis zum Ende der Kante');
+      expect(ends[2].distanceTo(ats[2]), greaterThan(39));
+      expect(
+        ends[2].x,
+        greaterThan(25),
+        reason: 'Nordost: die Richtung des Wegs, nicht der Route',
+      );
+    },
+  );
 
-  test('eine GPS-Linie neben dem Knoten: der nächste Punkt, das Ende gegen die Kreuzung', () {
-    final wobbly = [for (var y = 0.0; y <= 1000; y += 22) _m(3, y)];
-    final br = watchBranchesOn(_graph(), wobbly);
-    final cross = [for (final b in br) if ((_proj.xy(b.at).y - 500).abs() < 0.1) b];
-    expect(cross, hasLength(2));
-    expect(cross.first.index, 23, reason: 'y 506 liegt näher an 500 als 484');
-    final route = watchRouteOf(wobbly, NavSections.none, branches: cross)!;
-    final b = route.br;
-    expect(b.length, 6);
-    expect(route.toJson()['br'], [b[0], watchPack(b[1], b[2]), b[3], watchPack(b[4], b[5])],
-        reason: 'auf dem Draht gepackt: [Punkt, (dLat << 16) | dLon]');
-    // Ende gegen die Kreuzung, nicht gegen den Punkt: ±40 bzw. −30 m Ost.
-    final dLons = {b[2], b[5]};
-    expect(dLons, {(40 / 111194.93 * 1e5).round(), (-30 / 111194.93 * 1e5).round()});
-    expect({b[1], b[4]}, {0});
-  });
+  test(
+    'eine GPS-Linie neben dem Knoten: der nächste Punkt, das Ende gegen die Kreuzung',
+    () {
+      final wobbly = [for (var y = 0.0; y <= 1000; y += 22) _m(3, y)];
+      final br = watchBranchesOn(_graph(), wobbly);
+      final cross = [
+        for (final b in br)
+          if ((_proj.xy(b.at).y - 500).abs() < 0.1) b,
+      ];
+      expect(cross, hasLength(2));
+      expect(cross.first.index, 23, reason: 'y 506 liegt näher an 500 als 484');
+      final route = watchRouteOf(wobbly, NavSections.none, branches: cross)!;
+      final b = route.br;
+      expect(b.length, 6);
+      expect(route.toJson()['br'], [
+        b[0],
+        watchPack(b[1], b[2]),
+        b[3],
+        watchPack(b[4], b[5]),
+      ], reason: 'auf dem Draht gepackt: [Punkt, (dLat << 16) | dLon]');
+      // Ende gegen die Kreuzung, nicht gegen den Punkt: ±40 bzw. −30 m Ost.
+      final dLons = {b[2], b[5]};
+      expect(dLons, {
+        (40 / 111194.93 * 1e5).round(),
+        (-30 / 111194.93 * 1e5).round(),
+      });
+      expect({b[1], b[4]}, {0});
+    },
+  );
 
   test('ohne Graph in der Nähe: nichts', () {
     final far = [for (var y = 0.0; y <= 1000; y += 50) _m(5000, y)];
     expect(watchBranchesOn(_graph(), far), isEmpty);
   });
 
-  test('die Kreuzung bleibt beim Vereinfachen stehen, die Nummer zeigt auf sie', () {
-    // Eine Gerade: ohne festen Punkt blieben nur Anfang und Ende.
-    final line = [for (var y = 0.0; y <= 1000; y += 10) _m(0, y)];
-    expect(watchRouteOf(line, NavSections.none)!.pointCount, 2);
-    final route = watchRouteOf(line, NavSections.none,
-        branches: [(index: 50, at: _m(0, 500), end: _m(40, 500))])!;
-    expect(route.pointCount, 3);
-    expect(route.br, [1, 0, (40 / 111194.93 * 1e5).round()]);
-  });
+  test(
+    'die Kreuzung bleibt beim Vereinfachen stehen, die Nummer zeigt auf sie',
+    () {
+      // Eine Gerade: ohne festen Punkt blieben nur Anfang und Ende.
+      final line = [for (var y = 0.0; y <= 1000; y += 10) _m(0, y)];
+      expect(watchRouteOf(line, NavSections.none)!.pointCount, 2);
+      final route = watchRouteOf(
+        line,
+        NavSections.none,
+        branches: [(index: 50, at: _m(0, 500), end: _m(40, 500))],
+      )!;
+      expect(route.pointCount, 3);
+      expect(route.br, [1, 0, (40 / 111194.93 * 1e5).round()]);
+    },
+  );
 
-  test('die Stummel gehen mit dem Stück ihres Punkts und zählen in dessen Zahlen mit', () {
-    final line = [for (var i = 0; i < 300; i++) _m(i.isEven ? 0 : 30, i * 30.0)];
-    final branches = [
-      for (var i = 10; i < 300; i += 7) (index: i, at: line[i], end: _proj.latLng(_proj.xy(line[i]) + const Point(-40, 0))),
-    ];
-    final route = watchRouteOf(line, NavSections.none, branches: branches)!;
-    expect(route.br.length, branches.length * 3);
-    final parts = route.parts(maxInts: 100);
-    final br = <int>[];
-    var offset = 0;
-    for (final p in parts) {
-      final pts = (p['pts'] as List).length;
-      final own = (p['br'] as List?)?.cast<int>() ?? const <int>[];
-      expect(pts + own.length + (p['p'] == 0 ? 8 : 0), lessThanOrEqualTo(100), reason: 'samt Kopf im ersten');
-      for (var k = 0; k < own.length; k += 2) {
-        expect(own[k], inInclusiveRange(offset, offset + pts - 1), reason: 'der Punkt liegt in diesem Stück');
-        final (dLat, dLon) = watchUnpack(own[k + 1]);
-        br.addAll([own[k], dLat, dLon]);
+  test(
+    'die Stummel gehen mit dem Stück ihres Punkts und zählen in dessen Zahlen mit',
+    () {
+      final line = [
+        for (var i = 0; i < 300; i++) _m(i.isEven ? 0 : 30, i * 30.0),
+      ];
+      final branches = [
+        for (var i = 10; i < 300; i += 7)
+          (
+            index: i,
+            at: line[i],
+            end: _proj.latLng(_proj.xy(line[i]) + const Point(-40, 0)),
+          ),
+      ];
+      final route = watchRouteOf(line, NavSections.none, branches: branches)!;
+      expect(route.br.length, branches.length * 3);
+      final parts = route.parts(maxInts: 100);
+      final br = <int>[];
+      var offset = 0;
+      for (final p in parts) {
+        final pts = (p['pts'] as List).length;
+        final own = (p['br'] as List?)?.cast<int>() ?? const <int>[];
+        expect(
+          pts + own.length + (p['p'] == 0 ? 8 : 0),
+          lessThanOrEqualTo(100),
+          reason: 'samt Kopf im ersten',
+        );
+        for (var k = 0; k < own.length; k += 2) {
+          expect(
+            own[k],
+            inInclusiveRange(offset, offset + pts - 1),
+            reason: 'der Punkt liegt in diesem Stück',
+          );
+          final (dLat, dLon) = watchUnpack(own[k + 1]);
+          br.addAll([own[k], dLat, dLon]);
+        }
+        offset += pts;
       }
-      offset += pts;
-    }
-    expect(br, route.br);
-    expect(route.toJson()['br'], route.packedBr());
-  });
+      expect(br, route.br);
+      expect(route.toJson()['br'], route.packedBr());
+    },
+  );
 
   test('mehr als die Uhr nimmt: gleichmäßig ausgedünnt', () {
     final g = RoadGraph(0);
     final line = [for (var y = 0.0; y <= 40000; y += 50) _m(0, y)];
     for (var k = 0; k + 1 < line.length; k++) {
-      g.addEdge(g.node(line[k]), g.node(line[k + 1]), WayClass.forstweg, false, [line[k], line[k + 1]]);
+      g.addEdge(
+        g.node(line[k]),
+        g.node(line[k + 1]),
+        WayClass.forstweg,
+        false,
+        [line[k], line[k + 1]],
+      );
       final side = _m(40, k * 50.0);
-      g.addEdge(g.node(line[k]), g.node(side), WayClass.forstweg, false, [line[k], side]);
+      g.addEdge(g.node(line[k]), g.node(side), WayClass.forstweg, false, [
+        line[k],
+        side,
+      ]);
     }
     final br = watchBranchesOn(g, line);
     expect(br, hasLength(kWatchMaxBranches));

@@ -39,68 +39,78 @@ void main() {
     expect(noticeMap, findsNothing);
   });
 
-  testWidgets('Kaltstart ohne Empfang: die Trails vom letzten Mal, mit Hinweis',
-      (tester) async {
-    // Der letzte Online-Stand liegt in der Kopie …
-    await pumpApp(tester, backend, trails: trails, trailCache: cache);
-    await settle(tester, frames: 12);
-    // … und die App startet neu im Funkloch.
-    final backend2 = FakeBackend();
-    final anna = backend2.addUser(username: 'anna');
-    backend2.signInAs(anna.id);
-    // Dasselbe Konto wie vor dem Neustart: Die Kopie ist an die Kennung
-    // gebunden.
-    cache.uid = anna.id;
-    trails = FakeTrailRepository(myId: () => backend2.currentUserId ?? '');
-    trails.failFetch = const SocketException('offline');
-    await pumpApp(tester, backend2, trails: trails, trailCache: cache);
-    await settle(tester, frames: 12);
-    expect(noticeMap, findsOneWidget);
-    expect(find.textContaining('Kein Empfang — Trails vom'), findsOneWidget);
-    await openTab(tester, 'Trails');
-    await settle(tester, frames: 12);
-    expect(find.text('Roots'), findsOneWidget);
-    expect(noticeList, findsOneWidget);
-    // Das Blatt funktioniert auf der Kopie.
-    await tester.tap(find.text('Roots'));
-    await settle(tester);
-    expect(findLabel('S2 · 1 Einschätzung'), findsOneWidget);
-  });
+  testWidgets(
+    'Kaltstart ohne Empfang: die Trails vom letzten Mal, mit Hinweis',
+    (tester) async {
+      // Der letzte Online-Stand liegt in der Kopie …
+      await pumpApp(tester, backend, trails: trails, trailCache: cache);
+      await settle(tester, frames: 12);
+      // … und die App startet neu im Funkloch.
+      final backend2 = FakeBackend();
+      final anna = backend2.addUser(username: 'anna');
+      backend2.signInAs(anna.id);
+      // Dasselbe Konto wie vor dem Neustart: Die Kopie ist an die Kennung
+      // gebunden.
+      cache.uid = anna.id;
+      trails = FakeTrailRepository(myId: () => backend2.currentUserId ?? '');
+      trails.failFetch = const SocketException('offline');
+      await pumpApp(tester, backend2, trails: trails, trailCache: cache);
+      await settle(tester, frames: 12);
+      expect(noticeMap, findsOneWidget);
+      expect(find.textContaining('Kein Empfang — Trails vom'), findsOneWidget);
+      await openTab(tester, 'Trails');
+      await settle(tester, frames: 12);
+      expect(find.text('Roots'), findsOneWidget);
+      expect(noticeList, findsOneWidget);
+      // Das Blatt funktioniert auf der Kopie.
+      await tester.tap(find.text('Roots'));
+      await settle(tester);
+      expect(findLabel('S2 · 1 Einschätzung'), findsOneWidget);
+    },
+  );
 
   // #397: Ohne Wechsel des Transportwegs (im Wald bleibt es „Mobilfunk")
   // gab es nichts, das neu lud — der Hinweis blieb stehen, obwohl das Netz
   // längst wieder antwortete.
-  testWidgets('Kopie steht, das Netz kommt still zurück: der Hinweis geht, oben an der Karte',
-      (tester) async {
-    await pumpApp(tester, backend, trails: trails, trailCache: cache);
-    await settle(tester, frames: 12);
-    await tester.pumpWidget(const SizedBox());
-    final backend2 = FakeBackend();
-    final anna = backend2.addUser(username: 'anna');
-    backend2.signInAs(anna.id);
-    cache.uid = anna.id;
-    trails = FakeTrailRepository(myId: () => backend2.currentUserId ?? '');
-    trails.seedTrail(anna.id, name: 'Roots');
-    trails.seedTrail(anna.id, name: 'Neu seit gestern', lat: 48.2);
-    trails.failFetch = const SocketException('offline');
-    await pumpApp(tester, backend2, trails: trails, trailCache: cache);
-    await settle(tester, frames: 12);
-    expect(noticeMap, findsOneWidget);
-    // Oben bei den Bannern, nicht in der Knopfspalte mitten auf der Karte.
-    expect(tester.getRect(noticeMap).top, lessThan(120));
-    expect(tester.getRect(noticeMap).bottom,
-        lessThan(tester.getRect(find.byKey(const ValueKey('layers-button'))).top));
+  testWidgets(
+    'Kopie steht, das Netz kommt still zurück: der Hinweis geht, oben an der Karte',
+    (tester) async {
+      await pumpApp(tester, backend, trails: trails, trailCache: cache);
+      await settle(tester, frames: 12);
+      await tester.pumpWidget(const SizedBox());
+      final backend2 = FakeBackend();
+      final anna = backend2.addUser(username: 'anna');
+      backend2.signInAs(anna.id);
+      cache.uid = anna.id;
+      trails = FakeTrailRepository(myId: () => backend2.currentUserId ?? '');
+      trails.seedTrail(anna.id, name: 'Roots');
+      trails.seedTrail(anna.id, name: 'Neu seit gestern', lat: 48.2);
+      trails.failFetch = const SocketException('offline');
+      await pumpApp(tester, backend2, trails: trails, trailCache: cache);
+      await settle(tester, frames: 12);
+      expect(noticeMap, findsOneWidget);
+      // Oben bei den Bannern, nicht in der Knopfspalte mitten auf der Karte.
+      expect(tester.getRect(noticeMap).top, lessThan(120));
+      expect(
+        tester.getRect(noticeMap).bottom,
+        lessThan(
+          tester.getRect(find.byKey(const ValueKey('layers-button'))).top,
+        ),
+      );
 
-    trails.failFetch = null;
-    await settle(tester, frames: 150);
-    expect(noticeMap, findsNothing);
-    await openTab(tester, 'Trails');
-    await settle(tester, frames: 12);
-    expect(find.text('Neu seit gestern'), findsOneWidget);
-    expect(noticeList, findsNothing);
-  });
+      trails.failFetch = null;
+      await settle(tester, frames: 150);
+      expect(noticeMap, findsNothing);
+      await openTab(tester, 'Trails');
+      await settle(tester, frames: 12);
+      expect(find.text('Neu seit gestern'), findsOneWidget);
+      expect(noticeList, findsNothing);
+    },
+  );
 
-  testWidgets('ein Serverfehler bleibt ein Fehler — nichts aus der Kopie', (tester) async {
+  testWidgets('ein Serverfehler bleibt ein Fehler — nichts aus der Kopie', (
+    tester,
+  ) async {
     await pumpApp(tester, backend, trails: trails, trailCache: cache);
     await settle(tester, frames: 12);
     final backend2 = FakeBackend();

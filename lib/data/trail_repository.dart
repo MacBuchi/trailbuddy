@@ -50,7 +50,11 @@ abstract class TrailRepository {
   /// liest niemand, eine Zeile ohne Objekt zeigte ein Loch. Der Schlüssel
   /// ist `<user_id>/<photoId>`. Nimmt nur ein [PreparedPhoto]: Der Weg an
   /// `preparePhoto` vorbei, der die Ortsangaben entfernt, existiert nicht.
-  Future<void> addNotePhoto({required String noteId, required String photoId, required PreparedPhoto photo});
+  Future<void> addNotePhoto({
+    required String noteId,
+    required String photoId,
+    required PreparedPhoto photo,
+  });
 
   /// Die Bytes eines Fotos am Hinweis ([NotePhoto.thumbPath] oder
   /// [NotePhoto.fullPath]). Lesen darf, wer die Zeile sieht.
@@ -95,7 +99,10 @@ abstract class TrailRepository {
   /// (`merge_own_into`): meine Aufzeichnungen, mein Beitrag, meine
   /// Hinweise und Meldungen ziehen um. Gibt den behaltenen Trail zurück;
   /// wirft [MergeRejectedException], wenn der Server ablehnt.
-  Future<String> mergeInto({required String duplicateId, required String targetId});
+  Future<String> mergeInto({
+    required String duplicateId,
+    required String targetId,
+  });
 
   /// Löst meine Zuordnung von [duplicateId] (`unmerge_trail`). Umgezogene
   /// eigene Aufzeichnungen bleiben am behaltenen Trail.
@@ -166,7 +173,9 @@ class SupabaseTrailRepository implements TrailRepository {
   @override
   Future<List<TrailRecording>> fetchRecordings() async {
     _client.requireUid;
-    final rows = await _client.from('recordings_visible').select(kRecordingColumns);
+    final rows = await _client
+        .from('recordings_visible')
+        .select(kRecordingColumns);
     return [for (final r in rows) TrailRecording.fromJson(r)];
   }
 
@@ -187,13 +196,16 @@ class SupabaseTrailRepository implements TrailRepository {
   }) async {
     _client.requireUid;
     try {
-      final result = await _client.rpc<dynamic>('contribute_recording', params: {
-        'coords': coords,
-        'source': source.name,
-        'recorded_at': recordedAt?.toUtc().toIso8601String(),
-        'client_id': clientId,
-        'eles': eles,
-      });
+      final result = await _client.rpc<dynamic>(
+        'contribute_recording',
+        params: {
+          'coords': coords,
+          'source': source.name,
+          'recorded_at': recordedAt?.toUtc().toIso8601String(),
+          'client_id': clientId,
+          'eles': eles,
+        },
+      );
       return result as String;
     } on PostgrestException catch (e) {
       if (e.code == '54000') throw const DailyLimitException();
@@ -208,11 +220,10 @@ class SupabaseTrailRepository implements TrailRepository {
     required List<double> eles,
   }) async {
     _client.requireUid;
-    final result = await _client.rpc<dynamic>('attach_elevation', params: {
-      'recording_id': recordingId,
-      'coords': coords,
-      'eles': eles,
-    });
+    final result = await _client.rpc<dynamic>(
+      'attach_elevation',
+      params: {'recording_id': recordingId, 'coords': coords, 'eles': eles},
+    );
     return result as bool;
   }
 
@@ -231,15 +242,26 @@ class SupabaseTrailRepository implements TrailRepository {
   }
 
   @override
-  Future<void> addNotePhoto(
-      {required String noteId, required String photoId, required PreparedPhoto photo}) async {
+  Future<void> addNotePhoto({
+    required String noteId,
+    required String photoId,
+    required PreparedPhoto photo,
+  }) async {
     final uid = _client.requireUid;
     final key = '$uid/$photoId';
     final bucket = _client.storage.from(kNotePhotoBucket);
     const options = FileOptions(contentType: 'image/jpeg');
     await bucket.uploadBinary('$key.jpg', photo.full, fileOptions: options);
-    await bucket.uploadBinary('${key}_s.jpg', photo.thumb, fileOptions: options);
-    await _client.from('trail_note_photos').insert({'note_id': noteId, 'user_id': uid, 'key': key});
+    await bucket.uploadBinary(
+      '${key}_s.jpg',
+      photo.thumb,
+      fileOptions: options,
+    );
+    await _client.from('trail_note_photos').insert({
+      'note_id': noteId,
+      'user_id': uid,
+      'key': key,
+    });
   }
 
   @override
@@ -272,24 +294,29 @@ class SupabaseTrailRepository implements TrailRepository {
     required String clientId,
   }) async {
     _client.requireUid;
-    final result = await _client.rpc<dynamic>('report_trail', params: {
-      'trail_id': trailId,
-      'status': status?.db,
-      'condition': condition,
-      'on_site': onSite,
-      'reported_at': reportedAt.toUtc().toIso8601String(),
-      'client_id': clientId,
-      // Erst ab Patch 028 — ohne Text bleibt der Aufruf der alte.
-      'note': ?note,
-    });
+    final result = await _client.rpc<dynamic>(
+      'report_trail',
+      params: {
+        'trail_id': trailId,
+        'status': status?.db,
+        'condition': condition,
+        'on_site': onSite,
+        'reported_at': reportedAt.toUtc().toIso8601String(),
+        'client_id': clientId,
+        // Erst ab Patch 028 — ohne Text bleibt der Aufruf der alte.
+        'note': ?note,
+      },
+    );
     return result as String?;
   }
 
   @override
   Future<int> withdraw(String trailId) async {
     _client.requireUid;
-    final result = await _client
-        .rpc<dynamic>('withdraw_contribution', params: {'trail_id': trailId});
+    final result = await _client.rpc<dynamic>(
+      'withdraw_contribution',
+      params: {'trail_id': trailId},
+    );
     return (result as num).toInt();
   }
 
@@ -299,19 +326,30 @@ class SupabaseTrailRepository implements TrailRepository {
     // Die Spalten (`trail_id, same_as, reversed, kind, by_users`) prüft
     // `tool/matcher_check.sql` Block 25 als Rückgabe der Funktion.
     final rows = await _client.rpc<List<dynamic>>('trail_merges');
-    return [for (final r in rows) ?TrailMerge.fromJson(r as Map<String, dynamic>)];
+    return [
+      for (final r in rows) ?TrailMerge.fromJson(r as Map<String, dynamic>),
+    ];
   }
 
   @override
-  Future<String> mergeInto({required String duplicateId, required String targetId}) async {
+  Future<String> mergeInto({
+    required String duplicateId,
+    required String targetId,
+  }) async {
     _client.requireUid;
     try {
-      final result = await _client.rpc<dynamic>('merge_own_into',
-          params: {'duplicate_id': duplicateId, 'target_id': targetId});
+      final result = await _client.rpc<dynamic>(
+        'merge_own_into',
+        params: {'duplicate_id': duplicateId, 'target_id': targetId},
+      );
       return result as String;
     } on PostgrestException catch (e) {
-      if (e.code == '22023') throw const MergeRejectedException(MergeRejection.notNear);
-      if (e.code == 'P0002') throw const MergeRejectedException(MergeRejection.gone);
+      if (e.code == '22023') {
+        throw const MergeRejectedException(MergeRejection.notNear);
+      }
+      if (e.code == 'P0002') {
+        throw const MergeRejectedException(MergeRejection.gone);
+      }
       rethrow;
     }
   }
@@ -319,16 +357,24 @@ class SupabaseTrailRepository implements TrailRepository {
   @override
   Future<void> unmerge(String duplicateId) async {
     _client.requireUid;
-    await _client.rpc<dynamic>('unmerge_trail', params: {'duplicate_id': duplicateId});
+    await _client.rpc<dynamic>(
+      'unmerge_trail',
+      params: {'duplicate_id': duplicateId},
+    );
   }
 
   @override
   Future<void> markDistinct(String a, String b) async {
     _client.requireUid;
     try {
-      await _client.rpc<dynamic>('mark_distinct', params: {'trail_a': a, 'trail_b': b});
+      await _client.rpc<dynamic>(
+        'mark_distinct',
+        params: {'trail_a': a, 'trail_b': b},
+      );
     } on PostgrestException catch (e) {
-      if (e.code == 'P0002') throw const MergeRejectedException(MergeRejection.gone);
+      if (e.code == 'P0002') {
+        throw const MergeRejectedException(MergeRejection.gone);
+      }
       rethrow;
     }
   }
@@ -336,7 +382,10 @@ class SupabaseTrailRepository implements TrailRepository {
   @override
   Future<void> unmarkDistinct(String a, String b) async {
     _client.requireUid;
-    await _client.rpc<dynamic>('unmark_distinct', params: {'trail_a': a, 'trail_b': b});
+    await _client.rpc<dynamic>(
+      'unmark_distinct',
+      params: {'trail_a': a, 'trail_b': b},
+    );
   }
 
   @override
@@ -351,7 +400,9 @@ class SupabaseTrailRepository implements TrailRepository {
     final uid = _client.requireUid;
     final row = point.toWriteRow()..['user_id'] = uid;
     try {
-      await _client.from('start_points').upsert(row, onConflict: 'user_id,client_id');
+      await _client
+          .from('start_points')
+          .upsert(row, onConflict: 'user_id,client_id');
     } on PostgrestException catch (e) {
       if (e.code == '54000') throw const StartPointLimitException();
       rethrow;
@@ -361,6 +412,10 @@ class SupabaseTrailRepository implements TrailRepository {
   @override
   Future<void> deleteStartPoint(String clientId) async {
     final uid = _client.requireUid;
-    await _client.from('start_points').delete().eq('user_id', uid).eq('client_id', clientId);
+    await _client
+        .from('start_points')
+        .delete()
+        .eq('user_id', uid)
+        .eq('client_id', clientId);
   }
 }

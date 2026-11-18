@@ -139,9 +139,8 @@ List<ChangelogSegment> _segments(String text) {
 /// Alles ab der ersten Blocküberschrift. Titel und Vorspann der Datei
 /// richten sich an Leser auf GitHub und erklären unter anderem den Weg zu
 /// genau dem Bildschirm, der sie zeigt.
-List<ChangelogLine> changelogBody(List<ChangelogLine> lines) => lines
-    .skipWhile((line) => line.kind != ChangelogLineKind.section)
-    .toList();
+List<ChangelogLine> changelogBody(List<ChangelogLine> lines) =>
+    lines.skipWhile((line) => line.kind != ChangelogLineKind.section).toList();
 
 final _version = RegExp(r'\b(\d+)\.(\d+)\.(\d+)\b');
 
@@ -174,7 +173,8 @@ List<ChangelogLine> blocksBefore(List<ChangelogLine> body, String version) {
       final versions = next?.kind == ChangelogLineKind.meta
           ? metaVersions(next!.text)
           : const <String>[];
-      keep = versions.isNotEmpty &&
+      keep =
+          versions.isNotEmpty &&
           versions.every((v) => compareVersions(v, version) < 0);
     }
     if (keep) result.add(line);
@@ -191,10 +191,9 @@ List<ChangelogLine> withOlderBlocks(
   required String since,
   required String title,
   required String note,
-}) =>
-    [
-      ...translated,
-      ChangelogLine(ChangelogLineKind.section, [ChangelogSegment(title)]),
-      ChangelogLine(ChangelogLineKind.text, [ChangelogSegment(note)]),
-      ...blocksBefore(de, since),
-    ];
+}) => [
+  ...translated,
+  ChangelogLine(ChangelogLineKind.section, [ChangelogSegment(title)]),
+  ChangelogLine(ChangelogLineKind.text, [ChangelogSegment(note)]),
+  ...blocksBefore(de, since),
+];

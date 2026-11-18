@@ -16,7 +16,8 @@ import 'height_tiles.dart' show kHeightTileZoom;
 import 'tile_store.dart';
 
 /// Die Zoomstufen, die ein Bereich in [layer] deckt.
-({int min, int max}) zoomsOf(StoredArea area, TileLayer layer) => switch (layer) {
+({int min, int max}) zoomsOf(StoredArea area, TileLayer layer) =>
+    switch (layer) {
       TileLayer.map => (min: area.minZoom, max: area.maxZoom),
       TileLayer.heights => (min: kHeightTileZoom, max: kHeightTileZoom),
       TileLayer.ways => (min: kWaysZoom, max: kWaysZoom),
@@ -40,12 +41,18 @@ Set<int> referencedTileIds(Iterable<StoredArea> areas, TileLayer layer) {
 /// Liegt die ganze Region (`RegionShape`, Schritt 5) unter [areas]? Dann
 /// gehört ihr jede Kachel, die in der Region liegt — gerechnet wird gegen
 /// den Index, nicht gegen eine Million Kacheln der Form.
-bool coversWholeRegion(Iterable<StoredArea> areas) => areas.any((a) => a.shape is RegionShape);
+bool coversWholeRegion(Iterable<StoredArea> areas) =>
+    areas.any((a) => a.shape is RegionShape);
 
 /// Die Kachel-Ids, die [areas] (EINER Region) in [layer] decken, gegen
 /// den liegenden [index] — mit der ganzen Region einfach alle liegenden.
-Set<int> referencedIn(Iterable<StoredArea> areas, TileLayer layer, Map<int, StoredTileInfo> index) =>
-    coversWholeRegion(areas) ? index.keys.toSet() : referencedTileIds(areas, layer);
+Set<int> referencedIn(
+  Iterable<StoredArea> areas,
+  TileLayer layer,
+  Map<int, StoredTileInfo> index,
+) => coversWholeRegion(areas)
+    ? index.keys.toSet()
+    : referencedTileIds(areas, layer);
 
 /// Was in einer Region und Ebene niemandem mehr gehört.
 class LayerOrphans {
@@ -69,7 +76,10 @@ Future<({List<LayerOrphans> tiles, List<String> poiFiles})> orphansAfter({
 }) async {
   final out = <LayerOrphans>[];
   for (final region in regions) {
-    final here = [for (final a in remaining) if (a.region == region) a];
+    final here = [
+      for (final a in remaining)
+        if (a.region == region) a,
+    ];
     // Die ganze Region deckt alles, was dort liegt.
     if (coversWholeRegion(here)) continue;
     for (final layer in TileLayer.values) {
@@ -91,8 +101,7 @@ Future<({List<LayerOrphans> tiles, List<String> poiFiles})> orphansAfter({
     for (final a in gone)
       for (final f in a.poiFiles)
         if (!named.contains(f)) f,
-  }.toList()
-    ..sort();
+  }.toList()..sort();
   return (tiles: out, poiFiles: poi);
 }
 
@@ -111,15 +120,22 @@ Future<void> removeOrphans(
 int orphanBytes(({List<LayerOrphans> tiles, List<String> poiFiles}) orphans) =>
     orphans.tiles.fold(0, (s, o) => s + o.bytes);
 
-int orphanMapTiles(({List<LayerOrphans> tiles, List<String> poiFiles}) orphans) =>
-    orphans.tiles.where((o) => o.layer == TileLayer.map).fold(0, (s, o) => s + o.ids.length);
+int orphanMapTiles(
+  ({List<LayerOrphans> tiles, List<String> poiFiles}) orphans,
+) => orphans.tiles
+    .where((o) => o.layer == TileLayer.map)
+    .fold(0, (s, o) => s + o.ids.length);
 
 /// Die liegenden Kacheln aus einem Bau älter als [build], die eine Form
 /// noch deckt (Konzept 8.2, „Alter je Kachel"): Kachel-Ids und ihre Bytes,
 /// wie sie liegen. Was nicht liegt, ist nicht veraltet, sondern fehlt —
 /// das holt „Fortsetzen", nicht „Aktualisieren". Ohne [build] (kein
 /// Manifest) ist nichts veraltet.
-({List<int> ids, int bytes}) staleTiles(Map<int, StoredTileInfo> index, Set<int> referenced, String? build) {
+({List<int> ids, int bytes}) staleTiles(
+  Map<int, StoredTileInfo> index,
+  Set<int> referenced,
+  String? build,
+) {
   if (build == null) return (ids: const <int>[], bytes: 0);
   final ids = <int>[];
   var bytes = 0;

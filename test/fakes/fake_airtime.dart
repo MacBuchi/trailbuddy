@@ -39,7 +39,10 @@ class FakeAirtimeRepository implements AirtimeRepository {
   @override
   Future<List<AirtimeCounter>> fetchCounters() async {
     backend.failIfOffline();
-    return [for (final c in counters) if (c.userId == _uid || backend.areFriends(_uid, c.userId)) c];
+    return [
+      for (final c in counters)
+        if (c.userId == _uid || backend.areFriends(_uid, c.userId)) c,
+    ];
   }
 
   @override
@@ -50,9 +53,19 @@ class FakeAirtimeRepository implements AirtimeRepository {
     for (final it in items) {
       if (!_sees(it.trailId)) continue;
       final month = DateTime(it.month.year, it.month.month);
-      final i = bests.indexWhere((b) => b.userId == _uid && b.trailId == it.trailId);
+      final i = bests.indexWhere(
+        (b) => b.userId == _uid && b.trailId == it.trailId,
+      );
       if (i < 0) {
-        bests.add(TrailAirtime(userId: _uid, trailId: it.trailId, airDs: it.airDs, longestDs: it.longestDs, month: month));
+        bests.add(
+          TrailAirtime(
+            userId: _uid,
+            trailId: it.trailId,
+            airDs: it.airDs,
+            longestDs: it.longestDs,
+            month: month,
+          ),
+        );
         n++;
         continue;
       }
@@ -79,8 +92,15 @@ class FakeAirtimeRepository implements AirtimeRepository {
   }) async {
     backend.failIfOffline();
     counters.removeWhere((c) => c.userId == _uid);
-    counters.add(AirtimeCounter(
-        userId: _uid, airDs: airDs, jumps: jumps, asOf: DateTime(asOf.year, asOf.month, asOf.day), titles: titles));
+    counters.add(
+      AirtimeCounter(
+        userId: _uid,
+        airDs: airDs,
+        jumps: jumps,
+        asOf: DateTime(asOf.year, asOf.month, asOf.day),
+        titles: titles,
+      ),
+    );
   }
 
   @override

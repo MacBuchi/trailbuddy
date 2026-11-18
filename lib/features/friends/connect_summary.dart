@@ -53,11 +53,17 @@ ConnectSummary summarizeConnection({
       shared++;
     } else if (theirs && !knownBefore.contains(t.id)) {
       fromBuddy++;
-    } else if (mine && !theirs && t.myDetails?.visibility != TrailVisibility.private) {
+    } else if (mine &&
+        !theirs &&
+        t.myDetails?.visibility != TrailVisibility.private) {
       forBuddy++;
     }
   }
-  return ConnectSummary(shared: shared, newFromBuddy: fromBuddy, newForBuddy: forBuddy);
+  return ConnectSummary(
+    shared: shared,
+    newFromBuddy: fromBuddy,
+    newForBuddy: forBuddy,
+  );
 }
 
 /// „14 gemeinsam" je Buddy (Design 1k): Trails, die ich UND er belegt

@@ -24,7 +24,9 @@ import 'route_progress.dart' show NavRoute;
 /// im Bild, nur das Symbol wandert.
 typedef RouteProfileCursor = ({double alongM, LatLng point});
 
-final routeProfileCursorProvider = StateProvider<RouteProfileCursor?>((ref) => null);
+final routeProfileCursorProvider = StateProvider<RouteProfileCursor?>(
+  (ref) => null,
+);
 
 class RouteElevationProfile extends ConsumerStatefulWidget {
   const RouteElevationProfile(this.points, {super.key});
@@ -33,7 +35,8 @@ class RouteElevationProfile extends ConsumerStatefulWidget {
   final List<LatLng> points;
 
   @override
-  ConsumerState<RouteElevationProfile> createState() => _RouteElevationProfileState();
+  ConsumerState<RouteElevationProfile> createState() =>
+      _RouteElevationProfileState();
 }
 
 class _RouteElevationProfileState extends ConsumerState<RouteElevationProfile> {
@@ -78,7 +81,10 @@ class _RouteElevationProfileState extends ConsumerState<RouteElevationProfile> {
     if (line == null || !(profileLengthM > 0) || !alongM.isFinite) return;
     // Das Profil misst entlang seiner Proben, die Linie entlang ihrer
     // Punkte — anteilig umgerechnet treffen beide dieselbe Stelle.
-    _cursor.state = (alongM: alongM, point: line.pointAt(alongM / profileLengthM * line.lengthM));
+    _cursor.state = (
+      alongM: alongM,
+      point: line.pointAt(alongM / profileLengthM * line.lengthM),
+    );
   }
 
   @override
@@ -88,16 +94,18 @@ class _RouteElevationProfileState extends ConsumerState<RouteElevationProfile> {
     return switch (profile) {
       // Während gelesen wird, steht der Platz schon da — sonst rutschten
       // die Knöpfe darunter, sobald das Profil kommt.
-      AsyncLoading() => const SizedBox(height: ElevationProfileChart.compactHeight + 24),
+      AsyncLoading() => const SizedBox(
+        height: ElevationProfileChart.compactHeight + 24,
+      ),
       AsyncData(value: final p?) => Padding(
-          padding: const EdgeInsets.only(top: 8),
-          child: ElevationProfileChart(
-            p,
-            compact: true,
-            cursorM: cursor?.alongM,
-            onScrub: (m) => _scrub(m, p.lengthM),
-          ),
+        padding: const EdgeInsets.only(top: 8),
+        child: ElevationProfileChart(
+          p,
+          compact: true,
+          cursorM: cursor?.alongM,
+          onScrub: (m) => _scrub(m, p.lengthM),
         ),
+      ),
       // Ohne Höhen (eine Kachel fehlt) kein Profil — die Summe sagt dann
       // schon, dass die Höhenmeter eine Untergrenze sind. Ein Lesefehler
       // nimmt nur das Bild weg, nie das Ergebnis.
@@ -116,16 +124,19 @@ class RouteCursorSymbol extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(
-          color: AppColors.brand,
-          shape: BoxShape.circle,
-          border: Border.all(color: AppColors.onBrand, width: 2),
-          boxShadow: const [BoxShadow(color: Color(0x55000000), blurRadius: 4)],
-        ),
-        child: const CustomPaint(size: Size.square(20), painter: MtbGlyphPainter(AppColors.onBrand)),
-      );
+    width: size,
+    height: size,
+    decoration: BoxDecoration(
+      color: AppColors.brand,
+      shape: BoxShape.circle,
+      border: Border.all(color: AppColors.onBrand, width: 2),
+      boxShadow: const [BoxShadow(color: Color(0x55000000), blurRadius: 4)],
+    ),
+    child: const CustomPaint(
+      size: Size.square(20),
+      painter: MtbGlyphPainter(AppColors.onBrand),
+    ),
+  );
 }
 
 /// Ein Mountainbike in 20 × 20 (Betreiber, 2026-10-29: das Rad „ein wenig
@@ -151,7 +162,11 @@ class MtbGlyphPainter extends CustomPainter {
     final tyre = stroke(2.2);
     canvas.drawCircle(p(4.9, 14), 3.6 * k, tyre);
     canvas.drawCircle(p(15.1, 14), 3.6 * k, tyre);
-    final rear = p(4.9, 14), bb = p(9.4, 14), seat = p(8.0, 9.0), head = p(13.2, 7.4), headLow = p(13.7, 9.4);
+    final rear = p(4.9, 14),
+        bb = p(9.4, 14),
+        seat = p(8.0, 9.0),
+        head = p(13.2, 7.4),
+        headLow = p(13.7, 9.4);
     final frame = Path()
       ..moveTo(rear.dx, rear.dy)
       ..lineTo(bb.dx, bb.dy)

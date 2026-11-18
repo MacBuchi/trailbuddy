@@ -17,15 +17,19 @@ class IdbTileStore implements TileStore {
 
   final BrowserDb _db;
 
-  static String _prefix(String region, TileLayer layer) => '${checkStoreRegion(region)}/${layer.name}/';
+  static String _prefix(String region, TileLayer layer) =>
+      '${checkStoreRegion(region)}/${layer.name}/';
 
   static KeyRange _range(String prefix) => KeyRange.bound(prefix, '$prefix￿');
 
   @override
   Future<Map<int, StoredTileInfo>> index(String region, TileLayer layer) async {
     final prefix = _prefix(region, layer);
-    final (keys, values) = await _db.readStore(kAreaTileIndexStore,
-        (s) async => (await s.getAllKeys(_range(prefix)), await s.getAll(_range(prefix))));
+    final (keys, values) = await _db.readStore(
+      kAreaTileIndexStore,
+      (s) async =>
+          (await s.getAllKeys(_range(prefix)), await s.getAll(_range(prefix))),
+    );
     final out = <int, StoredTileInfo>{};
     for (var i = 0; i < keys.length && i < values.length; i++) {
       final id = int.tryParse('${keys[i]}'.substring(prefix.length));
@@ -40,7 +44,13 @@ class IdbTileStore implements TileStore {
   }
 
   @override
-  Future<Uint8List?> read(String region, TileLayer layer, int z, int x, int y) async {
+  Future<Uint8List?> read(
+    String region,
+    TileLayer layer,
+    int z,
+    int x,
+    int y,
+  ) async {
     final key = '${_prefix(region, layer)}${ZXY(z, x, y).toTileId()}';
     final value = await _db.readStore(kAreaTileStore, (s) => s.getObject(key));
     if (value is Uint8List) return value;
@@ -49,13 +59,18 @@ class IdbTileStore implements TileStore {
   }
 
   @override
-  Future<Map<int, String>> builds(String region, TileLayer layer, Iterable<int> tileIds) async {
+  Future<Map<int, String>> builds(
+    String region,
+    TileLayer layer,
+    Iterable<int> tileIds,
+  ) async {
     final ids = tileIds.toList();
     if (ids.isEmpty) return const {};
     final prefix = _prefix(region, layer);
-    final values = await _db.readStore(kAreaTileIndexStore, (s) async => [
-          for (final id in ids) await s.getObject('$prefix$id'),
-        ]);
+    final values = await _db.readStore(
+      kAreaTileIndexStore,
+      (s) async => [for (final id in ids) await s.getObject('$prefix$id')],
+    );
     final out = <int, String>{};
     for (var i = 0; i < ids.length; i++) {
       final text = values[i];
@@ -67,7 +82,11 @@ class IdbTileStore implements TileStore {
   }
 
   @override
-  Future<void> put(String region, TileLayer layer, List<StoreTile> tiles) async {
+  Future<void> put(
+    String region,
+    TileLayer layer,
+    List<StoreTile> tiles,
+  ) async {
     if (tiles.isEmpty) return;
     final prefix = _prefix(region, layer);
     await _db.writeStores([kAreaTileStore, kAreaTileIndexStore], (txn) async {
@@ -82,7 +101,11 @@ class IdbTileStore implements TileStore {
   }
 
   @override
-  Future<void> remove(String region, TileLayer layer, Iterable<int> tileIds) async {
+  Future<void> remove(
+    String region,
+    TileLayer layer,
+    Iterable<int> tileIds,
+  ) async {
     final ids = tileIds.toList();
     if (ids.isEmpty) return;
     final prefix = _prefix(region, layer);

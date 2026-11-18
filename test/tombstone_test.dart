@@ -17,22 +17,36 @@ void main() {
     test('Signal, Grund und die Frames des abgestürzten Threads', () {
       final bytes = _tombstone(
         tid: 4242,
-        signal: _signal(number: 11, name: 'SIGSEGV', codeName: 'SEGV_MAPERR',
-            faultAddress: 0),
+        signal: _signal(
+          number: 11,
+          name: 'SIGSEGV',
+          codeName: 'SEGV_MAPERR',
+          faultAddress: 0,
+        ),
         abortMessage: null,
         threads: {
           // Ein anderer Thread ZUERST — und das ist der Punkt: Stünde
           // der abgestürzte vorn, wäre „den ersten nehmen" von „den
           // richtigen nehmen" nicht zu unterscheiden. In der
           // Gegenprobe genau so aufgefallen.
-          99: _thread(name: 'Binder:1', frames: [
-            _frame(relPc: 0xdead, file: '/system/lib64/libbinder.so'),
-          ]),
-          4242: _thread(name: 'trailbuddy', frames: [
-            _frame(relPc: 0xabc12, file: '/apex/com.android.runtime/lib64/'
-                'bionic/libc.so', function: 'memcpy', offset: 16),
-            _frame(relPc: 0x1234, file: '/data/app/libapp.so'),
-          ]),
+          99: _thread(
+            name: 'Binder:1',
+            frames: [_frame(relPc: 0xdead, file: '/system/lib64/libbinder.so')],
+          ),
+          4242: _thread(
+            name: 'trailbuddy',
+            frames: [
+              _frame(
+                relPc: 0xabc12,
+                file:
+                    '/apex/com.android.runtime/lib64/'
+                    'bionic/libc.so',
+                function: 'memcpy',
+                offset: 16,
+              ),
+              _frame(relPc: 0x1234, file: '/data/app/libapp.so'),
+            ],
+          ),
         },
       );
 
@@ -40,12 +54,21 @@ void main() {
       expect(text, contains('signal 11 (SIGSEGV)'));
       expect(text, contains('code SEGV_MAPERR'));
       expect(text, contains('thread "trailbuddy"'));
-      expect(text, contains('#00 pc 00000000000abc12  '
-          '/apex/com.android.runtime/lib64/bionic/libc.so (memcpy+16)'));
+      expect(
+        text,
+        contains(
+          '#00 pc 00000000000abc12  '
+          '/apex/com.android.runtime/lib64/bionic/libc.so (memcpy+16)',
+        ),
+      );
       expect(text, contains('#01 pc 0000000000001234  /data/app/libapp.so'));
-      expect(text, isNot(contains('libbinder')),
-          reason: 'nur der abgestürzte Thread — alle passen nicht in 4000 '
-              'Zeichen und erst recht nicht in den Wochendigest');
+      expect(
+        text,
+        isNot(contains('libbinder')),
+        reason:
+            'nur der abgestürzte Thread — alle passen nicht in 4000 '
+            'Zeichen und erst recht nicht in den Wochendigest',
+      );
     });
 
     test('eine Nullzeiger-Adresse ist eine Aussage, keine Lücke', () {
@@ -53,29 +76,35 @@ void main() {
       // trägt das Format `has_fault_address`. Ohne die Auswertung sähe
       // ein Nullzeiger-Absturz — der häufigste überhaupt — so aus, als
       // wüsste man die Adresse nicht.
-      final withFault = formatTombstone(_tombstone(
-        tid: 1,
-        signal: _signal(number: 11, name: 'SIGSEGV', faultAddress: 0),
-        threads: {1: _thread(frames: [])},
-      ))!;
+      final withFault = formatTombstone(
+        _tombstone(
+          tid: 1,
+          signal: _signal(number: 11, name: 'SIGSEGV', faultAddress: 0),
+          threads: {1: _thread(frames: [])},
+        ),
+      )!;
       expect(withFault, contains('fault addr 0x0'));
 
-      final withoutFault = formatTombstone(_tombstone(
-        tid: 1,
-        signal: _signal(number: 6, name: 'SIGABRT'),
-        threads: {1: _thread(frames: [])},
-      ))!;
+      final withoutFault = formatTombstone(
+        _tombstone(
+          tid: 1,
+          signal: _signal(number: 6, name: 'SIGABRT'),
+          threads: {1: _thread(frames: [])},
+        ),
+      )!;
       expect(withoutFault, isNot(contains('fault addr')));
     });
 
     test('abort message und cause kommen mit', () {
-      final text = formatTombstone(_tombstone(
-        tid: 1,
-        signal: _signal(number: 6, name: 'SIGABRT'),
-        abortMessage: 'Check failed: ptr != nullptr',
-        causes: const ['null pointer dereference'],
-        threads: {1: _thread(frames: [])},
-      ))!;
+      final text = formatTombstone(
+        _tombstone(
+          tid: 1,
+          signal: _signal(number: 6, name: 'SIGABRT'),
+          abortMessage: 'Check failed: ptr != nullptr',
+          causes: const ['null pointer dereference'],
+          threads: {1: _thread(frames: [])},
+        ),
+      )!;
       expect(text, contains('abort message: Check failed: ptr != nullptr'));
       expect(text, contains('cause: null pointer dereference'));
     });
@@ -92,8 +121,7 @@ void main() {
         ..add(_varintField(6, 7))
         ..add(_bytesField(10, _signal(number: 9, name: 'SIGKILL')))
         ..add(_bytesField(16, _mapEntry(7, _thread(name: 'main', frames: []))));
-      final text = formatTombstone(
-          Uint8List.fromList(builder.takeBytes()))!;
+      final text = formatTombstone(Uint8List.fromList(builder.takeBytes()))!;
       expect(text, contains('signal 9 (SIGKILL)'));
       expect(text, contains('thread "main"'));
     });
@@ -120,11 +148,17 @@ void main() {
           tid: 1,
           signal: _signal(number: 11, name: 'SIGSEGV'),
           threads: {
-            1: _thread(frames: [
-              for (var i = 0; i < 300; i++)
-                _frame(relPc: i, file: '/system/lib64/libsomethinglong.so',
-                    function: 'a_rather_long_function_name', offset: i),
-            ]),
+            1: _thread(
+              frames: [
+                for (var i = 0; i < 300; i++)
+                  _frame(
+                    relPc: i,
+                    file: '/system/lib64/libsomethinglong.so',
+                    function: 'a_rather_long_function_name',
+                    offset: i,
+                  ),
+              ],
+            ),
           },
         ),
         maxChars: 4000,
@@ -148,17 +182,26 @@ List<int> _varint(int value) {
   return out;
 }
 
-List<int> _varintField(int field, int value) =>
-    [..._varint(field << 3), ..._varint(value)];
+List<int> _varintField(int field, int value) => [
+  ..._varint(field << 3),
+  ..._varint(value),
+];
 
-List<int> _bytesField(int field, List<int> value) =>
-    [..._varint((field << 3) | 2), ..._varint(value.length), ...value];
+List<int> _bytesField(int field, List<int> value) => [
+  ..._varint((field << 3) | 2),
+  ..._varint(value.length),
+  ...value,
+];
 
-List<int> _fixed64Field(int field, int value) =>
-    [..._varint((field << 3) | 1), ...List.filled(8, 0)..[0] = value & 0xff];
+List<int> _fixed64Field(int field, int value) => [
+  ..._varint((field << 3) | 1),
+  ...List.filled(8, 0)..[0] = value & 0xff,
+];
 
-List<int> _fixed32Field(int field, int value) =>
-    [..._varint((field << 3) | 5), ...List.filled(4, 0)..[0] = value & 0xff];
+List<int> _fixed32Field(int field, int value) => [
+  ..._varint((field << 3) | 5),
+  ...List.filled(4, 0)..[0] = value & 0xff,
+];
 
 Uint8List _signal({
   required int number,
@@ -204,8 +247,10 @@ Uint8List _thread({String? name, required List<Uint8List> frames}) {
   return Uint8List.fromList(b.takeBytes());
 }
 
-List<int> _mapEntry(int key, Uint8List value) =>
-    [..._varintField(1, key), ..._bytesField(2, value)];
+List<int> _mapEntry(int key, Uint8List value) => [
+  ..._varintField(1, key),
+  ..._bytesField(2, value),
+];
 
 Uint8List _tombstone({
   required int tid,

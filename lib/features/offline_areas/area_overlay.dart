@@ -52,7 +52,8 @@ const kOfflineOverlayMaxHoles = 3000;
 
 /// Der Zoom, in dem ein Bereich hervorgehoben wird: seine feinste Stufe,
 /// höchstens die der Formen.
-int offlineOverlayZoomOf(StoredArea area) => math.min(area.maxZoom, kAreaShapeZoom);
+int offlineOverlayZoomOf(StoredArea area) =>
+    math.min(area.maxZoom, kAreaShapeZoom);
 
 /// Der Ausschnitt plus je eine Fensterbreite und -höhe Rand.
 AreaBounds offlineOverlayBox(MapViewBounds view, {bool margin = true}) {
@@ -84,7 +85,14 @@ List<AreaBounds> mergeTileRects(Iterable<TileXYZ> tiles) {
   void close((int, int) run, int y0, int y1) {
     final nw = tileBounds(z, run.$1, y0);
     final se = tileBounds(z, run.$2, y1);
-    out.add(AreaBounds(south: se.south, west: nw.west, north: nw.north, east: se.east));
+    out.add(
+      AreaBounds(
+        south: se.south,
+        west: nw.west,
+        north: nw.north,
+        east: se.east,
+      ),
+    );
   }
 
   int? prevRow;
@@ -121,25 +129,31 @@ List<AreaBounds> mergeTileRects(Iterable<TileXYZ> tiles) {
 }
 
 List<LatLng> rectRing(AreaBounds b) => [
-      LatLng(b.north, b.west),
-      LatLng(b.north, b.east),
-      LatLng(b.south, b.east),
-      LatLng(b.south, b.west),
-    ];
+  LatLng(b.north, b.west),
+  LatLng(b.north, b.east),
+  LatLng(b.south, b.east),
+  LatLng(b.south, b.west),
+];
 
 /// Die Maske für [areas] im Ausschnitt [view] — null nur, wenn der
 /// Ausschnitt leer ist. Ohne Bereiche ist alles dunkel: Das IST die
 /// Aussage.
-MapViewPolygon? offlineCoverageMask(List<StoredArea> areas, MapViewBounds view) =>
-    offlineCoverage(areas, view).mask;
+MapViewPolygon? offlineCoverageMask(
+  List<StoredArea> areas,
+  MapViewBounds view,
+) => offlineCoverage(areas, view).mask;
 
 /// Maske UND durchgehender Rand um den Bestand, im selben Rahmen (mit
 /// Rand, weit draußen ohne). Der Rand fehlt ohne Bereiche, ohne
 /// [outlineColor] und über [kOfflineOutlineMaxLines].
 ({MapViewPolygon? mask, List<MapViewPolyline> outline}) offlineCoverage(
-    List<StoredArea> areas, MapViewBounds view,
-    {Color? outlineColor}) {
-  if (view.east <= view.west || view.north <= view.south) return (mask: null, outline: const []);
+  List<StoredArea> areas,
+  MapViewBounds view, {
+  Color? outlineColor,
+}) {
+  if (view.east <= view.west || view.north <= view.south) {
+    return (mask: null, outline: const []);
+  }
   var box = offlineOverlayBox(view);
   var regions = _regionRects(areas, box);
   var byZoom = _tilesByZoom(areas, box, regions);
@@ -160,20 +174,30 @@ MapViewPolygon? offlineCoverageMask(List<StoredArea> areas, MapViewBounds view) 
         break;
       }
       for (final l in lines) {
-        outline.add(MapViewPolyline(points: l, color: outlineColor, width: kOfflineOutlineWidth));
+        outline.add(
+          MapViewPolyline(
+            points: l,
+            color: outlineColor,
+            width: kOfflineOutlineWidth,
+          ),
+        );
       }
     }
   }
   return (
-    mask: MapViewPolygon(points: rectRing(box), holes: holes, fillColor: kOfflineDimColor),
+    mask: MapViewPolygon(
+      points: rectRing(box),
+      holes: holes,
+      fillColor: kOfflineDimColor,
+    ),
     outline: outline,
   );
 }
 
 List<List<LatLng>> _holes(Map<int, Set<TileXYZ>> byZoom) => [
-      for (final tiles in byZoom.values)
-        for (final r in mergeTileRects(tiles)) rectRing(r),
-    ];
+  for (final tiles in byZoom.values)
+    for (final r in mergeTileRects(tiles)) rectRing(r),
+];
 
 /// Die ganzen Regionen (Schritt 5) im Ausschnitt [box]: je EIN Rechteck,
 /// auf das Kachelraster von [kAreaShapeZoom] gerastet — als Kacheln wären
@@ -185,10 +209,25 @@ List<AreaBounds> _regionRects(List<StoredArea> areas, AreaBounds box) {
       final b = r.bounds;
       if (!b.intersects(box)) continue;
       const z = kAreaShapeZoom;
-      final nw = tileAt(math.min(b.north, box.north), math.max(b.west, box.west), z);
-      final se = tileAt(math.max(b.south, box.south), math.min(b.east, box.east), z);
+      final nw = tileAt(
+        math.min(b.north, box.north),
+        math.max(b.west, box.west),
+        z,
+      );
+      final se = tileAt(
+        math.max(b.south, box.south),
+        math.min(b.east, box.east),
+        z,
+      );
       final top = tileBounds(z, nw.x, nw.y), bottom = tileBounds(z, se.x, se.y);
-      out.add(AreaBounds(south: bottom.south, west: top.west, north: top.north, east: bottom.east));
+      out.add(
+        AreaBounds(
+          south: bottom.south,
+          west: top.west,
+          north: top.north,
+          east: bottom.east,
+        ),
+      );
     }
   }
   return out;
@@ -198,21 +237,32 @@ bool _within(TileXYZ t, List<AreaBounds> rects) {
   if (rects.isEmpty) return false;
   final b = tileBounds(t.z, t.x, t.y);
   const eps = 1e-9;
-  return rects.any((r) =>
-      b.south >= r.south - eps && b.north <= r.north + eps && b.west >= r.west - eps && b.east <= r.east + eps);
+  return rects.any(
+    (r) =>
+        b.south >= r.south - eps &&
+        b.north <= r.north + eps &&
+        b.west >= r.west - eps &&
+        b.east <= r.east + eps,
+  );
 }
 
 /// Die Kacheln der Bereiche in [box], je Zoom gesammelt: Bereiche mit
 /// verschiedenem Zoom (ein alter bis 10) liegen sonst doppelt übereinander.
 /// Was in einer ganzen Region liegt, fällt weg — ihr Rechteck ist schon
 /// ein Loch, und zwei Löcher übereinander füllten sich wieder.
-Map<int, Set<TileXYZ>> _tilesByZoom(List<StoredArea> areas, AreaBounds box, List<AreaBounds> regions) {
+Map<int, Set<TileXYZ>> _tilesByZoom(
+  List<StoredArea> areas,
+  AreaBounds box,
+  List<AreaBounds> regions,
+) {
   final byZoom = <int, Set<TileXYZ>>{};
   for (final a in areas) {
     if (a.shape is RegionShape) continue;
     final z = offlineOverlayZoomOf(a);
     if (z < a.minZoom) continue;
-    (byZoom[z] ??= {}).addAll(a.shape.tilesWithin(box, z).where((t) => !_within(t, regions)));
+    (byZoom[z] ??= {}).addAll(
+      a.shape.tilesWithin(box, z).where((t) => !_within(t, regions)),
+    );
   }
   return byZoom;
 }
@@ -223,8 +273,11 @@ Map<int, Set<TileXYZ>> _tilesByZoom(List<StoredArea> areas, AreaBounds box, List
 /// Nachbarn außerhalb von [box] fehlen — was dort liegt, ist nicht
 /// gefragt worden, und ein Rand am Bildrand wäre erfunden. Null über
 /// [maxLines].
-List<List<LatLng>>? tileOutline(Iterable<TileXYZ> tiles, AreaBounds box,
-    {int maxLines = kOfflineOutlineMaxLines}) {
+List<List<LatLng>>? tileOutline(
+  Iterable<TileXYZ> tiles,
+  AreaBounds box, {
+  int maxLines = kOfflineOutlineMaxLines,
+}) {
   final set = <(int, int)>{};
   var z = -1;
   for (final t in tiles) {
@@ -241,10 +294,18 @@ List<List<LatLng>>? tileOutline(Iterable<TileXYZ> tiles, AreaBounds box,
   final horizontal = <int, List<int>>{};
   final vertical = <int, List<int>>{};
   for (final (x, y) in set) {
-    if (!set.contains((x, y - 1)) && known(x, y - 1)) (horizontal[y] ??= []).add(x);
-    if (!set.contains((x, y + 1)) && known(x, y + 1)) (horizontal[y + 1] ??= []).add(x);
-    if (!set.contains((x - 1, y)) && known(x - 1, y)) (vertical[x] ??= []).add(y);
-    if (!set.contains((x + 1, y)) && known(x + 1, y)) (vertical[x + 1] ??= []).add(y);
+    if (!set.contains((x, y - 1)) && known(x, y - 1)) {
+      (horizontal[y] ??= []).add(x);
+    }
+    if (!set.contains((x, y + 1)) && known(x, y + 1)) {
+      (horizontal[y + 1] ??= []).add(x);
+    }
+    if (!set.contains((x - 1, y)) && known(x - 1, y)) {
+      (vertical[x] ??= []).add(y);
+    }
+    if (!set.contains((x + 1, y)) && known(x + 1, y)) {
+      (vertical[x + 1] ??= []).add(y);
+    }
   }
 
   final n = 1 << z;
@@ -252,7 +313,10 @@ List<List<LatLng>>? tileOutline(Iterable<TileXYZ> tiles, AreaBounds box,
   double lat(int y) => tileBounds(z, 0, y).north;
   final out = <List<LatLng>>[];
   // Aufeinanderfolgende Kanten derselben Linie zu einem Lauf.
-  bool runs(Map<int, List<int>> edges, List<LatLng> Function(int line, int a, int b) segment) {
+  bool runs(
+    Map<int, List<int>> edges,
+    List<LatLng> Function(int line, int a, int b) segment,
+  ) {
     for (final e in edges.entries) {
       final at = e.value..sort();
       var a = at.first, b = at.first;
@@ -270,7 +334,17 @@ List<List<LatLng>>? tileOutline(Iterable<TileXYZ> tiles, AreaBounds box,
     return true;
   }
 
-  if (!runs(horizontal, (y, a, b) => [LatLng(lat(y), lon(a)), LatLng(lat(y), lon(b))])) return null;
-  if (!runs(vertical, (x, a, b) => [LatLng(lat(a), lon(x)), LatLng(lat(b), lon(x))])) return null;
+  if (!runs(
+    horizontal,
+    (y, a, b) => [LatLng(lat(y), lon(a)), LatLng(lat(y), lon(b))],
+  )) {
+    return null;
+  }
+  if (!runs(
+    vertical,
+    (x, a, b) => [LatLng(lat(a), lon(x)), LatLng(lat(b), lon(x))],
+  )) {
+    return null;
+  }
   return out;
 }

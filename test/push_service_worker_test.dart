@@ -15,23 +15,38 @@ void main() {
   test('Web-Push ist ganz oder gar nicht eingerichtet', () {
     // Beide Werte kommen aus derselben Firebase-Konsole; einer allein
     // wäre still nutzlos — `getToken` liefert dann nichts, ohne Meldung.
-    expect(pushFirebaseOptions == null, pushWebVapidKey.isEmpty,
-        reason: 'FirebaseOptions und VAPID-Schlüssel gehören zusammen '
-            'gesetzt (push_config.dart)');
+    expect(
+      pushFirebaseOptions == null,
+      pushWebVapidKey.isEmpty,
+      reason:
+          'FirebaseOptions und VAPID-Schlüssel gehören zusammen '
+          'gesetzt (push_config.dart)',
+    );
     if (pushWebVapidKey.isNotEmpty) {
-      expect(pushWebVapidKey, startsWith('B'),
-          reason: 'ein VAPID-Schlüssel ist ein unkomprimierter '
-              'P-256-Punkt in base64url — der beginnt mit B');
-      expect(pushWebVapidKey.length, greaterThan(80),
-          reason: 'abgeschnitten kopiert? Vollständig sind es ~87 Zeichen');
+      expect(
+        pushWebVapidKey,
+        startsWith('B'),
+        reason:
+            'ein VAPID-Schlüssel ist ein unkomprimierter '
+            'P-256-Punkt in base64url — der beginnt mit B',
+      );
+      expect(
+        pushWebVapidKey.length,
+        greaterThan(80),
+        reason: 'abgeschnitten kopiert? Vollständig sind es ~87 Zeichen',
+      );
       expect(pushFirebaseOptions!.projectId, isNotEmpty);
     }
   });
 
   test('der Worker-Pfad ist relativ, nicht absolut', () {
-    expect(webServiceWorkerPath, isNot(startsWith('/')),
-        reason: 'Ein absoluter Pfad zeigte auf den Origin-Root und damit '
-            'ins Leere — die App liegt unter /trailbuddy/.');
+    expect(
+      webServiceWorkerPath,
+      isNot(startsWith('/')),
+      reason:
+          'Ein absoluter Pfad zeigte auf den Origin-Root und damit '
+          'ins Leere — die App liegt unter /trailbuddy/.',
+    );
     expect(webServiceWorkerPath, isNot(contains('..')));
   });
 
@@ -40,8 +55,11 @@ void main() {
     // über den Scope eindeutig: Läge unser Worker daneben, ersetzte er
     // beim ersten Einschalten der Benachrichtigungen den Offline-Start.
     expect(webServiceWorkerPath, contains('/'));
-    expect(File('web/$webServiceWorkerPath').existsSync(), isTrue,
-        reason: 'Der Worker wird aus web/ mit ausgeliefert.');
+    expect(
+      File('web/$webServiceWorkerPath').existsSync(),
+      isTrue,
+      reason: 'Der Worker wird aus web/ mit ausgeliefert.',
+    );
   });
 
   String workerCode() => File('web/$webServiceWorkerPath')
@@ -52,8 +70,11 @@ void main() {
   test('der Worker lädt nichts nach (kein Firebase-SDK)', () {
     final code = workerCode();
     expect(code, isNot(contains('importScripts')));
-    expect(code, isNot(contains('https://')),
-        reason: 'kein fremder Ursprung im Worker');
+    expect(
+      code,
+      isNot(contains('https://')),
+      reason: 'kein fremder Ursprung im Worker',
+    );
   });
 
   test('Worker und App meinen dieselbe Übergabe-Kennung', () {
@@ -100,7 +121,10 @@ void main() {
       final m = pushBridgeMessageOf({
         'type': kPushBridgeType,
         'kind': 'message',
-        'notification': {'title': 'Neuer Hinweis von einem Buddy', 'body': 'Tippen zeigt den Trail'},
+        'notification': {
+          'title': 'Neuer Hinweis von einem Buddy',
+          'body': 'Tippen zeigt den Trail',
+        },
         'data': {'route': '/trail/x'},
       })!;
       expect(m.kind, 'message');

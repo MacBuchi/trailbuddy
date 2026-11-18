@@ -11,11 +11,13 @@
 // Verlauf mit einem Buddy (`/friends/chat/<uuid>`). Nur diese Formen
 // werden angenommen.
 
-final _trailRoute =
-    RegExp(r'^/trail/[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$');
+final _trailRoute = RegExp(
+  r'^/trail/[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$',
+);
 
-final _chatRoute =
-    RegExp(r'^/friends/chat/[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$');
+final _chatRoute = RegExp(
+  r'^/friends/chat/[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$',
+);
 
 /// Die Liste — das Ziel, wenn eine Meldung mehrere Trails betrifft.
 const kPushTrailsRoute = '/trails';

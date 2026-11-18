@@ -12,5 +12,4 @@ Widget createMapLibreMapView({
   required MapViewConfig config,
   required MapViewController controller,
   required MapViewLayers layers,
-}) =>
-    FlutterMapView(config: config, controller: controller, layers: layers);
+}) => FlutterMapView(config: config, controller: controller, layers: layers);

@@ -55,12 +55,12 @@ class TrailAirtime {
   final DateTime month;
 
   factory TrailAirtime.fromJson(Map<String, dynamic> j) => TrailAirtime(
-        userId: j['user_id'] as String,
-        trailId: j['trail_id'] as String,
-        airDs: (j['air_ds'] as num).toInt(),
-        longestDs: (j['longest_ds'] as num).toInt(),
-        month: DateTime.parse(j['month'] as String),
-      );
+    userId: j['user_id'] as String,
+    trailId: j['trail_id'] as String,
+    airDs: (j['air_ds'] as num).toInt(),
+    longestDs: (j['longest_ds'] as num).toInt(),
+    month: DateTime.parse(j['month'] as String),
+  );
 }
 
 /// Was das Gerät für einen Trail hochlädt.
@@ -78,11 +78,11 @@ class TrailAirtimeUpload {
   final DateTime month;
 
   Map<String, dynamic> toJson() => {
-        'trail_id': trailId,
-        'air_ds': airDs,
-        'longest_ds': longestDs,
-        'month': _day(DateTime(month.year, month.month)),
-      };
+    'trail_id': trailId,
+    'air_ds': airDs,
+    'longest_ds': longestDs,
+    'month': _day(DateTime(month.year, month.month)),
+  };
 }
 
 /// Der Zähler eines Nutzers: Airtime und Sprünge der letzten 30 Tage,
@@ -103,14 +103,15 @@ class AirtimeCounter {
   final Set<AirtimeTitle> titles;
 
   factory AirtimeCounter.fromJson(Map<String, dynamic> j) => AirtimeCounter(
-        userId: j['user_id'] as String,
-        airDs: (j['air_ds'] as num).toInt(),
-        jumps: (j['jumps'] as num).toInt(),
-        asOf: DateTime.parse(j['as_of'] as String),
-        titles: {
-          for (final k in (j['titles'] as List? ?? const [])) ?AirtimeTitle.fromKey(k as String),
-        },
-      );
+    userId: j['user_id'] as String,
+    airDs: (j['air_ds'] as num).toInt(),
+    jumps: (j['jumps'] as num).toInt(),
+    asOf: DateTime.parse(j['as_of'] as String),
+    titles: {
+      for (final k in (j['titles'] as List? ?? const []))
+        ?AirtimeTitle.fromKey(k as String),
+    },
+  );
 }
 
 String _day(DateTime d) =>
@@ -142,8 +143,12 @@ class AirtimeRepository {
   /// Gibt zurück, wie viele neu oder besser wurden.
   Future<int> uploadBests(List<TrailAirtimeUpload> bests) async {
     if (bests.isEmpty) return 0;
-    final n = await _client.rpc('set_trail_airtime',
-        params: {'items': [for (final b in bests) b.toJson()]});
+    final n = await _client.rpc(
+      'set_trail_airtime',
+      params: {
+        'items': [for (final b in bests) b.toJson()],
+      },
+    );
     return (n as num?)?.toInt() ?? 0;
   }
 
@@ -155,13 +160,13 @@ class AirtimeRepository {
     required Set<AirtimeTitle> titles,
   }) async {
     await _client.from('airtime_counters').upsert({
-        'user_id': _client.requireUid,
-        'air_ds': airDs,
-        'jumps': jumps,
-        'as_of': _day(asOf),
-        'titles': [for (final t in titles) t.key],
-        'updated_at': DateTime.now().toUtc().toIso8601String(),
-      });
+      'user_id': _client.requireUid,
+      'air_ds': airDs,
+      'jumps': jumps,
+      'as_of': _day(asOf),
+      'titles': [for (final t in titles) t.key],
+      'updated_at': DateTime.now().toUtc().toIso8601String(),
+    });
   }
 
   /// Schalter aus: alles Geteilte weg, in einer Transaktion.

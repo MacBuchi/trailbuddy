@@ -18,7 +18,8 @@ import 'package:trailbuddy/features/trails/trail_report.dart';
 import 'fakes/l10n_de.dart';
 
 void main() {
-  HelpStep step(String title) => helpSteps(l10nDe).firstWhere((s) => s.title == title);
+  HelpStep step(String title) =>
+      helpSteps(l10nDe).firstWhere((s) => s.title == title);
 
   test('Sechs Abschnitte, jeder Titel einmal', () {
     // Sechs sind die Obergrenze: Eine Anleitung, die man scrollen muss,
@@ -32,8 +33,19 @@ void main() {
     // (docs/design/README.md Abschnitt 2). Ändert sich eine Regel, soll
     // dieser Test den Satz daran erinnern.
     final text = step('Die Karte lesen').text;
-    for (final word in ['S0', 'S3', 'Saum', 'S4', 'Magenta', 'Zustand', 'gestrichelt', 'orange', 'gelb',
-      'Violett', 'Schild']) {
+    for (final word in [
+      'S0',
+      'S3',
+      'Saum',
+      'S4',
+      'Magenta',
+      'Zustand',
+      'gestrichelt',
+      'orange',
+      'gelb',
+      'Violett',
+      'Schild',
+    ]) {
       expect(text, contains(word), reason: 'fehlt: $word');
     }
   });
@@ -47,10 +59,16 @@ void main() {
     // Der Dialog liest das Wort seit #209 aus den ARB-Dateien.
     expect(l10nDe.reportFieldLabel, kReportFieldLabel);
     expect(step('Dein Beitrag zum Trail').text, contains(kReportFieldLabel));
-    expect(helpSteps(l10nDe).any((s) => s.text.contains('Status:')), isFalse,
-        reason: 'das alte Feldwort ist zurück');
-    expect(helpSteps(l10nDe).any((s) => s.text.contains('Hinweis')), isFalse,
-        reason: '„Hinweis" ist seit #433 eine Meldung');
+    expect(
+      helpSteps(l10nDe).any((s) => s.text.contains('Status:')),
+      isFalse,
+      reason: 'das alte Feldwort ist zurück',
+    );
+    expect(
+      helpSteps(l10nDe).any((s) => s.text.contains('Hinweis')),
+      isFalse,
+      reason: '„Hinweis" ist seit #433 eine Meldung',
+    );
   });
 
   test('Sichtbarkeit: nur direkte Buddys, keine öffentliche Karte', () {
@@ -61,10 +79,19 @@ void main() {
   });
 
   test('Eine Fahrt bleibt auf dem Gerät, nur Trails gehen zu Buddys', () {
-    expect(step('Trails importieren').text, contains('Nur Trails gehen zu deinen Buddys'));
-    expect(step('Fahrt aufzeichnen und zerlegen').text, contains('auf deinem Gerät'));
-    expect(step('Fahrt aufzeichnen und zerlegen').text, contains('Web-App'),
-        reason: 'die PWA zeigt den Abschnitt auch — mit dem Zusatz');
+    expect(
+      step('Trails importieren').text,
+      contains('Nur Trails gehen zu deinen Buddys'),
+    );
+    expect(
+      step('Fahrt aufzeichnen und zerlegen').text,
+      contains('auf deinem Gerät'),
+    );
+    expect(
+      step('Fahrt aufzeichnen und zerlegen').text,
+      contains('Web-App'),
+      reason: 'die PWA zeigt den Abschnitt auch — mit dem Zusatz',
+    );
   });
 
   test('Der Sicherheitshinweis nennt Verantwortung und Sperrungen', () {
@@ -80,17 +107,32 @@ void main() {
     // Vorführungen übernehmen Schritte über die `id` (#209) — der Titel ist
     // je Sprache ein anderer. Fehlte sie oder hinge sie an der Sprache,
     // fände `_from` unter Englisch nichts.
-    List<CoachScript> scripts(AppLocalizations l) =>
-        [mapTourScript(l), welcomeTourScript(l), splitTourScript(l), ...tabTourScripts(l)];
+    List<CoachScript> scripts(AppLocalizations l) => [
+      mapTourScript(l),
+      welcomeTourScript(l),
+      splitTourScript(l),
+      ...tabTourScripts(l),
+    ];
     final en = lookupAppLocalizations(const Locale('en'));
     final de = scripts(l10nDe);
     for (final (i, script) in de.indexed) {
       final ids = [for (final s in script.steps) s.id];
       expect(ids, everyElement(isNotNull), reason: script.id);
-      expect(ids.toSet(), hasLength(ids.length), reason: '${script.id}: doppelt');
-      expect([for (final s in scripts(en)[i].steps) s.id], ids, reason: script.id);
-      expect([for (final s in scripts(en)[i].steps) s.title], isNot([for (final s in script.steps) s.title]),
-          reason: '${script.id}: Englisch zeigt deutsche Titel');
+      expect(
+        ids.toSet(),
+        hasLength(ids.length),
+        reason: '${script.id}: doppelt',
+      );
+      expect(
+        [for (final s in scripts(en)[i].steps) s.id],
+        ids,
+        reason: script.id,
+      );
+      expect(
+        [for (final s in scripts(en)[i].steps) s.title],
+        isNot([for (final s in script.steps) s.title]),
+        reason: '${script.id}: Englisch zeigt deutsche Titel',
+      );
     }
   });
 }

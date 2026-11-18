@@ -36,14 +36,20 @@ class SeenHighlightIds extends Notifier<Set<String>> {
     final next = {...state, ...ids};
     if (next.length == state.length) return;
     state = next;
-    unawaited(ref
-        .read(settingsProvider)
-        .setSeenHighlightIds(next)
-        .catchError((Object e, StackTrace s) => logError('Neuheiten gesehen merken', e, s)));
+    unawaited(
+      ref
+          .read(settingsProvider)
+          .setSeenHighlightIds(next)
+          .catchError(
+            (Object e, StackTrace s) =>
+                logError('Neuheiten gesehen merken', e, s),
+          ),
+    );
   }
 }
 
-final seenHighlightIdsProvider = NotifierProvider<SeenHighlightIds, Set<String>>(SeenHighlightIds.new);
+final seenHighlightIdsProvider =
+    NotifierProvider<SeenHighlightIds, Set<String>>(SeenHighlightIds.new);
 
 /// Wie viele Einträge in „Entdecken" noch nicht angesehen sind.
 final unseenHighlightCountProvider = Provider<int>((ref) {
@@ -57,7 +63,11 @@ final unseenHighlightCountProvider = Provider<int>((ref) {
 /// Karte liegt (Sicherheitshinweis, Karten-Tour). Gerechnet wird trotzdem:
 /// Eine frische Installation muss ihre Version schon beim ERSTEN Start
 /// merken, sonst hielte sie sich nach der Tour für einen Bestandsnutzer.
-Future<void> maybeShowHighlights(BuildContext context, WidgetRef ref, {required bool mayShow}) async {
+Future<void> maybeShowHighlights(
+  BuildContext context,
+  WidgetRef ref, {
+  required bool mayShow,
+}) async {
   final settings = ref.read(settingsProvider);
   final String current;
   try {
@@ -81,19 +91,28 @@ Future<void> maybeShowHighlights(BuildContext context, WidgetRef ref, {required 
       // Nicht zeigen heißt hier auch nicht merken: Der Rückblick wartet auf
       // den nächsten ruhigen Start. Eine laufende Fahrt zählt wie ein
       // Overlay — wer im Wald die App öffnet, will die Karte.
-      if (!mayShow || ref.read(rideProvider) != null || ref.read(coachProvider.notifier).busy) return;
+      if (!mayShow ||
+          ref.read(rideProvider) != null ||
+          ref.read(coachProvider.notifier).busy) {
+        return;
+      }
       await _record(settings, plan.version);
       if (!context.mounted) return;
-      ref.read(seenHighlightIdsProvider.notifier).markSeen(plan.pages.map((h) => h.id));
+      ref
+          .read(seenHighlightIdsProvider.notifier)
+          .markSeen(plan.pages.map((h) => h.id));
       await showHighlightSheet(context, plan);
   }
 }
 
 Future<void> _record(Settings settings, String version) => settings
     .setHighlightsSeenVersion(version)
-    .catchError((Object e, StackTrace s) => logError('Neuheiten-Stand merken', e, s));
+    .catchError(
+      (Object e, StackTrace s) => logError('Neuheiten-Stand merken', e, s),
+    );
 
-Future<void> showHighlightSheet(BuildContext context, HighlightShow plan) => showModalBottomSheet<void>(
+Future<void> showHighlightSheet(BuildContext context, HighlightShow plan) =>
+    showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
@@ -139,7 +158,9 @@ class HighlightSheet extends ConsumerWidget {
             children: [
               Expanded(
                 child: Text(
-                  plan.recap ? context.l10n.highlightSheetRecapTitle : context.l10n.highlightSheetNewTitle,
+                  plan.recap
+                      ? context.l10n.highlightSheetRecapTitle
+                      : context.l10n.highlightSheetNewTitle,
                   key: const ValueKey('highlight-sheet-title'),
                   style: theme.textTheme.titleLarge,
                 ),
@@ -149,7 +170,11 @@ class HighlightSheet extends ConsumerWidget {
           ),
           const SizedBox(height: 4),
           for (final h in plan.pages)
-            _Row(key: ValueKey('highlight-row-${h.id}'), highlight: h, onTap: () => _show(context, ref, h)),
+            _Row(
+              key: ValueKey('highlight-row-${h.id}'),
+              highlight: h,
+              onTap: () => _show(context, ref, h),
+            ),
           const SizedBox(height: 8),
           Padding(
             padding: const EdgeInsets.only(right: 8),
@@ -160,9 +185,11 @@ class HighlightSheet extends ConsumerWidget {
               children: [
                 TextButton(
                   onPressed: () => _go(context, '/profile/discover'),
-                  child: Text(plan.more > 0
-                      ? context.l10n.highlightSheetMore(plan.more)
-                      : context.l10n.highlightSheetAll),
+                  child: Text(
+                    plan.more > 0
+                        ? context.l10n.highlightSheetMore(plan.more)
+                        : context.l10n.highlightSheetAll,
+                  ),
                 ),
                 TextButton(
                   onPressed: () => _go(context, '/profile/changelog'),
@@ -205,16 +232,25 @@ class _Row extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(highlight.title(context.l10n), style: theme.textTheme.titleMedium),
+                  Text(
+                    highlight.title(context.l10n),
+                    style: theme.textTheme.titleMedium,
+                  ),
                   const SizedBox(height: 2),
-                  Text(highlight.text(context.l10n), style: theme.textTheme.bodySmall),
+                  Text(
+                    highlight.text(context.l10n),
+                    style: theme.textTheme.bodySmall,
+                  ),
                 ],
               ),
             ),
             Padding(
               padding: const EdgeInsets.only(left: 4, right: 8, top: 4),
-              child: Icon(Icons.play_circle_outline,
-                  color: AppPalette.of(context).accentText, semanticLabel: context.l10n.discoverShowMe),
+              child: Icon(
+                Icons.play_circle_outline,
+                color: AppPalette.of(context).accentText,
+                semanticLabel: context.l10n.discoverShowMe,
+              ),
             ),
           ],
         ),

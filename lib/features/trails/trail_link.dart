@@ -48,7 +48,9 @@ String? sanitizeLink(String? raw) {
   } on FormatException {
     return null;
   }
-  if (uri.scheme != 'https' || uri.host.isEmpty || uri.userInfo.isNotEmpty) return null;
+  if (uri.scheme != 'https' || uri.host.isEmpty || uri.userInfo.isNotEmpty) {
+    return null;
+  }
   final out = Uri(
     scheme: 'https',
     host: _asciiHost(uri.host),
@@ -74,7 +76,9 @@ String? linkFromFile(String? raw) {
   final link = sanitizeLink(raw);
   if (link == null) return null;
   final host = Uri.parse(link).host;
-  final ignored = kLinkIgnoredHosts.any((h) => host == h || host.endsWith('.$h'));
+  final ignored = kLinkIgnoredHosts.any(
+    (h) => host == h || host.endsWith('.$h'),
+  );
   return ignored ? null : link;
 }
 
@@ -101,10 +105,12 @@ String _unicodeHost(String host) => hostToUnicode(_decoded(host));
 /// Prozentkodierte Zeichen über ASCII auflösen, wie die Adresszeile es
 /// tut; ASCII-Escapes („%20", „%2F") bleiben — sonst wäre das Feld nicht
 /// mehr, was gespeichert ist. Was kein gültiges UTF-8 ist, bleibt kodiert.
-String _decoded(String s) => s.replaceAllMapped(RegExp(r'(?:%[89a-fA-F][0-9a-fA-F])+'), (m) {
+String _decoded(String s) =>
+    s.replaceAllMapped(RegExp(r'(?:%[89a-fA-F][0-9a-fA-F])+'), (m) {
       final run = m[0]!;
       final bytes = [
-        for (var i = 0; i < run.length; i += 3) int.parse(run.substring(i + 1, i + 3), radix: 16),
+        for (var i = 0; i < run.length; i += 3)
+          int.parse(run.substring(i + 1, i + 3), radix: 16),
       ];
       try {
         return utf8.decode(bytes);

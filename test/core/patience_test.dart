@@ -12,17 +12,22 @@ void main() {
     expect(await withinOrNull(Future.value(7), patience), 7);
   });
 
-  test('langsam: null nach der Frist, das Future läuft unbehelligt weiter', () async {
-    final slow = Completer<int>();
-    final watch = Stopwatch()..start();
-    expect(await withinOrNull(slow.future, patience), isNull);
-    expect(watch.elapsed, greaterThanOrEqualTo(patience));
-    slow.complete(3);
-    expect(await slow.future, 3);
-  });
+  test(
+    'langsam: null nach der Frist, das Future läuft unbehelligt weiter',
+    () async {
+      final slow = Completer<int>();
+      final watch = Stopwatch()..start();
+      expect(await withinOrNull(slow.future, patience), isNull);
+      expect(watch.elapsed, greaterThanOrEqualTo(patience));
+      slow.complete(3);
+      expect(await slow.future, 3);
+    },
+  );
 
   test('ein Fehler innerhalb der Frist kommt durch', () async {
-    expect(withinOrNull<int>(Future.error(StateError('kaputt')), patience),
-        throwsA(isA<StateError>()));
+    expect(
+      withinOrNull<int>(Future.error(StateError('kaputt')), patience),
+      throwsA(isA<StateError>()),
+    );
   });
 }

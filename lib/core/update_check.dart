@@ -74,18 +74,21 @@ class PrereleaseUpdatesNotifier extends Notifier<bool> {
   /// wird nur protokolliert.
   void set(bool value) {
     state = value;
-    unawaited(ref
-        .read(settingsProvider)
-        .setPrereleaseUpdatesEnabled(value)
-        .catchError((Object e, StackTrace stackTrace) {
-      logError('Vorab-Kanal merken', e, stackTrace);
-    }));
+    unawaited(
+      ref.read(settingsProvider).setPrereleaseUpdatesEnabled(value).catchError((
+        Object e,
+        StackTrace stackTrace,
+      ) {
+        logError('Vorab-Kanal merken', e, stackTrace);
+      }),
+    );
   }
 }
 
 final prereleaseUpdatesProvider =
     NotifierProvider<PrereleaseUpdatesNotifier, bool>(
-        PrereleaseUpdatesNotifier.new);
+      PrereleaseUpdatesNotifier.new,
+    );
 
 /// Der erste VERÖFFENTLICHTE Eintrag einer Release-Liste — Prereleases
 /// eingeschlossen, Entwürfe nicht.
@@ -128,13 +131,17 @@ final updateInfoProvider = FutureProvider<UpdateInfo?>((ref) async {
   final prerelease = ref.watch(prereleaseUpdatesProvider);
   try {
     final packageInfo = await PackageInfo.fromPlatform();
-    final response = await http.get(
-      Uri.parse(prerelease
-          ? 'https://api.github.com/repos/MacBuchi/TrailBuddy/releases'
-              '?per_page=10'
-          : 'https://api.github.com/repos/MacBuchi/TrailBuddy/releases/latest'),
-      headers: {'Accept': 'application/vnd.github+json'},
-    ).timeout(const Duration(seconds: 10));
+    final response = await http
+        .get(
+          Uri.parse(
+            prerelease
+                ? 'https://api.github.com/repos/MacBuchi/TrailBuddy/releases'
+                      '?per_page=10'
+                : 'https://api.github.com/repos/MacBuchi/TrailBuddy/releases/latest',
+          ),
+          headers: {'Accept': 'application/vnd.github+json'},
+        )
+        .timeout(const Duration(seconds: 10));
     if (response.statusCode != 200) return null;
 
     final decoded = jsonDecode(response.body);
@@ -149,9 +156,9 @@ final updateInfoProvider = FutureProvider<UpdateInfo?>((ref) async {
     }
 
     final assets = release['assets'] as List<dynamic>? ?? const [];
-    final apk = assets
-        .cast<Map<String, dynamic>>()
-        .where((a) => isApkAsset(a['name'] as String? ?? ''));
+    final apk = assets.cast<Map<String, dynamic>>().where(
+      (a) => isApkAsset(a['name'] as String? ?? ''),
+    );
     if (apk.isEmpty) return null;
 
     return UpdateInfo(

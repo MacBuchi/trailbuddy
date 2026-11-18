@@ -46,7 +46,12 @@ enum TrailHeadOutcome {
 /// Ein Stück der Route mit EINER Wegklasse — die Vorschau zeichnet
 /// Wanderweg anders als Forstweg, und die Liste nennt den Mix.
 class RouteSection {
-  const RouteSection({required this.cls, required this.points, required this.lengthM, this.trail});
+  const RouteSection({
+    required this.cls,
+    required this.points,
+    required this.lengthM,
+    this.trail,
+  });
 
   final WayClass cls;
   final List<LatLng> points;
@@ -89,8 +94,13 @@ class TrailHeadPlan {
 
 /// Plant den Weg von [from] zum Trailkopf [head] auf [g] mit [profile],
 /// mit [via] durch die Zwischenpunkte des einen Teilstücks (#234).
-TrailHeadPlan planTrailHeadRoute(RoadGraph g, LatLng from, LatLng head, RiderParams profile,
-    {List<LatLng> via = const []}) {
+TrailHeadPlan planTrailHeadRoute(
+  RoadGraph g,
+  LatLng from,
+  LatLng head,
+  RiderParams profile, {
+  List<LatLng> via = const [],
+}) {
   final src = g.attach(from);
   if (src == null) return const TrailHeadPlan(TrailHeadOutcome.startOffNetwork);
   final dst = g.attach(head);
@@ -100,7 +110,10 @@ TrailHeadPlan planTrailHeadRoute(RoadGraph g, LatLng from, LatLng head, RiderPar
     final r = pathThrough(g, src, dst, via, profile);
     if (r.edges == null) {
       return TrailHeadPlan(
-          r.failure == ViaFailure.offNetwork ? TrailHeadOutcome.viaOffNetwork : TrailHeadOutcome.noPath);
+        r.failure == ViaFailure.offNetwork
+            ? TrailHeadOutcome.viaOffNetwork
+            : TrailHeadOutcome.noPath,
+      );
     }
     edges = r.edges!;
   } else if (src == dst) {
@@ -133,7 +146,8 @@ class TrailHeadJob implements GraphJob<TrailHeadPlan> {
   final RiderParams profile;
 
   @override
-  TrailHeadPlan runOn(RoadGraph g, LoopSearchCache cache) => planTrailHeadRoute(g, from, head, profile);
+  TrailHeadPlan runOn(RoadGraph g, LoopSearchCache cache) =>
+      planTrailHeadRoute(g, from, head, profile);
 }
 
 /// Die Kanten [path] ab [src] zu Abschnitten je Wegklasse: aufeinander-
@@ -148,7 +162,9 @@ List<RouteSection> sectionsOf(RoadGraph g, List<int> path, int src) {
   var length = 0.0;
   void flush() {
     if (cls != null && pts.length >= 2) {
-      out.add(RouteSection(cls: cls, points: pts, lengthM: length, trail: trail));
+      out.add(
+        RouteSection(cls: cls, points: pts, lengthM: length, trail: trail),
+      );
     }
   }
 
@@ -185,12 +201,17 @@ String routeTimeLabel(AppLocalizations l, double seconds) {
 /// Die geschätzte Zeit als ganze Sekunden, für Anzeige und gespeicherte
 /// Fahrt. Unendlich oder NaN (#356) wird 0 — `.round()` würfe dort, und
 /// zwar beim Bauen des Blatts.
-int routeSeconds(double seconds) => seconds.isFinite && seconds > 0 ? seconds.round() : 0;
+int routeSeconds(double seconds) =>
+    seconds.isFinite && seconds > 0 ? seconds.round() : 0;
 
 /// Die Route als GPX-Spur (#150): nur die Linie, der Name nennt den
 /// Trail. Keine Höhen — die Engine kennt sie je Kante, nicht je Punkt,
 /// und erfundene Punkt-Höhen wären eine Behauptung.
-GpxTrack trailHeadToGpx(AppLocalizations l, TrailHeadRoute route, {required String trailName}) => GpxTrack(
-      name: l.routeNameTrailHead(trailName),
-      points: [for (final p in route.points) TrackPoint(p.latitude, p.longitude)],
-    );
+GpxTrack trailHeadToGpx(
+  AppLocalizations l,
+  TrailHeadRoute route, {
+  required String trailName,
+}) => GpxTrack(
+  name: l.routeNameTrailHead(trailName),
+  points: [for (final p in route.points) TrackPoint(p.latitude, p.longitude)],
+);

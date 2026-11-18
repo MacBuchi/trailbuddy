@@ -20,13 +20,16 @@ void main() {
   late List<String> clipboard;
 
   void mockLauncher({required bool handled}) {
-    final messenger = TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+    final messenger =
+        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
     messenger.setMockMethodCallHandler(_launcherChannel, (call) async {
       launched.add((call.arguments as Map)['url'] as String);
       return handled;
     });
     messenger.setMockMethodCallHandler(SystemChannels.platform, (call) async {
-      if (call.method == 'Clipboard.setData') clipboard.add((call.arguments as Map)['text'] as String);
+      if (call.method == 'Clipboard.setData') {
+        clipboard.add((call.arguments as Map)['text'] as String);
+      }
       return null;
     });
   }
@@ -37,17 +40,27 @@ void main() {
     backend = FakeBackend();
     final anna = backend.addUser(username: 'anna');
     backend.signInAs(anna.id);
-    trails = FakeTrailRepository(myId: () => backend.currentUserId ?? '', areFriends: backend.areFriends);
+    trails = FakeTrailRepository(
+      myId: () => backend.currentUserId ?? '',
+      areFriends: backend.areFriends,
+    );
     // Gegen die Trail-Richtung aufgenommen: Der Trailkopf ist das Ende
     // der gespeicherten Linie (lat + 0.009). Einstellige Breite, weil der
     // Private-Info-Wächter zweistellige Paare mit sechs Nachkommastellen
     // für echte Orte hält.
-    trails.seedTrail(anna.id, name: 'Hexentanz (Nord)', grade: 2, reversed: true, lat: 7.0);
+    trails.seedTrail(
+      anna.id,
+      name: 'Hexentanz (Nord)',
+      grade: 2,
+      reversed: true,
+      lat: 7.0,
+    );
     trails.seedTrail(anna.id, lat: 8.5);
   });
 
   tearDown(() {
-    final messenger = TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+    final messenger =
+        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
     messenger.setMockMethodCallHandler(_launcherChannel, null);
     messenger.setMockMethodCallHandler(SystemChannels.platform, null);
   });
@@ -70,18 +83,24 @@ void main() {
     await settle(tester);
   }
 
-  testWidgets('„Anfahrt" übergibt den Trailkopf in Trail-Richtung samt Namen', (tester) async {
+  testWidgets('„Anfahrt" übergibt den Trailkopf in Trail-Richtung samt Namen', (
+    tester,
+  ) async {
     await openSheet(tester, 'Hexentanz (Nord)');
     mockLauncher(handled: true);
     await tapNavigate(tester);
-    expect(launched, ['geo:7.009000,9.000000?q=7.009000,9.000000(Hexentanz%20Nord)']);
+    expect(launched, [
+      'geo:7.009000,9.000000?q=7.009000,9.000000(Hexentanz%20Nord)',
+    ]);
     expect(clipboard, isEmpty);
     // Der App-Wähler steht im Vordergrund — eine SnackBar dahinter wäre
     // für niemanden.
     expect(find.byType(SnackBar), findsNothing);
   });
 
-  testWidgets('ohne Navi-App: Zwischenablage, und die App sagt es', (tester) async {
+  testWidgets('ohne Navi-App: Zwischenablage, und die App sagt es', (
+    tester,
+  ) async {
     await openSheet(tester, 'Hexentanz (Nord)');
     mockLauncher(handled: false);
     await tapNavigate(tester);
@@ -90,7 +109,9 @@ void main() {
     expect(find.textContaining('Keine Navi-App gefunden'), findsOneWidget);
   });
 
-  testWidgets('der Platzhalter „Trail ohne Namen" wird nicht übergeben', (tester) async {
+  testWidgets('der Platzhalter „Trail ohne Namen" wird nicht übergeben', (
+    tester,
+  ) async {
     await openSheet(tester, 'Trail ohne Namen');
     mockLauncher(handled: true);
     await tapNavigate(tester);

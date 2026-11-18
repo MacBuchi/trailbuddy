@@ -261,7 +261,9 @@ class _Reader {
 
   Uint8List readBytes() {
     final length = readVarint();
-    if (_pos + length > _end) throw const FormatException('Länge über das Ende');
+    if (_pos + length > _end) {
+      throw const FormatException('Länge über das Ende');
+    }
     final view = Uint8List.sublistView(bytes, _pos, _pos + length);
     _pos += length;
     return view;
