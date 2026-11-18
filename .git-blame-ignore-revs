@@ -1,0 +1,6 @@
+# Commits, die `git blame` überspringt (GitHub liest die Datei von selbst;
+# lokal einmal: git config blame.ignoreRevsFile .git-blame-ignore-revs).
+# Nur reine Format-Commits, nie solche mit Verhalten.
+
+# chore: format all Dart code once and check it in CI (#581)
+29dfa86661f67d20a92e764eccbeafe542c0f9e9
