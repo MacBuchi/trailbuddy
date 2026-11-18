@@ -435,8 +435,9 @@ void main() {
         debugPrint(
           'BENCH Speicher Route ${big1.pointCount} Punkte, ${big1.parts().length} Stücke',
         );
-        if (big1.pointCount < _bigN * 0.9)
+        if (big1.pointCount < _bigN * 0.9) {
           throw _StepFailed('große Route hat nur ${big1.pointCount} Punkte');
+        }
         await step('${big1.pointCount} Punkte → ok', () => route(big1));
         await send({'t': '_t', 'ms': 9000});
         memLine(
