@@ -39,7 +39,7 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
   Store-Listing aus dem Code — ändert sich, was die App erhebt, wohin sie
   verbindet oder welche Berechtigung sie braucht, gehört die Datei in
   denselben PR (PR-Vorlage). Die Berechtigungsliste ist am AAB gemessen
-  (0.158.0, 2026-11-07, `bundletool dump manifest`); vor dem Upload mit
+  (0.189.1, 2026-11-18, `bundletool dump manifest`); vor dem Upload mit
   dessen AAB wiederholen. Seit #579 lädt `release.yml` das AAB als
   Entwurf in den internen Track, sobald das Secret
   `PLAY_SERVICE_ACCOUNT_JSON` da ist (Einrichtung: `play-console.md`

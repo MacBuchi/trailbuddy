@@ -209,8 +209,9 @@ Dauer, Strecke oder Geschwindigkeit je Fahrt dazunimmt, stellt sie neu.
 
 ### Berechtigungen im Build
 
-**Am AAB gemessen** (0.158.0+242, Artefakt `android-aab` des Release-Laufs,
-2026-11-07, `bundletool` 1.18.3). Die Liste stimmt mit dem Binary überein;
+**Am AAB gemessen** (0.189.1+285, Artefakt `android-aab` des Release-Laufs,
+2026-11-18, `bundletool` 1.18.3 — das AAB des ersten Hand-Uploads; vorher
+0.158.0+242 am 2026-11-07, unverändert). Die Liste stimmt mit dem Binary überein;
 vor jedem Upload mit dem AAB dieses Uploads wiederholen und Abweichungen
 hier eintragen:
 
