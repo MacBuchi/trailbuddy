@@ -22,7 +22,7 @@ im PR): Tastenkarte, die Bildschirme der Uhr, vier des Handys.
 | E4 | Buddys unterwegs sehen („Gruppenfahrt", Abschnitt 6) | **entschieden** (Betreiber, 2026-11-17): ja, **Opt-in**, in zwei Stufen — genau und live nur für Buddys in der Nähe, grob und nicht live für ausgewählte Buddys („Homies") außerhalb; Abschnitt 6 — #519 |
 | E5 | Eigener BLE-Lagesensor als nächstes Messgerät | **später** (Betreiber, 2026-11-17); ob E5 oder E6 zuerst kommt, entscheidet die verfügbare Hardware — #518 |
 | E6 | fēnix 5 Plus und neuer als Lagesensor am Lenker | **eingeplant** (Betreiber, 2026-11-17), als Experiment; kann vor E5 kommen, je nach Hardware; ändert Entscheidung 1 in `konzept-garmin.md` erst, wenn es trägt — #518 |
-| E7 | Ansagen übers Ohr (Abschnitt 9, F6/F7; #525) | **angenommen** (Betreiber, 2026-11-17): als Schalter, Vorgabe aus, **ohne Abbiegeansagen**, mit frischer Buddy-Meldung zum Trail voraus — gebaut am Handy seit 0.185.0, A12 geändert, `konzept-routing.md` 9.10; die Uhr folgt |
+| E7 | Ansagen übers Ohr (Abschnitt 9, F6/F7; #525) | **angenommen** (Betreiber, 2026-11-17): als Schalter, Vorgabe aus, **ohne Abbiegeansagen**, mit frischer Buddy-Meldung zum Trail voraus — gebaut am Handy seit 0.185.0, A12 geändert, `konzept-routing.md` 9.10; an der Uhr kurz vibrieren mit Schild und Name seit Uhr-App 1.8.0 (`konzept-garmin.md` 1) |
 | E8 | „Buddy in der Nähe" einmal je Fahrt (Abschnitt 9, F8; #526) | **entschieden** (Betreiber, 2026-11-17): grobe Form (Zelle, nichts gespeichert), aber **einmal gefragt mit „Ja" vorausgewählt**, auch bei offener App ohne Aufzeichnung — nie um ein lokales „Zuhause"; je Buddy zwei Schalter; Abschnitt 6 — berührt A1, A2, A3, A6 |
 | E9 | Reihenfolge weiterer Geräte (Abschnitt 11) | erst Kachel und Benachrichtigung am Handy, dann Garmin Edge und neuere Uhren, dann Wear OS |
 
@@ -268,7 +268,8 @@ statt eines Kanals je Zelle, „Zuhause" mit **1 km**.
   wenn die Schalter je Buddy geladen sind.
 - **Übers Ohr**: Mit „Ansagen" (#525) und laufender Fahrt wird die
   Meldung zusätzlich gesprochen.
-- **Noch nicht**: die Vibration mit Namensschild auf der Uhr.
+- **An der Uhr** (Uhr-App 1.8.0): kurz vibrieren, Scheibe mit Buchstabe
+  und „Max unterwegs" als Hinweis (`konzept-garmin.md` 1).
 
 ### 6.3 Gebaut: Gruppenfahrt (E4, #519, Patch 032)
 
@@ -307,8 +308,10 @@ täte so, als wüsste die App, wo er ist.
   herausgenommene Zelle ebenso nach 15 min. Nur im Speicher.
 - **Eine Form, keine Farbe (A13)**: Scheibe mit Anfangsbuchstaben —
   gefüllt genau, als Ring grob.
-- **Noch nicht**: die Uhr (Scheibe mit Buchstaben im Umkreis-Fenster,
-  Vibration aus 6.2) — eigener Schritt mit Kettenstand.
+- **An der Uhr** (Uhr-App 1.8.0): die genauen Positionen als Scheibe mit
+  Buchstaben auf der Uhrkarte, weiter weg klein am Rand; die Zelle eines
+  Homies nicht. Der Speicher dafür kostete die Grenze von 800 auf 700
+  Punkte je Route (Betreiber 2026-11-18, `konzept-garmin.md` 2).
 
 ## 7. Abgleich mit den Kernanforderungen
 

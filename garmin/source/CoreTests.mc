@@ -1165,3 +1165,70 @@ function coreDetectNoNewPage(logger as Logger) as Boolean {
     TestCore.done();
     return true;
 }
+
+// --- Ansagen, Buddy unterwegs, Gruppenfahrt an der Uhr (#525, #526, #519) ----
+
+//! 525.1: Ein Moment der Ansagen vibriert kurz und zeigt Schild und Name;
+//! ein Grad außerhalb S0–S3 heißt „ohne Grad", ohne Namen bleibt es still.
+(:test)
+function coreTrailCueShield(logger as Logger) as Boolean {
+    var h = new FakeHost();
+    var c = TestCore.loaded(h);
+    var buzz = h.buzz;
+    c.handle({"t" => "c", "k" => "tr", "n" => "Hangweg", "g" => 2});
+    Test.assertEqual(h.buzz, buzz + 1);
+    Test.assertEqual(h.longBuzz, 0);
+    Test.assertEqual(c.ui.toastText(), "Hangweg");
+    Test.assertEqual(c.ui.cueMark()[0], 2);
+    c.handle({"t" => "c", "k" => "tr", "n" => "Ohne", "g" => 7});
+    Test.assertEqual(c.ui.cueMark()[0], -1);
+    c.handle({"t" => "c", "k" => "tr", "n" => ""});
+    Test.assertEqual(h.buzz, buzz + 2);
+    // Ein Sprung danach ist wieder ein Zeichen, kein Schild.
+    c.handle({"t" => "c", "k" => "air", "v" => 900});
+    Test.assertEqual(c.ui.cueMark()[0], -2);
+    TestCore.done();
+    return true;
+}
+
+//! 526.1: Ein Buddy unterwegs — kurz vibrieren, Scheibe mit seinem
+//! Buchstaben (groß) und der Name; eine Frage geht vor, auch das Vibrieren.
+(:test)
+function coreBuddyNearCue(logger as Logger) as Boolean {
+    var h = new FakeHost();
+    var c = TestCore.loaded(h);
+    var buzz = h.buzz;
+    c.handle({"t" => "c", "k" => "bn", "n" => "max"});
+    Test.assertEqual(h.buzz, buzz + 1);
+    var t = c.ui.toastText();
+    Test.assert(t != null && (t as String).find("max") == 0);
+    Test.assertEqual(c.ui.cueMark()[1], "M");
+    TestCore.newLine(c, "neu");
+    Test.assert(c.ui.asking());
+    buzz = h.buzz;
+    c.handle({"t" => "c", "k" => "bn", "n" => "Lea"});
+    Test.assertEqual(h.buzz, buzz);
+    TestCore.done();
+    return true;
+}
+
+//! 519.1: Buddys mit genauer Position erscheinen mit dem nächsten eigenen
+//! Fix, blass ab 2 min, weg nach 15 min ohne neuen Stand; Unfug fällt weg.
+(:test)
+function coreBuddiesOnMap(logger as Logger) as Boolean {
+    var h = new FakeHost();
+    var c = TestCore.loaded(h);
+    TestCore.fix(c, h, 0);
+    c.handle({"t" => "u", "l" => [[10, 100, "M", 0], [20, 100, "L", 130], ["x", 1, "Q", 0], [1, 2]]});
+    Test.assertEqual(c.ui.buddies.size(), 0);
+    TestCore.fix(c, h, 1);
+    Test.assertEqual(c.ui.buddies.size(), 2);
+    h.t += 15 * 60 * 1000;
+    TestCore.fix(c, h, 2);
+    Test.assertEqual(c.ui.buddies.size(), 0);
+    c.handle({"t" => "u", "l" => []});
+    TestCore.fix(c, h, 3);
+    Test.assertEqual(c.ui.buddies.size(), 0);
+    TestCore.done();
+    return true;
+}

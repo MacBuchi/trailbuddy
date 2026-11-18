@@ -615,6 +615,13 @@ class TrailBuddyApp extends Application.AppBase {
         if ((cueK == 1 || cueK == 2) && view.page() == 0) {
             c.handle({"t" => "c", "k" => cueK == 1 ? "air" : "st", "v" => cueK == 1 ? 1200 : 800});
         }
+        // #519: drei Buddys — nah, weit (am Rand), alt (Ring). Die
+        // Testroute liegt am Äquator um 0/0. Die Schilder von #525/#526
+        // stehen nicht hier: Die Karte zeigen nur Szene 0–2, und die haben
+        // ihre Hinweise schon (auf „angekommen" zeigt die Uhr keins).
+        c.handle({"t" => "u", "l" => [[q2(p[1], 40), q2(p[0], 30), "M", 0], [q2(p[1], -900), q2(p[0], 600), "L", 0],
+            [q2(p[1], 20), q2(p[0], -60), "A", 300]]});
+        c.showBuddies(false);
         // Für die Messung 8.1: Speicher nach jedem Bild in die Konsole.
         var st = System.getSystemStats();
         System.println("demo " + route.size() + " pts scene " + (_demoScene - 1) % scenes.size()
@@ -627,6 +634,13 @@ class TrailBuddyApp extends Application.AppBase {
             _demoRx = 0;
             _demoRound++;
         }
+    }
+
+    //! Meter [m] der Testroute plus [d] m als 1e-5 Grad (am Äquator gut
+    //! 1,11 m je Einheit) — für die Buddys des Vorführmodus.
+    (:demo)
+    hidden function q2(m as Float, d as Number) as Number {
+        return ((m + d) / 1.11).toNumber();
     }
 
     //! Ein Stück der Testroute, wie `WatchRoute.parts` es schickte. Die

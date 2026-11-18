@@ -84,6 +84,17 @@ class NavView extends WatchUi.View {
     hidden var _py as Float = 0.0;
     hidden var _sin as Float = 0.0;
     hidden var _cos as Float = 1.0;
+    //! cos/mpp und sin/mpp, einmal je Bild ([turn]) — sonst teilte [sx]/[sy]
+    //! je Punkt durch [_mpp].
+    hidden var _kc as Float = 1.0;
+    hidden var _ks as Float = 0.0;
+    //! Das Ende des letzten Strichs auf dem Schirm: Schließt der nächste
+    //! dort an (Linien, Spur), rechnet [seg] nur den neuen Punkt um.
+    hidden var _penX as Float = 0.0;
+    hidden var _penY as Float = 0.0;
+    hidden var _penSx as Number = 0;
+    hidden var _penSy as Number = 0;
+    hidden var _penOk as Boolean = false;
     hidden var _mpp as Float = 1.5;
     hidden var _cx as Number = 120;
     hidden var _cy as Number = POS_Y;
@@ -119,6 +130,13 @@ class NavView extends WatchUi.View {
     hidden var _toastUntil as Number = 0;
     //! Das Zeichen vor der Einblendung (#558, TbSym), -1: keins.
     hidden var _toastSym as Number = -1;
+    //! Statt des Zeichens ein Schild (#525: Trail-Moment, -1 ohne Grad)
+    //! oder die Scheibe eines Buddys (#526); -2 bzw. null: keins.
+    hidden var _toastGrade as Number = -2;
+    hidden var _toastInitial as String? = null;
+    //! Buddys auf der Karte (#519): je [x, y, Buchstabe, alt] in den Metern
+    //! der laufenden Ansicht ([WatchCore.showBuddies]); leer ohne.
+    var buddies as Array = [];
     //! #501: Die Frage, ob die Uhr die neue Linie nimmt, bis [_askUntil];
     //! [_askBig]: „START = JA" groß (die erste nach 1.3.x).
     hidden var _askUntil as Number = 0;
@@ -278,6 +296,8 @@ class NavView extends WatchUi.View {
     function toast(text as String) as Void {
         _toast = text;
         _toastSym = -1;
+        _toastGrade = -2;
+        _toastInitial = null;
         _toastUntil = System.getTimer() + TOAST_MS;
         WatchUi.requestUpdate();
     }
@@ -293,8 +313,27 @@ class NavView extends WatchUi.View {
         if (!air && !wh && !"st".equals(k)) { return; }
         _toast = wh ? v + " m" : seconds(v);
         _toastSym = air ? /*S:plane*/10 : wh ? /*S:wheelie*/11 : /*S:stoppie*/12;
+        _toastGrade = -2;
+        _toastInitial = null;
         _toastUntil = System.getTimer() + 3000;
         WatchUi.requestUpdate();
+    }
+
+    //! #525: ein Moment der Ansagen vom Handy (Trail voraus, beginnt,
+    //! geschafft) — Schild und Name für 4 s, an der Stelle der Frage.
+    //! [initial] statt Schild: ein Buddy ist auch unterwegs (#526).
+    function nameCue(name as String, g as Number, initial as String?) as Void {
+        _toast = name;
+        _toastSym = -1;
+        _toastGrade = initial == null ? g : -2;
+        _toastInitial = initial;
+        _toastUntil = System.getTimer() + 4000;
+        WatchUi.requestUpdate();
+    }
+
+    //! Das Schild der Einblendung (Tests): Grad, -2 ohne; Buchstabe.
+    function cueMark() as Array {
+        return [_toastGrade, _toastInitial];
     }
 
     //! Die Einblendung, solange sie steht (Tests).
@@ -344,6 +383,7 @@ class NavView extends WatchUi.View {
     function onUpdate(dc as Dc) as Void {
         var w = dc.getWidth();
         _segLeft = FRAME_SEGS;
+        _penOk = false;
         var done = _ended;
         if (done != null) {
             drawLoader(dc, w, done, true, done.find("\n") != null ? TWO_LINE_TEXT_Y : LOADER_TEXT_Y);
@@ -412,14 +452,14 @@ class NavView extends WatchUi.View {
             drawStatus(dc, w, STATUS_TOP_Y);
             return;
         }
-        _sin = Math.sin(s.heading).toFloat();
-        _cos = Math.cos(s.heading).toFloat();
+        turn(Math.sin(s.heading).toFloat(), Math.cos(s.heading).toFloat());
 
         drawRoute(dc, s);
         if (s.offRoute) {
             drawRejoin(dc, s);
         }
         drawNorth(dc, s.heading, w);
+        drawBuddies(dc, w);
         drawMe(dc);
         if (s.offRoute) {
             drawOffField(dc, s, w);
@@ -558,6 +598,13 @@ class NavView extends WatchUi.View {
             return;
         }
         var ty = y == STATUS_TOP_Y ? /*L:toast_y_map*/82 : /*L:toast_y_page*/176;
+        if (_toastGrade > -2 || _toastInitial != null) {
+            // Auf „angekommen" läge das Schild über der Zusammenfassung —
+            // „geschafft" kommt genau dann; vibriert hat es schon.
+            if (_page == 0 && _state != null && (_state as NavState).arrived) { return; }
+            shieldLine(dc, cx, ty - 12, _toastGrade, t, _toastInitial, true);
+            return;
+        }
         if (_toastSym < 0) {
             pill(dc, cx, ty, t, /*F:toast*/Graphics.FONT_SMALL, TbColors.FIELD, TbColors.TEXT_ON_FIELD);
             return;
@@ -573,6 +620,44 @@ class NavView extends WatchUi.View {
         TbSym.draw(dc, _toastSym, x, ty - 8, TbColors.TEXT_ON_FIELD);
         dc.setColor(TbColors.TEXT_ON_FIELD, Graphics.COLOR_TRANSPARENT);
         dc.drawText(x + sw + 5, ty, font, t, Graphics.TEXT_JUSTIFY_LEFT | Graphics.TEXT_JUSTIFY_VCENTER);
+    }
+
+    //! Ein Buddy als Form (A13, #519): Scheibe mit Buchstaben, weiß
+    //! gesäumt; [stale] (älter als 2 min) nur als Ring. [small]: am Rand
+    //! der Karte, wenn er weiter weg ist, als sie reicht — und im Schild.
+    hidden function drawBuddy(dc as Dc, x as Number, y as Number, initial as String, stale as Boolean, small as Boolean) as Void {
+        var r = small ? 7 : 10;
+        dc.setColor(TbColors.GROUND, Graphics.COLOR_TRANSPARENT);
+        dc.fillCircle(x, y, r + 2);
+        dc.setColor(stale ? TbColors.UNGRADED : TbColors.BUDDY, Graphics.COLOR_TRANSPARENT);
+        dc.fillCircle(x, y, r);
+        if (stale) {
+            dc.setColor(TbColors.GROUND, Graphics.COLOR_TRANSPARENT);
+            dc.fillCircle(x, y, r - 3);
+        }
+        dc.setColor(stale ? TbColors.TEXT : TbColors.GROUND, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(x, y, Graphics.FONT_XTINY, initial, Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
+    }
+
+    //! #519: die Buddys auf der gedrehten Karte; wer weiter weg ist, als
+    //! die Karte reicht, steht klein an ihrem Rand in seiner Richtung.
+    hidden function drawBuddies(dc as Dc, w as Number) as Void {
+        var c = w / 2;
+        var lim = TbRing.MAP_R - 12;
+        for (var i = 0; i < buddies.size(); i++) {
+            var b = buddies[i] as Array;
+            var x = sx(b[0] as Float, b[1] as Float);
+            var y = sy(b[0] as Float, b[1] as Float);
+            var dx = x - c;
+            var dy = y - c;
+            var d = Math.sqrt(dx * dx + dy * dy);
+            var edge = d > lim;
+            if (edge) {
+                x = c + (dx * lim / d).toNumber();
+                y = c + (dy * lim / d).toNumber();
+            }
+            drawBuddy(dc, x, y, b[2] as String, b[3] as Boolean, edge);
+        }
     }
 
     //! Eine Frage sieht immer gleich aus (#513, Konzept-Garmin 11): ein
@@ -652,12 +737,21 @@ class NavView extends WatchUi.View {
 
     // --- Karte -------------------------------------------------------------
 
+    //! Drehung der Karte für dieses Bild — nach [_mpp] gesetzt.
+    hidden function turn(sin as Float, cos as Float) as Void {
+        _sin = sin;
+        _cos = cos;
+        _kc = cos / _mpp;
+        _ks = sin / _mpp;
+        _penOk = false;
+    }
+
     hidden function sx(x as Float, y as Float) as Number {
-        return _cx + (((x - _px) * _cos - (y - _py) * _sin) / _mpp).toNumber();
+        return _cx + ((x - _px) * _kc - (y - _py) * _ks).toNumber();
     }
 
     hidden function sy(x as Float, y as Float) as Number {
-        return _cy - (((x - _px) * _sin + (y - _py) * _cos) / _mpp).toNumber();
+        return _cy - ((x - _px) * _ks + (y - _py) * _kc).toNumber();
     }
 
     //! Ein Stück a→b, wenn seine Hülle das Quadrat ±reach um die Position
@@ -672,12 +766,21 @@ class NavView extends WatchUi.View {
         if (minX > _reach || maxX < -_reach || minY > _reach || maxY < -_reach) { return; }
         if (_segLeft <= 0) { return; }
         _segLeft--;
-        var x1 = sx(ax, ay);
-        var y1 = sy(ax, ay);
+        var x1 = _penSx;
+        var y1 = _penSy;
+        if (!_penOk || ax != _penX || ay != _penY) {
+            x1 = sx(ax, ay);
+            y1 = sy(ax, ay);
+        }
         var x2 = sx(bx, by);
         var y2 = sy(bx, by);
         dc.drawLine(x1, y1, x2, y2);
         if (joint > 0) { dc.fillCircle(x2, y2, joint); }
+        _penX = bx;
+        _penY = by;
+        _penSx = x2;
+        _penSy = y2;
+        _penOk = true;
     }
 
     //! Ohne GPS-Fix die ganze Route, genordet und eingepasst, mit Start
@@ -766,8 +869,7 @@ class NavView extends WatchUi.View {
         _py = (minY + maxY) / 2;
         _mpp = span / (2.0 * OVERVIEW_R);
         if (_mpp < 0.5) { _mpp = 0.5; }
-        _sin = 0.0;
-        _cos = 1.0;
+        turn(0.0, 1.0);
         _cx = w / 2;
         _cy = w / 2 - 16;
         var xs = _route.xs;
@@ -1016,8 +1118,7 @@ class NavView extends WatchUi.View {
         _cy = POS_Y;
         _mpp = ZOOM_MPP[_zoom];
         _reach = 135 * _mpp;
-        _sin = Math.sin(_heading).toFloat();
-        _cos = Math.cos(_heading).toFloat();
+        turn(Math.sin(_heading).toFloat(), Math.cos(_heading).toFloat());
         if (_fixed) {
             var log = _log;
             var n = log.trackCount;
@@ -1035,6 +1136,7 @@ class NavView extends WatchUi.View {
             }
             dc.setPenWidth(1);
             drawNorth(dc, _heading, w);
+            drawBuddies(dc, w);
             drawMe(dc);
         }
         field(dc, w, FIELD_Y, TbColors.FIELD);
@@ -1075,14 +1177,14 @@ class NavView extends WatchUi.View {
         var on = _route.sectionAt(s.alongM);
         if (on >= 0) {
             var b = cum[_route.secTo[on]];
-            shieldLine(dc, cx, FIELD_Y + /*L:field_line1_dy*/2, _route.secGrade[on], _route.secName[on]);
+            shieldLine(dc, cx, FIELD_Y + /*L:field_line1_dy*/2, _route.secGrade[on], _route.secName[on], null, false);
             numberLine(dc, cx, FIELD_Y + /*L:field_line2_dy*/24, meters(b - s.alongM), null);
             return;
         }
         var next = _route.nextSection(s.alongM);
         if (next >= 0) {
             var head = cum[_route.secFrom[next]];
-            shieldLine(dc, cx, FIELD_Y + /*L:field_line1_dy*/2, _route.secGrade[next], _route.secName[next]);
+            shieldLine(dc, cx, FIELD_Y + /*L:field_line1_dy*/2, _route.secGrade[next], _route.secName[next], null, false);
             numberLine(dc, cx, FIELD_Y + /*L:field_line2_dy*/24, meters(head - s.alongM), _route.climbBetween(s.alongM, head));
             return;
         }
@@ -1098,16 +1200,20 @@ class NavView extends WatchUi.View {
     //! Anzeige: Darüber liegt der schwarze Rand mit dem Ring — gegen den
     //! Kreis der Anzeige lief der Name weiter darunter (#511, Abbild).
     //! Auf Höhe der Grundlinie (dort enden die Buchstaben); Schild und
-    //! Abstand brauchen 20 px, 2 px Luft.
-    hidden function shieldLine(dc as Dc, cx as Number, y as Number, g as Number, name as String) as Void {
+    //! Abstand brauchen 20 px, 2 px Luft. Als Hinweis (#525, #526: [pill])
+    //! auf einem schwarzen Schild, mit [ini] statt des S-Grads die Scheibe
+    //! eines Buddys.
+    hidden function shieldLine(dc as Dc, cx as Number, y as Number, g as Number, name as String, ini as String?,
+            pill as Boolean) as Void {
         var font = /*F:field_name*/Graphics.FONT_TINY;
         var fh = dc.getFontHeight(font);
-        var room = chordAround(cx, TbRing.MAP_R, y + Graphics.getFontAscent(font)) - 22;
+        var pad = pill ? 40 : 22;
+        var room = chordAround(cx, TbRing.MAP_R, y + Graphics.getFontAscent(font)) - pad;
         var tw = dc.getTextWidthInPixels(name, font);
         if (tw > room) {
             font = /*F:field_name_small*/Graphics.FONT_XTINY;
             fh = dc.getFontHeight(font);
-            room = chordAround(cx, TbRing.MAP_R, y + Graphics.getFontAscent(font)) - 22;
+            room = chordAround(cx, TbRing.MAP_R, y + Graphics.getFontAscent(font)) - pad;
             tw = dc.getTextWidthInPixels(name, font);
         }
         if (tw > room) {
@@ -1121,7 +1227,15 @@ class NavView extends WatchUi.View {
             name = shown;
         }
         var x = cx - (tw + 20) / 2;
-        drawShield(dc, x + 6, y + fh / 2, g, 5, false, TbColors.FIELD);
+        if (pill) {
+            dc.setColor(TbColors.FIELD, Graphics.COLOR_TRANSPARENT);
+            dc.fillRoundedRectangle(x - 9, y - 2, tw + 38, fh + 4, (fh + 4) / 2);
+        }
+        if (ini != null) {
+            drawBuddy(dc, x + 6, y + fh / 2, ini, false, true);
+        } else {
+            drawShield(dc, x + 6, y + fh / 2, g, 5, false, TbColors.FIELD);
+        }
         dc.setColor(TbColors.TEXT_ON_FIELD, Graphics.COLOR_TRANSPARENT);
         dc.drawText(x + 20, y, font, name, Graphics.TEXT_JUSTIFY_LEFT);
     }

@@ -125,7 +125,7 @@ void main() {
   });
 
   testWidgets('ein Abbruch mitten in den Stücken schickt nur den Rest', (tester) async {
-    final b = _Bench(tester);
+    final b = _Bench(tester, branches: longPhoneBranches);
     b.channel.failRouteAfter = 1;
     await b.phone.open();
     b.phone.navigate(route: longPhoneRoute());
@@ -139,7 +139,7 @@ void main() {
   });
 
   testWidgets('ein verlorenes Stück holt das Nachfragen nach', (tester) async {
-    final b = _Bench(tester);
+    final b = _Bench(tester, branches: longPhoneBranches);
     // Nachricht 0 ist die Ankündigung `n`, 1 und 2 die beiden Stücke.
     b.channel.lose.add(2);
     await b.phone.open();

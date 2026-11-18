@@ -75,6 +75,13 @@ final phoneRoute = [phoneM(0, 0), phoneM(40, 500), phoneM(0, 1000), phoneM(40, 1
 /// in sich zusammen.
 List<LatLng> longPhoneRoute() => [for (var i = 0; i < kWatchMaxPoints; i++) phoneM(i.isEven ? 0 : 30, i * 2.0)];
 
+/// Stummel an jedem zweiten Punkt von [longPhoneRoute]: Seit der Grenze 700
+/// (#519) passen die Punkte allein in EIN Stück (`kWatchPartInts`), erst
+/// mit den Stummeln (je zwei Zahlen) braucht die Route zwei.
+Future<List<WatchBranch>> longPhoneBranches(List<LatLng> line) async => [
+      for (var i = 1; i < line.length; i += 2) (index: i, at: line[i], end: phoneM(-20, i * 2.0)),
+    ];
+
 final phoneSections = NavSections([
   const NavTrailSection(startM: 1500, endM: 2500, trailId: 't', name: 'Talweg', grade: 2),
 ]);
@@ -119,8 +126,11 @@ class _Jumped extends AirtimeLiveNotifier {
 /// Das Handy mit Uhr: Navigation (Graph mit zwei parallelen Wegen für das
 /// Umplanen ab der Uhr), freie Fahrt, die Fahrten der Uhr.
 class WatchPhone {
-  WatchPhone({FakeGarminBridge? bridge, this.trails = const [], this.jumped = false, this.branches})
+  WatchPhone({FakeGarminBridge? bridge, this.trails = const [], this.jumped = false, this.branches, this.overrides = const []})
       : bridge = bridge ?? FakeGarminBridge.connected();
+
+  /// Was ein Test zusätzlich ersetzt (etwa die Namen der Buddys, #519).
+  final List<Override> overrides;
 
   final FakeGarminBridge bridge;
   final List<Trail> trails;
@@ -181,6 +191,7 @@ class WatchPhone {
       ridePermissionProvider.overrideWithValue(() async => null),
       if (jumped) airtimeLiveProvider.overrideWith(_Jumped.new),
       airtimeClockProvider.overrideWithValue(() => clockUs),
+      ...overrides,
     ]);
     c.read(watchSyncProvider);
     await c.read(watchRideInboxProvider.notifier).start();

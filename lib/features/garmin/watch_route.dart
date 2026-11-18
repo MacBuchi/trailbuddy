@@ -41,7 +41,10 @@ const kWatchMaxDelta = 32767;
 /// `garmin/CLAUDE.md`): 2000 und 1750 enden beim Laden in „Out of Memory",
 /// 1500 lädt noch, aber erst bei 800 nimmt die Uhr während der Fahrt eine
 /// zweite gleich große Route an (darüber `x` mem) — Spitze 102 von 124 KB.
-const kWatchMaxPoints = 800;
+/// Seit 1.8.0 (#525/#526/#519, Betreiber 2026-11-18) 700: Mit 800 hatte
+/// `main` beim Wechsel nur 0,2 KB Luft, und die ~2,3 KB der Buddys und
+/// Schilder sprengten sie.
+const kWatchMaxPoints = 700;
 
 /// Startwert der Vereinfachung (Konzept 2); passt es nicht, verdoppelt.
 const kWatchSimplifyM = 5.0;
@@ -563,6 +566,10 @@ Map<String, Object>? watchBestsOf(AirtimeLog log, {bool on = false}) {
 /// (#514): `{t: "c", k: "air"|"wh"|"st", v}` — Flugzeit und Stoppie in
 /// ms, Wheelie in Metern. Eine ältere Uhr übergeht die Art.
 const kWatchCue = 'c';
+
+/// Die Buddys mit genauer Position an die Uhr (#519, `watch_buddies.dart`):
+/// `{t: "u", l: [[la, lo, Buchstabe, Alter s], …]}`.
+const kWatchBuddies = 'u';
 
 /// Höchstens ein Hinweis je [kWatchCueEvery]: Eine Nachricht braucht über
 /// Garmin Connect ~3,5 s (8.2) — dazwischen gehen nur die Bestwerte.

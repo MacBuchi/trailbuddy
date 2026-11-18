@@ -1026,7 +1026,18 @@ Wheelie (Winkel, Anzahl). Wörter bleiben, wo ein Zeichen nichts sagt:
 „TRAIL", „ANGEKOMMEN", „KM/H", Fragen und Warnungen. Einblendungen („Trail beginnt",
 „Aufzeichnung läuft") 2,5 s („Trail beginnt",
 „Aufzeichnung läuft") 2,5 s als schwarzes Schild in `FONT_SMALL` bei y 82
-bzw. 176; die Menüs (Pause, Trail endet) sind `Menu2` der Uhr. Der
+bzw. 176; die Menüs (Pause, Trail endet) sind `Menu2` der Uhr.
+**Seit 1.8.0 (#525, #526, #519)** dasselbe schwarze Schild als Hinweis
+für 4 s mit Schild als Form und Trailname (Ansage: Trail voraus, beginnt,
+geschafft) oder mit der Scheibe eines Buddys und „Max unterwegs" — Name
+in `FONT_TINY`, zu lang erst `FONT_XTINY`, dann „…" wie die Infofläche;
+auf „angekommen" kein Schild (es läge über der Zusammenfassung). **Buddys
+auf der Karte** als Scheibe (A13: Form, nicht Farbe) — `00AAFF`, die
+nächste MIP-Farbe zu `mapLines.buddy`, weißer Saum, Anfangsbuchstabe weiß
+in `FONT_XTINY`, r 10; weiter weg, als die Karte reicht, klein (r 7) am
+Rand in seiner Richtung; älter als 2 min als grauer Ring mit schwarzem
+Buchstaben. Die Zelle eines Homies zeigt die Uhr nicht (5 km passen
+nicht auf eine Karte von 300 m). Der
 Build-Stempel der Übersicht steht deshalb bei y 56. Die Punkte entlang der Mittellinie
 (volle Kreise, kein Polygon) schreibt `tool/brand_icons.py` nach
 `garmin/resources/logo/`. Angekommen: eine schwarze

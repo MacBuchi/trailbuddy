@@ -19,6 +19,7 @@ import '../../l10n/l10n.dart';
 import '../../models/friendship.dart';
 import '../friends/buddy_alias.dart';
 import '../friends/friend_providers.dart';
+import '../garmin/watch_providers.dart' show watchSyncProvider;
 import '../rides/ride_confirm_notify.dart';
 import '../rides/ride_providers.dart';
 import '../routing/voice_service.dart' show VoiceSpeak, speakVoice;
@@ -149,6 +150,8 @@ class _NearbyHostState extends ConsumerState<NearbyHost> {
     final name = ref.read(buddyNamesViewProvider).of(buddyId, friendship.otherUsername(uid));
     final l = context.l10n;
     final body = l.nearbyNotice(name);
+    // An der Uhr kurz vibrieren, Scheibe und Name (#526) — wenn sie da ist.
+    ref.read(watchSyncProvider.notifier).buddyNear(name);
     // Mit „Ansagen" (#525) und laufender Fahrt auch übers Ohr — das Handy
     // steckt dann meist in der Tasche.
     if (ref.read(voiceCuesProvider) && ref.read(rideProvider) != null) {

@@ -165,7 +165,10 @@ Die Ausnahme für Vibration ist die Uhr: Sie vibriert einmal, wenn man
 die Route verlässt — eine Warnung, kein Abbiegehinweis
 (`konzept-garmin.md` 0, Betreiber 2026-11-03); dazu ein kurzer Stoß,
 wenn eine neue Route vom Handy angekommen ist — eine Empfangsbestätigung,
-keine Ansage (Betreiber 2026-11-05, #449). Geplant wird nur über Kacheln, die auf dem Gerät liegen (mit
+keine Ansage (Betreiber 2026-11-05, #449); mit „Ansagen" ein kurzer Stoß
+mit Schild und Name an den Momenten oben (Trail voraus, beginnt,
+geschafft — nie eine Richtung) und beim Hinweis „Buddy unterwegs"
+(Uhr-App 1.8.0, #525/#526). Geplant wird nur über Kacheln, die auf dem Gerät liegen (mit
 Empfang ergänzt vom eigenen Host). Es gibt EINEN Planer — Runde oder
 Route in einem Werkzeug, sein Kern Trail-zuerst; eine Route von A nach B
 ist der Fall ohne gewählten Trail. Planen hält die Oberfläche nie an:

@@ -29,6 +29,8 @@ import '../../core/stall_watch.dart';
 import '../../models/trail.dart';
 import '../profile/profile_providers.dart' show riderProfileProvider;
 import '../rides/airtime_live.dart';
+import '../nearby/buddy_map_layer.dart' show nearbyBuddyNameProvider;
+import '../nearby/nearby_core.dart' show BuddySighting, buddyMapEntries;
 import '../rides/ride_providers.dart' show rideProvider;
 import '../rides/sensor_fusion.dart' show FusionEvent, FusionLive;
 import '../rides/trail_values.dart' show AirtimeLog;
@@ -45,6 +47,7 @@ import 'garmin_bridge.dart';
 import 'watch_free.dart' show nearestTrailLine, freeSections;
 import 'watch_ride_inbox.dart';
 import 'watch_branches.dart';
+import 'watch_buddies.dart';
 import 'watch_route.dart';
 
 /// So lange wartet das Senden auf die Höhen; danach geht die Route ohne.
@@ -238,6 +241,21 @@ class WatchSync extends Notifier<WatchSyncState> {
   /// sie fragt nicht, bevor eine neue Linie kommt (#501).
   String? _watchVer;
 
+  /// Die Uhr-App hat sich in diesem Lauf gemeldet — erst dann gehen
+  /// Hinweise und Buddys hin (#525, #526, #519); eine geschlossene Uhr-App
+  /// verwürfe sie ohnehin.
+  bool _heard = false;
+
+  /// Was die App gerade von den Buddys weiß (#519) — gesetzt von
+  /// [buddiesChanged]; kein `listen`, denn der Provider hängt an der
+  /// Anmeldung, und die Uhr kommt ohne sie aus.
+  List<BuddySighting> _sightings = const [];
+
+  /// Die Buddy-Liste, die zuletzt hinging, und wann (#519).
+  String? _lastBuddies;
+  DateTime? _buddiesAt;
+  Timer? _buddiesTimer;
+
   /// Eine Umplan-Rechnung für die Uhr läuft schon.
   bool _replanRunning = false;
 
@@ -276,7 +294,9 @@ class WatchSync extends Notifier<WatchSyncState> {
       _nudgeTimer?.cancel();
       _positionTimer?.cancel();
       _detectTimer?.cancel();
+      _buddiesTimer?.cancel();
     });
+
     // Jeder neue Bestwert und jeder Wechsel der Erkennung geht hinterher,
     // solange eine Route auf der Uhr ist; ein neues Ereignis zuerst als
     // Hinweis (#514). Die Fahrt zu Ende heißt: aus, dann nichts mehr.
@@ -523,6 +543,10 @@ class WatchSync extends Notifier<WatchSyncState> {
   }
 
   void _onAnswer(Object? message) {
+    if (message is Map && !_heard) {
+      _heard = true;
+      _sendBuddies();
+    }
     final hello = watchHelloOf(message);
     if (hello.hello) return _onHello(hello.id, hello.bad, hello.v, hello.ver);
     // #501 (Konzept 2, was der Alarm auslöst): Weicht die Uhr ab, rechnet
@@ -747,6 +771,53 @@ class WatchSync extends Notifier<WatchSyncState> {
     final cue = watchCueOf(newest, now);
     if (cue != null) _cueAtUs = now;
     return cue;
+  }
+
+  /// Hinweise der Ansagen an die Uhr (#525), wenn sie sich gemeldet hat.
+  void sendCues(List<Map<String, Object>> cues) {
+    if (!_heard || cues.isEmpty) return;
+    unawaited(ref.read(garminBridgeProvider).send(cues));
+  }
+
+  /// „[name] ist auch unterwegs" an die Uhr (#526) — dieselbe Meldung wie
+  /// am Handy, einmal je Buddy und Fahrt.
+  void buddyNear(String name) {
+    final cue = watchBuddyNearOf(name);
+    if (!_heard || cue == null) return;
+    unawaited(ref.read(garminBridgeProvider).send([cue]));
+  }
+
+  /// Neue Sichtungen (`BuddySightingsNotifier.set`).
+  void buddiesChanged(List<BuddySighting> sightings) {
+    _sightings = sightings;
+    _sendBuddies();
+  }
+
+  /// Die Buddys mit genauer Position an die Uhr (#519): bei jeder Änderung,
+  /// höchstens alle [kWatchBuddiesEvery]; eine leere Liste geht einmal,
+  /// damit die Uhr sie wegnimmt.
+  void _sendBuddies() {
+    if (!_heard) return;
+    final at = _buddiesAt;
+    final now = DateTime.now();
+    if (at != null && now.difference(at) < kWatchBuddiesEvery) {
+      _buddiesTimer ??= Timer(kWatchBuddiesEvery - now.difference(at), () {
+        _buddiesTimer = null;
+        _sendBuddies();
+      });
+      return;
+    }
+    final entries = buddyMapEntries(_sightings, homieOwners: const {}, now: now);
+    // Nie gesehen, nichts zu sagen — und die Namen hängen an der Anmeldung.
+    if (entries.isEmpty && _lastBuddies == null) return;
+    final msg = watchBuddiesOf(entries, ref.read(nearbyBuddyNameProvider));
+    final list = msg['l']! as List;
+    // Verglichen ohne das Alter: Wie alt ein Stand wird, zählt die Uhr selbst.
+    final key = [for (final b in list) (b as List).take(3).join(',')].join(';');
+    if (key == _lastBuddies || (list.isEmpty && _lastBuddies == null)) return;
+    _lastBuddies = key;
+    _buddiesAt = now;
+    unawaited(ref.read(garminBridgeProvider).send([msg]));
   }
 
   /// Die Position des Handys an die Uhr, gleich und dann alle

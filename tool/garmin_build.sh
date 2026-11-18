@@ -20,6 +20,11 @@
 #                                        Ereignisse über den Kanal (:bench) —
 #                                        build/garmin/trailbuddy-bench.prg,
 #                                        gestartet von garmin_bench.sh chain
+#   tool/garmin_build.sh --debug         ohne Optimierer und mit Debug-Infos
+#                                        (Vorgabe sonst: -r -O 2 wie das
+#                                        Store-Paket, Tests -O 2; die Adressen
+#                                        eines Absturzes löst die
+#                                        .prg.debug.xml daneben auf)
 #   tool/garmin_build.sh --prepare-only --demo
 #                                        nur die Kopie unter build/garmin/src
 #                                        vorbereiten (Version.mc, Testroute,
@@ -64,7 +69,8 @@ while [ $# -gt 0 ]; do
     --demo-route) demoRoute=1; shift ;;
     --bench) mode=bench; shift ;;
     --prepare-only) prepare=1; shift ;;
-    -h|--help) sed -n '2,39p' "$0"; exit 0 ;;
+    --debug) debug=1; shift ;;
+    -h|--help) sed -n '2,42p' "$0"; exit 0 ;;
     *) echo "Unbekannt: $1" >&2; exit 2 ;;
   esac
 done
@@ -145,13 +151,24 @@ if [ "$mode" = test ]; then
   prg="$OUT/trailbuddy-test.prg"
   extra=(--unit-test)
 fi
+# Der Compiler baut jede .prg wie das Store-Paket (-r -O 2): Gemessen im
+# Vorführmodus (1000 Punkte, fēnix 5, 2026-11-18) 110,5 KB ohne, 109,2 mit
+# -O 2, 105,9 mit -r -O 2 — sonst misst der Kettenstand einen Bau, den
+# niemand fährt. Tests nur -O 2 (die Prüfungen sollen bleiben, wie sie
+# sind); --debug wie bis 1.7. GARMIN_OPT ersetzt die Schalter (Messungen).
+if [ "${debug:-0}" = 1 ]; then opt=""
+elif [ "$mode" = test ]; then opt="-O 2"
+else opt="-r -O 2"; fi
+# shellcheck disable=SC2206
+opt_args=(${GARMIN_OPT-$opt})
+extra+=(${opt_args[@]+"${opt_args[@]}"})
 if [ "$prepare" = 1 ]; then
   # Der Plan für den Bau im Container: welcher Modus, welche Datei.
   if [ "$store" = 1 ] && [ "$mode" = build ]; then
     echo "--prepare-only baut kein Store-Paket (.iq) — das bleibt beim Betreiber." >&2
     exit 2
   fi
-  if [ "$store" = 1 ]; then prg="$OUT/trailbuddy-store.prg"; extra=(-r); fi
+  if [ "$store" = 1 ]; then prg="$OUT/trailbuddy-store.prg"; extra=(-r -O 2); fi
   {
     echo "mode=$mode"
     echo "prg=$(basename "$prg")"
@@ -170,7 +187,7 @@ if [ "$store" = 1 ] && [ "$mode" = build ]; then
   echo "gebaut: ${iq#"$ROOT"/} (Stempel $stamp)"
   exit 0
 fi
-if [ "$store" = 1 ]; then prg="$OUT/trailbuddy-store.prg"; extra=(-r); fi
+if [ "$store" = 1 ]; then prg="$OUT/trailbuddy-store.prg"; extra=(-r -O 2); fi
 "$SDK/bin/monkeyc" -d "$DEVICE" -f "$OUT/src/monkey.jungle" -o "$prg" -y "$KEY" -w ${extra[@]+"${extra[@]}"}
 echo "gebaut: ${prg#"$ROOT"/}"
 if [ "$mode" = build ] && [ "$demoRoute" = 0 ]; then
