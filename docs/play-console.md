@@ -44,6 +44,7 @@ das oft passiert.
 | Löschen einzelner Daten, ohne das Konto zu löschen (optional) | **Ja**, URL `https://macbuchi.github.io/trailbuddy/konto-loeschen.html#einzelne-daten` | Der Abschnitt steht seit 0.189.2 auf der Seite (englisch `delete-account.html#single-data`). **Bis er nach einer Beförderung live ist: „Nein"** — Google verlangt, dass die Seite die Schritte zeigt (so am 2026-11-19 eingetragen) |
 | Unabhängige Sicherheitsüberprüfung? | **Nein** | |
 | Enthält die App Werbung? | **Nein** | Keine Werbe- oder Analyse-SDKs in `pubspec.yaml`; von Firebase nur Messaging, kein Analytics, kein Crashlytics |
+| Verwendet die App Werbe-IDs? | **Nein** | Gemessen am AAB (0.189.1): kein `com.google.android.gms.permission.AD_ID` im zusammengeführten Manifest. Bringt ein neues SDK sie mit, ändert sich die Antwort — dann `tools:node="remove"` oder ehrlich „Ja" |
 
 ### Datentypen
 
@@ -359,20 +360,15 @@ Deine MTB-Trails auf der Karte – geteilt nur mit deinen Buddys.
 
 (63 Zeichen)
 
-### Vollständige Beschreibung (Entwurf, max. 4000 Zeichen)
+### Vollständige Beschreibung (max. 4000 Zeichen; Stand 2026-11-19, 2301 Zeichen)
 
 ```
 TrailBuddy ist das Netz für die Trails, die auf keiner öffentlichen Plattform stehen.
 
-Du fährst sie, deine Buddys fahren sie — und bisher stehen sie in einer Chatgruppe
-oder nirgends. TrailBuddy hält sie auf einer Karte fest, mit Schwierigkeit, Zustand
-und dem, was gerade los ist. Sichtbar nur für dich und die Buddys, mit denen du
-verbunden bist. Keine öffentliche Karte, keine Suche nach Trails, kein Ranking über
-alle.
+Du fährst sie, deine Buddys fahren sie — und bisher stehen sie in einer Chatgruppe oder nirgends. TrailBuddy hält sie auf einer Karte fest, mit Schwierigkeit, Zustand und dem, was gerade los ist. Sichtbar nur für dich und die Buddys, mit denen du verbunden bist. Keine öffentliche Karte, keine Suche nach Trails, kein Ranking über alle.
 
 TRAILS
-• Fahrt aufzeichnen oder GPX-Datei importieren — die App findet die Abfahrten und
-  schlägt sie als Trails vor. Du wählst, was beigesteuert wird.
+• Fahrt aufzeichnen oder GPX-Datei importieren — die App findet die Abfahrten und schlägt sie als Trails vor. Du wählst, was beigesteuert wird.
 • Die ganze Fahrt bleibt auf deinem Gerät. Hinaus geht nur der Trail.
 • Derselbe Trail existiert nur einmal, auch wenn ihn zehn Buddys fahren.
 • Schwierigkeit S0–S5, Charakter (flowig, verblockt, Sprünge …), Sterne.
@@ -380,26 +376,30 @@ TRAILS
 ZUSTAND
 • Melden, was gilt: offen, gesperrt, zerstört, verändert — und wie gepflegt.
 • Bestätigt ist eine Meldung, wenn sie jemand gefahren ist oder vor Ort war.
-• Meldungen für deine Buddys: „Gesperrt — Baum liegt quer nach der zweiten Kehre."
+• Ein Text und ein Foto für deine Buddys: „Gesperrt — Baum liegt quer nach der zweiten Kehre."
 • Auf Wunsch eine Benachrichtigung, wenn ein Buddy etwas meldet.
 
+BUDDYS
+• Nachrichten direkt an einen Buddy.
+• Buddys unterwegs: Sieh, wer gerade in deiner Gegend fährt — nur als grobes Gebiet, nie als Position, und nur, solange du willst.
+• Gruppenfahrt: Bei einer gemeinsamen Runde seht ihr euch genau auf der Karte, für diese eine Fahrt.
+
 UNTERWEGS
+• Runden über deine Trails planen: Die App sucht einen Weg, der möglichst viele davon mitnimmt, mit sinnvollen Anstiegen.
+• Navigieren ohne Abbiegehinweise: Die Karte dreht mit, auf Wunsch als kleines Fenster über anderen Apps, und kurze Ansagen sagen den nächsten Trail an.
 • Bereiche der Karte speichern und ohne Empfang weiterfahren.
 • Orte auf der Karte: Wasser, Einkehr, Rad-Service.
 • Anfahrt: der Trailkopf geht an die Navi-App deiner Wahl.
-• Runden über deine Trails planen und navigieren: Die Karte dreht mit, auf
-  Wunsch als kleines Fenster über anderen Apps — ohne Abbiegehinweise.
 • Fahrten und Trails als GPX exportieren — deine Daten bleiben deine.
 
-Kein Werbebanner, kein Tracking, keine In-App-Käufe. TrailBuddy ist ein privates
-Projekt und finanziert sich nicht über deine Daten.
+Kein Werbebanner, kein Tracking, keine In-App-Käufe. TrailBuddy ist ein privates Projekt und finanziert sich nicht über deine Daten.
 
-Hinweis: TrailBuddy sagt nicht, ob ein Weg befahren werden darf oder gerade sicher
-ist. Du fährst auf eigene Verantwortung — beachte Sperrungen, Wegeregeln und
-Naturschutz vor Ort.
+Hinweis: TrailBuddy sagt nicht, ob ein Weg befahren werden darf oder gerade sicher ist. Du fährst auf eigene Verantwortung — beachte Sperrungen, Wegeregeln und Naturschutz vor Ort.
 
 Impressum: https://macbuchi.github.io/trailbuddy/impressum.html
 ```
+
+**Die Garmin-Uhr fehlt mit Absicht**, bis die Uhr-App im Connect-IQ-Store steht (`docs/garmin-store.md`) — sonst verspräche der Eintrag, was niemand installieren kann.
 
 **Nicht hineinschreiben:** Verweise auf APK-Downloads oder Selbst-Updates
 (Play verbietet sie; der Play-Build hat den Weg abgeschaltet), keine
@@ -410,9 +410,10 @@ laut Quelle".
 
 ### Grafiken
 
-**Noch offen** (#39): Unter `store/` fehlt alles. Gebraucht werden das
-App-Symbol 512 × 512 (aus `tool/brand_icons.py`, nie von Hand), eine
-Feature-Grafik 1024 × 500 und Screenshots 1080 × 1920. Screenshots nur mit
+**Noch offen** (#39): Das App-Symbol 512 × 512 ist da:
+`store/play_icon_512.png`, randlos (Play rundet selbst ab), erzeugt von
+`tool/brand_icons.py`, nie von Hand. Es fehlen noch die Feature-Grafik
+1024 × 500 und die Screenshots 1080 × 1920 (zwei bis acht). Screenshots nur mit
 einem Testkonto und erfundenen Trails aufnehmen — ein echter Trail im Store
 wäre genau die öffentliche Karte, die Konzept 7 ausschließt.
 
