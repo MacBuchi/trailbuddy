@@ -10,6 +10,8 @@
   Die App verhält sich genau wie vorher.
 - Vorbereitung für den Play Store: Neue Versionen können von selbst in
   den internen Test bei Google Play gehen.
+- Die Seite „Konto löschen“ sagt jetzt auch, wie du einzelne Daten
+  löschst, ohne das ganze Konto zu löschen.
 
 ## Routen auf der Uhr
 

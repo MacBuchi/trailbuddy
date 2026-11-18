@@ -13,18 +13,24 @@ samt den Manifesten der Plugins, die Netzziele in
 > diese Datei in denselben PR (PR-Vorlage, dritter Haken) — dann sieht man
 > beim Review, dass die Konsole nachzuziehen ist.
 
-Stand: 1. Oktober 2026, App-Version 0.68.0+79. **Noch nicht eingereicht** —
-vor dem Store-Eintrag steht die rechtliche Prüfung (Konzept 10.7, #39), und
-der Entwurf der Nutzungsbedingungen liegt daneben in
+Stand: 19. November 2026, App-Version 0.189.2. **App-Eintrag angelegt
+(2026-11-19), Datensicherheit und Inhaltsbewertung ausgefüllt, noch nicht
+eingereicht** — vor der Produktion stehen die rechtliche Prüfung (Konzept
+10.7, #39) und Blockieren/Melden (#584, Abschnitt „App-Inhalte"); der
+Entwurf der Nutzungsbedingungen liegt daneben in
 `docs/nutzungsbedingungen-entwurf.md`.
 
 ---
 
 ## 1. Datensicherheit (Data safety)
 
-Anders als in PilzBuddy gibt es noch **keine CSV zum Importieren**
-(`tool/play_data_safety.py` dort). Beim ersten Ausfüllen von Hand nach den
-Tabellen unten; ein Werkzeug lohnt sich erst, wenn sich Antworten ändern.
+**`docs/play-data-safety.csv`** ist der Export des Formulars, wie es in der
+Console steht (2026-11-19; dabei einen verrutschten Haken korrigiert:
+Fotos → Zweck nur App-Funktionalität). Ändert sich eine Antwort unten,
+gehört die CSV in denselben PR — die Console importiert sie unter
+*Datensicherheit → Importieren*, statt dass man alles neu klickt. Ein
+Generator wie PilzBuddys `tool/play_data_safety.py` lohnt sich erst, wenn
+das oft passiert.
 
 ### Vorfragen
 
@@ -33,7 +39,9 @@ Tabellen unten; ein Werkzeug lohnt sich erst, wenn sich Antworten ändern.
 | Erhebt oder teilt deine App die geforderten Nutzerdatentypen? | **Ja** | Konto, beigesteuerte Trail-Linien, Beiträge, Meldungen, Fehlerberichte |
 | Werden alle Daten bei der Übertragung verschlüsselt? | **Ja** | Alle Ziele sind HTTPS: das Supabase-Projekt, `tiles.mcbuchi.de` (Karte und Orte), `raw.githubusercontent.com` (offizielle Trails), `api.github.com` und `github.com` (Update-Prüfung, **nur GitHub-APK**), `macbuchi.github.io` (Web-App und Rechtsseiten); nur im Browser zusätzlich `fonts.gstatic.com` und — erst nach dem Einschalten der Benachrichtigungen — `www.gstatic.com`. Push läuft serverseitig über Firebase Cloud Messaging, die Konto-Mails über Brevo; die App selbst spricht mit keinem der beiden. `test/privacy_policy_test.dart` hält die Liste vollständig |
 | Können Nutzer die Löschung ihrer Daten beantragen? | **Ja** | In der App unter *Profil → Konto löschen* (sofort, Cascade über alle Tabellen) **und** ohne App über die URL unten. Zusätzlich je Trail „Löschen" im Trail-Blatt (`withdraw_contribution`: eigene Aufzeichnungen, Beitrag, Meldungen, Hinweise) und je gemerktem Startpunkt „Löschen" (#543) |
+| Wie können Nutzer ein Konto erstellen? | **Nutzername und Passwort**, **OAuth** | E-Mail und Passwort; Google, GitHub, Discord über Supabase Auth (#398) |
 | URL zum Löschen des Kontos | `https://macbuchi.github.io/trailbuddy/konto-loeschen.html` | Erreichbar erst nach der ersten Beförderung (`promote.yml` baut Pages) |
+| Löschen einzelner Daten, ohne das Konto zu löschen (optional) | **Ja**, URL `https://macbuchi.github.io/trailbuddy/konto-loeschen.html#einzelne-daten` | Der Abschnitt steht seit 0.189.2 auf der Seite (englisch `delete-account.html#single-data`). **Bis er nach einer Beförderung live ist: „Nein"** — Google verlangt, dass die Seite die Schritte zeigt (so am 2026-11-19 eingetragen) |
 | Unabhängige Sicherheitsüberprüfung? | **Nein** | |
 | Enthält die App Werbung? | **Nein** | Keine Werbe- oder Analyse-SDKs in `pubspec.yaml`; von Firebase nur Messaging, kein Analytics, kein Crashlytics |
 
@@ -55,7 +63,7 @@ verarbeitet*, *erforderlich oder optional* — plus die Zwecke.
 | **Fotos und Videos → Fotos** | Ja | Nein¹ | Optional | App-Funktionalität | Ein Foto je Text einer Meldung (#37, Patch 026): Bild ≤ 1024 px und Vorschau, ohne EXIF/XMP (entfernt und geprüft in `lib/core/photo_pipeline.dart`), im privaten Bucket `trail-note-photos`. Sichtbar für genau die, die den Text sehen; 90 Tage, mit dem Text gelöscht |
 | **Nachrichten → Andere In-App-Nachrichten** | Ja | Nein¹ | Optional | App-Funktionalität | `buddy_messages` (#34, Patch 021): Text, Absender, Empfänger, Zeitpunkt, gelesen. Nur Absender und Empfänger sehen sie, 30 Tage, nicht Ende-zu-Ende-verschlüsselt (Datenschutzerklärung). Schreiben nur unter Buddys oder bei offener Anfrage (höchstens drei je Seite). Mit eingeschalteten Benachrichtigungen geht der Text gekürzt über FCM (Patch 022, siehe ⁴) |
 | **App-Aktivität → Sonstige Aktionen** | Ja | Nein¹ | Optional | App-Funktionalität | Airtime unter Buddys (#36 Schritt 6, Patch 029; ab Werk aus, eigener Schalter): `trail_airtime` — je Trail der Bestwert (beste Airtime einer Durchfahrt, längster Sprung, Zehntelsekunden, Monat), sichtbar für direkte Buddys, die den Trail sehen; `airtime_counters` — eine Zeile je Nutzer mit Airtime und Sprüngen der letzten 30 Tage, Tag der Rechnung und Titeln, sichtbar für direkte Buddys. Auf dem Gerät aus den Sensordaten gerechnet; keine Fahrt, keine Position, keine Landewucht. Ausschalten löscht beides |
-| **App-Info und -Leistung → Absturzprotokolle** | Ja | Nein | Erforderlich | App-Funktionalität | `error_reports`: Kontext, Fehlertyp, Meldung, Stack, App-Version, Plattform, ggf. Nutzer-id. Dazu beim nächsten Start Androids eigene Beendigungsgründe (ANR, Absturz, nativer Absturz mit Tombstone) — keine Position, keine Trails |
+| **App-Info und -Leistung → Absturzprotokolle** | Ja | Nein | Erforderlich | App-Funktionalität, Analysen (Fehlersuche) | `error_reports`: Kontext, Fehlertyp, Meldung, Stack, App-Version, Plattform, ggf. Nutzer-id. Dazu beim nächsten Start Androids eigene Beendigungsgründe (ANR, Absturz, nativer Absturz mit Tombstone) — keine Position, keine Trails |
 | **App-Info und -Leistung → Diagnose** | Ja | Nein | Erforderlich | App-Funktionalität | Speicherwerte (RSS/PSS in MB) und der Haupt-Thread-Auszug, die mit einem Beendigungsgrund kommen (`AppExit.summary`) |
 | **Geräte- oder andere IDs** | Ja⁴ | **Ja⁴** | Optional | App-Funktionalität | `push_devices.token` — die FCM-Gerätekennung, sobald jemand Benachrichtigungen einschaltet |
 
@@ -89,8 +97,11 @@ Tabelle.
 „Als GPX exportieren", das System-Teilen-Menü zeigt IHM die Empfänger, die
 App schickt selbst nichts ins Netz.
 
-**Kurzzeitige Verarbeitung („processed ephemerally"):** bei allen Typen
-**nein** — alles Erhobene liegt in PostgreSQL.
+**Kurzzeitige Verarbeitung („processed ephemerally"):** nur beim
+**ungefähren Standort ja** — die Zelle von „Buddys unterwegs" wird nie
+gespeichert. Bei allen anderen Typen **nein**: Sie liegen in PostgreSQL.
+Beim genauen Standort ist die Gruppenfahrt zwar flüchtig, die Trail-Linien
+und Startpunkte aber nicht, und die Frage gilt je Typ.
 
 ### Die Ermessensfragen — hier lohnt der zweite Blick
 
@@ -405,6 +416,19 @@ Feature-Grafik 1024 × 500 und Screenshots 1080 × 1920. Screenshots nur mit
 einem Testkonto und erfundenen Trails aufnehmen — ein echter Trail im Store
 wäre genau die öffentliche Karte, die Konzept 7 ausschließt.
 
+### App-Inhalte (Dashboard „Wichtige Angaben zu den Inhalten deiner App")
+
+| Punkt | Antwort | Begründung |
+|---|---|---|
+| Datenschutzerklärung | `https://macbuchi.github.io/trailbuddy/datenschutz.html` | |
+| App-Zugriff (Anmeldedaten) | Funktionen eingeschränkt → Testkonto für die Prüfer | Ohne Konto nur die Anmeldung. Wo Adresse und Passwort liegen, steht im DocuHub, nicht hier |
+| Anzeigen | Nein | |
+| Zielgruppe | Empfehlung **nur 18+** — Entscheidung des Betreibers offen | Standort teilen und Nachrichten unter Nutzern; unter 18 prüft Google strenger, unter 13 gilt die Familien-Richtlinie. Kein Dokument nennt bisher ein Mindestalter — gehört dann auch in die Nutzungsbedingungen |
+| Gesundheit | Empfehlung **„Aktivität und Fitness"** — Entscheidung des Betreibers offen | Die App zeichnet Radfahrten auf. Kein Widerspruch zur Datensicherheit: Die Fahrten bleiben auf dem Gerät, „Gesundheit und Fitness" ist dort nicht erhoben. Kein Health Connect |
+| Behörden-Apps | Nein | |
+| Finanzfunktionen | Keine | |
+| Kategorie | Sport | Abschnitt 2 |
+
 ### Inhaltsbewertung (IARC-Fragebogen)
 
 Ehrlich antworten, sonst passt die Bewertung nicht zum Binary:
@@ -422,6 +446,16 @@ Ehrlich antworten, sonst passt die Bewertung nicht zum Binary:
   ungespeichert.
 - Nutzergenerierte Inhalte werden nicht moderiert; Feedback wird
   öffentlich.
+
+Die Fragen zu nutzergenerierten Inhalten, so am 2026-11-19 beantwortet:
+Kategorie „Alle anderen App-Typen"; Inhalte im App-Paket nein · Text und
+Bilder austauschen **ja** · geteilte Nutzerinhalte die primäre Quelle
+**ja** (die Trails sind Beiträge) · öffentliche Nacktheit bzw. Gewalt nein
+(nichts ist öffentlich) · **blockieren nein · melden nein** (#584) ·
+Chatmoderation nein · nur mit eingeladenen Freunden **ja**. Mit #584
+werden „blockieren" und „melden" ja — dann hier und in der Console
+ändern. Googles Richtlinie für nutzergenerierte Inhalte verlangt beides;
+vor der Produktion nötig, für den internen Test nicht.
 
 ### Vor dem Upload
 

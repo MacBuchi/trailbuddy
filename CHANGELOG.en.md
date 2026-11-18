@@ -10,6 +10,8 @@
   The app behaves exactly as before.
 - Getting ready for the Play Store: new versions can go to internal
   testing on Google Play on their own.
+- The "Delete account" page now also explains how to delete single data
+  without deleting the whole account.
 
 ## Routes on the watch
 
