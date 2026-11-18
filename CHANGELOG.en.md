@@ -2,6 +2,23 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## Group ride
+
+*Version 0.187.0, 2026-11-18*
+
+- **Buddies on the map while you ride.** Turn on "Live" during a ride
+  (the new button above the record button): buddies nearby who have it
+  on too show up exactly on your map — as a disc with their initial —
+  and you on theirs.
+- **Per ride only, off by default.** It is over when the ride ends.
+  "Home" and the first kilometre apply as with "Buddies out riding";
+  nothing is stored.
+- **Homies**: in the buddy list you choose per buddy whether they are a
+  homie. Homies see your coarse cell of about 5 km as a square on the
+  map, even from far away — never more exact, not live.
+- **Honest without signal**: an old position is shown faded and says
+  "4 min ago"; after a quarter of an hour it disappears.
+
 ## Buddies out riding
 
 *Version 0.186.0, 2026-11-18*

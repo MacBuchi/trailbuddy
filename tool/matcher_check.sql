@@ -1982,4 +1982,73 @@ begin
   delete from realtime.messages where topic = topic_a;
 end $$;
 
+\echo -- 35. Gruppenfahrt (Patch 032, #519)
+-- Der Paarkanal `live:<a>:<b>` (a < b): lesen und Presence setzen nur die
+-- beiden, nur als direkte Buddys, nur ohne „sieht mich" aus in einer der
+-- beiden Richtungen; ein falsch sortierter oder fremder Name ist nein.
+-- `nearby_homie_owners()` nennt nur, wer MICH gewählt hat.
+do $$
+declare
+  ua uuid := '11111111-1111-4111-8111-111111111111';
+  ub uuid := '22222222-2222-4222-8222-222222222222';
+  ug uuid := '77777777-7777-4777-8777-777777777777';
+  pair text := 'live:' || ua || ':' || ub;
+  peek text := 'select least(count(*), 1) from realtime.messages where topic = %L and extension = %L';
+  track text := 'insert into realtime.messages (topic, extension, payload) values (%L, %L, %L)';
+  code text;
+begin
+  insert into realtime.messages (topic, extension, payload) values (pair, 'presence', '{"p":[1,2]}');
+
+  perform set_config('realtime.topic', pair, true);
+  perform tb_test.check(tb_test.count_as(ua, format(peek, pair, 'presence')) = 1, 'Anna liest den Paarkanal');
+  perform tb_test.check(tb_test.count_as(ub, format(peek, pair, 'presence')) = 1, 'Bernd liest den Paarkanal');
+  perform tb_test.check(tb_test.count_as(ug, format(peek, pair, 'presence')) = 0, 'Gina liest den Paarkanal nicht');
+  code := tb_test.state_of(ub, format(track, pair, 'presence', '{"p":[3,4]}'));
+  perform tb_test.check(code is null, format('Bernd setzt Presence im Paarkanal (%s)', code));
+  code := tb_test.state_of(ug, format(track, pair, 'presence', '{"p":[5,6]}'));
+  perform tb_test.check(code = '42501', format('Gina setzt nichts in den Paarkanal (%s)', code));
+  code := tb_test.state_of(ua, format(track, pair, 'broadcast', '{}'));
+  perform tb_test.check(code = '42501', format('Broadcast im Paarkanal ist nicht freigegeben (%s)', code));
+
+  -- Falsch sortiert, verlängert oder ein Paar ohne mich: nein.
+  perform set_config('realtime.topic', 'live:' || ub || ':' || ua, true);
+  perform tb_test.check(tb_test.count_as(ua, format(peek, pair, 'presence')) = 0, 'falsch sortiert: nichts');
+  perform set_config('realtime.topic', pair || 'x', true);
+  perform tb_test.check(tb_test.count_as(ua, format(peek, pair, 'presence')) = 0, 'verlängerter Paarname: nichts');
+  perform set_config('realtime.topic', 'live:' || ua || ':' || ug, true);
+  perform tb_test.check(tb_test.count_as(ua, format(peek, pair, 'presence')) = 0, 'Paar mit Nicht-Buddy: nichts');
+  -- Der Paarkanal öffnet den Kanal `nearby:` nicht, und umgekehrt.
+  perform set_config('realtime.topic', 'nearby:' || ub, true);
+  code := tb_test.state_of(ua, format(track, 'nearby:' || ub, 'presence', '{"c":"1:2"}'));
+  perform tb_test.check(code = '42501', format('Anna setzt nichts in Bernds nearby-Kanal (%s)', code));
+  perform set_config('realtime.topic', pair, true);
+
+  -- „sieht mich" aus, in jeder Richtung: der Paarkanal ist zu — für beide.
+  perform tb_test.exec_as(ub, format('insert into public.buddy_nearby_prefs (user_id, buddy_id, hidden) values (%L, %L, true)', ub, ua));
+  perform tb_test.check(tb_test.count_as(ua, format(peek, pair, 'presence')) = 0, 'Bernd schließt Anna aus: Anna liest nichts');
+  perform tb_test.check(tb_test.count_as(ub, format(peek, pair, 'presence')) = 0, 'Bernd schließt Anna aus: Bernd liest auch nichts');
+  code := tb_test.state_of(ub, format(track, pair, 'presence', '{"p":[3,4]}'));
+  perform tb_test.check(code = '42501', format('ausgeschlossen: Bernd setzt nichts (%s)', code));
+  perform tb_test.exec_as(ub, format('delete from public.buddy_nearby_prefs where user_id = %L and buddy_id = %L', ub, ua));
+  perform tb_test.check(tb_test.count_as(ua, format(peek, pair, 'presence')) = 1, 'wieder offen: Anna liest');
+
+  -- Homies: Anna wählt Bernd. Bernd erfährt es, Gina nicht, Anna nicht über sich.
+  perform tb_test.check(tb_test.count_as(ub, format('select count(*) from public.nearby_homie_owners() o where o = %L', ua)) = 0,
+                        'ohne Wahl: Bernd ist kein Homie');
+  perform tb_test.exec_as(ua, format('insert into public.buddy_nearby_prefs (user_id, buddy_id, homie) values (%L, %L, true)', ua, ub));
+  perform tb_test.check(tb_test.count_as(ub, format('select count(*) from public.nearby_homie_owners() o where o = %L', ua)) = 1,
+                        'Bernd erfährt, dass Anna ihn gewählt hat');
+  perform tb_test.check(tb_test.count_as(ug, 'select count(*) from public.nearby_homie_owners()') = 0, 'Gina erfährt nichts');
+  perform tb_test.check(tb_test.count_as(ua, 'select count(*) from public.nearby_homie_owners()') = 0, 'Anna ist nicht ihr eigener Homie');
+  code := tb_test.state_of(ua, format('insert into public.buddy_nearby_prefs (user_id, buddy_id, homie) values (%L, %L, true)', ua, ug));
+  perform tb_test.check(code = '42501', format('kein Homie unter Nicht-Buddys (%s)', code));
+  -- Homie und ausgeschlossen zugleich: dann eben nicht.
+  perform tb_test.exec_as(ua, format('update public.buddy_nearby_prefs set hidden = true where user_id = %L and buddy_id = %L', ua, ub));
+  perform tb_test.check(tb_test.count_as(ub, 'select count(*) from public.nearby_homie_owners()') = 0, 'ausgeschlossen schlägt Homie');
+  perform tb_test.exec_as(ua, format('delete from public.buddy_nearby_prefs where user_id = %L and buddy_id = %L', ua, ub));
+
+  perform set_config('realtime.topic', '', true);
+  delete from realtime.messages where topic = pair;
+end $$;
+
 \echo -- Alle Prüfungen bestanden.

@@ -200,3 +200,20 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     bzw. einfügen. Gegenprobe: Lese-Policy ohne `may_read_nearby` ⇒
     „Gina liest nichts" rot. Beide Wege lokal mit
     `tool/schema_local_test.sh` im `postgis/postgis:16-3.4`-Container.
+- **Gruppenfahrt** (Patch 032, #519; `docs/konzept-geraete.md` 6.3):
+  wieder KEINE Tabelle für Orte. Zwei Dinge, die man wissen muss:
+  - **Paarkanal `live:<a>:<b>`** (Kennungen als Text sortiert, also einer
+    je Paar): `app_internal.may_live` prüft den Namen per Regex, die
+    Reihenfolge, ob der Aufrufer einer der beiden ist, `are_friends` und
+    `hidden` in BEIDEN Richtungen; dieselbe Funktion für Lesen
+    (`live_presence_read`) und Setzen (`live_presence_track`). Ob der Buddy
+    in der Nähe ist, prüft der Server NICHT — das entscheidet das Gerät
+    des Senders.
+  - **`buddy_nearby_prefs.homie`** plus `nearby_homie_owners()` (Definer,
+    nur authenticated): wer MICH gewählt hat, ohne `hidden`, nur direkte
+    Buddys. Die RLS der Tabelle bleibt „nur der Besitzer".
+  `matcher_check.sql` Block 35 (Gegenprobe: `may_live` ohne den
+  Ausschluss ⇒ „Bernd schließt Anna aus: Anna liest nichts" rot),
+  `grants_check.sql` „buddy_nearby", `schema_check.sh` Spalte `homie` und
+  die RPC. Beide Wege lokal mit `tool/schema_local_test.sh` im
+  `postgis/postgis:16-3.4`-Container.

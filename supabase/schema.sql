@@ -2784,6 +2784,7 @@ create table public.buddy_nearby_prefs (
   hidden boolean not null default false,
   muted boolean not null default false,
   updated_at timestamptz not null default now(),
+  homie boolean not null default false,
   primary key (user_id, buddy_id),
   check (user_id <> buddy_id)
 );
@@ -2854,6 +2855,66 @@ create policy nearby_presence_track on realtime.messages for insert
   to authenticated
   with check (realtime.messages.extension = 'presence'
     and (select realtime.topic()) = 'nearby:' || (select auth.uid())::text);
+
+-- Gruppenfahrt (Patch 032, #519): genaue Position live im Paarkanal
+-- `live:<a>:<b>` (nur die beiden, direkte Buddys, keiner ausgeschlossen;
+-- WEM sie geht, entscheidet das Gerät des Senders — nur in der Nähe), und
+-- „Homies" (`buddy_nearby_prefs.homie`), denen die App die Zelle auf der
+-- Karte zeigt. Begründung und Grenzen im Kopf von patch_032.
+
+-- Darf der Aufrufer im Paarkanal [topic] lesen und Presence setzen? Nur
+-- genau `live:<a>:<b>` mit a < b, der Aufrufer ist einer der beiden, beide
+-- sind direkte Buddys, und keiner hat den anderen ausgeschlossen. Alles
+-- andere ist nein — ohne Cast-Fehler.
+create or replace function app_internal.may_live(topic text)
+returns boolean language plpgsql stable security definer set search_path = public as $$
+declare
+  a uuid;
+  b uuid;
+  me uuid := auth.uid();
+  uuid_re constant text := '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}';
+begin
+  if me is null or topic is null
+     or topic !~ ('^live:' || uuid_re || ':' || uuid_re || '$') then
+    return false;
+  end if;
+  a := substr(topic, 6, 36)::uuid;
+  b := substr(topic, 43, 36)::uuid;
+  if not (a::text < b::text) or me not in (a, b) then
+    return false;
+  end if;
+  return app_internal.are_friends(a, b)
+    and not exists (select 1 from buddy_nearby_prefs p
+                    where p.hidden
+                      and ((p.user_id = a and p.buddy_id = b)
+                        or (p.user_id = b and p.buddy_id = a)));
+end;
+$$;
+revoke all on function app_internal.may_live(text) from public, anon;
+grant execute on function app_internal.may_live(text) to authenticated;
+
+create policy live_presence_read on realtime.messages for select
+  to authenticated
+  using (realtime.messages.extension = 'presence'
+    and app_internal.may_live((select realtime.topic())));
+create policy live_presence_track on realtime.messages for insert
+  to authenticated
+  with check (realtime.messages.extension = 'presence'
+    and app_internal.may_live((select realtime.topic())));
+
+-- Wer hat MICH als Homie gewählt? Nur direkte Buddys, die mich nicht
+-- ausgeschlossen haben — sonst bekäme ich ihre Zelle ohnehin nicht.
+create or replace function public.nearby_homie_owners()
+returns setof uuid language sql stable security definer set search_path = public as $$
+  select p.user_id
+  from buddy_nearby_prefs p
+  where p.buddy_id = auth.uid()
+    and p.homie
+    and not p.hidden
+    and app_internal.are_friends(p.user_id, p.buddy_id);
+$$;
+revoke all on function public.nearby_homie_owners() from public, anon;
+grant execute on function public.nearby_homie_owners() to authenticated;
 
 -- ============================================================
 -- Aufräumjobs und Push-Versand (nur wo pg_cron verfügbar ist)
@@ -2946,5 +3007,6 @@ insert into public.applied_patches (filename) values
   ('patch_028_note_report_link.sql'),
   ('patch_029_airtime.sql'),
   ('patch_030_start_points.sql'),
-  ('patch_031_buddy_nearby.sql')
+  ('patch_031_buddy_nearby.sql'),
+  ('patch_032_group_ride.sql')
 on conflict do nothing;

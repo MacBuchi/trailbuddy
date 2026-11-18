@@ -620,6 +620,20 @@ Map<String, HighlightDemo> highlightDemos(AppLocalizations l) => {
       ),
     ]),
   ),
+  // Gruppenfahrt (#519): Homies wählt man je Buddy (das Blatt an der
+  // Zeile); Live schaltet man in der Fahrt — der Text sagt beides.
+  'group-ride': HighlightDemo(
+    route: '/friends',
+    script: _demo('group-ride', [
+      CoachStep(
+        title: l.demoGroupRideTitle,
+        text: l.demoGroupRideText,
+        lit: [BuddysCoach.row],
+        requires: [BuddysCoach.row],
+      ),
+      _findBuddyFirst(l),
+    ]),
+  ),
   // Buddy in der Nähe (#526): der Schalter steht unter
   // „Benachrichtigungen" — die Zeile zeigt, wo.
   'buddies-nearby': HighlightDemo(

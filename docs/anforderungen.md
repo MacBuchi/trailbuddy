@@ -44,6 +44,11 @@ Tastendruck". Was man sieht, ist ausschließlich aus sichtbaren
 Beiträgen gerechnet. Ebenso „Buddys unterwegs" (#526): Die Zelle lesen nur
 direkte Buddys, die man nicht über „sieht mich" ausgeschlossen hat
 (Policies auf `realtime.messages`, `tool/matcher_check.sql` Block 34).
+Ebenso die Gruppenfahrt (#519, E4): Die genaue Position geht nur in den
+Paarkanal zweier direkter Buddys, von denen keiner den anderen
+ausgeschlossen hat (Block 35). **Homies** sind eine Auswahl UNTER den
+direkten Buddys (Betreiber 2026-11-17) — eine Stufe weniger, nie eine
+darüber hinaus: Sie sehen die grobe Zelle auf der Karte.
 *Quelle:* Konzept 0 (3), 10.1.
 *Geprüft durch:* RLS, `fake_trails.dart`, `tool/matcher_check.sql`.
 
@@ -62,6 +67,14 @@ direkten Buddys (A2), ungespeichert, nie im Umkreis von 1 km um ein
 gerätelokales „Zuhause" und nie im ersten Kilometer einer Aufzeichnung
 (`docs/konzept-geraete.md` 6.1). Ein Buddy sieht die Zelle auch aus der
 Ferne (Betreiber 2026-11-18, „Realtime je Nutzer").
+Darauf baut die Gruppenfahrt (#519, E4, Betreiber 2026-11-17/18): In
+einer Fahrt, in der man „Live" einschaltet (je Fahrt, ab Werk aus), geht
+die genaue Position an Buddys in derselben oder einer Nachbarzelle, die
+Live auch anhaben — als Presence, ungespeichert, kein Verlauf, mit den
+Regeln von „Zuhause" und dem ersten Kilometer. Ehrlich benannt
+(`docs/konzept-geraete.md` 6.3): Die Zelle empfangen technisch alle
+direkten Buddys, die Karte zeigt sie nur Homies; und wer die Nähe
+vortäuscht, bekäme die genaue Position.
 *Quelle:* Konzept 0 (1), 10.4, 13 (4).
 *Geprüft durch:* Review — eine neue Tabelle oder ein Upload, der mit
 gefahrener Zeit wächst, ist eine Konzeptänderung.

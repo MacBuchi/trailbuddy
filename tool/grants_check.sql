@@ -151,5 +151,12 @@ begin
   if has_function_privilege('authenticated', 'app_internal.nearby_prefs_on_unfriend()', 'execute') then
     raise exception 'authenticated darf nearby_prefs_on_unfriend aufrufen';
   end if;
+  if has_function_privilege('anon', 'app_internal.may_live(text)', 'execute') then
+    raise exception 'anon darf may_live aufrufen';
+  end if;
+  if has_function_privilege('anon', 'public.nearby_homie_owners()', 'execute')
+     or not has_function_privilege('authenticated', 'public.nearby_homie_owners()', 'execute') then
+    raise exception 'nearby_homie_owners: falsche Rechte';
+  end if;
   raise notice 'grants_check buddy_nearby: ok';
 end $$;

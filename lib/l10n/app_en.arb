@@ -2052,5 +2052,22 @@
   "highlightBuddiesNearbyTitle": "Buddies out riding",
   "highlightBuddiesNearbyText": "If a buddy is riding near you right now, TrailBuddy tells both of you — once per ride, with a coarse cell instead of your position.",
   "demoBuddiesNearbyTitle": "Buddies out riding",
-  "demoBuddiesNearbyText": "Under “Notifications” you switch it on or off and set “Home” — the app never shares there. In the buddy list each buddy has two switches."
+  "demoBuddiesNearbyText": "Under “Notifications” you switch it on or off and set “Home” — the app never shares there. In the buddy list each buddy has two switches.",
+  "buddyMapAgo": "{minutes} min ago",
+  "buddyMapLiveSemantics": "Buddy {initial}, exact position",
+  "buddyMapCellSemantics": "Buddy {initial}, coarse cell",
+  "buddyMapLiveNow": "{name} — exact position, live",
+  "buddyMapLiveAgo": "{name} — exact position from {minutes} min ago (no signal?)",
+  "buddyMapCellNow": "{name} is somewhere in this square (~5 km) right now — coarse, not live",
+  "buddyMapCellAgo": "{name} was somewhere in this square (~5 km) {minutes} min ago",
+  "liveShareOnTooltip": "Turn on live with buddies",
+  "liveShareOffTooltip": "Turn off live with buddies",
+  "liveShareOnNote": "Live on: buddies nearby who have live on too see exactly where you are — until this ride ends.",
+  "liveShareOffNote": "Live off: nobody sees your exact position any more.",
+  "nearbyBuddyHomie": "{name} is a homie",
+  "nearbyBuddyHomieHint": "{name} sees your coarse cell (~5 km) on the map, even from far away — never more exact, not live.",
+  "highlightGroupRideTitle": "Group ride",
+  "highlightGroupRideText": "Turn on “Live” during a ride: buddies nearby who have it on too show up exactly on your map. Homies, chosen per buddy, see your coarse cell even from far away. Nothing is stored.",
+  "demoGroupRideTitle": "Homies and live",
+  "demoGroupRideText": "The icon on the row lets you make a buddy a homie. Live is switched on during a ride with the button above the record button."
 }

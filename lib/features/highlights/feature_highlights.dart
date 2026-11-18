@@ -83,6 +83,16 @@ class FeatureHighlight {
 final kFeatureHighlights = <FeatureHighlight>[
   // ─── Highlights ──────────────────────────────────────────────────
   FeatureHighlight(
+    id: 'group-ride',
+    since: '0.187.0',
+    kind: HighlightKind.highlight,
+    tab: HighlightTab.buddys,
+    icon: Icons.share_location,
+    title: (l) => l.highlightGroupRideTitle,
+    text: (l) => l.highlightGroupRideText,
+    target: '/friends',
+  ),
+  FeatureHighlight(
     id: 'buddies-nearby',
     since: '0.186.0',
     kind: HighlightKind.highlight,
