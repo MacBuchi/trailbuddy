@@ -4,10 +4,12 @@
 
 ## Tidied up
 
-*Version 0.189.1, 2026-11-18*
+*Versions 0.189.1–0.189.2, 2026-11-18*
 
 - Nothing new to see: the source code is now formatted consistently.
   The app behaves exactly as before.
+- Getting ready for the Play Store: new versions can go to internal
+  testing on Google Play on their own.
 
 ## Routes on the watch
 

@@ -40,7 +40,10 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
   verbindet oder welche Berechtigung sie braucht, gehört die Datei in
   denselben PR (PR-Vorlage). Die Berechtigungsliste ist am AAB gemessen
   (0.158.0, 2026-11-07, `bundletool dump manifest`); vor dem Upload mit
-  dessen AAB wiederholen. `docs/nutzungsbedingungen-entwurf.md`
+  dessen AAB wiederholen. Seit #579 lädt `release.yml` das AAB als
+  Entwurf in den internen Track, sobald das Secret
+  `PLAY_SERVICE_ACCOUNT_JSON` da ist (Einrichtung: `play-console.md`
+  Abschnitt 3; der erste Upload ist Handarbeit). `docs/nutzungsbedingungen-entwurf.md`
   ist ein ENTWURF für die rechtliche Prüfung (Konzept 10.7) mit den
   offenen Fragen; er gilt nicht und ist nirgends verlinkt, bis er geprüft
   als `web/nutzungsbedingungen.html` erscheint.

@@ -445,3 +445,52 @@ einmal. Trails und Konto liegen auf dem Server und bleiben; verloren gehen
 gespeicherte Kartenbereiche, der Ausgangskorb und **alle Fahrten** (sie
 liegen nur auf dem Gerät — vorher als GPX exportieren). Das gehört in die
 Einladung der Tester. Den Fingerprint des Upload-Keys führt der DocuHub.
+
+---
+
+## 3. AAB-Upload aus CI
+
+Seit #579 lädt `release.yml` das AAB bei jedem Versionssprung als
+**Entwurf** in den internen Test-Track (Muster PilzBuddy 1.91.0).
+Sichtbar wird ein Stand erst, wenn ihn jemand in der Console freigibt —
+dieselbe Trennung wie Prerelease und `promote.yml`. Bis das Secret
+existiert, wird der Schritt übersprungen, und die Run-Summary verweist
+hierher.
+
+**Warum der erste Upload trotzdem Handarbeit ist:** Die
+Play-Developer-API legt keine App-Einträge an, und Play nimmt
+API-Uploads für eine App erst an, nachdem einmal von Hand ein Bundle
+hochgeladen wurde.
+
+Einmalige Einrichtung, in dieser Reihenfolge:
+
+1. **App-Eintrag anlegen** (Paketname `de.mcbuchi.trailbuddy`, ab dem
+   ersten Upload unveränderlich) und das **erste AAB von Hand** in den
+   internen Test laden — das Artefakt `android-aab` eines Release-Laufs,
+   nie die APK. Dabei Play App Signing annehmen (Abschnitt 2, „Vor dem
+   Upload"). Gleich danach nachsehen, ob die Regel „12 Tester, 14 Tage"
+   gilt.
+2. **Dienstkonto:** Am einfachsten das von PilzBuddy wiederverwenden —
+   es liegt im selben Entwicklerkonto. Seine Mail in der Play Console
+   unter **Nutzer und Berechtigungen** für TrailBuddy einladen, und
+   denselben JSON-Schlüssel hier als Secret hinterlegen (Schritt 4).
+   Ein eigenes Konto ginge auch: Google Cloud Console → Dienstkonto →
+   JSON-Schlüssel, keine Cloud-Rollen nötig, die Rechte kommen von Play.
+3. **Berechtigung** für diese App: **„Apps in Test-Tracks
+   veröffentlichen"** (so heißt sie in der Console; eine engere Stufe
+   „nur Entwürfe" gibt es nicht — dass CI nur Entwürfe anlegt, ist das
+   `status: draft` in `release.yml`). Kein Produktions-Recht, kein
+   Konto-Admin.
+4. Den JSON-Inhalt als Repo-Secret **`PLAY_SERVICE_ACCOUNT_JSON`**
+   hinterlegen.
+
+Ab dann gilt: Versionssprung ⇒ Entwurf im internen Track. Freigeben
+bleibt Handarbeit in der Console.
+
+Wer hier landet, weil der Schritt **rot** ist statt übersprungen: Das
+Secret existiert, aber der Schlüssel ist widerrufen, das Dienstkonto aus
+der Console entfernt, oder es fehlt das Recht für diese App. Ein falscher
+Paketname fällt vorher auf: `test/release_workflow_test.dart` hält ihn
+mit der `applicationId` aus Gradle zusammen. Ein Versionscode, den Play
+schon kennt, wird abgelehnt — `BUILD` steigt deshalb nie zurück
+(CLAUDE.md).
