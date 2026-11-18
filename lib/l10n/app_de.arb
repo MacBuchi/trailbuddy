@@ -11030,5 +11030,124 @@
   "demoBuddiesNearbyText": "Unter „Benachrichtigungen“ schaltest du es an oder aus und legst „Zuhause“ fest — dort meldet sich die App nie. In der Buddy-Liste gibt es je Buddy zwei Schalter.",
   "@demoBuddiesNearbyText": {
     "description": "Vorführung „Buddys unterwegs“ (#526): Text am Profil-Eintrag „Benachrichtigungen“."
+  },
+  "buddyMapAgo": "vor {minutes} min",
+  "@buddyMapAgo": {
+    "description": "Karte, Buddy-Scheibe: kurze Zeile darunter, wie alt die Position ist.",
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "buddyMapLiveSemantics": "Buddy {initial}, genaue Position",
+  "@buddyMapLiveSemantics": {
+    "description": "Karte: Vorlesetext der Scheibe eines Buddys, der live teilt.",
+    "placeholders": {
+      "initial": {
+        "type": "String"
+      }
+    }
+  },
+  "buddyMapCellSemantics": "Buddy {initial}, grobe Zelle",
+  "@buddyMapCellSemantics": {
+    "description": "Karte: Vorlesetext der Scheibe eines Homies, nur grob (Zelle ~5 km).",
+    "placeholders": {
+      "initial": {
+        "type": "String"
+      }
+    }
+  },
+  "buddyMapLiveNow": "{name} — genaue Position, live",
+  "@buddyMapLiveNow": {
+    "description": "Karte, Tipp auf einen Buddy, der gerade live teilt.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "buddyMapLiveAgo": "{name} — genaue Position von vor {minutes} min (kein Empfang?)",
+  "@buddyMapLiveAgo": {
+    "description": "Karte, Tipp auf einen Buddy, dessen letzte genaue Position alt ist.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "buddyMapCellNow": "{name} ist gerade irgendwo in diesem Quadrat (~5 km) — grob, nicht live",
+  "@buddyMapCellNow": {
+    "description": "Karte, Tipp auf einen Homie: nur seine grobe Zelle ist bekannt.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "buddyMapCellAgo": "{name} war vor {minutes} min irgendwo in diesem Quadrat (~5 km)",
+  "@buddyMapCellAgo": {
+    "description": "Karte, Tipp auf einen Homie, dessen Zelle nicht mehr geteilt wird.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "liveShareOnTooltip": "Live mit Buddys einschalten",
+  "@liveShareOnTooltip": {
+    "description": "Kartenknopf während einer Fahrt: genaue Position mit Buddys in der Nähe teilen."
+  },
+  "liveShareOffTooltip": "Live mit Buddys ausschalten",
+  "@liveShareOffTooltip": {
+    "description": "Kartenknopf während einer Fahrt, wenn Live an ist."
+  },
+  "liveShareOnNote": "Live an: Buddys in der Nähe, die Live auch anhaben, sehen dich genau — bis zum Ende dieser Fahrt.",
+  "@liveShareOnNote": {
+    "description": "Leiste nach dem Einschalten von „Live mit Buddys“."
+  },
+  "liveShareOffNote": "Live aus: Niemand sieht dich mehr genau.",
+  "@liveShareOffNote": {
+    "description": "Leiste nach dem Ausschalten von „Live mit Buddys“."
+  },
+  "nearbyBuddyHomie": "{name} ist ein Homie",
+  "@nearbyBuddyHomie": {
+    "description": "Blatt je Buddy: Schalter — darf dieser Buddy meine grobe Zelle auf der Karte sehen, auch von weit weg?",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "nearbyBuddyHomieHint": "{name} sieht deine grobe Zelle (~5 km) auf der Karte, auch von weit weg — nie genauer, nicht live.",
+  "@nearbyBuddyHomieHint": {
+    "description": "Blatt je Buddy: Unterzeile zu „Homie“.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "highlightGroupRideTitle": "Gruppenfahrt",
+  "@highlightGroupRideTitle": {
+    "description": "Neuheiten: Titel der Gruppenfahrt (Buddys auf der Karte)."
+  },
+  "highlightGroupRideText": "Schalte in einer Fahrt „Live“ ein: Buddys in der Nähe, die es auch anhaben, siehst du genau auf der Karte. Homies, die du je Buddy wählst, sehen deine grobe Zelle auch von weit weg. Nichts wird gespeichert.",
+  "@highlightGroupRideText": {
+    "description": "Neuheiten: Text der Gruppenfahrt."
+  },
+  "demoGroupRideTitle": "Homies und Live",
+  "@demoGroupRideTitle": {
+    "description": "Vorführung Gruppenfahrt: Titel des Schritts an der Buddy-Zeile."
+  },
+  "demoGroupRideText": "Über das Zeichen an der Zeile wählst du, ob ein Buddy ein Homie ist. Live schaltest du in der Fahrt über den Knopf über der Aufnahme ein.",
+  "@demoGroupRideText": {
+    "description": "Vorführung Gruppenfahrt: Text des Schritts an der Buddy-Zeile."
   }
 }

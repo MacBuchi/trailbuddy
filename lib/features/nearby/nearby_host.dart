@@ -76,12 +76,15 @@ class _NearbyHostState extends ConsumerState<NearbyHost> {
   late final NearbyEngine _engine;
   late final AppLifecycleListener _lifecycle;
   Timer? _tick;
+  bool _wasActive = false;
   final _subs = <ProviderSubscription<Object?>>[];
 
   @override
   void initState() {
     super.initState();
-    _engine = NearbyEngine(ref.read(nearbyRepositoryProvider), onNotice: _notice);
+    _engine = NearbyEngine(ref.read(nearbyRepositoryProvider), onNotice: _notice, onSightings: (list) {
+      if (mounted) ref.read(buddySightingsProvider.notifier).set(list);
+    });
     _lifecycle = AppLifecycleListener(
       onStateChange: (s) => ref
           .read(appForegroundProvider.notifier)
@@ -95,6 +98,7 @@ class _NearbyHostState extends ConsumerState<NearbyHost> {
     watch(nearbyPrefsProvider);
     watch(rideProvider);
     watch(currentUserIdProvider);
+    watch(liveShareProvider);
     _sync();
   }
 
@@ -113,12 +117,20 @@ class _NearbyHostState extends ConsumerState<NearbyHost> {
     // gemeldet — lieber eine Meldung zu spät als eine, die stumm war.
     final prefs = ref.read(nearbyPrefsProvider).valueOrNull;
     final ride = ref.read(rideProvider);
+    // Live (#519) nur in einer Fahrt, mit dem Schalter dieser Fahrt.
+    final live = active && ride != null && ref.read(liveShareProvider);
     unawaited(_engine.sync(
       mine: active ? NearbyCell.of(position.lat, position.lon) : null,
       buddies: buddies,
       muted: prefs == null ? null : {for (final p in prefs.values) if (p.muted) p.buddyId},
       session: ride?.startedAt ?? _appSession,
+      live: live,
+      position: live ? position : null,
     ));
+    // Wer mich als Homie gewählt hat, kann sich geändert haben — einmal je
+    // Beginn des Teilens neu fragen.
+    if (active && !_wasActive) ref.invalidate(homieOwnersProvider);
+    _wasActive = active;
     if (active && _tick == null) {
       _tick = Timer.periodic(kNearbyTick, (_) => _sync());
     } else if (!active) {

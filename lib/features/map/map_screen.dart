@@ -21,6 +21,10 @@ import '../feedback/feedback_dialog.dart';
 import '../help/map_tour.dart';
 import '../help/tab_tours.dart' show startWelcomeTour;
 import '../highlights/highlight_sheet.dart' show maybeShowHighlights;
+import '../nearby/buddy_map_layer.dart';
+import '../nearby/nearby_core.dart' show BuddyMapEntry;
+import '../nearby/nearby_providers.dart';
+import '../nearby/nearby_widgets.dart' show LiveShareButton;
 import '../rides/airtime_live.dart';
 import '../rides/airtime_live_window.dart';
 import '../rides/climb_limit_row.dart' show offerClimbLimitAfter, takePendingClimbLimit;
@@ -841,6 +845,15 @@ class _MapScreenState extends ConsumerState<MapScreen> {
               unawaited(_routeTo(p.position, name: p.name, saved: true));
             },
             onRemember: (p) => unawaited(rememberStartPoint(context, ref, p.position, name: p.name)));
+      // Ein Buddy (#519): wer, wie genau, wie alt.
+      case final BuddyMapHit b:
+        ScaffoldMessenger.of(context)
+          ..clearSnackBars()
+          ..showSnackBar(SnackBar(
+            key: const ValueKey('buddy-map-hit'),
+            content: Text(buddyMapHitText(context.l10n, b)),
+            persist: false,
+          ));
     }
   }
 
@@ -1543,6 +1556,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     final contourState = ref.watch(contourStateProvider).valueOrNull;
     final contours = contourState?.contours;
     final showContours = contours != null && contours.lines.isNotEmpty && !ref.watch(pipModeProvider);
+    final buddies = ref.watch(pipModeProvider) ? const <BuddyMapEntry>[] : ref.watch(buddyMapEntriesProvider);
     final layers = MapViewLayers(
       contours: showContours
           ? MapViewContours(key: contours.key, lines: contours.lines, labels: ref.watch(contourLabelsProvider))
@@ -1550,6 +1564,8 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       polygons: [
         ?mask,
         ...?pending?.polygons,
+        // Homies (#519): das Quadrat der Zelle — grob, ehrlich grob.
+        ...buddyCellPolygons(buddies),
       ],
       circles: [
         if (position != null && position.accuracy > 0)
@@ -1701,6 +1717,8 @@ class _MapScreenState extends ConsumerState<MapScreen> {
             alignment: Alignment.topCenter,
             child: const Icon(Icons.location_on, size: 36, color: AppColors.brand),
           ),
+        // Buddys (#519) unter der eigenen Position.
+        ...buddyMarkers(buddies, ref.watch(nearbyBuddyNameProvider)),
         if (position != null)
           MapViewMarker(
             key: const ValueKey('my-position'),
@@ -2190,6 +2208,8 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                                   .set(!ref.read(rideKeepScreenOnProvider)),
                             ),
                           ],
+                          // Live mit Buddys (#519): je Fahrt, ab Werk aus.
+                          if (canRecord && ride != null) const LiveShareButton(),
                           if (canRecord && ride != null) ...[
                             const SizedBox(height: 14),
                             MapRoundButton(

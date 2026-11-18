@@ -2,6 +2,23 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Gruppenfahrt
+
+*Version 0.187.0, 2026-11-18*
+
+- **Buddys auf der Karte, während ihr fahrt.** Schalte in einer Fahrt
+  „Live" ein (der neue Knopf über der Aufnahme): Buddys in der Nähe, die
+  es auch anhaben, siehst du genau auf der Karte — als Scheibe mit ihrem
+  Anfangsbuchstaben — und sie dich.
+- **Nur je Fahrt, ab Werk aus.** Mit dem Ende der Fahrt ist es vorbei.
+  „Zuhause" und der erste Kilometer gelten wie bei „Buddys unterwegs";
+  gespeichert wird nichts.
+- **Homies**: In der Buddy-Liste wählst du je Buddy, ob er ein Homie
+  ist. Homies sehen deine grobe Zelle von rund 5 km als Quadrat auf der
+  Karte, auch von weit weg — nie genauer, nicht live.
+- **Ohne Empfang ehrlich**: Eine alte Position steht blass da und sagt
+  „vor 4 min"; nach einer Viertelstunde verschwindet sie.
+
 ## Buddys unterwegs
 
 *Version 0.186.0, 2026-11-18*

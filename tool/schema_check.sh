@@ -409,7 +409,9 @@ check_get_protected "start_points (gemerkte Startpunkte)" \
 # Spalten von NearbyRepository.prefColumns. Wer welchen Kanal lesen darf, prüft
 # matcher_check.sql Block 34 (Policies auf realtime.messages).
 check_get_protected "buddy_nearby_prefs (Buddy in der Nähe)" \
-  "/rest/v1/buddy_nearby_prefs?select=buddy_id,hidden,muted&limit=1"
+  "/rest/v1/buddy_nearby_prefs?select=buddy_id,hidden,muted,homie&limit=1"
+# Gruppenfahrt (Patch 032, #519): wer mich als Homie gewählt hat.
+check_rpc_protected "nearby_homie_owners-RPC" "nearby_homie_owners" '{}'
 
 if [ "$fail" -ne 0 ]; then
   echo "::error::Schema passt nicht zu den App-Queries. Fehlt ein supabase/patch_NNN_*.sql bzw. wurde er noch nicht eingespielt (tool/db_migrate.sh, Secret SUPABASE_DB_URL)?"

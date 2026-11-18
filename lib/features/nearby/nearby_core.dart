@@ -61,6 +61,12 @@ class NearbyCell {
 
   double get centerLon => (col + 0.5) * _width(row);
 
+  /// Die Ränder der Zelle — für das Quadrat auf der Karte (#519, Homies).
+  double get south => row * kNearbyCellDeg;
+  double get north => (row + 1) * kNearbyCellDeg;
+  double get west => col * _width(row);
+  double get east => (col + 1) * _width(row);
+
   bool isNearTo(NearbyCell other) =>
       distanceMeters(centerLat, centerLon, other.centerLat, other.centerLon) <=
       kNearbyNearMeters;
@@ -152,4 +158,163 @@ class NearbyNoticeLog {
     }
     return _told.add(buddyId);
   }
+}
+
+// ---------------------------------------------------------------------------
+// Gruppenfahrt (#519, E4; docs/konzept-geraete.md 6.3)
+// ---------------------------------------------------------------------------
+
+/// Der Paarkanal zweier Buddys: die Kennungen sortiert, also genau einer
+/// je Paar (Patch 032, `app_internal.may_live`).
+String livePairTopic(String a, String b) =>
+    a.compareTo(b) < 0 ? 'live:$a:$b' : 'live:$b:$a';
+
+/// So lange gilt eine genaue Position als frisch; danach „zuletzt vor …"
+/// (A8: ohne Netz ehrlich, kein Punkt, der stillsteht).
+const kLiveFreshFor = Duration(minutes: 2);
+
+/// So lange bleibt die letzte genaue Position stehen, nachdem nichts mehr
+/// kam; danach verschwindet sie. Nur im Speicher, nie gespeichert.
+const kLiveKeepFor = Duration(minutes: 15);
+
+/// So lange bleibt die Zelle eines Homies stehen, nachdem er sie
+/// herausgenommen hat (oder die Verbindung riss).
+const kCellKeepFor = Duration(minutes: 15);
+
+/// Was ich gerade von EINEM Buddy weiß.
+class BuddySighting {
+  const BuddySighting({
+    required this.buddyId,
+    this.cell,
+    this.cellPresent = false,
+    this.cellGoneAt,
+    this.live = false,
+    this.position,
+    this.positionAt,
+    this.positionPresent = false,
+  });
+
+  final String buddyId;
+
+  /// Seine grobe Zelle (Patch 031) — alle direkten Buddys empfangen sie.
+  final NearbyCell? cell;
+
+  /// Liegt die Zelle noch im Kanal? Nein: [cellGoneAt] sagt, seit wann.
+  final bool cellPresent;
+  final DateTime? cellGoneAt;
+
+  /// Hat er „Live mit Buddys" in dieser Fahrt an?
+  final bool live;
+
+  /// Seine genaue Position aus dem Paarkanal — nur in der Nähe, nur wenn
+  /// beide Live anhaben.
+  final NearbyPoint? position;
+
+  /// Wann er sie gesetzt hat (seine Uhr, nie in der Zukunft).
+  final DateTime? positionAt;
+  final bool positionPresent;
+
+  BuddySighting copyWith({
+    NearbyCell? Function()? cell,
+    bool? cellPresent,
+    DateTime? Function()? cellGoneAt,
+    bool? live,
+    NearbyPoint? Function()? position,
+    DateTime? Function()? positionAt,
+    bool? positionPresent,
+  }) =>
+      BuddySighting(
+        buddyId: buddyId,
+        cell: cell != null ? cell() : this.cell,
+        cellPresent: cellPresent ?? this.cellPresent,
+        cellGoneAt: cellGoneAt != null ? cellGoneAt() : this.cellGoneAt,
+        live: live ?? this.live,
+        position: position != null ? position() : this.position,
+        positionAt: positionAt != null ? positionAt() : this.positionAt,
+        positionPresent: positionPresent ?? this.positionPresent,
+      );
+}
+
+/// Wie ein Buddy auf der Karte steht.
+enum BuddyMapKind {
+  /// Genau, aus dem Paarkanal.
+  live,
+
+  /// Grob: das Quadrat seiner Zelle — nur für Homies.
+  cell,
+}
+
+/// Ein Eintrag der Karte: [point] ist die genaue Position oder der
+/// Mittelpunkt der Zelle; [seenAgo] null heißt frisch.
+typedef BuddyMapEntry = ({
+  String buddyId,
+  BuddyMapKind kind,
+  NearbyPoint point,
+  NearbyCell? cell,
+  Duration? seenAgo,
+});
+
+/// Was die Karte zeigt (6.1, E4): genau, wenn eine Position aus dem
+/// Paarkanal da ist und nicht älter als [kLiveKeepFor]; sonst die Zelle —
+/// aber NUR, wenn der Buddy mich als Homie gewählt hat ([homieOwners]).
+/// Alle anderen: nichts. Rein, damit Test und Karte dieselbe Antwort
+/// bekommen.
+List<BuddyMapEntry> buddyMapEntries(
+  Iterable<BuddySighting> sightings, {
+  required Set<String> homieOwners,
+  required DateTime now,
+}) {
+  final out = <BuddyMapEntry>[];
+  for (final s in sightings) {
+    final pos = s.position;
+    final at = s.positionAt;
+    if (pos != null && at != null) {
+      final age = now.difference(at);
+      if (age < kLiveKeepFor) {
+        final fresh = s.positionPresent && age < kLiveFreshFor;
+        out.add((
+          buddyId: s.buddyId,
+          kind: BuddyMapKind.live,
+          point: pos,
+          cell: null,
+          seenAgo: fresh ? null : (age.isNegative ? Duration.zero : age),
+        ));
+        continue;
+      }
+    }
+    final cell = s.cell;
+    if (cell == null || !homieOwners.contains(s.buddyId)) continue;
+    Duration? ago;
+    if (!s.cellPresent) {
+      final gone = s.cellGoneAt;
+      if (gone == null) continue;
+      ago = now.difference(gone);
+      if (ago >= kCellKeepFor) continue;
+      if (ago.isNegative) ago = Duration.zero;
+    }
+    out.add((
+      buddyId: s.buddyId,
+      kind: BuddyMapKind.cell,
+      point: (lat: cell.centerLat, lon: cell.centerLon),
+      cell: cell,
+      seenAgo: ago,
+    ));
+  }
+  return out;
+}
+
+/// Mit wem soll ich gerade einen Paarkanal haben? Nur, wenn ICH Live
+/// anhabe und teile ([mine] nicht null), und nur mit Buddys, die Live auch
+/// anhaben und in derselben oder einer Nachbarzelle sind. Das ist die
+/// einzige Stelle, die entscheidet, wer meine genaue Position bekommt.
+Set<String> livePairsFor({
+  required NearbyCell? mine,
+  required bool myLive,
+  required Iterable<BuddySighting> sightings,
+}) {
+  if (mine == null || !myLive) return const {};
+  return {
+    for (final s in sightings)
+      if (s.live && s.cellPresent && s.cell != null && mine.isNearTo(s.cell!)) s.buddyId,
+  };
 }

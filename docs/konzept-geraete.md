@@ -231,8 +231,8 @@ Stellen geändert. E8 kommt weiter vor E4.
   …"). Alle anderen sehen nichts. Kein Verlauf, keine Tabelle,
   „Zuhause" und die 1 km gelten auch hier.
 
-Offen für den Bau von #519: wie „Homies" gewählt werden (Buddy-Liste),
-und ob die grobe Stufe die Zelle oder ihr Mittelpunkt auf der Karte ist.
+Beim Bau von #519 entschieden (6.3): Homies wählt man im Blatt je Buddy,
+die grobe Stufe ist die Zelle als Quadrat.
 
 ### 6.2 Gebaut: „Buddy in der Nähe" (E8, #526, Patch 031)
 
@@ -270,9 +270,49 @@ statt eines Kanals je Zelle, „Zuhause" mit **1 km**.
   Meldung zusätzlich gesprochen.
 - **Noch nicht**: die Vibration mit Namensschild auf der Uhr.
 
+### 6.3 Gebaut: Gruppenfahrt (E4, #519, Patch 032)
+
+Entschieden beim Bau (Betreiber, 2026-11-18): die Homie-Stufe **ehrlich
+benennen** statt den Unterbau von 6.2 umzubauen; dass ein Buddy die Nähe
+vortäuschen könnte, ist **in Ordnung, nicht kritisch**. Die Zelle eines
+Homies steht als **Quadrat** auf der Karte, nicht als Punkt — ein Punkt
+täte so, als wüsste die App, wo er ist.
+
+- **„Live mit Buddys" je Fahrt**: ein Knopf in der Knopfspalte der
+  Fahrt, nur mit „Buddys unterwegs" und mindestens einem Buddy. Ab Werk
+  aus, mit dem Ende der Fahrt vorbei (der Zustand hängt am Beginn der
+  Aufzeichnung). Ohne Aufzeichnung kein Live. Ist es an, trägt die Zelle
+  aus 6.2 ein Merkmal `l`.
+- **Genau nur in der Nähe**: Das Gerät des SENDERS wählt
+  (`livePairsFor`): Buddys mit Live, deren Zelle dieselbe oder eine
+  Nachbarzelle ist. Mit jedem davon ein **Paarkanal**
+  `live:<a>:<b>` (Kennungen sortiert); darin die genaue Position als
+  Presence, höchstens alle 15 s oder nach 40 m. Hinein dürfen nur die
+  beiden, nur als direkte Buddys, und keiner darf den anderen über „sieht
+  mich" ausgeschlossen haben (`app_internal.may_live`). Verlässt der
+  Buddy die Nähe, schließt sich der Kanal, und seine genaue Position
+  verschwindet auch beim Empfänger. Grenze, bewusst: Realtime prüft beim
+  Beitritt, nicht je Nachricht, und die Zelle meldet das Gerät selbst —
+  ein Buddy mit veränderter App könnte die Nähe vortäuschen.
+- **Grob für Homies**: Je Buddy ein dritter Schalter „Homie"
+  (`buddy_nearby_prefs.homie`); wer mich gewählt hat, sagt
+  `nearby_homie_owners()`. Ein Homie sieht meine Zelle als Quadrat mit
+  meinem Anfangsbuchstaben, auch von weit weg. Ehrlich: Die Zelle
+  EMPFANGEN alle direkten Buddys schon seit 6.2 (sonst ginge die Meldung
+  nicht); die App ZEIGT sie nur Homies. „Sieht mich" aus schlägt Homie.
+- **Gegenseitig**: Wer nicht teilt, sieht nichts (wie 6.2); wer Live
+  aus hat, bekommt keine genauen Positionen.
+- **Ohne Netz ehrlich (A8)**: Eine genaue Position älter als 2 min ist
+  blass und sagt „vor 4 min", nach 15 min ist sie weg; eine
+  herausgenommene Zelle ebenso nach 15 min. Nur im Speicher.
+- **Eine Form, keine Farbe (A13)**: Scheibe mit Anfangsbuchstaben —
+  gefüllt genau, als Ring grob.
+- **Noch nicht**: die Uhr (Scheibe mit Buchstaben im Umkreis-Fenster,
+  Vibration aus 6.2) — eigener Schritt mit Kettenstand.
+
 ## 7. Abgleich mit den Kernanforderungen
 
-- A1, A2: unverändert, außer E4 (dort benannt).
+- A1, A2: unverändert, außer E4 (dort benannt; Homies seit #519 in A2).
 - A3: Routenablage und Umkreis sind keine Fahrten; die Fahrt der Uhr
   bleibt, wie sie ist. E4 berührt A3.
 - A5: Ein eigener Sensor ist ein Gerät, kein Konto.

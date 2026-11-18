@@ -175,6 +175,28 @@
           festgelegtem „Zuhause"</td>
         <td>Einwilligung durch „Ja" bzw. Einschalten, Art. 6 Abs. 1 a
           DSGVO; widerrufen durch Ausschalten</td></tr>
+    <tr><td>Gruppenfahrt (nur mit „Buddys unterwegs“ und nur, wenn du
+          es in einer Fahrt einschaltest; ab Werk aus, mit dem Ende der
+          Fahrt vorbei): deine <strong>genaue Position</strong> mit
+          Zeitpunkt, etwa alle 15 Sekunden. Dazu je Buddy der Schalter
+          „Homie“, nur wenn du ihn umlegst.</td>
+        <td>Buddys in der Nähe, die es auch eingeschaltet haben, sehen
+          dich während der Fahrt genau auf der Karte und du sie — nur
+          Buddys in derselben oder einer benachbarten Zelle, ausgewählt
+          von deinem Gerät; Buddys, die du über „sieht mich“
+          ausgeschlossen hast oder die dich ausgeschlossen haben, nie.
+          Wie die Zelle geht die Position nur über den Echtzeit-Dienst von
+          Supabase, je Buddy über einen eigenen Kanal, und wird
+          <strong>nicht gespeichert</strong>. Homies, die du wählst, sehen
+          deine grobe Zelle (oben) auf der Karte, auch von weit weg.
+          Ehrlich gesagt: Die Zelle empfangen technisch alle deine
+          direkten Buddys (sonst ginge „in der Nähe“ nicht); die App
+          zeigt sie nur Homies. Und weil das Gerät entscheidet, wer in der
+          Nähe ist, könnte ein Buddy mit einer veränderten App die
+          Nähe vortäuschen und deine genaue Position bekommen, solange du
+          sie in dieser Fahrt teilst</td>
+        <td>Einwilligung durch Einschalten je Fahrt bzw. Wahl als Homie,
+          Art. 6 Abs. 1 a DSGVO; widerrufen durch Ausschalten</td></tr>
     <tr><td>Fehlerberichte: Fehlermeldung, Stack, App-Version, Plattform,
           ggf. deine Nutzer-Kennung. Auf Android ab Version 11 auch der
           Grund, aus dem das System die App zuletzt beendet hat (Absturz,
@@ -450,7 +472,9 @@
     <strong>bleibt auf dem Gerät</strong>: Er wird weder an Supabase noch
     an sonst jemanden übertragen. Einzige Ausnahme ist „Buddys unterwegs"
     (oben in der Tabelle): Ist es an, geht statt der Position eine grobe
-    Zelle von rund 5 km an deine Buddys, ungespeichert. Ohne Erlaubnis funktioniert alles
+    Zelle von rund 5 km an deine Buddys, ungespeichert — und in einer
+    Fahrt mit eingeschalteter Gruppenfahrt deine genaue Position an Buddys
+    in der Nähe, die sie auch eingeschaltet haben, ebenfalls ungespeichert. Ohne Erlaubnis funktioniert alles
     andere wie bisher; zurücknehmen lässt sie sich in den Einstellungen
     von Android bzw. des Browsers.</p>
   <p><strong>Fahrt aufzeichnen</strong> (nur Android): Startest du eine
@@ -538,6 +562,11 @@
       sie zurückstellst, die Verbindung endet oder du das Konto löschst.
       Schließt du einen Buddy aus, wirkt das spätestens nach einer
       Stunde (wenn seine App ihre Anmeldung erneuert).</li>
+    <li>Gruppenfahrt: die genaue Position wird nicht gespeichert, sie
+      lebt nur so lange wie der Kanal zu einem Buddy in der Nähe und endet
+      spätestens mit der Fahrt. Die App eines Buddys zeigt die letzte
+      höchstens 15 Minuten lang an, nur im Speicher. Die Wahl als Homie
+      bleibt wie die übrigen Schalter je Buddy.</li>
     <li>Fehlerberichte: 90 Tage.</li>
     <li>Gerätekennung für Benachrichtigungen: bis du sie ausschaltest, das
       Konto löschst oder Google die Kennung für ungültig erklärt (etwa

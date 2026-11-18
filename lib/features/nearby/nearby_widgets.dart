@@ -8,6 +8,10 @@ import '../../core/app_colors.dart';
 import '../../core/errors.dart';
 import '../../data/nearby_repository.dart';
 import '../../l10n/l10n.dart';
+import '../../data/providers.dart';
+import '../../models/friendship.dart';
+import '../friends/friend_providers.dart';
+import '../map/map_buttons.dart';
 import '../map/position_provider.dart';
 import 'nearby_core.dart';
 import 'nearby_providers.dart';
@@ -128,14 +132,23 @@ class NearbyBuddyButton extends ConsumerWidget {
     final palette = AppPalette.of(context);
     final pref = ref.watch(nearbyPrefsProvider).valueOrNull?[buddyId];
     final changed = pref != null && (pref.hidden || pref.muted);
+    final homie = pref != null && pref.homie && !pref.hidden;
     return IconButton(
       key: ValueKey('nearby-buddy-$buddyId'),
       onPressed: () => showModalBottomSheet<void>(
         context: context,
         showDragHandle: true,
+        // Drei Schalter mit Unterzeilen (#519) passen nicht in jedes
+        // halbe Fenster — das Blatt darf höher werden und scrollt.
+        isScrollControlled: true,
         builder: (_) => NearbyBuddySheet(buddyId: buddyId, name: name),
       ),
-      icon: Icon(changed ? Icons.location_disabled_outlined : Icons.social_distance_outlined,
+      icon: Icon(
+          changed
+              ? Icons.location_disabled_outlined
+              : homie
+                  ? Icons.favorite_border
+                  : Icons.social_distance_outlined,
           color: palette.muted),
       tooltip: context.l10n.nearbyBuddyTooltip,
     );
@@ -175,7 +188,7 @@ class _NearbyBuddySheetState extends ConsumerState<NearbyBuddySheet> {
         NearbyPref(buddyId: widget.buddyId);
     final on = ref.watch(buddiesNearbyProvider) == true;
     return SafeArea(
-      child: Padding(
+      child: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -196,19 +209,64 @@ class _NearbyBuddySheetState extends ConsumerState<NearbyBuddySheet> {
               value: !pref.hidden,
               onChanged: _saving
                   ? null
-                  : (v) => _save(NearbyPref(buddyId: widget.buddyId, hidden: !v, muted: pref.muted)),
+                  : (v) => _save(pref.copyWith(hidden: !v)),
             ),
             SwitchListTile(
               key: const ValueKey('nearby-buddy-notify'),
               contentPadding: EdgeInsets.zero,
               title: Text(l.nearbyBuddyNotify(widget.name)),
               value: !pref.muted,
-              onChanged: _saving
-                  ? null
-                  : (v) => _save(NearbyPref(buddyId: widget.buddyId, hidden: pref.hidden, muted: !v)),
+              onChanged: _saving ? null : (v) => _save(pref.copyWith(muted: !v)),
+            ),
+            // Homie (#519): sieht meine grobe Zelle auf der Karte — nur,
+            // solange er mich überhaupt sieht.
+            SwitchListTile(
+              key: const ValueKey('nearby-buddy-homie'),
+              contentPadding: EdgeInsets.zero,
+              title: Text(l.nearbyBuddyHomie(widget.name)),
+              subtitle: Text(l.nearbyBuddyHomieHint(widget.name)),
+              value: pref.homie && !pref.hidden,
+              onChanged: _saving || pref.hidden ? null : (v) => _save(pref.copyWith(homie: v)),
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// „Live mit Buddys" (#519) in der Knopfspalte der Fahrt — nur mit
+/// „Buddys unterwegs" und mindestens einem Buddy. Je Fahrt, ab Werk aus.
+/// Einschalten sagt einmal, was es heißt.
+class LiveShareButton extends ConsumerWidget {
+  const LiveShareButton({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    if (ref.watch(buddiesNearbyProvider) != true) return const SizedBox.shrink();
+    final uid = ref.watch(currentUserIdProvider);
+    final hasBuddy = (ref.watch(friendshipsProvider).valueOrNull ?? const <FriendshipEntry>[])
+        .any((f) => uid != null && f.isAccepted);
+    if (!hasBuddy) return const SizedBox.shrink();
+    final on = ref.watch(liveShareProvider);
+    final l = context.l10n;
+    return Padding(
+      padding: const EdgeInsets.only(top: 14),
+      child: MapRoundButton(
+        key: const ValueKey('live-share-button'),
+        tooltip: on ? l.liveShareOffTooltip : l.liveShareOnTooltip,
+        icon: on ? Icons.share_location : Icons.location_searching,
+        active: on,
+        onPressed: () {
+          ref.read(liveShareProvider.notifier).set(!on);
+          ScaffoldMessenger.of(context)
+            ..clearSnackBars()
+            ..showSnackBar(SnackBar(
+              key: const ValueKey('live-share-note'),
+              content: Text(on ? l.liveShareOffNote : l.liveShareOnNote),
+              persist: false,
+            ));
+        },
       ),
     );
   }

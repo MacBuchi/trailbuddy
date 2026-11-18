@@ -56,3 +56,38 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
   `voiceCuesProvider`) und laufender Fahrt spricht `nearbySpeakProvider`
   (= `speakVoice`, das Plugin ist auch im Main-Isolate registriert) den
   Satz zusätzlich. Noch nicht: Vibration an der Uhr.
+- **Gruppenfahrt** (#519, E4, seit 0.187.0, Patch 032; Konzept
+  `docs/konzept-geraete.md` 6.3). Auf derselben Engine wie „Buddy in der
+  Nähe"; neu: `buddy_map_layer.dart` (Scheiben und Quadrate der Karte,
+  `nearbyBuddyNameProvider`), `LiveShareButton` in `nearby_widgets.dart`.
+  Fünf Dinge, die man wissen muss:
+  - **Wer meine genaue Position bekommt, entscheidet nur
+    `livePairsFor`** (pur): ich habe Live an und teile, der Buddy hat
+    Live an (`l` an seiner Zelle), seine Zelle liegt noch im Kanal und ist
+    nah. Die Engine hält mit genau diesen einen Paarkanal
+    (`NearbyRepository.livePairs`) und legt die Position gedrosselt hinein
+    (`liveEvery` 15 s oder `liveMoveMeters` 40 m). Fällt ein Buddy heraus,
+    vergisst die Engine auch SEINE genaue Position.
+  - **Was die Karte zeigt, rechnet `buddyMapEntries`** (pur): genau, wenn
+    eine Position da ist (frisch < 2 min, weg nach 15 min); sonst die
+    Zelle, aber nur für die, die mich als Homie gewählt haben
+    (`homieOwnersProvider`, RPC `nearby_homie_owners`). Alle anderen:
+    nichts. Die Zelle empfangen trotzdem alle direkten Buddys — so
+    entschieden (Betreiber 2026-11-18), so steht es im Datenschutz.
+  - **Live hängt an der Fahrt**: `LiveShareNotifier` beobachtet den
+    Beginn der Aufzeichnung, eine neue Fahrt (oder keine) baut ihn neu,
+    also aus. Ohne Fahrt nimmt `set` nichts an.
+  - **Zeit der Position ist die des Senders**, gekappt auf „jetzt" — eine
+    vorgehende Uhr machte sonst ewig frisch. Bei der Zelle zählt die
+    Ankunft beim Empfänger (sie wird nur alle 5 min neu gesetzt).
+  - **Das Blatt je Buddy scrollt** (`isScrollControlled`): Mit dem dritten
+    Schalter lief es im halben Fenster über (im Flow-Test gefunden).
+    „Sieht mich" aus sperrt „Homie".
+  Tests: `test/nearby/group_ride_test.dart`,
+  `test/flows/group_ride_flow_test.dart` (Gegenproben 2026-11-18: Paar
+  ohne Live des Buddys, ohne Nähe, ohne eigenes Live, Zelle ohne
+  Homie-Prüfung, alte Position nie weg, Live überlebt die Fahrt, Position
+  bleibt nach Verlassen der Nähe, Sichtungen ohne Teilen, keine
+  Drosselung, Homie trotz Ausschluss — je rot). Im `FakeMapView` trifft
+  ein Tipp über `tapMapAt`, nicht über das Widget der Scheibe. Noch
+  nicht: die Uhr.
