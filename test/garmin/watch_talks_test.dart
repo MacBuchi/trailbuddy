@@ -9,10 +9,15 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:trailbuddy/features/garmin/watch_buddies.dart' show decodeVoiceWatch, encodeVoiceWatch;
 import 'package:trailbuddy/features/garmin/watch_providers.dart';
 import 'package:trailbuddy/features/garmin/watch_ride.dart' show encodeWatchRide;
+import 'package:trailbuddy/features/nearby/buddy_map_layer.dart' show nearbyBuddyNameProvider;
+import 'package:trailbuddy/features/nearby/nearby_core.dart' show BuddySighting;
+import 'package:trailbuddy/features/nearby/nearby_providers.dart' show buddySightingsProvider;
 import 'package:trailbuddy/features/rides/ride_providers.dart' show rideProvider;
 import 'package:trailbuddy/features/routing/nav_providers.dart' show navigationProvider;
+import 'package:trailbuddy/features/routing/voice_cues.dart' show VoiceCue, VoiceCueKind;
 import 'package:trailbuddy/features/trails/trail_providers.dart' show trailsProvider;
 
 import 'watch_phone.dart';
@@ -101,6 +106,7 @@ class _PhoneSide {
     phone = WatchPhone(
       trails: setup.contains('frei') ? [freeTrail()] : const [],
       jumped: setup.contains('sprung'),
+      overrides: [if (setup.contains('buddys')) nearbyBuddyNameProvider.overrideWithValue((_) => 'Max')],
     );
     phone.fix.next = ridePointAt(1700000000);
     await phone.open();
@@ -137,6 +143,17 @@ class _PhoneSide {
           phone.jump();
         case 'takte aus':
           phone.clockUs += 6000000;
+        // #525: der Dienst reicht einen Moment der Ansagen an die App.
+        case 'ansage':
+          phone.c.read(watchSyncProvider.notifier).sendCues(decodeVoiceWatch(
+              encodeVoiceWatch(const [VoiceCue(VoiceCueKind.trailAhead, name: 'Talweg', grade: 2, inM: 190)])));
+        case 'buddy unterwegs':
+          phone.c.read(watchSyncProvider.notifier).buddyNear('Max');
+        case 'buddy live':
+          phone.c.read(buddySightingsProvider.notifier).set([
+            BuddySighting(
+                buddyId: 'b', live: true, position: (lat: 47.5, lon: 11.5), positionAt: DateTime.now(), positionPresent: true),
+          ]);
         case final other:
           fail('$where: unbekannte Handlung am Handy „$other“');
       }

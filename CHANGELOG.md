@@ -2,6 +2,23 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Ansagen und Buddys auf der Garmin-Uhr
+
+*Version 0.188.0, 2026-11-18 (Uhr-App 1.8.0)*
+
+- **Die Uhr vibriert kurz zu den Ansagen.** Mit „Ansagen" zeigt sie beim
+  Trail voraus, beim Einfahren und bei „geschafft" für ein paar Sekunden
+  Schild und Namen des Trails — Abkommen und Ankunft merkt sie wie bisher
+  selbst.
+- **„Max unterwegs" auch am Handgelenk**: Meldet sich ein Buddy in der
+  Nähe, vibriert die Uhr und zeigt seine Scheibe mit Namen.
+- **Gruppenfahrt auf der Uhr**: Buddys, die „Live" mit dir teilen, stehen
+  als Scheibe mit Anfangsbuchstaben auf der Uhrkarte; wer weiter weg ist,
+  steht klein am Rand in seiner Richtung, eine alte Position als Ring.
+- **Routen auf der Uhr höchstens 700 Punkte** statt 800: Lange Routen
+  werden etwas stärker vereinfacht, damit die Uhr unterwegs weiter eine
+  neue Route annimmt.
+
 ## Gruppenfahrt
 
 *Version 0.187.0, 2026-11-18*

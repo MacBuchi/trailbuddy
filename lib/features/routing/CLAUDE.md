@@ -1381,6 +1381,11 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     (`android_manifest_test` hält Queries, Kanalnamen und „kein Kotlin"). Im Test
     spricht die Naht `speak:`; ob es klingt, zeigt nur das Gerät
     (Ohrhörer, Bildschirm aus, Musik).
+  - **Die Uhr bekommt dieselben Momente** (Uhr-App 1.8.0): `speakCues`
+    schickt `voice:watch:` über `sendDataToMain` (Naht `toApp:`), die
+    Karte gibt es an `WatchSync.sendCues` — die Brücke zur Uhr lebt in der
+    App. Abseits, zurück und angekommen gehen nicht hin (die Uhr erkennt
+    sie selbst, `watchVoiceCueOf`).
 - **Bild-im-Bild** (#232 Schritt 3, seit 0.97.0, `lib/core/picture_in_picture*.dart`,
   Kanal `de.mcbuchi.trailbuddy/pip` in `MainActivity`; Konzept-Routing
   9.6). Vier Dinge:

@@ -63,7 +63,7 @@
       "regenerate": "python3 tool/brand_icons.py (braucht rsvg-convert aus librsvg)"
     },
     "garmin/source/GeneratedTalks.mc": {
-      "sha256": "e75cef33fa345c9d30e1ad191c1ad295b7e7365febba14c3c448b460ec8f04e4",
+      "sha256": "34003a177a46a5bbfb311c09a07e2a8b7264445021327c80bebcd05badbd7c00",
       "regenerate": "python3 tool/watch_talks.py (aus docs/watch_cases.json, `gespraeche`)",
       "checks": {
         "watch_talks_fixpoint": "tool/watch_talks.py"

@@ -179,6 +179,12 @@ Fahrt und nach einem Absturz der Uhr-App das Uhr-Protokoll (die letzten
 Fixes, Sekunden — keine Position, keine Kennung) und bleibt auf dem
 Telefon (die letzten fünf); erhoben wird es erst, wenn der Nutzer es an
 eine Fehlermeldung hängt (dann Feedback, ²).
+Seit Uhr-App 1.8.0 (#525, #526, #519) gehen auf demselben Weg an die
+eigene Uhr: mit „Ansagen" Name und S-Grad des angesagten Trails, mit
+„Buddys unterwegs" der Name eines Buddys, der auch fährt, mit „Live mit
+Buddys" Anfangsbuchstabe, genaue Position und Alter naher Buddys (die
+ohnehin schon auf der Karte dieses Telefons stehen, Fußnote zur
+Gruppenfahrt) — wieder nur an das Gerät des Nutzers, nicht erhoben.
 Was Garmin Connect selbst überträgt, ist Garmins Sache; die
 Datenschutzerklärung sagt beides. **Paket-Sichtbarkeit:** Garmins
 Companion-SDK (`com.garmin.connectiq:ciq-companion-app-sdk`) bringt

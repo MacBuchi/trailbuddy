@@ -58,7 +58,7 @@ Abbiegehinweise.
   in `tool/garmin_bench.sh`); die Grenze `kWatchMaxPoints` ist seit
   0.169.1 800 — die größte, bei der die Uhr während der Fahrt noch eine
   zweite gleich große Route annimmt (Messwerte bei „Speicher neben der
-  größten Route", #510).
+  größten Route", #510). **Seit 1.8.0 700** (unten, „Ansagen und Buddys").
 - **Das Gerät ist strenger als der Simulator** (CIQ_LOG.YML, fēnix 5,
   2026-11-05): Die Übersicht ohne Fix (200 Stücke je Durchgang, je Stück
   vier `sx`/`sy`) lief im Simulator, am Gerät brach sie bei jedem Start
@@ -183,6 +183,28 @@ Abbiegehinweise.
   Speicher (Kettenstand `CHAIN_BIG=800`, 2026-11-13): geladen 96,6 KB
   (vorher 95,8), nach dem Wechsel 97,4 KB (96,9), Spitze 102,1 KB von
   123,8 KB — +0,8 KB, der Wechsel gleich großer Routen geht weiter.
+- **Ansagen und Buddys** (1.8.0, #525/#526/#519; Konzept 1): `c` mit
+  `k` „tr" (Name `n`, Grad `g`) oder „bn" (Name) geht in
+  `WatchCore.cue` — kurz vibrieren, `NavView.nameCue` 4 s; das Schild
+  zeichnet `shieldLine(…, ini, pill)` (dieselbe Kürzung wie die
+  Infofläche), auf „angekommen" nicht. `u` legt die Liste roh ab
+  (`_buddies`, Empfangszeit); `showBuddies` rechnet sie je eigenem Fix in
+  den Rahmen der Ansicht (Spur in der freien Fahrt, sonst Route — ein
+  Routenwechsel ändert den Rahmen) und prüft jedes Feld (falscher Typ
+  beendet die App). `u` steht in `EventLog.IN_T` (Stelle 10, Code 34).
+  **Speicher war die Grenze**: Die Teile kosten im Gerätebau ~2,3 KB
+  (Halbierung im Vorführmodus: Zeichnen 0,5, Kern 1,1, Rest 0,7; der
+  Vorführ-Zusatz selbst 0,8) — ein eigenes `nameToast` mit Kürz-Schleife
+  und `setBuddies`/`buddyCount` waren 0,5 KB davon und sind wieder
+  raus. Schon `main` hatte beim Wechsel zweier 800-Punkte-Routen nur
+  0,2 KB über der Schwelle von `PhoneRoute.take` (4 KB + 16 B je Zahl
+  frei; Kettenstand 2026-11-18: geladen 99,1, mit Aufnahme 98,8 KB), mit
+  den neuen Teilen `x` mem. Betreiber 2026-11-18: Grenze 700 — geladen
+  99,3 KB, Wechsel geht, Spitze 103,7 von 123,8 KB, ~2 KB Luft. Wer an der
+  Uhr etwas dazubaut, misst zuerst mit `tool/garmin_bench.sh chain`.
+  Die Bilder (`garmin/shots`) zeigen die Buddys aus dem Vorführmodus; die
+  Schilder nicht (die Karte steht nur in Szene 0–2, und die tragen die
+  Sprung-Hinweise) — gesehen am 2026-11-18 mit einer Wegwerf-Fassung.
 - **Die Übersicht ohne Fix** (`drawOverview`): Rahmen aus den Hüllen
   der Blöcke (≤ 63 Vergleiche), dann nur jeder `stride`-te Punkt
   (`OVERVIEW_SEGS` = 200 Stücke je Linie) — `range()` mit großem

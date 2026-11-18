@@ -554,6 +554,47 @@
       "handy": "ein Sprung: Hinweis und Bestwerte in einer Sendung"
     },
     {
+      "id": "525.1",
+      "erwartung": "Ein Moment der Ansagen vom Handy (`c` mit `k` „tr“: Trail voraus, beginnt, geschafft) vibriert kurz und zeigt 4 s Schild und Name an der Stelle der Frage; ein Grad außerhalb S0–S3 heißt „ohne Grad“, ohne Namen bleibt es still.",
+      "uhr": "coreTrailCueShield"
+    },
+    {
+      "id": "525.2",
+      "erwartung": "Das Handy schickt nur Trail voraus, beginnt und geschafft, und nur mit „Ansagen“ — abseits, zurück und angekommen erkennt die Uhr selbst; der Dienst reicht die Momente an die App, dort lebt die Brücke.",
+      "handy": "Trail voraus, beginnt, geschafft gehen hin"
+    },
+    {
+      "id": "526.1",
+      "erwartung": "Ein Buddy unterwegs (`c` mit `k` „bn“) vibriert kurz und zeigt Scheibe mit Buchstabe und Namen; eine Frage geht vor, auch vor dem Vibrieren.",
+      "uhr": "coreBuddyNearCue",
+      "handy": "Buddy unterwegs: Name"
+    },
+    {
+      "id": "526.2",
+      "erwartung": "Aus oder nie gefragt teilt das Handy nichts und hört nicht zu; ein ferner oder stummer Buddy meldet nichts.",
+      "handy": "aus oder nie gefragt: nichts"
+    },
+    {
+      "id": "526.3",
+      "erwartung": "Ein Buddy in der Nähe meldet sich einmal je Fahrt, mit Aufzeichnung erst ab 1 km vom Start.",
+      "handy": "ein Buddy in der Nähe: einmal je Fahrt"
+    },
+    {
+      "id": "526.4",
+      "erwartung": "Hinaus geht nur die Zelle, und sie verschwindet wieder — kein Abstand, keine Richtung, nichts gespeichert.",
+      "handy": "teilt nur die Zelle und nimmt sie wieder heraus"
+    },
+    {
+      "id": "519.1",
+      "erwartung": "Buddys mit genauer Position (`u`) stehen ab dem nächsten eigenen Fix als Scheibe mit Buchstabe auf der Karte, weiter weg klein am Rand; ab 2 min als Ring, nach 15 min ohne neuen Stand weg.",
+      "uhr": "coreBuddiesOnMap"
+    },
+    {
+      "id": "519.2",
+      "erwartung": "Das Handy schickt nur genaue Positionen (nie die Zelle eines Homies), höchstens fünf, erst nach dem „hallo“ der Uhr und höchstens alle 15 s; dieselbe Lage nicht noch einmal.",
+      "handy": "vor dem ersten"
+    },
+    {
       "id": "517.1",
       "erwartung": "Mit Erkennung sagt die Stand-Zeile der Fahrt erst „Halterung lernt“, mit gelernter Halterung „Sprünge an“.",
       "handy": "#517: am Rad sagt die Stand-Zeile"
@@ -601,6 +642,21 @@
         {"von": "handy", "tu": "sprung", "msg": {"t": "c", "k": "air", "v": 900}, "gleich": ["k", "v"], "dann": {"uhr": "hinweis"}},
         {"von": "handy", "msg": {"t": "b", "on": 1, "jn": 1, "ja": 900}, "gleich": ["on", "jn", "ja"], "dann": {"uhr": ["erkennt", "bestwerte"]}},
         {"von": "handy", "tu": "takte aus", "msg": {"t": "b", "on": 0, "jn": 1}, "gleich": ["on", "jn"], "dann": {"uhr": "erkennt_nicht"}}
+      ]
+    },
+    {
+      "id": "buddys-uhr",
+      "titel": "Ansagen und Buddys an der Uhr (#525, #526, #519): ein Trail-Moment und „Max unterwegs“ als Hinweis, dann die Buddys mit genauer Position",
+      "handy": ["nav", "buddys"],
+      "uhr": ["handy"],
+      "schritte": [
+        {"von": "uhr", "tu": "start", "msg": {"t": "hi", "v": 2, "ver": "1.8.0"}, "gleich": ["v"], "dann": {"uhr": "wartet"}},
+        {"von": "handy", "tu": "navigation", "msg": {"t": "n", "id": "$a", "np": 2}, "dann": {"uhr": "route_kommt"}},
+        {"von": "handy", "msg": {"t": "r", "id": "$a"}},
+        {"von": "uhr", "msg": {"t": "ok", "id": "$a"}, "nach_ms": 500, "dann": {"handy": "gespeichert", "uhr": "route:$a"}},
+        {"von": "handy", "tu": "ansage", "msg": {"t": "c", "k": "tr", "n": "Talweg", "g": 2}, "gleich": ["k", "n", "g"], "dann": {"uhr": "hinweis"}},
+        {"von": "handy", "tu": "buddy unterwegs", "msg": {"t": "c", "k": "bn", "n": "Max"}, "gleich": ["k", "n"], "dann": {"uhr": "hinweis"}},
+        {"von": "handy", "tu": "buddy live", "msg": {"t": "u", "l": [[4750000, 1150000, "M", 0]]}, "gleich": ["l"]}
       ]
     },
     {
@@ -1132,8 +1188,9 @@
         },
         {
           "was": "An der Uhr dasselbe als kurzes Vibrieren mit Namensschild",
-          "offen": [
-            525
+          "faelle": [
+            "525.1",
+            "525.2"
           ]
         },
         {
@@ -1150,20 +1207,33 @@
       "schritte": [
         {
           "was": "Beide haben „Buddys unterwegs“ eingeschaltet; sonst geschieht nichts",
-          "offen": [
-            526
+          "faelle": [
+            "526.2"
           ]
         },
         {
           "was": "Ein Hinweis je Buddy und Fahrt, erst ab 1 km vom Start",
-          "offen": [
-            526
+          "faelle": [
+            "526.3"
           ]
         },
         {
           "was": "Kein Abstand, keine Richtung, nichts gespeichert",
-          "offen": [
-            526
+          "faelle": [
+            "526.4"
+          ]
+        },
+        {
+          "was": "An der Uhr kurz vibrieren, Scheibe mit Buchstabe und Name",
+          "faelle": [
+            "526.1"
+          ]
+        },
+        {
+          "was": "Mit „Live mit Buddys“ stehen nahe Buddys an der Uhr als Scheibe auf der Karte",
+          "faelle": [
+            "519.1",
+            "519.2"
           ]
         }
       ]

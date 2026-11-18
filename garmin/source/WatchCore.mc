@@ -37,6 +37,10 @@ class WatchCore {
     var now as Number = 0;
     //! Die Bestwerte vom Handy (#36), bleiben über einen Routenwechsel.
     hidden var _bests as Dictionary? = null;
+    //! Buddys mit genauer Position vom Handy (#519): `l` aus `u`, je
+    //! [la, lo, Buchstabe, Alter in s], und wann es kam. Nur im Speicher.
+    hidden var _buddies as Array? = null;
+    hidden var _buddiesAt as Number = 0;
     //! Eine neue Route ist vollständig im Speicher und wartet auf den
     //! Wechsel um [swapAt] — gleich (im nächsten Takt, nicht im Rückruf)
     //! oder nach der Frage ([ASK_MS]). 0 = nichts wartet.
@@ -815,11 +819,62 @@ class WatchCore {
         } else if ("c".equals(t)) {
             // Ein Sprung, Wheelie oder Stoppie vom Handy, 3 s an der Stelle
             // der Frage (#514); eine Frage geht vor, der Hinweis verfällt.
-            if (!ui.asking()) { ui.cue(d["k"], d["v"]); }
+            if (!ui.asking()) { cue(d); }
+        } else if ("u".equals(t)) {
+            // Buddys mit genauer Position (#519) — gezeichnet mit dem
+            // nächsten eigenen Fix, im Rahmen der laufenden Ansicht.
+            var l = d["l"];
+            _buddies = l instanceof Array ? l : null;
+            _buddiesAt = now;
         } else if ("r".equals(t)) {
             routePart(d, id);
         }
         pace();
+    }
+
+    //! Ein Hinweis vom Handy: ein Sprung (#514), ein Moment der Ansagen
+    //! (#525, `tr`: Trail voraus, beginnt, geschafft — `n` Name, `g` Grad)
+    //! oder ein Buddy unterwegs (#526, `bn`: `n` Name). Die beiden neuen
+    //! vibrieren kurz; ohne Namen bleibt es still.
+    hidden function cue(d as Dictionary) as Void {
+        var k = d["k"];
+        var n = d["n"];
+        var tr = "tr".equals(k);
+        if (!tr && !"bn".equals(k)) {
+            ui.cue(k, d["v"]);
+            return;
+        }
+        if (!(n instanceof String) || n.length() == 0) { return; }
+        var g = d["g"];
+        _host.vibrate(false);
+        if (tr) {
+            ui.nameCue(n, g instanceof Number && g >= 0 && g <= 3 ? g : -1, null);
+        } else {
+            ui.nameCue(n + " " + str(Rez.Strings.BuddyOut), -1, n.substring(0, 1).toUpper());
+        }
+    }
+
+    //! #519: die Buddys in Metern der laufenden Ansicht ([free]: der Rahmen
+    //! der Spur, sonst der der Route). Ein Stand ohne neuen vom Handy gilt
+    //! 15 min; älter als 2 min heißt blass (A8).
+    function showBuddies(free as Boolean) as Void {
+        var l = _buddies;
+        if (l == null) { return; }
+        var ago = (now - _buddiesAt) / 1000;
+        var out = [];
+        for (var i = 0; i < l.size() && i < 5; i++) {
+            var b = l[i];
+            if (!(b instanceof Array) || b.size() < 4 || !(b[0] instanceof Number) || !(b[1] instanceof Number)
+                    || !(b[2] instanceof String) || !(b[3] instanceof Number)) { continue; }
+            var age = b[3] + ago;
+            if (age > 900) { continue; }
+            var lat = b[0].toDouble() / 100000.0d;
+            var lon = b[1].toDouble() / 100000.0d;
+            var p = free ? log.toLocal(lat, lon) : route.toLocal(lat, lon);
+            out.add([p[0], p[1], b[2], age > 120]);
+        }
+        if (out.size() == 0) { _buddies = null; }
+        ui.buddies = out;
     }
 
     //! Ein Stück Route. Kommt eine Route an, ist sie neu — stürzt die App
@@ -935,6 +990,7 @@ class WatchCore {
             var f = log.toLocal(lat, lon);
             stats.update(f[0], f[1], now, speed, alt, hr, -1);
             ui.setFreeFix(f[0], f[1], heading, speed, compass);
+            showBuddies(true);
             fixEv(3);
             return;
         }
@@ -951,6 +1007,7 @@ class WatchCore {
         fixEv(s.offRoute ? 2 : 1);
         stats.update(p[0], p[1], now, speed, alt, hr, s.offRoute ? -1 : route.sectionAt(s.alongM));
         ui.setState(s, speed, false);
+        showBuddies(false);
         // #500: Die Uhr meldet ihren Stand, wenn sie ihn braucht — jenseits
         // ihrer Sicht, und erst 300 m weiter als zuletzt (Konzept 2).
         var drift = tracker.driftM(ui.reachM());

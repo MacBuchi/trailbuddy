@@ -19,6 +19,7 @@ import '../../core/settings.dart' show kVoiceCuesSettingKey;
 import '../../l10n/l10n.dart';
 import '../rides/ride_store.dart' show FileRideStore;
 import '../rides/ride_task_handler.dart' show kRideDataStartedAt, kRideDataUid;
+import '../garmin/watch_buddies.dart' show encodeVoiceWatch;
 import '../rides/ride_track.dart' show RidePoint;
 import 'voice_cues.dart';
 
@@ -60,8 +61,21 @@ Future<void> speakVoice(String text, Locale locale) async {
 }
 
 /// Spricht [cues] als einen Satz in der Sprache des Dienstes.
-Future<void> speakCues(List<VoiceCue> cues, {VoiceSpeak? speak, DateTime? now}) async {
+///
+/// Dieselben Momente gehen an die Uhr (#525: kurz vibrieren, Schild und
+/// Name) — über die App, denn die Brücke zur Uhr lebt dort ([toApp];
+/// ist die App zu, verwirft der Kanal still, und mit ihr fehlt die Uhr).
+Future<void> speakCues(List<VoiceCue> cues,
+    {VoiceSpeak? speak, DateTime? now, void Function(Object data)? toApp}) async {
   if (cues.isEmpty) return;
+  final watch = encodeVoiceWatch(cues);
+  if (watch != null) {
+    try {
+      (toApp ?? FlutterForegroundTask.sendDataToMain)(watch);
+    } catch (_) {
+      // Die Uhr ist ein Zusatz; gesprochen wird trotzdem.
+    }
+  }
   final l = serviceL10n();
   final text = voiceCuesText(l, cues, now: now ?? DateTime.now());
   if (text.trim().isEmpty) return;

@@ -2,6 +2,23 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## Announcements and buddies on the Garmin watch
+
+*Version 0.188.0, 2026-11-18 (watch app 1.8.0)*
+
+- **The watch buzzes briefly with the announcements.** With
+  "Announcements" on, it shows the trail's shape and name for a few
+  seconds when a trail is ahead, when you ride in and when it's done —
+  going off route and arriving it still notices by itself.
+- **"Max is riding" on your wrist too**: when a buddy nearby is out, the
+  watch buzzes and shows their disc and name.
+- **Group ride on the watch**: buddies sharing "Live" with you appear on
+  the watch map as a disc with their initial; those farther away sit
+  small at the edge in their direction, an old position as a ring.
+- **Routes on the watch at most 700 points** instead of 800: long routes
+  are simplified a little more so the watch can still take a new route
+  mid-ride.
+
 ## Group ride
 
 *Version 0.187.0, 2026-11-18*

@@ -119,6 +119,13 @@ class NavView extends WatchUi.View {
     hidden var _toastUntil as Number = 0;
     //! Das Zeichen vor der Einblendung (#558, TbSym), -1: keins.
     hidden var _toastSym as Number = -1;
+    //! Statt des Zeichens ein Schild (#525: Trail-Moment, -1 ohne Grad)
+    //! oder die Scheibe eines Buddys (#526); -2 bzw. null: keins.
+    hidden var _toastGrade as Number = -2;
+    hidden var _toastInitial as String? = null;
+    //! Buddys auf der Karte (#519): je [x, y, Buchstabe, alt] in den Metern
+    //! der laufenden Ansicht ([WatchCore.showBuddies]); leer ohne.
+    var buddies as Array = [];
     //! #501: Die Frage, ob die Uhr die neue Linie nimmt, bis [_askUntil];
     //! [_askBig]: „START = JA" groß (die erste nach 1.3.x).
     hidden var _askUntil as Number = 0;
@@ -278,6 +285,8 @@ class NavView extends WatchUi.View {
     function toast(text as String) as Void {
         _toast = text;
         _toastSym = -1;
+        _toastGrade = -2;
+        _toastInitial = null;
         _toastUntil = System.getTimer() + TOAST_MS;
         WatchUi.requestUpdate();
     }
@@ -293,8 +302,27 @@ class NavView extends WatchUi.View {
         if (!air && !wh && !"st".equals(k)) { return; }
         _toast = wh ? v + " m" : seconds(v);
         _toastSym = air ? /*S:plane*/10 : wh ? /*S:wheelie*/11 : /*S:stoppie*/12;
+        _toastGrade = -2;
+        _toastInitial = null;
         _toastUntil = System.getTimer() + 3000;
         WatchUi.requestUpdate();
+    }
+
+    //! #525: ein Moment der Ansagen vom Handy (Trail voraus, beginnt,
+    //! geschafft) — Schild und Name für 4 s, an der Stelle der Frage.
+    //! [initial] statt Schild: ein Buddy ist auch unterwegs (#526).
+    function nameCue(name as String, g as Number, initial as String?) as Void {
+        _toast = name;
+        _toastSym = -1;
+        _toastGrade = initial == null ? g : -2;
+        _toastInitial = initial;
+        _toastUntil = System.getTimer() + 4000;
+        WatchUi.requestUpdate();
+    }
+
+    //! Das Schild der Einblendung (Tests): Grad, -2 ohne; Buchstabe.
+    function cueMark() as Array {
+        return [_toastGrade, _toastInitial];
     }
 
     //! Die Einblendung, solange sie steht (Tests).
@@ -420,6 +448,7 @@ class NavView extends WatchUi.View {
             drawRejoin(dc, s);
         }
         drawNorth(dc, s.heading, w);
+        drawBuddies(dc, w);
         drawMe(dc);
         if (s.offRoute) {
             drawOffField(dc, s, w);
@@ -558,6 +587,13 @@ class NavView extends WatchUi.View {
             return;
         }
         var ty = y == STATUS_TOP_Y ? /*L:toast_y_map*/82 : /*L:toast_y_page*/176;
+        if (_toastGrade > -2 || _toastInitial != null) {
+            // Auf „angekommen" läge das Schild über der Zusammenfassung —
+            // „geschafft" kommt genau dann; vibriert hat es schon.
+            if (_page == 0 && _state != null && (_state as NavState).arrived) { return; }
+            shieldLine(dc, cx, ty - 12, _toastGrade, t, _toastInitial, true);
+            return;
+        }
         if (_toastSym < 0) {
             pill(dc, cx, ty, t, /*F:toast*/Graphics.FONT_SMALL, TbColors.FIELD, TbColors.TEXT_ON_FIELD);
             return;
@@ -573,6 +609,44 @@ class NavView extends WatchUi.View {
         TbSym.draw(dc, _toastSym, x, ty - 8, TbColors.TEXT_ON_FIELD);
         dc.setColor(TbColors.TEXT_ON_FIELD, Graphics.COLOR_TRANSPARENT);
         dc.drawText(x + sw + 5, ty, font, t, Graphics.TEXT_JUSTIFY_LEFT | Graphics.TEXT_JUSTIFY_VCENTER);
+    }
+
+    //! Ein Buddy als Form (A13, #519): Scheibe mit Buchstaben, weiß
+    //! gesäumt; [stale] (älter als 2 min) nur als Ring. [small]: am Rand
+    //! der Karte, wenn er weiter weg ist, als sie reicht — und im Schild.
+    hidden function drawBuddy(dc as Dc, x as Number, y as Number, initial as String, stale as Boolean, small as Boolean) as Void {
+        var r = small ? 7 : 10;
+        dc.setColor(TbColors.GROUND, Graphics.COLOR_TRANSPARENT);
+        dc.fillCircle(x, y, r + 2);
+        dc.setColor(stale ? TbColors.UNGRADED : TbColors.BUDDY, Graphics.COLOR_TRANSPARENT);
+        dc.fillCircle(x, y, r);
+        if (stale) {
+            dc.setColor(TbColors.GROUND, Graphics.COLOR_TRANSPARENT);
+            dc.fillCircle(x, y, r - 3);
+        }
+        dc.setColor(stale ? TbColors.TEXT : TbColors.GROUND, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(x, y, Graphics.FONT_XTINY, initial, Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
+    }
+
+    //! #519: die Buddys auf der gedrehten Karte; wer weiter weg ist, als
+    //! die Karte reicht, steht klein an ihrem Rand in seiner Richtung.
+    hidden function drawBuddies(dc as Dc, w as Number) as Void {
+        var c = w / 2;
+        var lim = TbRing.MAP_R - 12;
+        for (var i = 0; i < buddies.size(); i++) {
+            var b = buddies[i] as Array;
+            var x = sx(b[0] as Float, b[1] as Float);
+            var y = sy(b[0] as Float, b[1] as Float);
+            var dx = x - c;
+            var dy = y - c;
+            var d = Math.sqrt(dx * dx + dy * dy);
+            var edge = d > lim;
+            if (edge) {
+                x = c + (dx * lim / d).toNumber();
+                y = c + (dy * lim / d).toNumber();
+            }
+            drawBuddy(dc, x, y, b[2] as String, b[3] as Boolean, edge);
+        }
     }
 
     //! Eine Frage sieht immer gleich aus (#513, Konzept-Garmin 11): ein
@@ -1035,6 +1109,7 @@ class NavView extends WatchUi.View {
             }
             dc.setPenWidth(1);
             drawNorth(dc, _heading, w);
+            drawBuddies(dc, w);
             drawMe(dc);
         }
         field(dc, w, FIELD_Y, TbColors.FIELD);
@@ -1075,14 +1150,14 @@ class NavView extends WatchUi.View {
         var on = _route.sectionAt(s.alongM);
         if (on >= 0) {
             var b = cum[_route.secTo[on]];
-            shieldLine(dc, cx, FIELD_Y + /*L:field_line1_dy*/2, _route.secGrade[on], _route.secName[on]);
+            shieldLine(dc, cx, FIELD_Y + /*L:field_line1_dy*/2, _route.secGrade[on], _route.secName[on], null, false);
             numberLine(dc, cx, FIELD_Y + /*L:field_line2_dy*/24, meters(b - s.alongM), null);
             return;
         }
         var next = _route.nextSection(s.alongM);
         if (next >= 0) {
             var head = cum[_route.secFrom[next]];
-            shieldLine(dc, cx, FIELD_Y + /*L:field_line1_dy*/2, _route.secGrade[next], _route.secName[next]);
+            shieldLine(dc, cx, FIELD_Y + /*L:field_line1_dy*/2, _route.secGrade[next], _route.secName[next], null, false);
             numberLine(dc, cx, FIELD_Y + /*L:field_line2_dy*/24, meters(head - s.alongM), _route.climbBetween(s.alongM, head));
             return;
         }
@@ -1098,16 +1173,20 @@ class NavView extends WatchUi.View {
     //! Anzeige: Darüber liegt der schwarze Rand mit dem Ring — gegen den
     //! Kreis der Anzeige lief der Name weiter darunter (#511, Abbild).
     //! Auf Höhe der Grundlinie (dort enden die Buchstaben); Schild und
-    //! Abstand brauchen 20 px, 2 px Luft.
-    hidden function shieldLine(dc as Dc, cx as Number, y as Number, g as Number, name as String) as Void {
+    //! Abstand brauchen 20 px, 2 px Luft. Als Hinweis (#525, #526: [pill])
+    //! auf einem schwarzen Schild, mit [ini] statt des S-Grads die Scheibe
+    //! eines Buddys.
+    hidden function shieldLine(dc as Dc, cx as Number, y as Number, g as Number, name as String, ini as String?,
+            pill as Boolean) as Void {
         var font = /*F:field_name*/Graphics.FONT_TINY;
         var fh = dc.getFontHeight(font);
-        var room = chordAround(cx, TbRing.MAP_R, y + Graphics.getFontAscent(font)) - 22;
+        var pad = pill ? 40 : 22;
+        var room = chordAround(cx, TbRing.MAP_R, y + Graphics.getFontAscent(font)) - pad;
         var tw = dc.getTextWidthInPixels(name, font);
         if (tw > room) {
             font = /*F:field_name_small*/Graphics.FONT_XTINY;
             fh = dc.getFontHeight(font);
-            room = chordAround(cx, TbRing.MAP_R, y + Graphics.getFontAscent(font)) - 22;
+            room = chordAround(cx, TbRing.MAP_R, y + Graphics.getFontAscent(font)) - pad;
             tw = dc.getTextWidthInPixels(name, font);
         }
         if (tw > room) {
@@ -1121,7 +1200,15 @@ class NavView extends WatchUi.View {
             name = shown;
         }
         var x = cx - (tw + 20) / 2;
-        drawShield(dc, x + 6, y + fh / 2, g, 5, false, TbColors.FIELD);
+        if (pill) {
+            dc.setColor(TbColors.FIELD, Graphics.COLOR_TRANSPARENT);
+            dc.fillRoundedRectangle(x - 9, y - 2, tw + 38, fh + 4, (fh + 4) / 2);
+        }
+        if (ini != null) {
+            drawBuddy(dc, x + 6, y + fh / 2, ini, false, true);
+        } else {
+            drawShield(dc, x + 6, y + fh / 2, g, 5, false, TbColors.FIELD);
+        }
         dc.setColor(TbColors.TEXT_ON_FIELD, Graphics.COLOR_TRANSPARENT);
         dc.drawText(x + 20, y, font, name, Graphics.TEXT_JUSTIFY_LEFT);
     }

@@ -17,6 +17,7 @@ module TbColors {
     const UNGRADED = 0x555555;  // mapGrades.ungraded 6B756F
     const WARNING = 0xAA5500;   // mapLines.warning D9591A
     const BRANCH = 0x555555;    // Abzweigung wie ein Trail ohne Grad, ungraded 6B756F
+    const BUDDY = 0x00AAFF;     // Buddy als Scheibe mit Buchstaben (#519), mapLines.buddy 0B84B0
     // Die Infofläche ist dunkel wie die Flächen der Folgeansicht (Design
     // 13, der dunkle Satz `AppColors.dark`).
     const FIELD = 0x000000;     // dark.ground 0E1411

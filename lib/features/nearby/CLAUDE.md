@@ -55,7 +55,8 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
   ersten Kilometer, ohne Stimme — je rot). Mit „Ansagen" (#525,
   `voiceCuesProvider`) und laufender Fahrt spricht `nearbySpeakProvider`
   (= `speakVoice`, das Plugin ist auch im Main-Isolate registriert) den
-  Satz zusätzlich. Noch nicht: Vibration an der Uhr.
+  Satz zusätzlich. An der Uhr (1.8.0): `WatchSync.buddyNear` aus
+  `_notice` — kurz vibrieren, Scheibe und Name (`garmin/CLAUDE.md`).
 - **Gruppenfahrt** (#519, E4, seit 0.187.0, Patch 032; Konzept
   `docs/konzept-geraete.md` 6.3). Auf derselben Engine wie „Buddy in der
   Nähe"; neu: `buddy_map_layer.dart` (Scheiben und Quadrate der Karte,
@@ -89,5 +90,8 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
   Homie-Prüfung, alte Position nie weg, Live überlebt die Fahrt, Position
   bleibt nach Verlassen der Nähe, Sichtungen ohne Teilen, keine
   Drosselung, Homie trotz Ausschluss — je rot). Im `FakeMapView` trifft
-  ein Tipp über `tapMapAt`, nicht über das Widget der Scheibe. Noch
-  nicht: die Uhr.
+  ein Tipp über `tapMapAt`, nicht über das Widget der Scheibe. An der
+  Uhr (1.8.0): `WatchSync` hört auf `buddySightingsProvider` und schickt
+  nur die genauen Positionen (`watchBuddiesOf`, ohne Homie-Zellen),
+  höchstens alle 15 s und erst nach dem „hallo" der Uhr
+  (`test/garmin/watch_buddies_test.dart`).

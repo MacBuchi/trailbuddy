@@ -7,6 +7,7 @@ import 'package:geolocator/geolocator.dart' show Position;
 import 'package:go_router/go_router.dart';
 import 'package:latlong2/latlong.dart';
 
+import '../garmin/watch_buddies.dart' show decodeVoiceWatch, kVoiceWatchMessagePrefix;
 import '../garmin/watch_providers.dart';
 import '../../core/app_colors.dart';
 import '../../core/geo.dart';
@@ -404,6 +405,12 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     }
     if (data == kNavMessageOpen) {
       if (ref.read(navigationProvider) != null) GoRouter.of(context).go('/');
+      return;
+    }
+    // Ein Moment der Ansagen (#525) für die Uhr: Der Dienst spricht, die
+    // Brücke zur Uhr lebt hier.
+    if (data is String && data.startsWith(kVoiceWatchMessagePrefix)) {
+      ref.read(watchSyncProvider.notifier).sendCues(decodeVoiceWatch(data));
       return;
     }
     // Die Erkennung (#36): Takte und Ereignisse für das Fenster.

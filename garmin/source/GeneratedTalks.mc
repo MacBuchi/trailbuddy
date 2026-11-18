@@ -37,6 +37,20 @@ function talk_sprung_hinweis(logger as Logger) as Boolean {
     ] as Array<Dictionary>);
 }
 
+//! Ansagen und Buddys an der Uhr (#525, #526, #519): ein Trail-Moment und „Max unterwegs“ als Hinweis, dann die Buddys mit genauer Position
+(:test)
+function talk_buddys_uhr(logger as Logger) as Boolean {
+    return TestTalk.play("buddys-uhr", ["handy"] as Array<String>, [
+        {"von" => "uhr", "tu" => "start", "msg" => {"t" => "hi", "v" => 2, "ver" => "1.8.0"}, "gleich" => ["v"], "dann" => ["wartet"]},
+        {"von" => "handy", "msg" => {"t" => "n", "id" => "$a", "np" => 2}, "dann" => ["route_kommt"]},
+        {"von" => "handy", "msg" => {"t" => "r", "id" => "$a"}},
+        {"von" => "uhr", "msg" => {"t" => "ok", "id" => "$a"}, "nach_ms" => 500, "dann" => ["route:$a"]},
+        {"von" => "handy", "msg" => {"t" => "c", "k" => "tr", "n" => "Talweg", "g" => 2}, "gleich" => ["k", "n", "g"], "dann" => ["hinweis"]},
+        {"von" => "handy", "msg" => {"t" => "c", "k" => "bn", "n" => "Max"}, "gleich" => ["k", "n"], "dann" => ["hinweis"]},
+        {"von" => "handy", "msg" => {"t" => "u", "l" => [[4750000, 1150000, "M", 0]]}, "gleich" => ["l"]}
+    ] as Array<Dictionary>);
+}
+
 //! Ein Stück mit einer anderen Fassung: die Uhr sagt `x ver` mit ihrer
 (:test)
 function talk_fassung_handy_alt(logger as Logger) as Boolean {

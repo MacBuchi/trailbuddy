@@ -17,6 +17,7 @@ import '../../core/read_after_write.dart';
 import '../../core/settings.dart';
 import '../../data/nearby_repository.dart';
 import '../../data/providers.dart';
+import '../garmin/watch_providers.dart' show watchSyncProvider;
 import '../map/position_provider.dart';
 import '../rides/ride_providers.dart';
 import 'nearby_core.dart';
@@ -143,7 +144,11 @@ class BuddySightingsNotifier extends Notifier<List<BuddySighting>> {
     return const [];
   }
 
-  void set(List<BuddySighting> value) => state = value;
+  void set(List<BuddySighting> value) {
+    state = value;
+    // Die genauen Positionen auch an die Uhr (#519), wenn sie da ist.
+    ref.read(watchSyncProvider.notifier).buddiesChanged(value);
+  }
 }
 
 final buddySightingsProvider =

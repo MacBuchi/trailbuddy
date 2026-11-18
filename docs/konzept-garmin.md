@@ -131,6 +131,21 @@ dunkle Infofläche, „Was kommt als Nächstes?" statt „Wie weit noch?".
   beginnt — dieselbe Regel wie 9.3 (mehr als 30 m neben der Linie, zwei
   Fixe in Folge). Kein zweites Vibrieren, bis man wieder auf der Linie
   war; nichts beim Zurückkommen, nichts vor Abzweigen.
+- **Ansagen und Buddys** (Uhr-App 1.8.0; E7, E8, E4 in
+  `konzept-geraete.md`): Ein Moment der Ansagen — Trail voraus, beginnt,
+  geschafft — ist an der Uhr ein kurzer Stoß und für 4 s ein Schild mit
+  Form und Name an der Stelle der Frage (`{t: "c", k: "tr", n, g}`); nur
+  mit „Ansagen", denn das Handy entscheidet die Momente (der Dienst
+  reicht sie an die App, dort lebt die Brücke). Abseits, zurück und
+  angekommen schickt das Handy nicht — die erkennt die Uhr selbst. „Max
+  unterwegs" (#526) ebenso, mit der Scheibe statt des Schilds
+  (`k: "bn"`). Buddys mit genauer Position (#519, „Live mit Buddys")
+  kommen als Liste `{t: "u", l: [[la, lo, Buchstabe, Alter s], …]}`,
+  höchstens fünf, höchstens alle 15 s und erst nach dem „hallo" der Uhr;
+  die Uhr zeichnet sie mit dem nächsten eigenen Fix als Scheibe auf die
+  Karte (weiter weg klein am Rand), ab 2 min als Ring, nach 15 min ohne
+  neuen Stand weg. Eine Frage geht vor, auch vor dem Stoß; auf
+  „angekommen" kein Schild. Nur im Arbeitsspeicher.
 - **Tasten** (Entscheidung 6, wie Garmins eigene Aktivitäten): **START**
   beginnt die Aufzeichnung, hält sie an (Menü *Weiter · Speichern ·
   Verwerfen*, mit Route steht unter „Speichern" „beendet die Navigation";
@@ -252,7 +267,10 @@ kleinere. **Bricht die Übertragung mittendrin ab**
 (`FAILURE_DURING_TRANSFER`, `FAILURE_TIMEOUT`), gehen nach 2 s die
 übrigen Stücke noch einmal, höchstens zweimal — die Uhr hat die
 angekommenen schon abgelegt. Die Uhr sendet nur, wenn ein Handy
-verbunden ist. **Höchstens 800 Punkte**
+verbunden ist. **Höchstens 700 Punkte** (seit Uhr-App 1.8.0, Betreiber
+2026-11-18: mit 800 hatte der Wechsel zweier gleich großer Routen nur
+0,2 KB Luft, die Buddys und Schilder kosten ~2,3 KB; mit 700 geladen
+99,3 KB, Spitze beim Wechsel 103,7 von 123,8 KB; davor 800
 (Kettenstand 2026-11-13; bis dahin 2000 nach Messung 8.1 — die stürzten
 beim Laden ab, neben dem heutigen Code passen sie nicht mehr; erst bei
 800 nimmt die Uhr während der Fahrt eine zweite gleich große Route an;
@@ -642,8 +660,11 @@ Entscheidung 5. Gebaut in `garmin/source/RideLog.mc` (Uhr),
   (A6), keine Daten an uns oder Dritte.
 - **Keine Sensor-Rohdaten**, keine Airtime, keine Sprünge
   (Entscheidung 1).
-- **Keine Buddy-Daten über die Route hinaus**, keine Meldungen, keine
-  Hinweise — das bleibt in der App.
+- **Von Buddys nur, was die App gerade selbst zeigt** (seit 1.8.0,
+  Abschnitt 1): der Name eines Buddys unterwegs und die genauen
+  Positionen der nahen Buddys mit „Live mit Buddys" — nichts davon
+  gespeichert, keine Zelle eines Homies, keine Meldungen oder Hinweise
+  zu Trails; die bleiben in der App.
 - **Keine Abbiegehinweise** (Entscheidung 3, A12).
 
 ## 5. Verteilung
