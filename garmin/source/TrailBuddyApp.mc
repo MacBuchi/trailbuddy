@@ -149,6 +149,10 @@ class TrailBuddyApp extends Application.AppBase {
             zoomMenu();
             return;
         }
+        if (kind == :shelf) {
+            shelfMenu();
+            return;
+        }
         if (kind == :discard) {
             WatchUi.switchToView(new WatchUi.Confirmation(str(Rez.Strings.DiscardRide)),
                 new DiscardDelegate(), WatchUi.SLIDE_IMMEDIATE);
@@ -183,6 +187,8 @@ class TrailBuddyApp extends Application.AppBase {
         for (var i = 0; i < a.size(); i++) {
             if (a[i] == :zoom) {
                 m.addItem(new WatchUi.MenuItem(str(Rez.Strings.Zoom), zoomLabel(core.ui.zoomMode()), :zoom, null));
+            } else if (a[i] == :shelf) {
+                m.addItem(new WatchUi.MenuItem(str(Rez.Strings.Shelf), null, :shelf, null));
             } else if (a[i] == :endRoute) {
                 m.addItem(new WatchUi.MenuItem(str(Rez.Strings.EndRoute), null, :endRoute, null));
             }
@@ -199,6 +205,21 @@ class TrailBuddyApp extends Application.AppBase {
         }
         m.setFocus(core.ui.zoomMode() - NavView.ZOOM_AUTO);
         WatchUi.switchToView(m, new MenuDelegate(:zoom), WatchUi.SLIDE_IMMEDIATE);
+    }
+
+    //! Die Ablage (#515): je Route Name, darunter km und hm aus dem Eintrag
+    //! — nichts wird dafür dekodiert. Die Kennung ist die Stelle.
+    (:nobench)
+    hidden function shelfMenu() as Void {
+        var m = new WatchUi.Menu2({:title => str(Rez.Strings.Shelf)});
+        var l = PhoneRoute.shelf();
+        for (var k = 0; k < l.size(); k++) {
+            var e = l[k] as Array;
+            var km = (e[3] as Number) / 100;
+            m.addItem(new WatchUi.MenuItem(e[2] as String,
+                km / 10 + str(Rez.Strings.DecimalSep) + km % 10 + " km · " + e[4] + " hm", k, null));
+        }
+        WatchUi.switchToView(m, new MenuDelegate(:shelf), WatchUi.SLIDE_IMMEDIATE);
     }
 
     //! Eine Stufe heißt nach dem, was die Karte voraus zeigt (135 px):
@@ -360,7 +381,7 @@ class TrailBuddyApp extends Application.AppBase {
     (:bench)
     function menu(kind as Symbol) as Void {
         _benchMenu = kind == :pause ? "pause" : (kind == :trail ? "trail" : (kind == :quit ? "quit"
-            : (kind == :action ? "action" : (kind == :zoom ? "zoom" : "discard"))));
+            : (kind == :action ? "action" : (kind == :zoom ? "zoom" : (kind == :shelf ? "shelf" : "discard")))));
         System.println("bench menu " + _benchMenu);
     }
 
@@ -426,9 +447,13 @@ class TrailBuddyApp extends Application.AppBase {
             c.confirmNo();
         } else if ("menu".equals(k)) {
             c.menuKey();
-        } else if ("zoom".equals(k) || "end_route".equals(k)) {
+        } else if ("zoom".equals(k) || "end_route".equals(k) || "shelf".equals(k)) {
             _benchMenu = "";
-            c.actionChoice("zoom".equals(k) ? :zoom : :endRoute);
+            c.actionChoice("zoom".equals(k) ? :zoom : ("shelf".equals(k) ? :shelf : :endRoute));
+        } else if (k.length() > 1 && "s".equals(k.substring(0, 1))) {
+            // `s<k>`: Route k der Ablage (#515).
+            _benchMenu = "";
+            c.shelfChoice(k.substring(1, null).toNumber());
         } else if (k.length() > 1 && "z".equals(k.substring(0, 1))) {
             _benchMenu = "";
             var z = k.substring(1, null).toNumber();
@@ -775,12 +800,14 @@ class MenuDelegate extends WatchUi.Menu2InputDelegate {
 
     function onSelect(item as WatchUi.MenuItem) as Void {
         var id = item.getId();
-        if (id != :discard && id != :zoom) { WatchUi.popView(WatchUi.SLIDE_IMMEDIATE); }
+        if (id != :discard && id != :zoom && id != :shelf) { WatchUi.popView(WatchUi.SLIDE_IMMEDIATE); }
         var c = watchCore();
         if (_kind == :pause) {
             c.pauseChoice(id);
         } else if (_kind == :trail) {
             c.trailChoice(id != :drop);
+        } else if (_kind == :shelf) {
+            c.shelfChoice(id);
         } else {
             c.actionChoice(id);
         }

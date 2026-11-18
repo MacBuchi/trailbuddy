@@ -30,6 +30,7 @@ import Toybox.Lang;
 //!   9 Fix          nur beim Wechsel: 0 keiner/zu ungenau, 1 auf der Linie,
 //!                  2 abseits, 3 frei (ohne Route)
 //!  10 Frist        0 zu, 1 Wechsel, 2 ruhige Minute, 3 Warten vorbei
+//!  11 Ablage       0 Route gestartet (#515; Art 2 ist voll)
 //!
 //! Geschrieben nach `Application.Storage` („ev"), wenn die App zugeht, bei
 //! Start, Taste und Menüpunkt und sonst höchstens alle 5 min — ein Absturz
@@ -41,8 +42,8 @@ import Toybox.Lang;
 module EventLog {
     const SIZE = 120;
     //! Die Arten der Nachrichten, je drei Zeichen ab Stelle 0.
-    const IN_T = " q  wq wk p  n  k  e  r  b  c  u  ";
-    const OUT_T = " hi x  ok g  d  e  rs re rp rr rt w  ";
+    const IN_T = " q  wq wk p  n  k  e  r  b  c  u  sd ";
+    const OUT_T = " hi x  ok g  d  e  rs re rp rr rt w  sh ";
 
     var _ring as Array = [];
     var _head as Number = 0;
@@ -84,7 +85,7 @@ module EventLog {
         _head = (_head + 1) % SIZE;
         if (_n < SIZE) { _n++; }
         total++;
-        if (code < 24 || now - _savedAt >= 300000) { save(now); }
+        if (code < 24 || code >> 3 == 11 || now - _savedAt >= 300000) { save(now); }
     }
 
     //! Der Code einer Nachricht nach ihrer Art `t`: vom Handy ab 24 (Art

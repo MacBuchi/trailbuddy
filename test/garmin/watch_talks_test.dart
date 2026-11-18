@@ -5,6 +5,7 @@
 // spielt `garmin/source/GeneratedTalks.mc` (erzeugt von
 // `tool/watch_talks.py`) gegen den Ablaufkern. Die Form steht in
 // `gespraeche_form` der Falldatei.
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -12,11 +13,14 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:trailbuddy/features/garmin/watch_buddies.dart' show decodeVoiceWatch, encodeVoiceWatch;
 import 'package:trailbuddy/features/garmin/watch_providers.dart';
 import 'package:trailbuddy/features/garmin/watch_ride.dart' show encodeWatchRide;
+import 'package:trailbuddy/features/garmin/watch_route.dart' show watchRouteOf;
+import 'package:trailbuddy/features/garmin/watch_shelf.dart' show WatchShelfEntry, watchShelfProvider;
 import 'package:trailbuddy/features/nearby/buddy_map_layer.dart' show nearbyBuddyNameProvider;
 import 'package:trailbuddy/features/nearby/nearby_core.dart' show BuddySighting;
 import 'package:trailbuddy/features/nearby/nearby_providers.dart' show buddySightingsProvider;
 import 'package:trailbuddy/features/rides/ride_providers.dart' show rideProvider;
 import 'package:trailbuddy/features/routing/nav_providers.dart' show navigationProvider;
+import 'package:trailbuddy/features/routing/nav_sections.dart' show NavSections;
 import 'package:trailbuddy/features/routing/voice_cues.dart' show VoiceCue, VoiceCueKind;
 import 'package:trailbuddy/features/trails/trail_providers.dart' show trailsProvider;
 
@@ -37,7 +41,7 @@ Set<String> _watchTypes() {
 }
 
 Set<String> _phoneTypes() {
-  final src = ['watch_route.dart', 'watch_ride.dart']
+  final src = ['watch_route.dart', 'watch_ride.dart', 'watch_shelf.dart']
       .map((f) => File('lib/features/garmin/$f').readAsStringSync())
       .join('\n');
   // Arten sind ein oder zwei Buchstaben; die Fehlercodes (`mem`, `ver` …)
@@ -147,6 +151,14 @@ class _PhoneSide {
         case 'ansage':
           phone.c.read(watchSyncProvider.notifier).sendCues(decodeVoiceWatch(
               encodeVoiceWatch(const [VoiceCue(VoiceCueKind.trailAhead, name: 'Talweg', grade: 2, inM: 190)])));
+        // #515: eine Route auf die Uhr legen, ohne Navigation — und wieder weg.
+        case 'ablegen':
+          final route = watchRouteOf(phoneRoute, NavSections.none)!;
+          unawaited(phone.c.read(watchShelfProvider.notifier).put(
+              WatchShelfEntry(id: route.id, name: 'Hausrunde', lengthM: 2500, climbM: 0), route));
+        case 'entfernen':
+          final id = phone.c.read(watchShelfProvider).entries.first.id;
+          unawaited(phone.c.read(watchShelfProvider.notifier).remove(id));
         case 'buddy unterwegs':
           phone.c.read(watchSyncProvider.notifier).buddyNear('Max');
         case 'buddy live':
@@ -281,6 +293,10 @@ class _PhoneSide {
       expect(ride, isNotNull, reason: why);
     } else if (st == 'aus') {
       expect(ride, isNull, reason: why);
+    } else if (st.startsWith('ablage:')) {
+      expect(phone.c.read(watchShelfProvider).entries.length, int.parse(st.substring(7)), reason: why);
+    } else if (st == 'ablage_wartet') {
+      expect(phone.c.read(watchShelfProvider).jobs, isNotEmpty, reason: why);
     } else if (st.startsWith('marken:')) {
       expect(ride?.marks.length, int.parse(st.substring(7)), reason: why);
     } else {

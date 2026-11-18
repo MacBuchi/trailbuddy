@@ -2,6 +2,25 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Routen auf der Uhr
+
+*Version 0.189.0, 2026-11-18 (Uhr-App 1.9.0)*
+
+- **„Auf die Uhr legen"**: Am Ergebnis des Planers und im Menü einer
+  Fahrt in „Meine Fahrten" legt ein Tipp die Route auf die Garmin-Uhr,
+  ohne die Navigation zu starten. Bis zu drei Routen liegen dort; ist
+  die Uhr voll, fragt die App, welche weichen soll.
+- **An der Uhr ohne Handy starten**: Lange HOCH, „Gespeicherte Routen",
+  Route wählen — sie lädt ganz, mit Länge und Höhenmetern in der Liste.
+  Eine neue Route der Navigation und „Route beenden" lassen die
+  gespeicherten liegen.
+- **Ist TrailBuddy auf der Uhr gerade zu**, wartet der Auftrag und geht
+  hinüber, sobald die Uhr-App sich meldet. Im Profil unter „Routen auf
+  der Uhr" siehst du, was dort liegt und was noch kommt, und nimmst
+  Routen wieder weg.
+- **Abseits ohne Handy** sagt die Uhr „ohne Handy" — umplanen kann nur
+  das Handy.
+
 ## Ansagen und Buddys auf der Garmin-Uhr
 
 *Version 0.188.0, 2026-11-18 (Uhr-App 1.8.0)*

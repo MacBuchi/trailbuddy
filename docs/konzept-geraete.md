@@ -18,7 +18,7 @@ im PR): Tastenkarte, die Bildschirme der Uhr, vier des Handys.
 |---|---|---|
 | E1 | Reihenfolge: erst Testbarkeit, dann Bedienung? | Ja — `konzept-garmin.md` 12, T1 vor allem anderen |
 | E2 | Tastenkarte „eine Taste, eine Bedeutung" (`konzept-garmin.md` 11) | **angenommen** (Betreiber, 2026-11-12); ändert Entscheidung 6 nur bei der Frage (START = ja) und beim langen HOCH — gebaut in #513 |
-| E3 | Routenablage auf der Uhr (vorher synchronisiert, ohne Handy wählbar) | **angenommen** (Betreiber, 2026-11-17): wie vorgeschlagen, Größe nach Messung 8.6 (bis dahin 3 Routen oder 4000 Punkte) — #515 |
+| E3 | Routenablage auf der Uhr (vorher synchronisiert, ohne Handy wählbar) | **angenommen** (Betreiber, 2026-11-17): wie vorgeschlagen, Größe nach Messung 8.6 (bis dahin 3 Routen oder 4000 Punkte) — #515, gebaut in 0.189.0 (Uhr-App 1.9.0) |
 | E4 | Buddys unterwegs sehen („Gruppenfahrt", Abschnitt 6) | **entschieden** (Betreiber, 2026-11-17): ja, **Opt-in**, in zwei Stufen — genau und live nur für Buddys in der Nähe, grob und nicht live für ausgewählte Buddys („Homies") außerhalb; Abschnitt 6 — #519 |
 | E5 | Eigener BLE-Lagesensor als nächstes Messgerät | **später** (Betreiber, 2026-11-17); ob E5 oder E6 zuerst kommt, entscheidet die verfügbare Hardware — #518 |
 | E6 | fēnix 5 Plus und neuer als Lagesensor am Lenker | **eingeplant** (Betreiber, 2026-11-17), als Experiment; kann vor E5 kommen, je nach Hardware; ändert Entscheidung 1 in `konzept-garmin.md` erst, wenn es trägt — #518 |
@@ -73,8 +73,9 @@ statt wie heute aus der Fassung der Uhr-App zu schließen.
 
 - **Routenablage** (E3): mehrere fertige Routen im Speicher der Uhr,
   am Handy ausgewählt („Auf die Uhr legen"), an der Uhr im Aktionsmenü
-  gestartet. Heute gibt es zwei Fächer für den Wechsel, keine Ablage.
-  Wie viele passen, sagt erst Messung 8.6 (`konzept-garmin.md`).
+  gestartet. **Gebaut in 0.189.0 / Uhr-App 1.9.0** (#515,
+  `konzept-garmin.md` 2b): drei Routen, bis Messung 8.6 eine andere Zahl
+  sagt.
 - **Der Umkreis bleibt liegen.** Das Fenster aus #500 (800 m, Trails in
   S-Farbe, Wege dorthin) überlebt das Schließen der App; ohne Handy
   zeigt die freie Fahrt das zuletzt geladene.
@@ -155,8 +156,7 @@ auf den Trail als Auswahl, die Regeln aus 10.4/10.5.
 - **Ergebnis und Start in einem**: Summe als vier Kacheln, Profil, die
   gemerkten Schalter als Chips (Aufzeichnen, Uhr, Bildschirm), EIN Knopf
   „Fahrt starten". Speichern, „Auf die Uhr" (E3) und GPX darunter.
-  **Gebaut in 0.171.0 (#517)**, ohne „Auf die Uhr" (wartet auf E3,
-  #515); das eingeklappte Ergebnis darf dafür bis 60 % hoch werden
+  **Gebaut in 0.171.0 (#517)**, „Auf die Uhr legen" seit 0.189.0 (#515); das eingeklappte Ergebnis darf dafür bis 60 % hoch werden
   (vorher 55 %).
 - **Fahrt läuft**: die heutige Folgeansicht, dazu eine Zeile mit dem
   Stand (Aufnahme, Uhr, Sprünge an) und „Trail beginnt" als Knopf. Ein
@@ -371,9 +371,14 @@ holt das Handy die Fahrt.
 
 ### F2 — Route vorplanen, auf die Uhr spielen, ohne Handy fahren
 
-- **Stand:** halb. Die Uhr behält die EINE Route der letzten am Handy
-  gestarteten Navigation und lädt sie ohne Handy.
-- **Aus Nutzersicht:** nicht auffindbar. Man muss am Abend die Navigation
+- **Stand:** gebaut in 0.189.0 / Uhr-App 1.9.0 (#515,
+  `konzept-garmin.md` 2b): „Auf die Uhr legen" am Ergebnis des Planers
+  und in „Meine Fahrten", bis zu drei Routen, an der Uhr über
+  „Gespeicherte Routen" gestartet, abseits „ohne Handy". Offen: Messung
+  8.6 und die Abnahme am Gerät.
+- **Vorher (bis 0.188.0):** halb. Die Uhr behielt die EINE Route der
+  letzten am Handy gestarteten Navigation und lud sie ohne Handy.
+- **Aus Nutzersicht (damals):** nicht auffindbar. Man muss am Abend die Navigation
   starten, damit die Route hinübergeht, und sie dann beenden — das errät
   niemand. Es gibt keine Auswahl, kein „Auf die Uhr legen", und an der
   Uhr keinen Weg, eine Route zu starten.

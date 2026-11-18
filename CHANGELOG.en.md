@@ -2,6 +2,25 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## Routes on the watch
+
+*Version 0.189.0, 2026-11-18 (watch app 1.9.0)*
+
+- **"Put on watch"**: On the planner result and in a ride's menu in
+  "My rides", one tap puts the route on the Garmin watch without
+  starting navigation. Up to three routes stay there; when the watch is
+  full, the app asks which one should go.
+- **Start on the watch without your phone**: Hold UP, "Saved routes",
+  pick a route — it loads in one piece, with length and climb in the
+  list. A new navigation route and "End route" leave the saved ones
+  alone.
+- **If TrailBuddy is closed on the watch**, the job waits and goes over
+  as soon as the watch app checks in. In your profile under "Routes on
+  the watch" you see what's there and what is still coming, and remove
+  routes again.
+- **Off route without a phone** the watch says "no phone" — only the
+  phone can replan.
+
 ## Announcements and buddies on the Garmin watch
 
 *Version 0.188.0, 2026-11-18 (watch app 1.8.0)*

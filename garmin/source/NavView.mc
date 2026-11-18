@@ -137,6 +137,9 @@ class NavView extends WatchUi.View {
     //! Buddys auf der Karte (#519): je [x, y, Buchstabe, alt] in den Metern
     //! der laufenden Ansicht ([WatchCore.showBuddies]); leer ohne.
     var buddies as Array = [];
+    //! Kein Handy verbunden (#515): Abseits sagt die Infofläche, dass
+    //! niemand umplanen kann — eine Route aus der Ablage fährt ohne.
+    var noPhone as Boolean = false;
     //! #501: Die Frage, ob die Uhr die neue Linie nimmt, bis [_askUntil];
     //! [_askBig]: „START = JA" groß (die erste nach 1.3.x).
     hidden var _askUntil as Number = 0;
@@ -1282,7 +1285,7 @@ class NavView extends WatchUi.View {
     hidden function drawOffField(dc as Dc, s as NavState, w as Number) as Void {
         field(dc, w, FIELD_Y, TbColors.WARNING);
         dc.setColor(TbColors.TEXT_ON_FIELD, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(w / 2, FIELD_Y + /*L:field_line1_dy*/2, /*F:off_title*/Graphics.FONT_TINY, _offRoute, Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(w / 2, FIELD_Y + /*L:field_line1_dy*/2, /*F:off_title*/Graphics.FONT_TINY, noPhone ? str(Rez.Strings.OffNoPhone) : _offRoute, Graphics.TEXT_JUSTIFY_CENTER);
         dc.drawText(w / 2, FIELD_Y + /*L:field_line2_dy*/24, /*F:off_value*/Graphics.FONT_SMALL, meters(s.offM), Graphics.TEXT_JUSTIFY_CENTER);
     }
 

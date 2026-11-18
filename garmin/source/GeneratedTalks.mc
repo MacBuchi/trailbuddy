@@ -195,3 +195,16 @@ function talk_frei_fragt_wieder(logger as Logger) as Boolean {
         {"von" => "uhr", "msg" => {"t" => "ok", "id" => "$a"}, "nach_ms" => 500, "dann" => ["route:$a"]}
     ] as Array<Dictionary>);
 }
+
+//! Die Ablage (#515): das Handy legt eine Route auf die Uhr, ohne Navigation; die Uhr startet sie ohne Handy; das Handy nimmt sie wieder weg
+(:test)
+function talk_ablage(logger as Logger) as Boolean {
+    return TestTalk.play("ablage", ["handy"] as Array<String>, [
+        {"von" => "uhr", "tu" => "start", "msg" => {"t" => "hi", "v" => 2, "ver" => "1.9.0"}, "gleich" => ["v"], "dann" => ["wartet"]},
+        {"von" => "handy", "msg" => {"t" => "r", "id" => "$s", "sh" => 1, "nm" => "Hausrunde"}, "gleich" => ["sh"]},
+        {"von" => "uhr", "msg" => {"t" => "sh", "id" => "$s", "l" => [["$s", "Hausrunde", 2500, 0]]}, "nach_ms" => 9000, "dann" => ["ablage:1", "route:t"]},
+        {"von" => "uhr", "tu" => "shelf0", "still" => true, "nach_ms" => 2000, "dann" => ["route:$s"]},
+        {"von" => "handy", "msg" => {"t" => "sd", "id" => "$s"}},
+        {"von" => "uhr", "msg" => {"t" => "sh", "l" => []}, "dann" => ["ablage:0", "route:$s"]}
+    ] as Array<Dictionary>);
+}

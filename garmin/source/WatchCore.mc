@@ -150,6 +150,8 @@ class WatchCore {
         RideLog.recover();
         log = new RideLog();
         if (Application.Storage.getValue("loading") == true) {
+            // Brach das Dekodieren ab, ginge es aus der Ablage wieder so.
+            PhoneRoute.unshelve(PhoneRoute.currentId());
             PhoneRoute.drop();
             Application.Storage.deleteValue("loading");
         }
@@ -304,6 +306,9 @@ class WatchCore {
         // Die wartenden Fahrten: Das Handy antwortet mit `wq` („schick").
         var rq = RideLog.queuedIds();
         if (rq.size() > 0) { msg["rq"] = rq; }
+        // Die Ablage (#515): Das Handy zeigt, was hier liegt.
+        var sh = PhoneRoute.shelfOut();
+        if (sh.size() > 0) { msg["sh"] = sh; }
         // Ging die App beim letzten Mal nicht zu, reist der alte Ring mit
         // (#510); ein älteres Handy übersieht den Schlüssel.
         var crash = EventLog.crashed(_host.connected());
@@ -359,6 +364,7 @@ class WatchCore {
                 return;
             }
             if (mine) {
+                PhoneRoute.unshelve(id);
                 PhoneRoute.drop();
                 toPhone({"t" => "x", "id" => id, "c" => "bad"});
             } else {
@@ -525,6 +531,8 @@ class WatchCore {
     //! mit ihnen.
     function actions() as Array<Symbol> {
         var a = [:zoom] as Array<Symbol>;
+        // Die Ablage (#515): Routen, die ohne Handy starten.
+        if (PhoneRoute.shelf().size() > 0) { a.add(:shelf); }
         if (!free && !route.failed) { a.add(:endRoute); }
         return a;
     }
@@ -536,11 +544,33 @@ class WatchCore {
         now = _host.now();
         if (id == :zoom) {
             _host.menu(:zoom);
+        } else if (id == :shelf) {
+            _host.menu(:shelf);
         } else if (id == :endRoute) {
             endRoute();
         } else if (id instanceof Number) {
             ui.setZoomMode(id);
         }
+    }
+
+    //! Route [k] der Ablage starten (#515): Sie lädt wie eine neue vom
+    //! Handy, im nächsten Takt — ohne Frage, man hat sie gewählt. Lief eine
+    //! Route vom Handy, hört es „beendet" und beendet seine Navigation (die
+    //! Aufzeichnung läuft weiter, wie bei „Route beenden").
+    function shelfChoice(k as Object?) as Void {
+        now = _host.now();
+        if (closing || !(k instanceof Number)) { return; }
+        ev(88); // Ablage: Route gestartet
+        var old = PhoneRoute.currentId();
+        var id = PhoneRoute.useShelf(k);
+        if (id == null || (id.equals(route.id) && route.isReady())) { return; }
+        if (!free && old != null && old.equals(route.id) && PhoneRoute.shelfAt(old) < 0) {
+            toPhone({"t" => "e", "id" => old});
+        }
+        CrashGuard.risk(id);
+        pendingId = id;
+        swapAt = now;
+        pace();
     }
 
     //! „Route beenden" (#513): Die Navigation endet, die Aufzeichnung läuft
@@ -828,6 +858,10 @@ class WatchCore {
             _buddiesAt = now;
         } else if ("r".equals(t)) {
             routePart(d, id);
+        } else if ("sd".equals(t)) {
+            // Aus der Ablage nehmen (#515); die Antwort sagt, was bleibt.
+            PhoneRoute.unshelve(id);
+            sendShelf(null);
         }
         pace();
     }
@@ -880,7 +914,10 @@ class WatchCore {
     //! Ein Stück Route. Kommt eine Route an, ist sie neu — stürzt die App
     //! dabei ab, zählt es gegen sie ([CrashGuard]).
     hidden function routePart(d as Dictionary, rid as String?) as Void {
-        if (rid != null) { CrashGuard.risk(rid); }
+        // Eine Route für die Ablage lädt nicht: Sie zählt erst gegen sich,
+        // wenn sie gestartet wird ([shelfChoice]).
+        var shelf = d["sh"] == 1;
+        if (rid != null && !shelf) { CrashGuard.risk(rid); }
         var id = PhoneRoute.take(d);
         var err = PhoneRoute.lastError;
         if (err != null) {
@@ -895,7 +932,12 @@ class WatchCore {
             // Ein Stück angenommen, es fehlen noch welche: Der Start wartet
             // weiter, und der Lader zählt mit.
             var n = d["n"];
-            if (wait != 0 && rid != null && n instanceof Number) { waitForRoute(rid, n); }
+            if (!shelf && wait != 0 && rid != null && n instanceof Number) { waitForRoute(rid, n); }
+            return;
+        }
+        if (PhoneRoute.lastShelf) {
+            // In der Ablage: Die Navigation bleibt, wie sie ist.
+            sendShelf(id);
             return;
         }
         // Die Antwort auf eine vollständige Route (Konzept 2): gespeichert.
@@ -921,6 +963,13 @@ class WatchCore {
         } else {
             swapAt = now + 1;
         }
+    }
+
+    //! Die Ablage ans Handy (`sh`), mit [id], wenn gerade eine ankam.
+    hidden function sendShelf(id as String?) as Void {
+        var msg = {"t" => "sh", "l" => PhoneRoute.shelfOut()} as Dictionary;
+        if (id != null) { msg["id"] = id; }
+        toPhone(msg);
     }
 
     //! Die neue Route: GPS aus, die alte loslassen, die neue laden. Die
@@ -1004,6 +1053,7 @@ class WatchCore {
         // Einmal beim Abkommen (Entscheidung 3) — kein Ton, nichts vor
         // Abzweigen.
         if (s.leftRoute) { _host.vibrate(true); }
+        ui.noPhone = !_host.connected();
         fixEv(s.offRoute ? 2 : 1);
         stats.update(p[0], p[1], now, speed, alt, hr, s.offRoute ? -1 : route.sectionAt(s.alongM));
         ui.setState(s, speed, false);

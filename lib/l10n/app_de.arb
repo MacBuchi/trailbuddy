@@ -11149,5 +11149,157 @@
   "demoGroupRideText": "Über das Zeichen an der Zeile wählst du, ob ein Buddy ein Homie ist. Live schaltest du in der Fahrt über den Knopf über der Aufnahme ein.",
   "@demoGroupRideText": {
     "description": "Vorführung Gruppenfahrt: Text des Schritts an der Buddy-Zeile."
+  },
+  "watchShelfPut": "Auf die Uhr legen",
+  "@watchShelfPut": {
+    "description": "Knopf (#515): eine Route in die Ablage der Garmin-Uhr legen, ohne die Navigation zu starten."
+  },
+  "watchShelfPreparing": "Route wird für die Uhr vorbereitet …",
+  "@watchShelfPreparing": {
+    "description": "Leiste, während Höhen und Abzweigungen für die Uhr gerechnet werden (#515)."
+  },
+  "watchShelfUnfit": "Diese Linie geht nicht auf die Uhr.",
+  "@watchShelfUnfit": {
+    "description": "Leiste (#515): aus der Linie ließ sich keine Route für die Uhr machen."
+  },
+  "watchShelfSending": "„{name}“ geht auf die Uhr.",
+  "@watchShelfSending": {
+    "description": "Leiste (#515): die Route geht gleich zur Uhr, TrailBuddy ist dort offen.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "watchShelfWaiting": "„{name}“ liegt bereit und kommt auf die Uhr, sobald TrailBuddy dort offen ist.",
+  "@watchShelfWaiting": {
+    "description": "Leiste (#515): die Uhr-App ist zu; der Auftrag wartet auf ihr Hallo.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "watchShelfAlready": "Diese Route liegt schon auf der Uhr.",
+  "@watchShelfAlready": {
+    "description": "Leiste (#515): dieselbe Route liegt schon in der Ablage."
+  },
+  "watchShelfNotInstalled": "TrailBuddy ist nicht auf der Uhr.",
+  "@watchShelfNotInstalled": {
+    "description": "Leiste (#515): Garmin Connect sagt, unsere App fehlt auf der Uhr."
+  },
+  "watchShelfSimplified": "Sie ist stark vereinfacht, damit sie ganz auf die Uhr passt.",
+  "@watchShelfSimplified": {
+    "description": "Zusatz der Leiste (#515): die Linie hatte viel mehr Knicke, als die Uhr hält."
+  },
+  "watchShelfFullTitle": "Uhr ist voll",
+  "@watchShelfFullTitle": {
+    "description": "Titel des Dialogs (#515): die Ablage der Uhr ist voll."
+  },
+  "watchShelfFullBody": "Auf der Uhr liegen höchstens {n} Routen. Welche soll weichen?",
+  "@watchShelfFullBody": {
+    "description": "Text des Dialogs (#515), darunter die Routen zur Wahl.",
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "watchShelfTitle": "Routen auf der Uhr",
+  "@watchShelfTitle": {
+    "description": "Titel der Seite im Profil (#515)."
+  },
+  "watchShelfIntro": "Diese Routen startest du auf der Uhr ohne Handy: lange HOCH drücken, „Gespeicherte Routen“. Höchstens {n}; „Auf die Uhr legen“ steht am Ergebnis des Planers und in „Meine Fahrten“.",
+  "@watchShelfIntro": {
+    "description": "Einleitung der Seite im Profil (#515).",
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "watchShelfFailedFull": "„{name}“ kam nicht an: Die Uhr war voll.",
+  "@watchShelfFailedFull": {
+    "description": "Zeile der Seite (#515): die Uhr meldete keinen Platz.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "watchShelfFailedRefused": "„{name}“ kam nicht an: Die Uhr konnte sie nicht nehmen.",
+  "@watchShelfFailedRefused": {
+    "description": "Zeile der Seite (#515): die Uhr lehnte ab (Speicher, Absturz, Form).",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "watchShelfFailedOutdated": "Die Uhr-App ist zu alt für die Ablage — bitte TrailBuddy auf der Uhr aktualisieren.",
+  "@watchShelfFailedOutdated": {
+    "description": "Zeile der Seite (#515): Uhr-App vor 1.9.0."
+  },
+  "watchShelfEmpty": "Noch keine Route auf der Uhr.",
+  "@watchShelfEmpty": {
+    "description": "Leere Liste der Seite (#515)."
+  },
+  "watchShelfComing": "kommt, sobald TrailBuddy auf der Uhr offen ist",
+  "@watchShelfComing": {
+    "description": "Zusatz einer Zeile (#515): die Route wartet noch."
+  },
+  "watchShelfRemove": "Von der Uhr nehmen",
+  "@watchShelfRemove": {
+    "description": "Tooltip des Papierkorbs je Route (#515)."
+  },
+  "watchShelfLeaving": "wird von der Uhr genommen, sobald TrailBuddy dort offen ist",
+  "@watchShelfLeaving": {
+    "description": "Zeile (#515): die Route soll weg, die Uhr-App war noch nicht offen."
+  },
+  "profileWatchTitle": "Routen auf der Uhr",
+  "@profileWatchTitle": {
+    "description": "Zeile im Profil (#515), nur mit Garmin-Uhr."
+  },
+  "profileWatchValue": "{n, plural, =0{noch keine} =1{1 Route} other{{n} Routen}}",
+  "@profileWatchValue": {
+    "description": "Wert der Profilzeile (#515): so viele Routen liegen auf der Uhr oder kommen.",
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "watchEvShelf": "{d, select, d0{Ablage: Route gestartet} other{?}}",
+  "@watchEvShelf": {
+    "description": "Uhr-Protokoll, Zeile (#515): eine Route aus der Ablage wurde gestartet.",
+    "placeholders": {
+      "d": {
+        "type": "String"
+      }
+    }
+  },
+  "highlightWatchShelfTitle": "Routen auf der Uhr",
+  "@highlightWatchShelfTitle": {
+    "description": "Neuheit (#515): Titel."
+  },
+  "highlightWatchShelfText": "„Auf die Uhr legen“ am Ergebnis des Planers und in „Meine Fahrten“: Bis zu drei Routen liegen auf der Garmin-Uhr und starten dort ohne Handy — lange HOCH, „Gespeicherte Routen“.",
+  "@highlightWatchShelfText": {
+    "description": "Neuheit (#515): zwei Sätze, was die Ablage kann."
+  },
+  "demoWatchShelf1Title": "Was auf der Uhr liegt",
+  "@demoWatchShelf1Title": {
+    "description": "Vorführung (#515), Schritt an der Profilzeile."
+  },
+  "demoWatchShelf1Text": "Hier siehst du die Routen auf der Uhr und nimmst sie wieder weg. Hinlegen geht am Ergebnis des Planers und im Menü einer Fahrt.",
+  "@demoWatchShelf1Text": {
+    "description": "Vorführung (#515), Text an der Profilzeile „Routen auf der Uhr“."
+  },
+  "demoWatchShelf2Title": "Mit einer Garmin-Uhr",
+  "@demoWatchShelf2Title": {
+    "description": "Vorführung (#515), Ersatzschritt ohne Uhr."
+  },
+  "demoWatchShelf2Text": "Sobald TrailBuddy auf deiner Garmin-Uhr läuft, steht hier „Routen auf der Uhr“ — und am Ergebnis des Planers „Auf die Uhr legen“.",
+  "@demoWatchShelf2Text": {
+    "description": "Vorführung (#515), Text ohne Uhr: wo die Funktion erscheint."
   }
 }

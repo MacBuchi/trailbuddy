@@ -29,6 +29,7 @@ import '../../core/gpx_share.dart';
 import '../../models/trail.dart';
 import '../map/map_view/map_view.dart';
 import '../garmin/watch_providers.dart' show watchSyncProvider;
+import '../garmin/watch_shelf_actions.dart' show putOnWatch, watchShelfAvailableProvider;
 import '../official/official_trails_source.dart';
 import '../rides/ride_providers.dart';
 import '../rides/ride_track.dart';
@@ -901,6 +902,17 @@ class _ResultPanelState extends ConsumerState<_ResultPanel> {
           icon: const Icon(Icons.share_outlined),
           label: Text(l.routingAsGpx),
         ),
+        // Die Ablage auf der Uhr (#515): ohne die Navigation zu starten.
+        if (ref.watch(watchShelfAvailableProvider) && plan.summary != null)
+          TextButton.icon(
+            key: const ValueKey('loop-watch'),
+            onPressed: () => putOnWatch(context, ref,
+                points: plan.points,
+                name: _name(l, session, plan),
+                sections: navSectionsOfLoop(l, plan, trailById: trailByIdOf(ref), beyond: _targetTrail(session))),
+            icon: const Icon(Icons.watch_outlined),
+            label: Text(l.watchShelfPut),
+          ),
         ?_external(context, session),
       ]),
       if (strip != null) ...[

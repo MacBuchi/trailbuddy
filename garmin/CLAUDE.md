@@ -595,3 +595,32 @@ Abbiegehinweise.
   Szene 1 und 2 einen Hinweis (nur auf der Karte, nicht in Szene 0 — von
   dort blättert `shots` auf die Seiten), `shots` nimmt „spruenge" mit:
   Vorher sah Flugzeug, Wheelie, Stoppie und „×" nur das Abbild.
+- **Die Ablage** (#515, 1.9.0; Konzept 2b): vier Fächer `s0`–`s3` für
+  höchstens drei Routen (`SHELF_MAX`), die Liste `sl` je `[id, Fach, Name,
+  Meter, bergauf]`, ein Stück mit `sh` geht nie in `cur`. Vier Fallen, je
+  im Bau gefunden:
+  - **`rp` trägt nur das erste Stück.** Das Fach merkt es sich unter
+    `<fach>m` (mit Name, Länge, bergauf), und `shelfSlotFor` sucht ZUERST
+    das Fach mit derselben Kennung, erst dann zählt „voll" — sonst sagte
+    das zweite Stück einer Ersatzroute `x full` (`shelfFullAsksReplace`).
+  - **`release` statt `clear`**, wo eine Route ihr Fach aufgibt (neue
+    Route der Navigation, `drop`, `useShelf`): Ein Fach der Ablage bleibt.
+    Aus der Ablage nimmt nur `unshelve` — beim Absturz (`CrashGuard`), bei
+    `loading` beim Start, bei einer Route, die sich nicht dekodieren ließ,
+    und auf `sd`. Gegenprobe 2026-11-18: `release` → `clear`, ohne
+    `unshelve` beim Absturz, `sh` ohne `return` ⇒ `shelfSurvivesNavRoute`,
+    `shelfSurvivesRestart`, `shelfTakesWithoutSwap` rot.
+  - **Die Antwort ist `sh`, nicht `ok`**: `WatchSync` hört `ok` für seine
+    Route, die Ablage `sh` (`lib/features/garmin/watch_shelf.dart`); das
+    Handy schickt `sh` nur an `ver` ≥ 1.9.0 (`watchKnowsShelf`).
+  - **Im Gespräch ist ein Wert ein Beispiel**: `l: []` im `sh` der Uhr
+    kam beim Handy als leere Ablage an — das Gespräch „ablage" trägt
+    deshalb einen Eintrag mit `$s`.
+  Speicher (Kettenstand 2026-11-18, `CHAIN_BIG=700`): mit Aufnahme
+  97,9 KB (vorher 94,8), Spitze 104,5 von 123,8 KB, der Wechsel geht. Die
+  Ereignis-Art 11 „Ablage" (Code 88) speichert den Ring sofort wie eine
+  Taste (`code >> 3 == 11` in `EventLog.rec`); Art 2 war voll.
+  Handy-Seite: Aufträge in `rides/watch_shelf.json` (nicht in den
+  Einstellungen — Haustür), gesendet beim „hallo", gelöscht erst mit `sh`;
+  `put` mit laufender Uhr-App, deren „hallo" vor dem Lauf der App kam,
+  fragt `q`. Der Harness hängt `MemoryWatchShelfStore` ein.

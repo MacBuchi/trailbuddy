@@ -25,6 +25,7 @@ import 'package:trailbuddy/core/widgets/start_splash.dart';
 import 'package:trailbuddy/data/providers.dart';
 import 'package:trailbuddy/features/garmin/garmin_bridge.dart';
 import 'package:trailbuddy/features/garmin/watch_event_store.dart';
+import 'package:trailbuddy/features/garmin/watch_shelf.dart' show MemoryWatchShelfStore, watchShelfStoreProvider;
 import 'package:trailbuddy/features/map/base_map_providers.dart';
 import 'package:trailbuddy/features/map/contour_layer.dart' show computeContours;
 import 'package:trailbuddy/features/map/contour_providers.dart';
@@ -206,6 +207,8 @@ List<Override> overridesFor(FakeBackend backend,
       // `path_provider`.
       rideStoreProvider.overrideWithValue(rideStore ?? FakeRideStore()),
       watchEventStoreProvider.overrideWithValue(watchEvents ?? MemoryWatchEventStore()),
+      // Die Ablage der Uhr (#515) liegt sonst als Datei unter `rides/`.
+      watchShelfStoreProvider.overrideWithValue(MemoryWatchShelfStore()),
       rideFixProvider.overrideWithValue((rideFix ?? FakeRideFix()).call),
       rideServiceBridgeProvider.overrideWithValue(rideBridge ?? FakeRideServiceBridge()),
       rideServiceProvider.overrideWithValue(rideService ?? FakeRideService()),

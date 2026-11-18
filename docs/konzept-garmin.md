@@ -615,6 +615,54 @@ Entscheidung 5. Gebaut in `garmin/source/RideLog.mc` (Uhr),
 - **Danach ist sie eine Fahrt wie jede andere** (A3): zerlegen, exportieren,
   kalibrieren, löschen; sie verlässt das Telefon nicht.
 
+## 2b. Die Ablage auf der Uhr (#515, E3)
+
+Gebaut in 0.189.0 / Uhr-App 1.9.0 (Feldszenario F2 in
+`konzept-geraete.md` 9). Bis zu **drei Routen** liegen fertig auf der Uhr
+und starten dort ohne Handy — die Zahl gilt, bis Messung 8.6 eine andere
+sagt (E3: „3 Routen oder 4000 Punkte", bei 700 Punkten je Route dasselbe).
+
+- **Ganz, nie in Stücken um den Fortschritt** (Abschnitt 2, A8): Eine
+  Route der Ablage ist vereinfacht wie jede Route für die Uhr
+  (`kWatchMaxPoints`); musste das Handy viel stärker vereinfachen
+  (Toleranz ≥ 20 m), sagt es das beim Hinlegen.
+- **Protokoll** (weiter Protokoll 2, nur ergänzt): Die Stücke tragen
+  `sh: 1`, das erste dazu `nm` (Name, wie in der Infofläche gekürzt), `len`
+  (Meter), `hm` (bergauf) und `rp` (die Route, die sie ersetzt). Die Uhr
+  antwortet mit `{t: "sh", id, l}` statt `ok` — `l` ist die ganze Ablage als
+  `[id, Name, Meter, bergauf]` —, auch das „hallo" trägt sie als `sh`.
+  `{t: "sd", id}` nimmt eine Route heraus, die Antwort ist wieder `sh`.
+  Ohne Platz und ohne `rp` heißt es `{t: "x", c: "full"}`. Das Handy
+  schickt `sh` nur an eine Uhr-App ab 1.9.0 — eine ältere nähme das Stück
+  als Route der Navigation.
+- **Vier Fächer für drei Routen** (`s0` … `s3` neben `a`/`b`, Liste `sl`):
+  Eine neue Route füllt immer ein freies Fach, und erst wenn sie ganz da
+  ist, geht die, die sie ersetzt. Eine halbe Übertragung lässt die Ablage
+  heil — dieselbe Regel wie bei der Navigation.
+- **Starten** (Aktionsmenü, langes HOCH → „Gespeicherte Routen", je Zeile
+  Name, km und hm aus der Liste, nichts dekodiert): `cur` zeigt auf das
+  Fach der Ablage, die Route lädt über den Wechsel wie eine neue vom Handy,
+  ohne Frage. Lief eine Route vom Handy, hört das Handy `e` und beendet
+  seine Navigation (die Aufzeichnung läuft weiter, wie bei „Route
+  beenden"). Weder eine neue Route der Navigation noch „Route beenden"
+  räumen ein Fach der Ablage; stürzt eine Route zweimal ab
+  ([CrashGuard]) oder lässt sie sich nicht dekodieren, ist sie auch aus
+  der Ablage weg.
+- **Abseits ohne Handy** steht in der Infofläche „ABSEITS · OHNE HANDY":
+  Umplanen kann nur das Handy (Rolle Planer, `konzept-geraete.md` 1).
+- **Das Handy wartet auf die Uhr**: Auf der fēnix 5 weckt eine Nachricht
+  die Uhr-App nicht, und Garmin Connect meldet SUCCESS auch für eine
+  geschlossene. Was hin oder weg soll, liegt deshalb in
+  `rides/watch_shelf.json` (Backup-Ausschluss wie die Fahrten — eine Route
+  beginnt an der Haustür) und geht beim nächsten „hallo"; erst die
+  Antwort `sh` nimmt den Auftrag. Das Profil zeigt unter „Routen auf der
+  Uhr", was dort liegt und was noch kommt.
+- **Speicher** (Kettenstand 2026-11-18, Bench-Bau, 700 Punkte): mit
+  Aufnahme 97,9 KB (vorher 94,8), Spitze 104,5 von 123,8 KB, der Wechsel
+  gleich großer Routen geht. Die Ablage selbst liegt in
+  `Application.Storage`, nicht im Arbeitsspeicher; wie viel davon die
+  fēnix 5 neben der Warteschlange der Fahrten hält, sagt Messung 8.6.
+
 ## 3. Der Weg vom Handy zur Uhr
 
 - **Android**: das Connect-IQ-Companion-SDK von Garmin
