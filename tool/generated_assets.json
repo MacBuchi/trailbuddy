@@ -72,6 +72,10 @@
     "store/play_icon_512.png": {
       "sha256": "731cac07c75a52fd1296f217c9f68cceb5a347dc70f083d1bd94d3a9f6419631",
       "regenerate": "python3 tool/brand_icons.py (braucht rsvg-convert aus librsvg)"
+    },
+    "store/feature_graphic.png": {
+      "sha256": "7cebe2a6a822f3ffb8526f3ffcc3a75566037106c5d536068f03601949868f97",
+      "regenerate": "python3 tool/brand_icons.py (braucht rsvg-convert aus librsvg und die Schriften aus assets/fonts)"
     }
   }
 }

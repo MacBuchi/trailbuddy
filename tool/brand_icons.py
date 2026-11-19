@@ -30,6 +30,12 @@ Geschrieben werden:
   so sieht es aus wie der Splash der App, der danach übernimmt.
 - `mipmap-*/ic_launcher.png` — das Symbol für Android vor 8.0.
 - `store/play_icon_512.png` — das Symbol im Play-Store-Eintrag, randlos.
+- `store/feature_graphic.png` — die Vorstellungsgrafik des Eintrags
+  (1024×500): Symbol, Wortmarke wie `TrailBuddyWordmark` (TRAIL hell,
+  BUDDY in Lime, Barlow Condensed), Zeile in Barlow, rechts
+  Linien in den Farben der Schwierigkeit. Die Schrift kommt aus
+  `assets/fonts/` über eine eigene fontconfig (`PANGOCAIRO_BACKEND=fc`,
+  sonst nimmt librsvg auf macOS still eine Systemschrift).
 - `web/icons/Icon-{192,512}.png`, `Icon-maskable-{192,512}.png`,
   `web/favicon.png`, `web/favicon.svg`.
 - `garmin/resources/drawables/launcher_icon.png` — das Symbol der
@@ -315,6 +321,54 @@ def symbol_svg(px, scale, background, radius_ratio, color=ON_BRAND, size="L"):
     )
 
 
+# Die Vorstellungsgrafik (#39): Google zeigt sie über dem Eintrag und
+# schneidet an den Rändern; Symbol und Text bleiben deshalb in der Mitte
+# der Höhe und links mit Abstand. Die Zeile gehört zur Kurzbeschreibung
+# (docs/play-console.md) — wer die eine ändert, prüft die andere.
+FEATURE_TAGLINE = ("Deine Trails – nur für dich", "und deine Buddys.")
+# Linien wie auf der Karte, Farben der dunklen GradePalette (S0, S1, S2, S3).
+FEATURE_LINES = [
+    ("#F2F4EF", "M520 -20 C 600 60, 640 140, 720 160 S 820 240, 860 300 S 940 420, 960 520"),
+    ("#4CC46E", "M560 520 C 600 420, 700 430, 720 330 S 820 200, 900 150 S 1000 60, 1060 40"),
+    ("#5A9BF0", "M640 540 C 700 470, 780 470, 820 380 S 900 280, 980 260 S 1050 200, 1080 180"),
+    ("#F0605C", "M760 540 C 790 470, 860 450, 880 400 S 960 360, 1000 330 S 1060 300, 1090 310"),
+]
+GROUND = "#0E1411"
+TEXT = "#F2F4EF"
+
+
+def feature_graphic_svg():
+    k, t = _place(150, LEGACY_SCALE)
+    lines = "".join(
+        f'<path d="{d}" stroke="{GROUND}" stroke-width="16" fill="none" '
+        f'stroke-linecap="round" opacity=".9"/>'
+        f'<path d="{d}" stroke="{c}" stroke-width="8" fill="none" '
+        f'stroke-linecap="round"/>'
+        for c, d in FEATURE_LINES)
+    tag = "".join(
+        f'<text x="258" y="{306 + 40 * i}" font-family="Barlow" '
+        f'font-weight="500" font-size="30" fill="{TEXT}" fill-opacity=".85">'
+        f'{line}</text>'
+        for i, line in enumerate(FEATURE_TAGLINE))
+    return (
+        '<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="500" '
+        'viewBox="0 0 1024 500">'
+        '<defs><linearGradient id="f" x2="1">'
+        f'<stop offset=".45" stop-color="{GROUND}"/>'
+        f'<stop offset=".75" stop-color="{GROUND}" stop-opacity=".35"/>'
+        f'<stop offset="1" stop-color="{GROUND}" stop-opacity="0"/>'
+        '</linearGradient></defs>'
+        f'<rect width="1024" height="500" fill="{GROUND}"/>{lines}'
+        '<rect width="1024" height="500" fill="url(#f)"/>'
+        '<g transform="translate(72 175)">'
+        f'<rect width="150" height="150" rx="33" fill="{BRAND}"/>'
+        f'<path fill="{ON_BRAND}" d="{outline(GEO["L"], k=k, tx=t, ty=t)}"/></g>'
+        f'<text x="254" y="252" font-family="Barlow Condensed" font-weight="800" '
+        f'font-size="112" fill="{TEXT}">TRAIL<tspan fill="{BRAND}">BUDDY</tspan>'
+        f'</text>{tag}</svg>'
+    )
+
+
 def png_targets():
     t = {}
     for density, px in [("mdpi", 48), ("hdpi", 72), ("xhdpi", 96),
@@ -329,6 +383,7 @@ def png_targets():
     # Icon-512 wären sie doppelt). Zeichen wie beim Symbol vor Android 8.
     t[os.path.join("store", "play_icon_512.png")] = \
         symbol_svg(512, LEGACY_SCALE, BRAND, 0)
+    t[os.path.join("store", "feature_graphic.png")] = feature_graphic_svg()
     # Die PNG ist der Rückfall für Browser ohne SVG-Favicon: eine Farbe.
     t["web/favicon.png"] = symbol_svg(32, 1.0, None, 0, color=MOSS, size="S")
     # Die Uhr (docs/konzept-garmin.md): 40 px, die Liste der Apps ist rund
@@ -345,13 +400,21 @@ def write_all(root):
         with open(path, "w", encoding="utf-8") as f:
             f.write(text)
     with tempfile.TemporaryDirectory() as tmp:
+        # Nur die Schriften des Repos: so rendert jeder Rechner gleich, und
+        # eine fehlende Schrift fällt nicht still auf eine Systemschrift.
+        conf = os.path.join(tmp, "fonts.conf")
+        with open(conf, "w", encoding="utf-8") as f:
+            f.write('<?xml version="1.0"?><fontconfig>'
+                    f'<dir>{os.path.join(root, "assets", "fonts")}</dir>'
+                    f'<cachedir>{os.path.join(tmp, "fc")}</cachedir></fontconfig>')
+        env = dict(os.environ, FONTCONFIG_FILE=conf, PANGOCAIRO_BACKEND="fc")
         for rel, svg in png_targets().items():
             src = os.path.join(tmp, "icon.svg")
             with open(src, "w", encoding="utf-8") as f:
                 f.write(svg)
             os.makedirs(os.path.dirname(os.path.join(root, rel)), exist_ok=True)
             subprocess.run(["rsvg-convert", src, "-o", os.path.join(root, rel)],
-                           check=True)
+                           check=True, env=env, stderr=subprocess.DEVNULL)
 
 
 def check(root):
@@ -406,6 +469,9 @@ def self_test():
     svg = symbol_svg(48, LEGACY_SCALE, BRAND, 0.22)
     assert 'width="48"' in svg and svg.count("<path") == 1 and "stroke" not in svg
     assert "part of 'trailbuddy_logo.dart';" in dart_geometry()
+    fg = feature_graphic_svg()
+    assert 'width="1024" height="500"' in fg and ">TRAIL<tspan" in fg
+    assert all(c in fg for c, _ in FEATURE_LINES)
     print("brand_icons self-test ok")
 
 
