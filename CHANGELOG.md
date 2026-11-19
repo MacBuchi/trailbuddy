@@ -11,7 +11,7 @@
   die Karte fliegt hin; eine Hütte öffnet gleich ihr Blatt.
 - Die Namen kommen aus einer eigenen Liste auf unserem Kartenspeicher,
   nicht von einem fremden Suchdienst. Abgefragt werden nur die ersten
-  zwei oder drei Buchstaben des gesuchten Worts.
+  zwei bis vier Buchstaben des gesuchten Worts.
 - Ohne Netz sucht die Lupe in den Ortsnamen deiner gespeicherten
   Bereiche — neu gespeicherte Bereiche bringen sie mit.
 

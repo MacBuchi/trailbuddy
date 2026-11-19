@@ -2,7 +2,7 @@
 // Gipfel, Pässe und Hütten aus dem eigenen Index auf dem Kartenhost —
 // gebaut von `tool/poi_extract.py` aus denselben Geofabrik-Auszügen wie
 // die Orte (POIs), Arten in `tool/pois/places.json`. Kein Geocoder, kein
-// fremder Dienst: Zum Host gehen nur die ersten zwei oder drei Buchstaben
+// fremder Dienst: Zum Host gehen nur die ersten zwei bis vier Buchstaben
 // des getippten Worts, als Name der Datei.
 //
 // Zwei Formen derselben Einträge: je Rasterzelle `<z>_<s>.places.json`
@@ -113,17 +113,18 @@ List<String> placeNameWords(String text) => [
     if (foldSearchText(m[0]!) case final w when w.length >= 2) w,
 ];
 
-/// Die Datei, in der [query] nachsieht: das längste getippte Wort, erst
-/// seine ersten drei Buchstaben (eine geteilte Datei), sonst zwei — nur,
-/// wenn der Index sie nennt ([keys]). Null: nichts zu fragen.
+/// Die Datei, in der [query] nachsieht: das längste getippte Wort, davon
+/// der längste Anfang, den der Index nennt ([keys]) — vier, drei, dann
+/// zwei Buchstaben (eine volle Datei teilt das Werkzeug nach dem nächsten
+/// Buchstaben, `name_keys`). Null: nichts zu fragen.
 String? placeNameKey(String query, Set<String> keys) {
   final word = longestPlaceWord(query);
   if (word == null) return null;
-  if (word.length >= 3 && keys.contains(word.substring(0, 3))) {
-    return word.substring(0, 3);
+  for (var n = word.length < 4 ? word.length : 4; n >= 2; n--) {
+    final key = word.substring(0, n);
+    if (keys.contains(key)) return key;
   }
-  final two = word.substring(0, 2);
-  return keys.contains(two) ? two : null;
+  return null;
 }
 
 /// Das längste Wort der Eingabe (gefaltet) — oder null unter zwei Zeichen.

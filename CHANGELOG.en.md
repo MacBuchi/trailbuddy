@@ -10,7 +10,7 @@
   huts** — not only nearby but across the whole map. One tap and the map
   flies there; a hut opens its sheet right away.
 - The names come from our own list on our map storage, not from a
-  third-party search service. Only the first two or three letters of the
+  third-party search service. Only the first two to four letters of the
   word you search for are requested.
 - Without a connection the magnifier searches the place names of your
   saved areas — newly saved areas bring them along.

@@ -49,8 +49,8 @@ huts — named ones only), in two shapes from the same records:
 - per name key `names/<key>.json`: every word of a name, folded like the
   app's `foldSearchText`, files the place under its first two letters —
   or, where that file would grow past NAME_SPLIT places, under its first
-  three. The manifest lists the keys under `places.names`; the app asks
-  for the one file its typed word names. Only those two or three letters
+  three or four. The manifest lists the keys under `places.names`; the app asks
+  for the one file its typed word names. Only those two to four letters
   reach the host, never the rest of the query or the view.
 Old apps read neither: unknown manifest members are ignored, and the
 bundle reader keeps a file of an unknown group without looking at it.
@@ -92,6 +92,10 @@ PLACES_GROUP = "places"
 # (#576): "be" for Bergen, Berg, Bernau … would otherwise be the one file
 # every "Ber…" query downloads in full.
 NAME_SPLIT = 1500
+
+# The longest name key: four letters ("schw"). Beyond, a file stays as
+# large as it is — no German place-name stem is that common.
+NAME_KEY_MAX = 4
 
 # The app's grid (poi.dart: _cellLat, _cellLon). Change both or neither.
 CELL_LAT = 0.1
@@ -380,10 +384,28 @@ def place_record_of(feature, places):
 
 def name_keys(records):
     """Name key -> {id: record}. Every word of name and alt files the
-    place under its first two letters; a two-letter key with more than
-    NAME_SPLIT places keeps only the places whose word IS those two
-    letters and hands the rest to three-letter keys. The app asks the
-    three-letter key first, so both ways find the same."""
+    place under its first two letters; a key with more than NAME_SPLIT
+    places keeps only the places whose word IS that key and hands the
+    rest to keys one letter longer — down to NAME_KEY_MAX letters ("sch"
+    alone was 1.1 MB in the first DACH plan run, 2026-11-19). The app asks
+    the longest key the manifest names, so every way finds the same."""
+    def split(key, entries, out):
+        if len(entries) <= NAME_SPLIT or len(key) >= NAME_KEY_MAX:
+            out[key] = {i: r for i, (r, _) in entries.items()}
+            return
+        longer = {}
+        for ident, (record, words) in entries.items():
+            for w in words:
+                if not w.startswith(key):
+                    continue
+                if len(w) == len(key):
+                    out.setdefault(key, {})[ident] = record
+                else:
+                    longer.setdefault(w[:len(key) + 1], {}).setdefault(
+                        ident, (record, set()))[1].add(w)
+        for k, e in longer.items():
+            split(k, e, out)
+
     two = {}
     for record in records:
         words = set(name_words(record["name"]) + name_words(record.get("alt", "")))
@@ -391,13 +413,7 @@ def name_keys(records):
             two.setdefault(w[:2], {}).setdefault(record["id"], (record, set()))[1].add(w)
     out = {}
     for key, entries in two.items():
-        if len(entries) <= NAME_SPLIT:
-            out[key] = {i: r for i, (r, _) in entries.items()}
-            continue
-        for ident, (record, words) in entries.items():
-            for w in words:
-                target = w[:3] if len(w) >= 3 else w
-                out.setdefault(target, {})[ident] = record
+        split(key, entries, out)
     return out
 
 
@@ -881,6 +897,14 @@ def _self_test_places(kinds, groups):
         NAME_SPLIT = saved
     assert sorted(keys) == ["ba", "be", "ber", "to"], sorted(keys)
     assert sorted(keys["be"]) == ["node/2"] and sorted(keys["ber"]) == ["node/0", "node/1"]
+    # Three places under "ber" are still too many for 2: on to four letters.
+    NAME_SPLIT = 2
+    try:
+        keys = name_keys(recs + [{"id": "node/9", "name": "Ber"}])
+    finally:
+        NAME_SPLIT = saved
+    assert sorted(keys) == ["ba", "be", "ber", "berg", "bern", "to"], sorted(keys)
+    assert sorted(keys["ber"]) == ["node/9"], "a word that IS the key stays there"
 
     with tempfile.TemporaryDirectory() as tmp:
         all_feats = feats + list(read_geojsonseq(io.StringIO(_FIXTURE)))

@@ -1,6 +1,6 @@
 // Woher die Ortsnamen der Suche kommen (#576, Stufe 2): online EINE
-// Namensdatei vom eigenen Kartenhost, gewählt nach den ersten zwei oder
-// drei Buchstaben des längsten getippten Worts — nur dieser Schlüssel
+// Namensdatei vom eigenen Kartenhost, gewählt nach den ersten zwei bis
+// vier Buchstaben des längsten getippten Worts — nur dieser Schlüssel
 // steht in der Adresse, nie die Eingabe, nie der Ausschnitt. Ohne Netz
 // (oder ohne Index auf dem Host) die Ortsnamen-Zellen der gespeicherten
 // Bereiche.

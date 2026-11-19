@@ -308,8 +308,8 @@ class PoiManifest {
   /// einem Bau ohne Ortsnamen.
   final Set<PoiCell> placeCells;
 
-  /// Die Schlüssel der Namensdateien (`names/<schlüssel>.json`), zwei oder
-  /// drei Buchstaben.
+  /// Die Schlüssel der Namensdateien (`names/<schlüssel>.json`), zwei bis
+  /// vier Buchstaben.
   final Set<String> placeNames;
 
   /// Das Bündel des Baus — null bei einem Bau von vor dem 2026-10-09 oder
@@ -364,7 +364,7 @@ class PoiManifest {
             if (c is String && _cell.hasMatch(c)) c,
         };
         // Ein Schlüssel wird Teil einer Adresse — nur Kleinbuchstaben und
-        // Ziffern, zwei oder drei.
+        // Ziffern, zwei bis vier.
         placeNames = {
           for (final n in names)
             if (n is String && _nameKey.hasMatch(n)) n,
@@ -387,7 +387,7 @@ class PoiManifest {
 }
 
 final _cell = RegExp(r'^-?\d+,-?\d+$');
-final _nameKey = RegExp(r'^[a-z0-9]{2,3}$');
+final _nameKey = RegExp(r'^[a-z0-9]{2,4}$');
 
 /// Liest eine Zellendatei (`pois-<build>/<zeile>_<spalte>.<gruppe>.json`).
 /// Was keiner bekannten Art zugeordnet ist oder keine Lage hat, fällt

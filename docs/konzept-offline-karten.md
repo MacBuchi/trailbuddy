@@ -204,7 +204,7 @@ und Blatt bleiben, wie sie sind.
 Lauf schreibt Ortschaften, Gipfel, Pässe und Hütten (`tool/pois/places.json`)
 in dasselbe Präfix: je Zelle `<z>_<s>.places.json` (im Bündel, kommt mit
 jedem Bereich mit — offline sucht die App dort) und je Namensschlüssel
-`names/<zwei oder drei Buchstaben>.json` für die Suche online. Kein
+`names/<zwei bis vier Buchstaben>.json` für die Suche online. Kein
 Geocoder, kein neuer Host; den Host erreicht nur der Schlüssel.
 Einzelheiten: `lib/features/map/CLAUDE.md`, „Suche auf der Karte".
 

@@ -573,10 +573,13 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     beim nächsten Speichern/Fortsetzen.
   - **Der Schlüssel**: Jedes Wort eines Namens (und von `name:de`,
     `alt`) legt den Eintrag unter seinen ersten zwei gefalteten
-    Buchstaben ab; eine Datei über `NAME_SPLIT` Einträgen wird nach dem
-    dritten geteilt (Wörter aus genau zwei Buchstaben bleiben in der
-    Zweier-Datei). Die App nimmt das LÄNGSTE getippte Wort, erst drei,
-    dann zwei Buchstaben, nur was das Manifest nennt (`placeNameKey`).
+    Buchstaben ab; eine Datei über `NAME_SPLIT` (1500) Einträgen wird
+    nach dem nächsten Buchstaben geteilt, bis `NAME_KEY_MAX` (4) — Wörter,
+    die genau der Schlüssel sind, bleiben in seiner Datei. Gemessen am
+    ersten DACH-Plan-Lauf (2026-11-19, 330 735 Ortsnamen): bis drei
+    Buchstaben war „sch" 1,1 MB groß. Die App nimmt das LÄNGSTE getippte
+    Wort und davon den längsten Anfang, den das Manifest nennt
+    (`placeNameKey`, 4 → 3 → 2).
     **Nur dieser Schlüssel geht an den Host** — steht so in der
     Datenschutzerklärung.
   - **Faltung zweimal**: `fold()`/`name_words()` in Python und

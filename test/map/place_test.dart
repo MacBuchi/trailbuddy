@@ -42,10 +42,12 @@ void main() {
   });
 
   group('Schlüssel der Namensdatei', () {
-    test('das längste Wort, erst drei Buchstaben, sonst zwei', () {
+    test('das längste Wort, der längste Anfang im Index (4, 3, 2)', () {
       expect(placeNameKey('Bad Tölz', {'ba', 'to'}), 'to');
       expect(placeNameKey('Bernau', {'be', 'ber'}), 'ber');
       expect(placeNameKey('Bernau', {'be'}), 'be');
+      expect(placeNameKey('Schwarzach', {'sc', 'sch', 'schw'}), 'schw');
+      expect(placeNameKey('Sch', {'sc', 'sch', 'schw'}), 'sch');
       expect(placeNameKey('Be', {'be', 'ber'}), 'be');
       expect(placeNameKey('Xyz', {'be'}), isNull, reason: 'nicht im Index');
       expect(placeNameKey('a', {'be'}), isNull, reason: 'zu kurz');
@@ -66,11 +68,11 @@ void main() {
       final m = PoiManifest.fromJson(
         manifest({
           'cells': ['476,73', 'x,1'],
-          'names': ['ho', 'ber', '../a', 'abcd', 'Ab'],
+          'names': ['ho', 'ber', 'schw', '../a', 'abcde', 'Ab'],
         }),
       );
       expect(m.placeCells, {'476,73'});
-      expect(m.placeNames, {'ho', 'ber'});
+      expect(m.placeNames, {'ho', 'ber', 'schw'});
     });
 
     test('ein Bau ohne Ortsnamen liest wie vorher', () {
