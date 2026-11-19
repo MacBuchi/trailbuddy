@@ -25,9 +25,10 @@ void main() {
 
   group('gleich mit dem Werkzeug', () {
     test('Arten in derselben Reihenfolge', () {
-      expect([for (final k in PlaceKind.values) k.name], [
-        for (final k in spec['kinds'] as List) (k as Map)['kind'],
-      ]);
+      expect(
+        [for (final k in PlaceKind.values) k.name],
+        [for (final k in spec['kinds'] as List) (k as Map)['kind']],
+      );
     });
 
     test('Faltung und Wörter wie in Python', () {
@@ -257,20 +258,16 @@ void main() {
       );
       final r = await s.lookup('Hörnle', center);
       expect(r.offline, isTrue);
-      expect(
-        r.places.map((p) => p.id),
-        ['node/24'],
-        reason: 'nur, was mit „ho" beginnt — der Zwiesel nicht',
-      );
+      expect(r.places.map((p) => p.id), [
+        'node/24',
+      ], reason: 'nur, was mit „ho" beginnt — der Zwiesel nicht');
     });
 
     test('ein Bau ohne Ortsnamen: was liegt, ohne Hinweis', () async {
       final s = source(
         MockClient(
-          (req) async => http.Response(
-            jsonEncode({...manifest}..remove('places')),
-            200,
-          ),
+          (req) async =>
+              http.Response(jsonEncode({...manifest}..remove('places')), 200),
         ),
         stored: ['476_73.places.json'],
       );
