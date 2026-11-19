@@ -1,9 +1,12 @@
 // Buddy in der Nähe (#526) — durch die echte Oberfläche: die einmalige
 // Frage, die Meldung vorne und hinten, die Schalter je Buddy und der
 // Schalter im Profil. Die Koordinaten sind erfunden (A7).
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:trailbuddy/data/nearby_repository.dart';
 import 'package:trailbuddy/features/nearby/nearby_core.dart';
 import 'package:trailbuddy/features/nearby/nearby_host.dart';
@@ -49,6 +52,7 @@ void main() {
     double lat = _lat,
     RecordedRide? ride,
     bool voice = false,
+    Stream<Position?>? positions,
   }) async {
     final settings = FakeSettings(
       buddiesNearby: on,
@@ -61,6 +65,7 @@ void main() {
       settings: settings,
       nearby: nearby,
       position: fakePosition(lat, _lon),
+      positionStream: positions,
       extraOverrides: [
         nearbyBackgroundNoticeProvider.overrideWithValue(
           ({required title, required body, required id}) async =>
@@ -298,6 +303,50 @@ void main() {
     expect(settings.buddiesNearby, isFalse);
     expect(find.byKey(const ValueKey('nearby-home')), findsNothing);
   });
+
+  // W47 (#566): Während einer Fahrt kommen Punkt und Fix im selben Frame.
+  // Riverpod flushte `nearbyPauseProvider` (wartet wegen der Fahrt) und
+  // baute dabei `nearbyPositionProvider` neu; der Host las die Pause
+  // synchron im Listener, sie baute sich mitten im Flush neu und änderte
+  // die Abhängigkeiten, über die Riverpod gerade lief —
+  // `ConcurrentModificationError` im Build des ProviderScope.
+  testWidgets('Fahrt und Fix im selben Frame: kein Fehler im Flush', (
+    tester,
+  ) async {
+    final fixes = StreamController<Position?>.broadcast();
+    addTearDown(fixes.close);
+    final start = DateTime(2026, 9, 28, 11);
+    RidePoint point(int i) => RidePoint(
+      lat: _lat + i * 2 / 111.2,
+      lng: _lon,
+      at: start.add(Duration(minutes: i)),
+      accuracyM: 5,
+    );
+    final ride = (
+      startedAt: start,
+      points: [point(-2)],
+      marks: const <RideMark>[],
+    );
+    await pump(tester, noHome: true, ride: ride, positions: fixes.stream);
+    fixes.add(fakePosition(_lat, _lon));
+    await settle(tester);
+    expect(nearby.cellsOf[me.id], NearbyCell.of(_lat, _lon).encode());
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(NearbyHost)),
+    );
+    final riding = container.read(rideProvider.notifier) as _Riding;
+    for (var i = 1; i <= 4; i++) {
+      riding.add(point(i));
+      fixes.add(fakePosition(_lat + i * 2 / 111.2, _lon));
+      await settle(tester);
+      expect(tester.takeException(), isNull, reason: 'Fix $i');
+    }
+    expect(
+      nearby.cellsOf[me.id],
+      NearbyCell.of(_lat + 8 / 111.2, _lon).encode(),
+      reason: 'die Zelle wandert mit dem Fix',
+    );
+  });
 }
 
 class _Riding extends RideNotifier {
@@ -307,4 +356,9 @@ class _Riding extends RideNotifier {
 
   @override
   RecordedRide? build() => ride;
+
+  void add(RidePoint p) {
+    final r = state!;
+    state = (startedAt: r.startedAt, points: [...r.points, p], marks: r.marks);
+  }
 }

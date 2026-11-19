@@ -15,7 +15,7 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
   `NearbyEngine`), `nearby_host.dart` (in `app.dart` neben dem
   PushListener), `nearby_widgets.dart` (Frage, Abschnitt unter
   „Benachrichtigungen", Blatt je Buddy), `lib/data/nearby_repository.dart`
-  (Tabelle + Realtime). Sechs Dinge, die man wissen muss:
+  (Tabelle + Realtime). Sieben Dinge, die man wissen muss:
   - **Hinaus geht nur `"<zeile>:<spalte>"`** eines Rasters von 0,045°
     Breite, die Spaltenbreite je Zeile so, dass die Zelle rund 5 km im
     Quadrat ist. In der Nähe heißt: Mittelpunkte ≤ 7,6 km (dieselbe oder
@@ -46,6 +46,15 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     Wegtippen ist keine Antwort. `FakeSettings` setzt `buddiesNearby`
     ab Werk auf `false` (schon beantwortet) — sonst käme die Frage in
     jeden Flow-Test mit Buddys.
+  - **Der Host gleicht NACH dem Flush ab** (W47, #566, seit 0.190.1):
+    Die Listener stoßen `_queueSync` an, eine Microtask je Durchgang.
+    Synchron las `_sync` im Listener von `nearbyPositionProvider` die
+    Pause, die gerade geflusht wurde (Fahrt und Fix im selben Frame) —
+    sie baute sich mitten in Riverpods Lauf über ihre Abhängigkeiten
+    neu: `ConcurrentModificationError` im Build des ProviderScope. Regel
+    für jeden Listener: Wer auf A hört, liest synchron nichts, was A
+    beobachtet. Test „Fahrt und Fix im selben Frame" im Flow-Test
+    (Gegenprobe: ohne die Microtask rot).
   Takt: Der Host gleicht bei jeder Änderung ab und, solange geteilt
   wird, jede Minute (`kNearbyTick`); die Engine setzt die Zelle neu bei
   Wechsel oder alle 5 min, tritt abgelehnten Kanälen alle 2 min neu bei.
