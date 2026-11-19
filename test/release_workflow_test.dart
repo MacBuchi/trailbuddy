@@ -162,6 +162,39 @@ void main() {
     expect(ci, contains('--flavor play'));
   });
 
+  test(
+    'das AAB geht als Entwurf in den internen Track, sonst sichtbar nicht (#579)',
+    () {
+      final upload = release.substring(
+        release.indexOf('- name: Upload to Play internal testing'),
+        release.indexOf('- name: Play-Upload übersprungen'),
+      );
+      // Nur Testern zuliefern, nie veröffentlichen: Freigeben bleibt
+      // Handarbeit in der Console, wie promote.yml.
+      expect(upload, contains('track: internal'));
+      expect(upload, contains('status: draft'));
+      expect(upload, contains("if: steps.play.outputs.have == 'true'"));
+      expect(
+        upload,
+        contains('trailbuddy-\${{ needs.version.outputs.tag }}.aab'),
+      );
+      // Der Paketname ist ab dem ersten Upload an Play gebunden; er muss
+      // die applicationId aus Gradle sein, nicht eine zweite Schreibweise.
+      final appId = RegExp(r'applicationId = "([\w.]+)"')
+          .firstMatch(File('android/app/build.gradle.kts').readAsStringSync())!
+          .group(1)!;
+      expect(upload, contains('packageName: $appId'));
+      // Ohne Secret ein Satz in der Run-Summary statt eines roten Laufs.
+      expect(release, contains("if: steps.play.outputs.have == 'false'"));
+      expect(release, contains('Nicht zu Play hochgeladen'));
+    },
+  );
+
+  test('CI prüft das Format über das Skript (#581)', () {
+    expect(ci, contains('tool/dart_format.sh --check'));
+    expect(File('tool/dart_format.sh').existsSync(), isTrue);
+  });
+
   test('der Dry Run fährt beide Wege und den Abgleich', () {
     expect(ci, contains('tool/patch_guard.sh'));
     expect(ci, contains('tool/db_migrate.sh'));

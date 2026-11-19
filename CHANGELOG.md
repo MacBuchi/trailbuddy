@@ -4,10 +4,14 @@
 
 ## Aufgeräumt
 
-*Version 0.189.1, 2026-11-18*
+*Versionen 0.189.1–0.189.2, 2026-11-18*
 
 - Nichts Neues zu sehen: Der Quelltext ist jetzt einheitlich formatiert.
   Die App verhält sich genau wie vorher.
+- Vorbereitung für den Play Store: Neue Versionen können von selbst in
+  den internen Test bei Google Play gehen.
+- Die Seite „Konto löschen“ sagt jetzt auch, wie du einzelne Daten
+  löschst, ohne das ganze Konto zu löschen.
 
 ## Routen auf der Uhr
 

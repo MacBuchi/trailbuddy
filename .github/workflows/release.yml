@@ -162,6 +162,43 @@ jobs:
           name: android-aab
           path: trailbuddy-${{ needs.version.outputs.tag }}.aab
           retention-days: 90
+      # Direkt in den internen Test-Track der Play Console (#579, Muster
+      # PilzBuddy 1.91.0). Als ENTWURF, keine Veröffentlichung: Sichtbar
+      # wird ein Stand erst, wenn ihn jemand in der Console freigibt —
+      # dieselbe Trennung wie Prerelease und promote.yml.
+      #
+      # Braucht das Secret PLAY_SERVICE_ACCOUNT_JSON (Dienstkonto mit
+      # Play-Zugriff, docs/play-console.md Abschnitt 3). Es kann erst
+      # wirken, wenn der App-Eintrag von Hand angelegt und das erste AAB
+      # von Hand hochgeladen ist: Die Play-API legt keine Apps an.
+      # Fehlt es, wird sichtbar übersprungen — rot bei jedem Bump wäre
+      # falscher Alarm. `secrets` ist in `if:` verboten (GitHub verwirft
+      # sonst die ganze Datei), deshalb stellt ein Schritt das Vorhandensein
+      # über env: fest und die anderen lesen sein Ergebnis.
+      - name: Play-Secret vorhanden?
+        id: play
+        env:
+          SA: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+        run: echo "have=$([ -n "$SA" ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+      - name: Upload to Play internal testing
+        if: steps.play.outputs.have == 'true'
+        uses: r0adkll/upload-google-play@e738b9dd8f2476ea806d921b64aacd24f34515a5 # v1.1.5
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: de.mcbuchi.trailbuddy
+          releaseFiles: trailbuddy-${{ needs.version.outputs.tag }}.aab
+          track: internal
+          status: draft
+      - name: Play-Upload übersprungen
+        if: steps.play.outputs.have == 'false'
+        run: |
+          {
+            echo "### Nicht zu Play hochgeladen — \`PLAY_SERVICE_ACCOUNT_JSON\` fehlt"
+            echo ""
+            echo "Das AAB liegt als Artefakt \`android-aab\` an diesem Lauf."
+            echo "Einrichtung (einmalig, NACH dem ersten Hand-Upload):"
+            echo "docs/play-console.md, Abschnitt 3 „AAB-Upload aus CI\"."
+          } >> "$GITHUB_STEP_SUMMARY"
 
   release:
     name: Create GitHub Release

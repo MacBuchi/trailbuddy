@@ -13,18 +13,24 @@ samt den Manifesten der Plugins, die Netzziele in
 > diese Datei in denselben PR (PR-Vorlage, dritter Haken) — dann sieht man
 > beim Review, dass die Konsole nachzuziehen ist.
 
-Stand: 1. Oktober 2026, App-Version 0.68.0+79. **Noch nicht eingereicht** —
-vor dem Store-Eintrag steht die rechtliche Prüfung (Konzept 10.7, #39), und
-der Entwurf der Nutzungsbedingungen liegt daneben in
+Stand: 19. November 2026, App-Version 0.189.2. **App-Eintrag angelegt
+(2026-11-19), Datensicherheit und Inhaltsbewertung ausgefüllt, noch nicht
+eingereicht** — vor der Produktion stehen die rechtliche Prüfung (Konzept
+10.7, #39) und Blockieren/Melden (#584, Abschnitt „App-Inhalte"); der
+Entwurf der Nutzungsbedingungen liegt daneben in
 `docs/nutzungsbedingungen-entwurf.md`.
 
 ---
 
 ## 1. Datensicherheit (Data safety)
 
-Anders als in PilzBuddy gibt es noch **keine CSV zum Importieren**
-(`tool/play_data_safety.py` dort). Beim ersten Ausfüllen von Hand nach den
-Tabellen unten; ein Werkzeug lohnt sich erst, wenn sich Antworten ändern.
+**`docs/play-data-safety.csv`** ist der Export des Formulars, wie es in der
+Console steht (2026-11-19; dabei einen verrutschten Haken korrigiert:
+Fotos → Zweck nur App-Funktionalität). Ändert sich eine Antwort unten,
+gehört die CSV in denselben PR — die Console importiert sie unter
+*Datensicherheit → Importieren*, statt dass man alles neu klickt. Ein
+Generator wie PilzBuddys `tool/play_data_safety.py` lohnt sich erst, wenn
+das oft passiert.
 
 ### Vorfragen
 
@@ -33,9 +39,12 @@ Tabellen unten; ein Werkzeug lohnt sich erst, wenn sich Antworten ändern.
 | Erhebt oder teilt deine App die geforderten Nutzerdatentypen? | **Ja** | Konto, beigesteuerte Trail-Linien, Beiträge, Meldungen, Fehlerberichte |
 | Werden alle Daten bei der Übertragung verschlüsselt? | **Ja** | Alle Ziele sind HTTPS: das Supabase-Projekt, `tiles.mcbuchi.de` (Karte und Orte), `raw.githubusercontent.com` (offizielle Trails), `api.github.com` und `github.com` (Update-Prüfung, **nur GitHub-APK**), `macbuchi.github.io` (Web-App und Rechtsseiten); nur im Browser zusätzlich `fonts.gstatic.com` und — erst nach dem Einschalten der Benachrichtigungen — `www.gstatic.com`. Push läuft serverseitig über Firebase Cloud Messaging, die Konto-Mails über Brevo; die App selbst spricht mit keinem der beiden. `test/privacy_policy_test.dart` hält die Liste vollständig |
 | Können Nutzer die Löschung ihrer Daten beantragen? | **Ja** | In der App unter *Profil → Konto löschen* (sofort, Cascade über alle Tabellen) **und** ohne App über die URL unten. Zusätzlich je Trail „Löschen" im Trail-Blatt (`withdraw_contribution`: eigene Aufzeichnungen, Beitrag, Meldungen, Hinweise) und je gemerktem Startpunkt „Löschen" (#543) |
+| Wie können Nutzer ein Konto erstellen? | **Nutzername und Passwort**, **OAuth** | E-Mail und Passwort; Google, GitHub, Discord über Supabase Auth (#398) |
 | URL zum Löschen des Kontos | `https://macbuchi.github.io/trailbuddy/konto-loeschen.html` | Erreichbar erst nach der ersten Beförderung (`promote.yml` baut Pages) |
+| Löschen einzelner Daten, ohne das Konto zu löschen (optional) | **Ja**, URL `https://macbuchi.github.io/trailbuddy/konto-loeschen.html#einzelne-daten` | Der Abschnitt steht seit 0.189.2 auf der Seite (englisch `delete-account.html#single-data`). **Bis er nach einer Beförderung live ist: „Nein"** — Google verlangt, dass die Seite die Schritte zeigt (so am 2026-11-19 eingetragen) |
 | Unabhängige Sicherheitsüberprüfung? | **Nein** | |
 | Enthält die App Werbung? | **Nein** | Keine Werbe- oder Analyse-SDKs in `pubspec.yaml`; von Firebase nur Messaging, kein Analytics, kein Crashlytics |
+| Verwendet die App Werbe-IDs? | **Nein** | Gemessen am AAB (0.189.1): kein `com.google.android.gms.permission.AD_ID` im zusammengeführten Manifest. Bringt ein neues SDK sie mit, ändert sich die Antwort — dann `tools:node="remove"` oder ehrlich „Ja" |
 
 ### Datentypen
 
@@ -55,7 +64,7 @@ verarbeitet*, *erforderlich oder optional* — plus die Zwecke.
 | **Fotos und Videos → Fotos** | Ja | Nein¹ | Optional | App-Funktionalität | Ein Foto je Text einer Meldung (#37, Patch 026): Bild ≤ 1024 px und Vorschau, ohne EXIF/XMP (entfernt und geprüft in `lib/core/photo_pipeline.dart`), im privaten Bucket `trail-note-photos`. Sichtbar für genau die, die den Text sehen; 90 Tage, mit dem Text gelöscht |
 | **Nachrichten → Andere In-App-Nachrichten** | Ja | Nein¹ | Optional | App-Funktionalität | `buddy_messages` (#34, Patch 021): Text, Absender, Empfänger, Zeitpunkt, gelesen. Nur Absender und Empfänger sehen sie, 30 Tage, nicht Ende-zu-Ende-verschlüsselt (Datenschutzerklärung). Schreiben nur unter Buddys oder bei offener Anfrage (höchstens drei je Seite). Mit eingeschalteten Benachrichtigungen geht der Text gekürzt über FCM (Patch 022, siehe ⁴) |
 | **App-Aktivität → Sonstige Aktionen** | Ja | Nein¹ | Optional | App-Funktionalität | Airtime unter Buddys (#36 Schritt 6, Patch 029; ab Werk aus, eigener Schalter): `trail_airtime` — je Trail der Bestwert (beste Airtime einer Durchfahrt, längster Sprung, Zehntelsekunden, Monat), sichtbar für direkte Buddys, die den Trail sehen; `airtime_counters` — eine Zeile je Nutzer mit Airtime und Sprüngen der letzten 30 Tage, Tag der Rechnung und Titeln, sichtbar für direkte Buddys. Auf dem Gerät aus den Sensordaten gerechnet; keine Fahrt, keine Position, keine Landewucht. Ausschalten löscht beides |
-| **App-Info und -Leistung → Absturzprotokolle** | Ja | Nein | Erforderlich | App-Funktionalität | `error_reports`: Kontext, Fehlertyp, Meldung, Stack, App-Version, Plattform, ggf. Nutzer-id. Dazu beim nächsten Start Androids eigene Beendigungsgründe (ANR, Absturz, nativer Absturz mit Tombstone) — keine Position, keine Trails |
+| **App-Info und -Leistung → Absturzprotokolle** | Ja | Nein | Erforderlich | App-Funktionalität, Analysen (Fehlersuche) | `error_reports`: Kontext, Fehlertyp, Meldung, Stack, App-Version, Plattform, ggf. Nutzer-id. Dazu beim nächsten Start Androids eigene Beendigungsgründe (ANR, Absturz, nativer Absturz mit Tombstone) — keine Position, keine Trails |
 | **App-Info und -Leistung → Diagnose** | Ja | Nein | Erforderlich | App-Funktionalität | Speicherwerte (RSS/PSS in MB) und der Haupt-Thread-Auszug, die mit einem Beendigungsgrund kommen (`AppExit.summary`) |
 | **Geräte- oder andere IDs** | Ja⁴ | **Ja⁴** | Optional | App-Funktionalität | `push_devices.token` — die FCM-Gerätekennung, sobald jemand Benachrichtigungen einschaltet |
 
@@ -89,8 +98,11 @@ Tabelle.
 „Als GPX exportieren", das System-Teilen-Menü zeigt IHM die Empfänger, die
 App schickt selbst nichts ins Netz.
 
-**Kurzzeitige Verarbeitung („processed ephemerally"):** bei allen Typen
-**nein** — alles Erhobene liegt in PostgreSQL.
+**Kurzzeitige Verarbeitung („processed ephemerally"):** nur beim
+**ungefähren Standort ja** — die Zelle von „Buddys unterwegs" wird nie
+gespeichert. Bei allen anderen Typen **nein**: Sie liegen in PostgreSQL.
+Beim genauen Standort ist die Gruppenfahrt zwar flüchtig, die Trail-Linien
+und Startpunkte aber nicht, und die Frage gilt je Typ.
 
 ### Die Ermessensfragen — hier lohnt der zweite Blick
 
@@ -209,8 +221,9 @@ Dauer, Strecke oder Geschwindigkeit je Fahrt dazunimmt, stellt sie neu.
 
 ### Berechtigungen im Build
 
-**Am AAB gemessen** (0.158.0+242, Artefakt `android-aab` des Release-Laufs,
-2026-11-07, `bundletool` 1.18.3). Die Liste stimmt mit dem Binary überein;
+**Am AAB gemessen** (0.189.1+285, Artefakt `android-aab` des Release-Laufs,
+2026-11-18, `bundletool` 1.18.3 — das AAB des ersten Hand-Uploads; vorher
+0.158.0+242 am 2026-11-07, unverändert). Die Liste stimmt mit dem Binary überein;
 vor jedem Upload mit dem AAB dieses Uploads wiederholen und Abweichungen
 hier eintragen:
 
@@ -347,20 +360,15 @@ Deine MTB-Trails auf der Karte – geteilt nur mit deinen Buddys.
 
 (63 Zeichen)
 
-### Vollständige Beschreibung (Entwurf, max. 4000 Zeichen)
+### Vollständige Beschreibung (max. 4000 Zeichen; Stand 2026-11-19, 2301 Zeichen)
 
 ```
 TrailBuddy ist das Netz für die Trails, die auf keiner öffentlichen Plattform stehen.
 
-Du fährst sie, deine Buddys fahren sie — und bisher stehen sie in einer Chatgruppe
-oder nirgends. TrailBuddy hält sie auf einer Karte fest, mit Schwierigkeit, Zustand
-und dem, was gerade los ist. Sichtbar nur für dich und die Buddys, mit denen du
-verbunden bist. Keine öffentliche Karte, keine Suche nach Trails, kein Ranking über
-alle.
+Du fährst sie, deine Buddys fahren sie — und bisher stehen sie in einer Chatgruppe oder nirgends. TrailBuddy hält sie auf einer Karte fest, mit Schwierigkeit, Zustand und dem, was gerade los ist. Sichtbar nur für dich und die Buddys, mit denen du verbunden bist. Keine öffentliche Karte, keine Suche nach Trails, kein Ranking über alle.
 
 TRAILS
-• Fahrt aufzeichnen oder GPX-Datei importieren — die App findet die Abfahrten und
-  schlägt sie als Trails vor. Du wählst, was beigesteuert wird.
+• Fahrt aufzeichnen oder GPX-Datei importieren — die App findet die Abfahrten und schlägt sie als Trails vor. Du wählst, was beigesteuert wird.
 • Die ganze Fahrt bleibt auf deinem Gerät. Hinaus geht nur der Trail.
 • Derselbe Trail existiert nur einmal, auch wenn ihn zehn Buddys fahren.
 • Schwierigkeit S0–S5, Charakter (flowig, verblockt, Sprünge …), Sterne.
@@ -368,26 +376,30 @@ TRAILS
 ZUSTAND
 • Melden, was gilt: offen, gesperrt, zerstört, verändert — und wie gepflegt.
 • Bestätigt ist eine Meldung, wenn sie jemand gefahren ist oder vor Ort war.
-• Meldungen für deine Buddys: „Gesperrt — Baum liegt quer nach der zweiten Kehre."
+• Ein Text und ein Foto für deine Buddys: „Gesperrt — Baum liegt quer nach der zweiten Kehre."
 • Auf Wunsch eine Benachrichtigung, wenn ein Buddy etwas meldet.
 
+BUDDYS
+• Nachrichten direkt an einen Buddy.
+• Buddys unterwegs: Sieh, wer gerade in deiner Gegend fährt — nur als grobes Gebiet, nie als Position, und nur, solange du willst.
+• Gruppenfahrt: Bei einer gemeinsamen Runde seht ihr euch genau auf der Karte, für diese eine Fahrt.
+
 UNTERWEGS
+• Runden über deine Trails planen: Die App sucht einen Weg, der möglichst viele davon mitnimmt, mit sinnvollen Anstiegen.
+• Navigieren ohne Abbiegehinweise: Die Karte dreht mit, auf Wunsch als kleines Fenster über anderen Apps, und kurze Ansagen sagen den nächsten Trail an.
 • Bereiche der Karte speichern und ohne Empfang weiterfahren.
 • Orte auf der Karte: Wasser, Einkehr, Rad-Service.
 • Anfahrt: der Trailkopf geht an die Navi-App deiner Wahl.
-• Runden über deine Trails planen und navigieren: Die Karte dreht mit, auf
-  Wunsch als kleines Fenster über anderen Apps — ohne Abbiegehinweise.
 • Fahrten und Trails als GPX exportieren — deine Daten bleiben deine.
 
-Kein Werbebanner, kein Tracking, keine In-App-Käufe. TrailBuddy ist ein privates
-Projekt und finanziert sich nicht über deine Daten.
+Kein Werbebanner, kein Tracking, keine In-App-Käufe. TrailBuddy ist ein privates Projekt und finanziert sich nicht über deine Daten.
 
-Hinweis: TrailBuddy sagt nicht, ob ein Weg befahren werden darf oder gerade sicher
-ist. Du fährst auf eigene Verantwortung — beachte Sperrungen, Wegeregeln und
-Naturschutz vor Ort.
+Hinweis: TrailBuddy sagt nicht, ob ein Weg befahren werden darf oder gerade sicher ist. Du fährst auf eigene Verantwortung — beachte Sperrungen, Wegeregeln und Naturschutz vor Ort.
 
 Impressum: https://macbuchi.github.io/trailbuddy/impressum.html
 ```
+
+**Die Garmin-Uhr fehlt mit Absicht**, bis die Uhr-App im Connect-IQ-Store steht (`docs/garmin-store.md`) — sonst verspräche der Eintrag, was niemand installieren kann.
 
 **Nicht hineinschreiben:** Verweise auf APK-Downloads oder Selbst-Updates
 (Play verbietet sie; der Play-Build hat den Weg abgeschaltet), keine
@@ -398,11 +410,25 @@ laut Quelle".
 
 ### Grafiken
 
-**Noch offen** (#39): Unter `store/` fehlt alles. Gebraucht werden das
-App-Symbol 512 × 512 (aus `tool/brand_icons.py`, nie von Hand), eine
-Feature-Grafik 1024 × 500 und Screenshots 1080 × 1920. Screenshots nur mit
+**Noch offen** (#39): Das App-Symbol 512 × 512 ist da:
+`store/play_icon_512.png`, randlos (Play rundet selbst ab), erzeugt von
+`tool/brand_icons.py`, nie von Hand. Es fehlen noch die Feature-Grafik
+1024 × 500 und die Screenshots 1080 × 1920 (zwei bis acht). Screenshots nur mit
 einem Testkonto und erfundenen Trails aufnehmen — ein echter Trail im Store
 wäre genau die öffentliche Karte, die Konzept 7 ausschließt.
+
+### App-Inhalte (Dashboard „Wichtige Angaben zu den Inhalten deiner App")
+
+| Punkt | Antwort | Begründung |
+|---|---|---|
+| Datenschutzerklärung | `https://macbuchi.github.io/trailbuddy/datenschutz.html` | |
+| App-Zugriff (Anmeldedaten) | Funktionen eingeschränkt → Testkonto für die Prüfer | Ohne Konto nur die Anmeldung. Wo Adresse und Passwort liegen, steht im DocuHub, nicht hier |
+| Anzeigen | Nein | |
+| Zielgruppe | Empfehlung **nur 18+** — Entscheidung des Betreibers offen | Standort teilen und Nachrichten unter Nutzern; unter 18 prüft Google strenger, unter 13 gilt die Familien-Richtlinie. Kein Dokument nennt bisher ein Mindestalter — gehört dann auch in die Nutzungsbedingungen |
+| Gesundheit | Empfehlung **„Aktivität und Fitness"** — Entscheidung des Betreibers offen | Die App zeichnet Radfahrten auf. Kein Widerspruch zur Datensicherheit: Die Fahrten bleiben auf dem Gerät, „Gesundheit und Fitness" ist dort nicht erhoben. Kein Health Connect |
+| Behörden-Apps | Nein | |
+| Finanzfunktionen | Keine | |
+| Kategorie | Sport | Abschnitt 2 |
 
 ### Inhaltsbewertung (IARC-Fragebogen)
 
@@ -421,6 +447,16 @@ Ehrlich antworten, sonst passt die Bewertung nicht zum Binary:
   ungespeichert.
 - Nutzergenerierte Inhalte werden nicht moderiert; Feedback wird
   öffentlich.
+
+Die Fragen zu nutzergenerierten Inhalten, so am 2026-11-19 beantwortet:
+Kategorie „Alle anderen App-Typen"; Inhalte im App-Paket nein · Text und
+Bilder austauschen **ja** · geteilte Nutzerinhalte die primäre Quelle
+**ja** (die Trails sind Beiträge) · öffentliche Nacktheit bzw. Gewalt nein
+(nichts ist öffentlich) · **blockieren nein · melden nein** (#584) ·
+Chatmoderation nein · nur mit eingeladenen Freunden **ja**. Mit #584
+werden „blockieren" und „melden" ja — dann hier und in der Console
+ändern. Googles Richtlinie für nutzergenerierte Inhalte verlangt beides;
+vor der Produktion nötig, für den internen Test nicht.
 
 ### Vor dem Upload
 
@@ -445,3 +481,52 @@ einmal. Trails und Konto liegen auf dem Server und bleiben; verloren gehen
 gespeicherte Kartenbereiche, der Ausgangskorb und **alle Fahrten** (sie
 liegen nur auf dem Gerät — vorher als GPX exportieren). Das gehört in die
 Einladung der Tester. Den Fingerprint des Upload-Keys führt der DocuHub.
+
+---
+
+## 3. AAB-Upload aus CI
+
+Seit #579 lädt `release.yml` das AAB bei jedem Versionssprung als
+**Entwurf** in den internen Test-Track (Muster PilzBuddy 1.91.0).
+Sichtbar wird ein Stand erst, wenn ihn jemand in der Console freigibt —
+dieselbe Trennung wie Prerelease und `promote.yml`. Bis das Secret
+existiert, wird der Schritt übersprungen, und die Run-Summary verweist
+hierher.
+
+**Warum der erste Upload trotzdem Handarbeit ist:** Die
+Play-Developer-API legt keine App-Einträge an, und Play nimmt
+API-Uploads für eine App erst an, nachdem einmal von Hand ein Bundle
+hochgeladen wurde.
+
+Einmalige Einrichtung, in dieser Reihenfolge:
+
+1. **App-Eintrag anlegen** (Paketname `de.mcbuchi.trailbuddy`, ab dem
+   ersten Upload unveränderlich) und das **erste AAB von Hand** in den
+   internen Test laden — das Artefakt `android-aab` eines Release-Laufs,
+   nie die APK. Dabei Play App Signing annehmen (Abschnitt 2, „Vor dem
+   Upload"). Gleich danach nachsehen, ob die Regel „12 Tester, 14 Tage"
+   gilt.
+2. **Dienstkonto:** Am einfachsten das von PilzBuddy wiederverwenden —
+   es liegt im selben Entwicklerkonto. Seine Mail in der Play Console
+   unter **Nutzer und Berechtigungen** für TrailBuddy einladen, und
+   denselben JSON-Schlüssel hier als Secret hinterlegen (Schritt 4).
+   Ein eigenes Konto ginge auch: Google Cloud Console → Dienstkonto →
+   JSON-Schlüssel, keine Cloud-Rollen nötig, die Rechte kommen von Play.
+3. **Berechtigung** für diese App: **„Apps in Test-Tracks
+   veröffentlichen"** (so heißt sie in der Console; eine engere Stufe
+   „nur Entwürfe" gibt es nicht — dass CI nur Entwürfe anlegt, ist das
+   `status: draft` in `release.yml`). Kein Produktions-Recht, kein
+   Konto-Admin.
+4. Den JSON-Inhalt als Repo-Secret **`PLAY_SERVICE_ACCOUNT_JSON`**
+   hinterlegen.
+
+Ab dann gilt: Versionssprung ⇒ Entwurf im internen Track. Freigeben
+bleibt Handarbeit in der Console.
+
+Wer hier landet, weil der Schritt **rot** ist statt übersprungen: Das
+Secret existiert, aber der Schlüssel ist widerrufen, das Dienstkonto aus
+der Console entfernt, oder es fehlt das Recht für diese App. Ein falscher
+Paketname fällt vorher auf: `test/release_workflow_test.dart` hält ihn
+mit der `applicationId` aus Gradle zusammen. Ein Versionscode, den Play
+schon kennt, wird abgelehnt — `BUILD` steigt deshalb nie zurück
+(CLAUDE.md).

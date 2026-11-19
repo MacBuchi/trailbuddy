@@ -29,6 +29,7 @@ Geschrieben werden:
   12, in der Marke des Modus (`@color/brand_mark`), ohne Lime-Scheibe:
   so sieht es aus wie der Splash der App, der danach übernimmt.
 - `mipmap-*/ic_launcher.png` — das Symbol für Android vor 8.0.
+- `store/play_icon_512.png` — das Symbol im Play-Store-Eintrag, randlos.
 - `web/icons/Icon-{192,512}.png`, `Icon-maskable-{192,512}.png`,
   `web/favicon.png`, `web/favicon.svg`.
 - `garmin/resources/drawables/launcher_icon.png` — das Symbol der
@@ -323,6 +324,11 @@ def png_targets():
     for px in (192, 512):
         t[f"web/icons/Icon-{px}.png"] = symbol_svg(px, WEB_SCALE, BRAND, 0.22)
         t[f"web/icons/Icon-maskable-{px}.png"] = symbol_svg(px, MASKABLE_SCALE, BRAND, 0)
+    # Das Symbol im Play-Store-Eintrag (#39): 512 px, RANDLOS und ohne
+    # Alpha-Ecken — Play rundet selbst ab (mit den runden Ecken von
+    # Icon-512 wären sie doppelt). Zeichen wie beim Symbol vor Android 8.
+    t[os.path.join("store", "play_icon_512.png")] = \
+        symbol_svg(512, LEGACY_SCALE, BRAND, 0)
     # Die PNG ist der Rückfall für Browser ohne SVG-Favicon: eine Farbe.
     t["web/favicon.png"] = symbol_svg(32, 1.0, None, 0, color=MOSS, size="S")
     # Die Uhr (docs/konzept-garmin.md): 40 px, die Liste der Apps ist rund
@@ -343,6 +349,7 @@ def write_all(root):
             src = os.path.join(tmp, "icon.svg")
             with open(src, "w", encoding="utf-8") as f:
                 f.write(svg)
+            os.makedirs(os.path.dirname(os.path.join(root, rel)), exist_ok=True)
             subprocess.run(["rsvg-convert", src, "-o", os.path.join(root, rel)],
                            check=True)
 
