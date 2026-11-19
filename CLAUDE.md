@@ -110,7 +110,7 @@ was öffentlich sein MUSS (Impressum, Datenschutzerklärung).
 - **Version Guard** (ci.yml): Code-Änderung ohne Bump in `pubspec.yaml`
   blockiert den Merge, sobald es einen Release-Tag gibt. Ausgenommen sind
   `*.md` (außer `CHANGELOG.md` und `CHANGELOG.en.md`, die liegen als Asset im Binary), `.github/`,
-  `tool/`, `supabase/`, `docs/`, `garmin/` (die Uhr-App ist nicht im APK), `.claude/`, `.codex/`, `.mcp.json`, `.git-blame-ignore-revs`. Er prüft, DASS gebumpt wurde; WELCHE Stelle
+  `tool/`, `supabase/`, `docs/`, `garmin/` (die Uhr-App ist nicht im APK), `.claude/`, `.codex/`, `.mcp.json`, `.git-blame-ignore-revs`, `store/` (Grafiken für den Play-Eintrag). Er prüft, DASS gebumpt wurde; WELCHE Stelle
   nach den Regeln oben, ist Sache des PRs.
 - **Changelog**: `CHANGELOG.md` wird in der App unter „Was ist neu" gezeigt,
   auf Englisch `CHANGELOG.en.md` (ab 0.120.0, darunter die älteren

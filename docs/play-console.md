@@ -410,12 +410,41 @@ laut Quelle".
 
 ### Grafiken
 
-**Noch offen** (#39): Das App-Symbol 512 × 512 ist da:
-`store/play_icon_512.png`, randlos (Play rundet selbst ab), erzeugt von
-`tool/brand_icons.py`, nie von Hand. Es fehlen noch die Feature-Grafik
-1024 × 500 und die Screenshots 1080 × 1920 (zwei bis acht). Screenshots nur mit
-einem Testkonto und erfundenen Trails aufnehmen — ein echter Trail im Store
-wäre genau die öffentliche Karte, die Konzept 7 ausschließt.
+Symbol und Vorstellungsgrafik erzeugt `tool/brand_icons.py`, nie von Hand:
+`store/play_icon_512.png` (randlos, Play rundet selbst ab) und
+`store/feature_graphic.png` (1024 × 500, ohne Alpha). Die Zeile darin
+gehört zur Kurzbeschreibung — wer die eine ändert, prüft die andere.
+
+**Screenshots** (fünf, 1080 × 1920 = 9:16, die Größe für Empfehlungen in
+Play, die mindestens vier verlangen): Karte, Trail-Blatt, Buddy-Chat,
+Trail-Liste, Rundenplaner.
+Nie mit einem echten Konto — ein echter Trail im Store wäre genau die
+öffentliche Karte, die Konzept 7 ausschließt. Die Bilder liegen beim
+Betreiber, nicht im Repo; neu aufnehmen so:
+
+1. Lokaler Stack und Schema (`supabase start`, `tool/db_migrate.sh` gegen
+   `127.0.0.1:54522`), dann `python3 tool/store_demo.py`: vier erfundene
+   Nutzer, 14 öffentliche OSM-Trails am Rosskopf, zwei Meldungen, ein
+   Chat. Die Basiskarte deckt nur DACH ab — ein Gebiet außerhalb zeigt
+   leere Kacheln (so ging der erste Versuch in Ligurien aus).
+2. Emulator mit 1080 × 1920 bei 420 dpi (eigenes AVD, `hw.lcd.*` in der
+   `config.ini`), Sprache Deutsch (`adb root`, `setprop persist.sys.locale
+   de-DE`, Zygote neu), Statusleiste im Demo-Modus
+   (`com.android.systemui.demo`: Uhr, volles Akku, kein Mobilfunk).
+3. Play-APK gegen den Stack bauen: `--flavor play
+   --dart-define=PLAY_BUILD=true --dart-define=SUPABASE_URL=http://10.0.2.2:54521`
+   plus der lokale Anon-Key. Android sperrt Klartext-HTTP; für diesen Bau
+   `android:usesCleartextTraffic="true"` VORÜBERGEHEND ins Manifest und
+   danach per Dateikopie zurück (nie committen).
+4. Standort per `adb emu geo fix`. **Keine Fahrt im Emulator**: Mit einer
+   Folge von `geo fix` hing der GNSS-Dienst des Emulators (Android 16) in
+   einer Verklemmung — `stopNmea` wartet auf die HAL, deren
+   `reportNmea` auf dieselbe Sperre —, und die App stand im ANR, weil
+   der Geolocator beim Abmelden darauf wartet (2026-11-19). Ein Bild der
+   Fahrt kommt vom Gerät. Zoomen geht mit dem
+   Ein-Finger-Doppeltipp-Ziehen (`input tap` + `input motionevent`), nicht
+   mit `sendevent`. Bilder mit `adb exec-out screencap -p`, für Play ohne
+   Alpha speichern (JPEG oder PNG ohne Transparenz).
 
 ### App-Inhalte (Dashboard „Wichtige Angaben zu den Inhalten deiner App")
 
@@ -465,7 +494,7 @@ vor der Produktion nötig, für den internen Test nicht.
 - [ ] AAB aus dem Release-Workflow (Artefakt `android-aab`), nicht die APK; Berechtigungen am AAB gemessen (0.158.0, 2026-11-07) — mit dem AAB des Uploads wiederholen
 - [ ] Im Play-Build fehlt der Update-Hinweis (`PLAY_BUILD=true`)
 - [ ] Beide Demo-Videos der Vordergrunddienste aufgenommen
-- [ ] Store-Grafiken unter `store/`
+- [x] Store-Grafiken: Symbol und Vorstellungsgrafik unter `store/`, Screenshots beim Betreiber
 - [ ] Supabase in einem Pro-Plan (Konzept 10.9) — ein pausiertes Projekt heißt eine tote App für Prüfer
 - [ ] Testkonto für Googles Prüfer angelegt; wo Adresse und Passwort liegen, steht im DocuHub, nicht hier
 - [ ] Version 1.0.0 mit dem Store-Eintrag, nicht mit einer Schemaänderung (CLAUDE.md, SemVer)
