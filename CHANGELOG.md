@@ -2,6 +2,19 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Suche auf der Karte
+
+*Version 0.191.0, 2026-11-19*
+
+- Neu oben in der Knopfspalte: die **Lupe**. Sie findet deine Trails und
+  die deiner Buddys, gemerkte Startpunkte und Orte rund um die
+  Kartenmitte — auch nach ihrer Art, etwa „Trinkwasser" oder
+  „Radladen", und auch, wenn diese Orte auf der Karte gerade
+  ausgeblendet sind. Ein Tipp auf einen Treffer, und die Karte springt
+  hin. Vertippt? Die Suche sagt „Meintest du …?".
+- Gesucht wird nur in dem, was die App schon kennt: Es geht keine
+  Suchanfrage an einen fremden Dienst.
+
 ## Kein Fehler mehr mit „Buddys unterwegs" in der Fahrt
 
 *Version 0.190.1, 2026-11-19*

@@ -2,6 +2,19 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## Search on the map
+
+*Version 0.191.0, 2026-11-19*
+
+- New at the top of the button column: the **magnifier**. It finds your
+  trails and your buddies' trails, saved start points and places around
+  the centre of the map — also by type, such as “drinking water” or
+  “bike shop”, and even when those places are hidden on the map. Tap a
+  result and the map jumps there. Typo? The search says “Did you mean
+  …?”.
+- The search only looks at what the app already knows: no query goes
+  to an outside service.
+
 ## No more error with “Buddys unterwegs” during a ride
 
 *Version 0.190.1, 2026-11-19*

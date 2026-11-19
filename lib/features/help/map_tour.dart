@@ -44,6 +44,9 @@ abstract final class MapCoach {
   /// Kartenebenen (#190): öffnet das Blatt [layersSheet].
   static const layers = 'map.layers';
 
+  /// Die Lupe (#576), oben in [buttons]: öffnet das Suchfeld.
+  static const search = 'map.search';
+
   /// Offline-Karten: öffnet die Leiste [rail].
   static const offline = 'map.offline';
   static const locate = 'map.locate';
