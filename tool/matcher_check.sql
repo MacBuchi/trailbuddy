@@ -2051,4 +2051,90 @@ begin
   delete from realtime.messages where topic = pair;
 end $$;
 
+\echo -- 36. Blockieren und Melden (Patch 033, #584)
+-- Blockieren beendet die Beziehung, und danach entsteht keine Anfrage
+-- mehr — in keiner Richtung, ohne Fehler. Der Blockierte sieht die
+-- Sperre nicht. Melden nur, wen ich kenne; eine Nachricht nur, wenn sie
+-- von ihm an mich ging, und der Text kommt vom Server. Lesen kann die
+-- Meldungen kein Client.
+do $$
+declare
+  ua uuid := '11111111-1111-4111-8111-111111111111';
+  ub uuid := '22222222-2222-4222-8222-222222222222';
+  ug uuid := '77777777-7777-4777-8777-777777777777';
+  fid uuid; mid uuid; code text;
+  pair text := 'select count(*) from public.friendships where least(requester_id, addressee_id) = least(%L::uuid, %L::uuid) and greatest(requester_id, addressee_id) = greatest(%L::uuid, %L::uuid)';
+begin
+  select id into fid from public.friendships
+   where least(requester_id, addressee_id) = least(ua, ub) and greatest(requester_id, addressee_id) = greatest(ua, ub);
+  perform tb_test.check(fid is not null, 'Anna und Bernd sind verbunden');
+  insert into public.buddy_messages (id, sender_id, recipient_id, body)
+    values (gen_random_uuid(), ub, ua, 'blöde Nachricht') returning id into mid;
+
+  -- Melden: Bernd ja (verbunden), Gina nein (keine Verbindung).
+  code := tb_test.state_of(ua, format('select public.report_content(%L, %L, null, %L, %L)', ug, 'user', 'spam', null));
+  perform tb_test.check(code = '42501', format('Anna meldet Gina nicht, ohne Verbindung (%s)', code));
+  code := tb_test.state_of(ua, format('select public.report_content(%L, %L, %L, %L, %L)', ub, 'message', mid, 'abuse', '  geht gar nicht  '));
+  perform tb_test.check(code is null, format('Anna meldet Bernds Nachricht (%s)', code));
+  perform tb_test.check((select excerpt from public.content_reports where message_id = mid) = 'blöde Nachricht',
+                        'der Text kommt vom Server');
+  perform tb_test.check((select note from public.content_reports where message_id = mid) = 'geht gar nicht',
+                        'die Notiz ist getrimmt');
+  perform tb_test.check((select reported_username from public.content_reports where message_id = mid) = 'bernd',
+                        'der Name steht in der Meldung');
+  -- Eine eigene Nachricht von Anna kann Anna Bernd nicht unterschieben.
+  code := tb_test.state_of(ub, format('select public.report_content(%L, %L, %L, %L, null)', ua, 'message', mid, 'spam'));
+  perform tb_test.check(code = '42501', format('Bernd meldet nicht seine eigene Nachricht als Annas (%s)', code));
+  code := tb_test.state_of(ua, format('select public.report_content(%L, %L, %L, %L, null)', ub, 'user', mid, 'spam'));
+  perform tb_test.check(code = '22023', format('Art und Nachricht passen nicht zusammen (%s)', code));
+  code := tb_test.state_of(ua, format('select public.report_content(%L, %L, null, %L, null)', ub, 'user', 'nonsense'));
+  perform tb_test.check(code = '23514', format('unbekannter Grund (%s)', code));
+  -- Kein Client liest Meldungen, auch nicht die eigenen.
+  code := tb_test.state_of(ua, 'select count(*) from public.content_reports');
+  perform tb_test.check(code = '42501', format('Anna liest keine Meldungen (%s)', code));
+  code := tb_test.state_of(ua, format('insert into public.content_reports (reporter_id, reported_id, kind, reason) values (%L, %L, %L, %L)', ua, ub, 'user', 'spam'));
+  perform tb_test.check(code = '42501', format('Anna schreibt nicht an der RPC vorbei (%s)', code));
+
+  -- Blockieren: Gina nicht (keine Verbindung), Bernd ja.
+  code := tb_test.state_of(ua, format('select public.block_user(%L)', ug));
+  perform tb_test.check(code = '42501', format('Anna blockiert Gina nicht, ohne Verbindung (%s)', code));
+  perform tb_test.exec_as(ua, format('select public.block_user(%L)', ub));
+  perform tb_test.check(tb_test.count_as(ua, format(pair, ua, ub, ua, ub)) = 0, 'Blockieren beendet die Beziehung');
+  perform tb_test.check(not exists (select 1 from public.buddy_messages where id = mid), 'der Verlauf ist weg');
+  perform tb_test.check(tb_test.count_as(ua, format('select count(*) from public.my_blocks() where blocked_id = %L and username = %L', ub, 'bernd')) = 1,
+                        'Anna sieht Bernd in ihrer Liste');
+  perform tb_test.check(tb_test.count_as(ub, 'select count(*) from public.user_blocks') = 0, 'Bernd sieht die Sperre nicht');
+  perform tb_test.check(tb_test.count_as(ub, 'select count(*) from public.my_blocks()') = 0, 'Bernds Liste ist leer');
+  perform tb_test.check(tb_test.count_as(ub, format('select count(*) from public.profiles where id = %L', ua)) = 0,
+                        'Bernd liest Annas Profil nicht mehr');
+  perform tb_test.exec_as(ua, format('select public.block_user(%L)', ub));
+  perform tb_test.check(true, 'zweimal blockieren ist kein Fehler');
+
+  -- Neue Anfragen: still verworfen, in beide Richtungen.
+  code := tb_test.state_of(ub, format('insert into public.friendships (requester_id, addressee_id) values (%L, %L)', ub, ua));
+  perform tb_test.check(code is null, format('Bernds Anfrage scheitert nicht sichtbar (%s)', code));
+  perform tb_test.check(tb_test.count_as(ua, format(pair, ua, ub, ua, ub)) = 0, 'Bernds Anfrage entsteht nicht');
+  perform tb_test.exec_as(ua, format('insert into public.friendships (requester_id, addressee_id) values (%L, %L)', ua, ub));
+  perform tb_test.check(tb_test.count_as(ua, format(pair, ua, ub, ua, ub)) = 0, 'Annas Anfrage entsteht auch nicht');
+  code := tb_test.state_of(ub, format('insert into public.buddy_messages (recipient_id, body) values (%L, %L)', ua, 'hallo?'));
+  perform tb_test.check(code = '42501', format('Bernd schreibt Anna nicht (%s)', code));
+  -- Melden geht auch nach dem Blockieren.
+  code := tb_test.state_of(ua, format('select public.report_content(%L, %L, null, %L, null)', ub, 'user', 'abuse'));
+  perform tb_test.check(code is null, format('Anna meldet Bernd nach dem Blockieren (%s)', code));
+  code := tb_test.state_of(ub, format('select public.report_content(%L, %L, null, %L, null)', ua, 'user', 'abuse'));
+  perform tb_test.check(code = '42501', format('Bernd meldet Anna nicht mehr (%s)', code));
+
+  -- Freigeben: nur Anna; danach geht eine Anfrage wieder.
+  perform tb_test.exec_as(ub, format('delete from public.user_blocks where blocker_id = %L', ua));
+  perform tb_test.check(exists (select 1 from public.user_blocks where blocker_id = ua and blocked_id = ub), 'Bernd hebt die Sperre nicht auf');
+  perform tb_test.exec_as(ua, format('delete from public.user_blocks where blocked_id = %L', ub));
+  perform tb_test.exec_as(ub, format('insert into public.friendships (requester_id, addressee_id) values (%L, %L)', ub, ua));
+  perform tb_test.check(tb_test.count_as(ua, format(pair, ua, ub, ua, ub)) = 1, 'nach dem Freigeben entsteht die Anfrage');
+
+  -- Aufräumen: wieder verbunden wie vorher, Meldungen weg.
+  delete from public.friendships where least(requester_id, addressee_id) = least(ua, ub) and greatest(requester_id, addressee_id) = greatest(ua, ub);
+  insert into public.friendships (id, requester_id, addressee_id, status) values (fid, ua, ub, 'accepted');
+  delete from public.content_reports;
+end $$;
+
 \echo -- Alle Prüfungen bestanden.

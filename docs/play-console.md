@@ -13,10 +13,11 @@ samt den Manifesten der Plugins, die Netzziele in
 > diese Datei in denselben PR (PR-Vorlage, dritter Haken) — dann sieht man
 > beim Review, dass die Konsole nachzuziehen ist.
 
-Stand: 19. November 2026, App-Version 0.189.2. **App-Eintrag angelegt
+Stand: 19. November 2026, App-Version 0.190.0. **App-Eintrag angelegt
 (2026-11-19), Datensicherheit und Inhaltsbewertung ausgefüllt, noch nicht
-eingereicht** — vor der Produktion stehen die rechtliche Prüfung (Konzept
-10.7, #39) und Blockieren/Melden (#584, Abschnitt „App-Inhalte"); der
+eingereicht** — vor der Produktion steht die rechtliche Prüfung (Konzept
+10.7, #39); Blockieren und Melden gibt es seit 0.190.0 (#584, die
+IARC-Antworten unten sind in der Console nachzuziehen); der
 Entwurf der Nutzungsbedingungen liegt daneben in
 `docs/nutzungsbedingungen-entwurf.md`.
 
@@ -60,7 +61,7 @@ verarbeitet*, *erforderlich oder optional* — plus die Zwecke.
 | **Persönliche Infos → E-Mail-Adresse** | Ja | Nein³ | Erforderlich | App-Funktionalität, Kontoverwaltung | Supabase Auth; Buddy-Suche über die exakte Adresse; Konto-Mails über Brevo; bei Anmeldung über einen Anbieter von dort⁵ |
 | **Persönliche Infos → Name** | Ja | Nein¹ | Erforderlich | App-Funktionalität, Kontoverwaltung | `profiles.username` (Pflicht, über das Präfix suchbar) und `display_name` |
 | **Persönliche Infos → Nutzer-IDs** | Ja | Nein | Erforderlich | App-Funktionalität, Kontoverwaltung | `profiles.id` (UUID aus `auth.users`) |
-| **App-Aktivität → Andere nutzergenerierte Inhalte** | Ja | **Ja²** (nur Feedback) | Optional | App-Funktionalität, Entwicklerkommunikation | Beiträge zu Trails (`trail_details`: Name, Beschreibung, S-Grad, Charakter, Sterne, Sichtbarkeit, Link), Meldungen und Zustand (`trail_reports`), Texte zu Meldungen (`trail_notes`, bis 0.146 „Hinweise"; #433), Zuordnungen von Duplikaten (`trail_aliases`, `trail_distinct`; #107 — sichtbar für direkte Buddys, die beide Trails sehen), Aliase für Buddys (`friend_aliases`, nur für den Vergebenden sichtbar) — alles *nicht geteilt*¹. Feedback (`feedback`: Text, Typ, App-Version; bei einer Fehlermeldung auf Wunsch das Uhr-Protokoll im Text, #510 — Tasten, Menüpunkte, Arten von Nachrichten, Sekunden seit dem Start der Uhr-App, keine Position) wird als öffentliches GitHub-Issue veröffentlicht, ohne Benutzernamen — *geteilt*² |
+| **App-Aktivität → Andere nutzergenerierte Inhalte** | Ja | **Ja²** (nur Feedback) | Optional | App-Funktionalität, Entwicklerkommunikation | Beiträge zu Trails (`trail_details`: Name, Beschreibung, S-Grad, Charakter, Sterne, Sichtbarkeit, Link), Meldungen und Zustand (`trail_reports`), Texte zu Meldungen (`trail_notes`, bis 0.146 „Hinweise"; #433), Zuordnungen von Duplikaten (`trail_aliases`, `trail_distinct`; #107 — sichtbar für direkte Buddys, die beide Trails sehen), Aliase für Buddys (`friend_aliases`, nur für den Vergebenden sichtbar), Sperren (`user_blocks`, #584 — nur für den Blockierenden sichtbar), Meldungen über eine Person oder Nachricht (`content_reports`, #584: Grund, Notiz, Name und bei einer Nachricht deren Text; nur der Betreiber liest sie, 180 Tage) — alles *nicht geteilt*¹. Feedback (`feedback`: Text, Typ, App-Version; bei einer Fehlermeldung auf Wunsch das Uhr-Protokoll im Text, #510 — Tasten, Menüpunkte, Arten von Nachrichten, Sekunden seit dem Start der Uhr-App, keine Position) wird als öffentliches GitHub-Issue veröffentlicht, ohne Benutzernamen — *geteilt*² |
 | **Fotos und Videos → Fotos** | Ja | Nein¹ | Optional | App-Funktionalität | Ein Foto je Text einer Meldung (#37, Patch 026): Bild ≤ 1024 px und Vorschau, ohne EXIF/XMP (entfernt und geprüft in `lib/core/photo_pipeline.dart`), im privaten Bucket `trail-note-photos`. Sichtbar für genau die, die den Text sehen; 90 Tage, mit dem Text gelöscht |
 | **Nachrichten → Andere In-App-Nachrichten** | Ja | Nein¹ | Optional | App-Funktionalität | `buddy_messages` (#34, Patch 021): Text, Absender, Empfänger, Zeitpunkt, gelesen. Nur Absender und Empfänger sehen sie, 30 Tage, nicht Ende-zu-Ende-verschlüsselt (Datenschutzerklärung). Schreiben nur unter Buddys oder bei offener Anfrage (höchstens drei je Seite). Mit eingeschalteten Benachrichtigungen geht der Text gekürzt über FCM (Patch 022, siehe ⁴) |
 | **App-Aktivität → Sonstige Aktionen** | Ja | Nein¹ | Optional | App-Funktionalität | Airtime unter Buddys (#36 Schritt 6, Patch 029; ab Werk aus, eigener Schalter): `trail_airtime` — je Trail der Bestwert (beste Airtime einer Durchfahrt, längster Sprung, Zehntelsekunden, Monat), sichtbar für direkte Buddys, die den Trail sehen; `airtime_counters` — eine Zeile je Nutzer mit Airtime und Sprüngen der letzten 30 Tage, Tag der Rechnung und Titeln, sichtbar für direkte Buddys. Auf dem Gerät aus den Sensordaten gerechnet; keine Fahrt, keine Position, keine Landewucht. Ausschalten löscht beides |
@@ -476,18 +477,26 @@ Ehrlich antworten, sonst passt die Bewertung nicht zum Binary:
   Buddys). Genauer Live-Standort nur mit der Gruppenfahrt (#519): je
   Fahrt eingeschaltet, nur an Buddys in der Nähe, die sie auch anhaben,
   ungespeichert.
-- Nutzergenerierte Inhalte werden nicht moderiert; Feedback wird
+- Nutzergenerierte Inhalte werden nicht vorab moderiert; gemeldete
+  Personen und Nachrichten prüft der Betreiber (#584). Feedback wird
   öffentlich.
 
 Die Fragen zu nutzergenerierten Inhalten, so am 2026-11-19 beantwortet:
 Kategorie „Alle anderen App-Typen"; Inhalte im App-Paket nein · Text und
 Bilder austauschen **ja** · geteilte Nutzerinhalte die primäre Quelle
 **ja** (die Trails sind Beiträge) · öffentliche Nacktheit bzw. Gewalt nein
-(nichts ist öffentlich) · **blockieren nein · melden nein** (#584) ·
-Chatmoderation nein · nur mit eingeladenen Freunden **ja**. Mit #584
-werden „blockieren" und „melden" ja — dann hier und in der Console
-ändern. Googles Richtlinie für nutzergenerierte Inhalte verlangt beides;
-vor der Produktion nötig, für den internen Test nicht.
+(nichts ist öffentlich) · blockieren nein · melden nein · Chatmoderation
+nein · nur mit eingeladenen Freunden **ja**.
+
+**Ab 0.190.0 (#584) in der Console ändern:** **blockieren ja** (an der
+Buddy-Zeile, an einer Anfrage und im Verlauf; Freigeben im Profil unter
+„Blockierte Nutzer") · **melden ja** (eine Person und eine einzelne
+Nachricht, mit Grund; die Meldung landet in `content_reports`, lesbar nur
+mit dem Service-Schlüssel, also im Supabase-Dashboard — der Betreiber
+setzt dort `handled_at`, wenn er sie bearbeitet hat). Fotos und
+Trail-Texte meldet man über die Person, die sie eingetragen hat
+(Betreiber 2026-11-19: schlank). Googles Richtlinie für nutzergenerierte
+Inhalte verlangt beides.
 
 ### Vor dem Upload
 

@@ -412,6 +412,16 @@ check_get_protected "buddy_nearby_prefs (Buddy in der Nähe)" \
   "/rest/v1/buddy_nearby_prefs?select=buddy_id,hidden,muted,homie&limit=1"
 # Gruppenfahrt (Patch 032, #519): wer mich als Homie gewählt hat.
 check_rpc_protected "nearby_homie_owners-RPC" "nearby_homie_owners" '{}'
+# Blockieren und Melden (Patch 033, #584): die Spalten von
+# FriendRepository.blockColumns, die RPCs mit den Parametern der App. Wer
+# was darf, prüft matcher_check.sql Block 36.
+check_get_protected "user_blocks (Blockieren)" \
+  "/rest/v1/user_blocks?select=blocked_id,created_at&limit=1"
+check_rpc_protected "block_user-RPC" "block_user" \
+  '{"other":"00000000-0000-0000-0000-000000000000"}'
+check_rpc_protected "my_blocks-RPC" "my_blocks" '{}'
+check_rpc_protected "report_content-RPC" "report_content" \
+  '{"reported":"00000000-0000-0000-0000-000000000000","kind":"user","message":null,"reason":"spam","note":null}'
 
 if [ "$fail" -ne 0 ]; then
   echo "::error::Schema passt nicht zu den App-Queries. Fehlt ein supabase/patch_NNN_*.sql bzw. wurde er noch nicht eingespielt (tool/db_migrate.sh, Secret SUPABASE_DB_URL)?"

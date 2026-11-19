@@ -13,6 +13,7 @@
 // ankam.
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../core/app_colors.dart';
@@ -23,6 +24,7 @@ import '../../l10n/l10n.dart';
 import '../../models/buddy_message.dart';
 import '../coach/coach.dart';
 import '../help/tab_tours.dart' show BuddysCoach;
+import 'block_report.dart';
 import 'buddy_alias.dart';
 import 'buddy_alias_dialog.dart';
 import 'friend_providers.dart';
@@ -146,6 +148,24 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
     }
   }
 
+  Future<void> _reportMessage(BuddyMessage message, String name) async {
+    final blocked = await showReportDialog(
+      context,
+      ref,
+      otherId: widget.otherId,
+      name: name,
+      messageId: message.id,
+    );
+    if (blocked) _leave();
+  }
+
+  /// Nach dem Blockieren gibt es den Verlauf nicht mehr.
+  void _leave() {
+    if (!mounted) return;
+    final router = GoRouter.of(context);
+    router.canPop() ? router.pop() : router.go('/friends');
+  }
+
   @override
   Widget build(BuildContext context) {
     final l = context.l10n;
@@ -200,6 +220,14 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
           // Einen Alias gibt es nur für bestätigte Buddys (fa_insert).
           if (friendship?.isAccepted ?? false)
             AliasButton(friendId: widget.otherId, username: username),
+          // Melden und Blockieren (#584): nur, solange es eine Beziehung
+          // gibt — ohne sie lehnt die Datenbank beides ab.
+          if (friendship != null)
+            SafetyMenuButton(
+              otherId: widget.otherId,
+              name: name,
+              onBlocked: _leave,
+            ),
         ],
       ),
       body: Column(
@@ -228,7 +256,10 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
                       message: m,
                       mine: m.isMine(uid),
                       time: time.format(m.createdAt.toLocal()),
-                      onLongPress: m.isMine(uid) ? () => _delete(m) : null,
+                      // Eigene zurücknehmen, fremde melden (#584).
+                      onLongPress: m.isMine(uid)
+                          ? () => _delete(m)
+                          : () => _reportMessage(m, name),
                     ),
                   if (messages.isEmpty)
                     Padding(

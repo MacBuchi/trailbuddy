@@ -11301,5 +11301,168 @@
   "demoWatchShelf2Text": "Sobald TrailBuddy auf deiner Garmin-Uhr läuft, steht hier „Routen auf der Uhr“ — und am Ergebnis des Planers „Auf die Uhr legen“.",
   "@demoWatchShelf2Text": {
     "description": "Vorführung (#515), Text ohne Uhr: wo die Funktion erscheint."
+  },
+  "safetyMore": "Mehr zu {name}",
+  "@safetyMore": {
+    "description": "Tooltip am Menü einer Buddy-Zeile oder Anfrage (#584): Entfernen, Melden, Blockieren.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "safetyReport": "Melden",
+  "@safetyReport": {
+    "description": "Menüpunkt: eine Person beim Betreiber melden (#584)."
+  },
+  "safetyBlock": "Blockieren",
+  "@safetyBlock": {
+    "description": "Menüpunkt: eine Person blockieren (#584)."
+  },
+  "safetyReportMessage": "Nachricht melden",
+  "@safetyReportMessage": {
+    "description": "Menüpunkt beim langen Druck auf eine fremde Nachricht (#584)."
+  },
+  "safetyBlockTitle": "{name} blockieren?",
+  "@safetyBlockTitle": {
+    "description": "Titel der Rückfrage vor dem Blockieren.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "safetyBlockBody": "Ihr seid danach nicht mehr verbunden, eure Nachrichten werden für beide gelöscht, und keiner von euch kann dem anderen eine neue Anfrage schicken. {name} erfährt nicht, dass du blockiert hast. Freigeben kannst du im Profil unter „Blockierte Nutzer“.",
+  "@safetyBlockBody": {
+    "description": "Text der Rückfrage vor dem Blockieren: was passiert und wo man es zurücknimmt.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "safetyBlockConfirm": "Blockieren",
+  "@safetyBlockConfirm": {
+    "description": "Bestätigen in der Rückfrage vor dem Blockieren."
+  },
+  "safetyBlocked": "{name} ist blockiert.",
+  "@safetyBlocked": {
+    "description": "Leiste nach dem Blockieren.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "safetyReportTitle": "{name} melden",
+  "@safetyReportTitle": {
+    "description": "Titel des Melde-Dialogs für eine Person.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "safetyReportMessageTitle": "Nachricht von {name} melden",
+  "@safetyReportMessageTitle": {
+    "description": "Titel des Melde-Dialogs für eine Nachricht.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "safetyReportIntro": "Die Meldung geht nur an den Betreiber von TrailBuddy, nicht an {name}.",
+  "@safetyReportIntro": {
+    "description": "Satz oben im Melde-Dialog: wer die Meldung sieht.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "safetyReasonSpam": "Spam oder Werbung",
+  "@safetyReasonSpam": {
+    "description": "Grund einer Meldung."
+  },
+  "safetyReasonAbuse": "Belästigung oder Beleidigung",
+  "@safetyReasonAbuse": {
+    "description": "Grund einer Meldung."
+  },
+  "safetyReasonInappropriate": "Anstößige Inhalte",
+  "@safetyReasonInappropriate": {
+    "description": "Grund einer Meldung."
+  },
+  "safetyReasonOther": "Etwas anderes",
+  "@safetyReasonOther": {
+    "description": "Grund einer Meldung."
+  },
+  "safetyReportNote": "Was ist passiert? (optional)",
+  "@safetyReportNote": {
+    "description": "Feld für eine Notiz im Melde-Dialog."
+  },
+  "safetyReportAlsoBlock": "Auch blockieren",
+  "@safetyReportAlsoBlock": {
+    "description": "Häkchen im Melde-Dialog: die Person gleich mit blockieren."
+  },
+  "safetyReportSend": "Melden",
+  "@safetyReportSend": {
+    "description": "Absenden im Melde-Dialog."
+  },
+  "safetyReported": "Danke — die Meldung ist beim Betreiber.",
+  "@safetyReported": {
+    "description": "Leiste nach dem Melden."
+  },
+  "safetyReportedAndBlocked": "Danke — gemeldet, und {name} ist blockiert.",
+  "@safetyReportedAndBlocked": {
+    "description": "Leiste nach Melden mit „Auch blockieren“.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "safetyRequestBlocked": "Du hast {name} blockiert. Freigeben kannst du im Profil unter „Blockierte Nutzer“.",
+  "@safetyRequestBlocked": {
+    "description": "Leiste, wenn man jemanden anfragen will, den man selbst blockiert hat.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "safetyBlockedTitle": "Blockierte Nutzer",
+  "@safetyBlockedTitle": {
+    "description": "Titel der Profilzeile und der Seite mit den blockierten Personen."
+  },
+  "safetyBlockedSubtitle": "{count, plural, =0{Niemand blockiert} =1{1 Person} other{{count} Personen}}",
+  "@safetyBlockedSubtitle": {
+    "description": "Untertitel der Profilzeile.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "safetyBlockedEmpty": "Du hast niemanden blockiert. Blockieren kannst du an einem Buddy, einer Anfrage oder im Verlauf über das Menü.",
+  "@safetyBlockedEmpty": {
+    "description": "Leere Seite „Blockierte Nutzer“."
+  },
+  "safetyBlockedIntro": "Wen du blockierst, kann dir keine Anfrage und keine Nachricht schicken und sieht nichts von dir. Freigeben stellt die Verbindung nicht wieder her — dafür braucht es eine neue Anfrage.",
+  "@safetyBlockedIntro": {
+    "description": "Satz oben auf der Seite „Blockierte Nutzer“."
+  },
+  "safetyUnblock": "Freigeben",
+  "@safetyUnblock": {
+    "description": "Knopf an einer blockierten Person."
+  },
+  "safetyUnblocked": "{name} ist freigegeben.",
+  "@safetyUnblocked": {
+    "description": "Leiste nach dem Freigeben.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
   }
 }

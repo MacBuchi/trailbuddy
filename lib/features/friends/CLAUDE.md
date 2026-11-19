@@ -51,3 +51,27 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     Buddy-Beziehung, der Server rechnet nichts über Nutzer hinweg. Nicht
     Ende-zu-Ende-verschlüsselt — so in `web/datenschutz.html` und
     `docs/play-console.md` („Andere In-App-Nachrichten").
+- **Blockieren und Melden** (#584, seit 0.190.0, Patch 033; Pflicht aus
+  Googles Richtlinie für Inhalte von Nutzern, Betreiber 2026-11-19:
+  „schlank" — Person und Nachricht, Meldungen nur in der Tabelle).
+  `block_report.dart` (Rückfragen, Melde-Dialog, `SafetyMenuButton`),
+  `BlocksNotifier` in `friend_providers.dart`, Seite „Blockierte Nutzer"
+  unter `/profile/blocked` (Zeile nur, wenn es Sperren gibt). Vier Dinge,
+  die man wissen muss:
+  - **Entfernen steht seit 0.190.0 im Menü „Mehr zu …"** an der
+    Buddy-Zeile, zusammen mit Melden und Blockieren — die Zeile hatte
+    schon vier Knöpfe. Tests öffnen erst das Menü
+    (`find.byTooltip('Mehr zu <name>')`). An einer eingehenden Anfrage
+    steht dasselbe Menü ohne „Entfernen" (das ist dort „Ablehnen").
+  - **Blockieren lädt alles neu, was an der Beziehung hing**:
+    Freundschaften, Aliase, Nachrichten UND Trails (was nur über ihn
+    sichtbar war, ist weg). `remove` lädt die Trails nicht.
+  - **Eine Anfrage an einen Blockierten scheitert nicht** — der Trigger
+    `friendships_skip_blocked` verwirft sie still, sonst wäre der Fehler
+    das Orakel. Wer SELBST blockiert hat, bekommt deshalb vor dem
+    Anfragen von der App den Weg zum Freigeben (`blocksProvider` lädt mit
+    dem Buddys-Reiter).
+  - **Langer Druck auf eine fremde Nachricht meldet sie**, auf eine
+    eigene nimmt er sie zurück. Den Text der Meldung kopiert der Server
+    (`report_content`), nie der Client. Nach „Auch blockieren" schließt
+    sich der Verlauf (`onBlocked`).

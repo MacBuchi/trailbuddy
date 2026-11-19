@@ -2,6 +2,21 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Sicherer unter Buddys
+
+*Version 0.190.0, 2026-11-19*
+
+- Du kannst jemanden **blockieren**: an der Buddy-Zeile über das Menü
+  „⋮", an einer Anfrage und im Verlauf. Ihr seid danach nicht mehr
+  verbunden, eure Nachrichten sind für beide weg, und keiner kann dem
+  anderen eine neue Anfrage schicken. Die blockierte Person erfährt es
+  nicht. Freigeben kannst du im Profil unter „Blockierte Nutzer".
+- Du kannst eine Person oder eine einzelne Nachricht **melden** — mit
+  einem Grund und auf Wunsch einer Notiz. Die Meldung geht nur an den
+  Betreiber, nicht an die Person. Eine Nachricht meldest du mit langem
+  Druck auf sie.
+- „Buddy entfernen" steht jetzt im selben Menü „⋮" an der Buddy-Zeile.
+
 ## Stabiler
 
 *Version 0.189.3, 2026-11-19*

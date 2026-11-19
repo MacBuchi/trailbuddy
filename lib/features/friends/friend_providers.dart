@@ -71,3 +71,41 @@ final friendshipsProvider =
     AsyncNotifierProvider<FriendshipsNotifier, List<FriendshipEntry>>(
       FriendshipsNotifier.new,
     );
+
+/// Wen ICH blockiert habe (#584, Patch 033) — für die Seite „Blockierte
+/// Nutzer" im Profil und damit die Suche einen Blockierten erkennt.
+class BlocksNotifier extends AsyncNotifier<List<BlockedUser>>
+    with ReadAfterWrite<List<BlockedUser>> {
+  @override
+  Future<List<BlockedUser>> build() {
+    ref.watch(currentUserIdProvider);
+    if (ref.read(currentUserIdProvider) == null) return Future.value([]);
+    return ref.read(friendRepositoryProvider).fetchBlocks();
+  }
+
+  /// Blockiert [otherId]. Die Datenbank beendet die Beziehung und löscht,
+  /// was an ihr hing (Alias, Nachrichten, Schalter) — alle Listen, die
+  /// davon leben, kommen neu, auch die Trails: Was nur über ihn sichtbar
+  /// war, ist weg.
+  Future<void> block(String otherId) async {
+    await ref.read(friendRepositoryProvider).block(otherId);
+    await reloadAfterWrite('Blockierte neu laden');
+    await ref
+        .read(friendshipsProvider.notifier)
+        .reloadAfterWrite('Freundschaften neu laden');
+    ref.invalidate(buddyAliasesProvider);
+    ref.invalidate(messagesProvider);
+    await ref
+        .read(trailsProvider.notifier)
+        .reloadAfterWrite('Trails nach dem Blockieren laden');
+  }
+
+  Future<void> unblock(String otherId) async {
+    await ref.read(friendRepositoryProvider).unblock(otherId);
+    await reloadAfterWrite('Blockierte neu laden');
+  }
+}
+
+final blocksProvider = AsyncNotifierProvider<BlocksNotifier, List<BlockedUser>>(
+  BlocksNotifier.new,
+);

@@ -25,6 +25,7 @@ import '../nearby/nearby_widgets.dart';
 import '../profile/profile_providers.dart';
 import '../trails/trail_providers.dart';
 import '../rides/airtime_widgets.dart' show BuddyAirtimeLine, MyAirtimeCard;
+import 'block_report.dart';
 import 'buddy_alias.dart';
 import 'buddy_alias_dialog.dart';
 import 'connect_summary.dart';
@@ -181,6 +182,14 @@ class _FriendsScreenState extends ConsumerState<FriendsScreen> {
   }
 
   Future<void> _sendRequest(ProfileSearchResult result) async {
+    // Wen ICH blockiert habe, frage ich nicht still ins Leere an (die
+    // Datenbank verwirft die Anfrage, #584) — die App sagt es und wo man
+    // freigibt. Ist die Liste nicht zu haben, geht die Anfrage wie immer.
+    final blocked = ref.read(blocksProvider).valueOrNull ?? const [];
+    if (blocked.any((b) => b.id == result.id)) {
+      _showMessage(context.l10n.safetyRequestBlocked(result.username));
+      return;
+    }
     try {
       await ref.read(friendshipsProvider.notifier).sendRequest(result.id);
       if (!mounted) return;
@@ -232,6 +241,8 @@ class _FriendsScreenState extends ConsumerState<FriendsScreen> {
     final palette = AppPalette.of(context);
     final uid = ref.watch(currentUserIdProvider) ?? '';
     final friendshipsAsync = ref.watch(friendshipsProvider);
+    // Geladen, damit die Suche einen selbst Blockierten erkennt (#584).
+    ref.watch(blocksProvider);
     final friendships = friendshipsAsync.valueOrNull ?? [];
 
     final incoming = friendships.where((f) => f.isIncomingFor(uid)).toList();
@@ -422,6 +433,13 @@ class _FriendsScreenState extends ConsumerState<FriendsScreen> {
                                   .remove(f.id),
                               icon: Icons.close,
                               tooltip: l.buddysDecline,
+                            ),
+                            // Melden und Blockieren auch vor dem Annehmen
+                            // (#584) — gerade eine fremde Anfrage kann
+                            // lästig sein.
+                            more: SafetyMenuButton(
+                              otherId: f.otherId(uid),
+                              name: f.otherUsername(uid),
                             ),
                           ),
                       ],
@@ -750,11 +768,13 @@ class _RequestCard extends StatelessWidget {
     this.primary,
     this.subtitle,
     this.message,
+    this.more,
   });
 
   final String name;
   final String colorKey;
   final Widget cancel;
+  final Widget? more;
   final Widget? primary;
   final String? subtitle;
   final Widget? message;
@@ -800,6 +820,7 @@ class _RequestCard extends StatelessWidget {
             ?message,
             if (primary != null) ...[primary!, const SizedBox(width: 8)],
             cancel,
+            ?more,
           ],
         ),
       ),
@@ -915,10 +936,12 @@ class _BuddyRow extends StatelessWidget {
                   child: MessageButton(otherId: id),
                 )
               : MessageButton(otherId: id),
-          IconButton(
-            onPressed: onRemove,
-            icon: Icon(Icons.person_remove_outlined, color: palette.muted),
-            tooltip: context.l10n.buddysRemoveTooltip,
+          // Entfernen, Melden, Blockieren (#584) in einem Menü — die Zeile
+          // hat schon vier Knöpfe.
+          SafetyMenuButton(
+            otherId: id,
+            name: alias ?? username,
+            onRemove: onRemove,
           ),
         ],
       ),

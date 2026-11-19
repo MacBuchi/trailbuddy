@@ -75,3 +75,38 @@ class ProfileSearchResult {
         avatar: json['avatar'] as int? ?? 0,
       );
 }
+
+/// Jemand, den ICH blockiert habe (#584, `my_blocks()`).
+class BlockedUser {
+  final String id;
+  final String username;
+  final int avatar;
+  final DateTime createdAt;
+
+  const BlockedUser({
+    required this.id,
+    required this.username,
+    this.avatar = 0,
+    required this.createdAt,
+  });
+
+  factory BlockedUser.fromJson(Map<String, dynamic> json) => BlockedUser(
+    id: json['blocked_id'] as String,
+    username: json['username'] as String? ?? 'Buddy',
+    avatar: json['avatar'] as int? ?? 0,
+    createdAt: DateTime.parse(json['created_at'] as String),
+  );
+}
+
+/// Warum gemeldet wird — dieselben Werte wie der Check an
+/// `content_reports.reason` (Patch 033).
+enum ReportReason {
+  spam('spam'),
+  abuse('abuse'),
+  inappropriate('inappropriate'),
+  other('other');
+
+  const ReportReason(this.wire);
+
+  final String wire;
+}

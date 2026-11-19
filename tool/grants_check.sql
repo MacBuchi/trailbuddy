@@ -160,3 +160,45 @@ begin
   end if;
   raise notice 'grants_check buddy_nearby: ok';
 end $$;
+
+-- Blockieren und Melden (patch_033): user_blocks lesen und löschen nur
+-- authenticated, anlegen nur per RPC; content_reports hat KEINEN
+-- Client-Grant (gelesen wird im Dashboard), der Service-Schlüssel darf
+-- lesen, abstempeln und löschen.
+do $$
+begin
+  if has_table_privilege('anon', 'public.user_blocks', 'select')
+     or has_table_privilege('authenticated', 'public.user_blocks', 'insert')
+     or has_table_privilege('authenticated', 'public.user_blocks', 'update') then
+    raise exception 'user_blocks: zu viele Rechte (anon oder anlegen ohne RPC)';
+  end if;
+  if not (has_table_privilege('authenticated', 'public.user_blocks', 'select')
+          and has_table_privilege('authenticated', 'public.user_blocks', 'delete')) then
+    raise exception 'authenticated fehlen die Grants auf user_blocks';
+  end if;
+  if has_table_privilege('anon', 'public.content_reports', 'select')
+     or has_table_privilege('anon', 'public.content_reports', 'insert')
+     or has_table_privilege('authenticated', 'public.content_reports', 'select')
+     or has_table_privilege('authenticated', 'public.content_reports', 'insert')
+     or has_table_privilege('authenticated', 'public.content_reports', 'update') then
+    raise exception 'content_reports ist für Clients offen — Meldungen wären lesbar oder fälschbar';
+  end if;
+  if not (has_table_privilege('service_role', 'public.content_reports', 'select')
+          and has_table_privilege('service_role', 'public.content_reports', 'update')
+          and has_table_privilege('service_role', 'public.content_reports', 'delete')) then
+    raise exception 'service_role fehlen die Grants auf content_reports';
+  end if;
+  if has_function_privilege('anon', 'public.block_user(uuid)', 'execute')
+     or has_function_privilege('anon', 'public.my_blocks()', 'execute')
+     or has_function_privilege('anon', 'public.report_content(uuid, text, uuid, text, text)', 'execute')
+     or not has_function_privilege('authenticated', 'public.block_user(uuid)', 'execute')
+     or not has_function_privilege('authenticated', 'public.my_blocks()', 'execute')
+     or not has_function_privilege('authenticated', 'public.report_content(uuid, text, uuid, text, text)', 'execute') then
+    raise exception 'block_user/my_blocks/report_content: falsche Rechte';
+  end if;
+  if has_function_privilege('authenticated', 'app_internal.blocked_between(uuid, uuid)', 'execute')
+     or has_function_privilege('authenticated', 'app_internal.sweep_content_reports()', 'execute') then
+    raise exception 'authenticated darf interne Funktionen von patch_033 aufrufen';
+  end if;
+  raise notice 'grants_check block_report: ok';
+end $$;

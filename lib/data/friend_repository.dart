@@ -52,6 +52,48 @@ class FriendRepository {
     await _client.from('friendships').delete().eq('id', friendshipId);
   }
 
+  /// Blockiert [otherId] (#584, Patch 033): Die RPC beendet die
+  /// Beziehung (auch eine offene Anfrage) in derselben Transaktion; danach
+  /// verwirft die Datenbank jede neue Anfrage zwischen beiden still.
+  Future<void> block(String otherId) async {
+    await _client.rpc('block_user', params: {'other': otherId});
+  }
+
+  /// Gibt [otherId] wieder frei. Die Beziehung kommt nicht zurück.
+  Future<void> unblock(String otherId) async {
+    await _client.from('user_blocks').delete().eq('blocked_id', otherId);
+  }
+
+  /// Wen ICH blockiert habe, mit Namen — die Profile selbst sind danach
+  /// nicht mehr lesbar.
+  Future<List<BlockedUser>> fetchBlocks() async {
+    final rows = await _client.rpc('my_blocks') as List<dynamic>;
+    return rows
+        .map((r) => BlockedUser.fromJson(r as Map<String, dynamic>))
+        .toList();
+  }
+
+  /// Meldet [reportedId] oder — mit [messageId] — eine Nachricht, die er
+  /// mir geschickt hat. Den Text kopiert der Server selbst; lesen kann die
+  /// Meldung nur der Betreiber (Dashboard).
+  Future<void> report(
+    String reportedId, {
+    String? messageId,
+    required ReportReason reason,
+    String? note,
+  }) async {
+    await _client.rpc(
+      'report_content',
+      params: {
+        'reported': reportedId,
+        'kind': messageId == null ? 'user' : 'message',
+        'message': messageId,
+        'reason': reason.wire,
+        'note': note,
+      },
+    );
+  }
+
   /// Exakt diese Spalten prüft der Schema Check.
   static const aliasColumns = 'friend_id, alias';
 

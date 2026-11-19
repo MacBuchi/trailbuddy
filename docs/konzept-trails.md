@@ -763,6 +763,15 @@ Regeln, die aus dem Modell folgen und alle mit RLS erzwungen sind:
   vorausfüllt), nicht als Pflicht: Eine Pflicht-Einladung hält niemanden
   ab, der jemanden kennt, und sperrt alle aus, die niemanden kennen —
   und die haben ohnehin eine leere Karte.
+- **Blockieren und Melden** (#584, Patch 033, seit 0.190.0; Pflicht aus
+  Googles Richtlinie für Inhalte von Nutzern). Weil alles Sichtbare an der
+  direkten Buddy-Beziehung hängt, ist Blockieren nichts Neues am Modell:
+  Es beendet die Beziehung und verwirft danach jede neue Anfrage zwischen
+  den beiden still, in beide Richtungen. Der Blockierte sieht dasselbe
+  wie nach einem Ablehnen. Gemeldet werden eine Person oder eine Nachricht
+  (Betreiber 2026-11-19: schlank; Fotos und Trail-Texte über die Person,
+  die sie eingetragen hat) in eine Tabelle, die nur der Betreiber liest —
+  nie in ein öffentliches Issue.
 
 Was das Tor **nicht** ist, muss ebenso klar sein, sonst baut man ein
 Versprechen, das nicht hält:
