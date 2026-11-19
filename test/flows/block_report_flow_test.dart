@@ -134,11 +134,7 @@ void main() {
     await settle(tester, frames: 12);
 
     expect(backend.blocks.where((b) => b.blocker == me.id), isEmpty);
-    expect(
-      backend.blocks,
-      hasLength(1),
-      reason: 'die fremde Sperre bleibt',
-    );
+    expect(backend.blocks, hasLength(1), reason: 'die fremde Sperre bleibt');
     expect(find.text('lilli92 ist freigegeben.'), findsOneWidget);
     expect(find.textContaining('Du hast niemanden blockiert'), findsOneWidget);
     await drainSnackbars(tester);
@@ -174,7 +170,10 @@ void main() {
     expect(report['kind'], 'user');
     expect(report['reason'], 'spam');
     expect(report['note'], 'will Geld');
-    expect(find.text('Danke — die Meldung ist beim Betreiber.'), findsOneWidget);
+    expect(
+      find.text('Danke — die Meldung ist beim Betreiber.'),
+      findsOneWidget,
+    );
     // Ohne „Auch blockieren" bleibt die Anfrage stehen.
     expect(backend.friendships, hasLength(1));
     expect(backend.blocks, isEmpty);
@@ -221,7 +220,10 @@ void main() {
     expect(backend.friendships, isEmpty);
     expect(backend.messages, isEmpty, reason: 'der Verlauf geht mit');
     expect(find.byType(ConversationScreen), findsNothing);
-    expect(find.text('Danke — gemeldet, und lilli92 ist blockiert.'), findsOneWidget);
+    expect(
+      find.text('Danke — gemeldet, und lilli92 ist blockiert.'),
+      findsOneWidget,
+    );
     await drainSnackbars(tester);
   });
 }
