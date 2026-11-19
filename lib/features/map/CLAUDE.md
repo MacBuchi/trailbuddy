@@ -526,3 +526,35 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     Ort-Blatt; die Navi-App wird VOR dem Schließen gefragt.
   `test/flows/start_point_map_flow_test.dart` (Gegenproben: ohne
   30-m-Regel, ohne Zoomgrenze, Schalter ohne Wirkung — jede rot).
+- **Suche auf der Karte** (#576 Stufe 1, seit 0.191.0, `map_search.dart`
+  pur, `map_search_panel.dart`; Entscheidungen des Betreibers
+  2026-11-19 in #576). Die Lupe steht oben in der Knopfspalte (Anker
+  `MapCoach.search`), das Feld liegt oben über Bannern und Glühbirne.
+  Vier Dinge, die man wissen muss:
+  - **Gesucht wird nur im Bekannten** (A1): Trails des eigenen Netzes
+    (`trailSearchTexts` wie die Liste), gemerkte Startpunkte
+    (`shownStartPoints`, Name und Buddy) und die Orte der Zelle der
+    Kartenmitte samt acht Nachbarn (`mapSearchPoiCells`, ~33 × 33 km)
+    über Name UND Art in der Sprache der Oberfläche. Kein Suchdienst,
+    kein neues Netzziel. Stufe 2 (Ortsnamen aus einem eigenen Index auf
+    `tiles.mcbuchi.de`) ist entschieden, nicht gebaut.
+  - **Orte ALLER Gruppen**: Die Suche fragt `PoiController.ensure` mit
+    `PoiGroup.values` — „Radladen" findet auch, wer „Rad-Service" auf der
+    Karte aus hat; die Karte zeichnet weiter nur ihre Gruppen
+    (`inCells(…, groups)`). Derselbe Weg wie die Karte: gespeicherter
+    Bereich zuerst, sonst der Host; ohne beides sagt die Suche es.
+  - **Geraten wird über ALLE Abschnitte**: Teiltreffer haben Abstand 0;
+    gibt es irgendwo einen, gelten nur sie, sonst der kleinste
+    Tippfehler-Abstand über Trails, Startpunkte und Orte zusammen
+    („Meintest du …?"). Je Abschnitt nach Entfernung zur Mitte (ein
+    Trail nach seinem nächsten Punkt), gekappt auf 20/10/20.
+  - **Ein Treffer ist ein Tipp auf die Karte** (`_pickSearchHit`): Trail
+    eingepasst und ausgewählt (Schnellkarte), Ort und Startpunkt in die
+    Mitte (mindestens `kMapSearchFlyZoom`) und ihr Blatt
+    (`_showPoi`/`_showStartPoint`, dieselben wie beim Tipp); wartet der
+    Planer auf einen Punkt, ist der Treffer dieser Punkt. Zurück schließt
+    das Feld (`PopScope`).
+  Tests: `test/map/map_search_test.dart`,
+  `test/flows/map_search_flow_test.dart` (Gegenproben 2026-11-19: nur
+  eingeschaltete Gruppen, ohne `PopScope`, Trail ohne Auswahl, Raten je
+  Abschnitt, ohne Art als Suchtext — je rot).

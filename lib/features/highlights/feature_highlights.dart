@@ -123,6 +123,16 @@ final kFeatureHighlights = <FeatureHighlight>[
     target: '/profile/navigation',
   ),
   FeatureHighlight(
+    id: 'map-search',
+    since: '0.191.0',
+    kind: HighlightKind.highlight,
+    tab: HighlightTab.map,
+    icon: Icons.search,
+    title: (l) => l.highlightMapSearchTitle,
+    text: (l) => l.highlightMapSearchText,
+    target: '/',
+  ),
+  FeatureHighlight(
     id: 'start-points',
     since: '0.183.0',
     kind: HighlightKind.highlight,

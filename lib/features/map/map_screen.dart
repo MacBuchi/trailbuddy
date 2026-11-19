@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
@@ -86,6 +87,8 @@ import '../trails/trail_providers.dart';
 import '../trails/trail_sheet.dart';
 import '../update/update_banner.dart';
 import 'map_buttons.dart';
+import 'map_search.dart' show kMapSearchFlyZoom;
+import 'map_search_panel.dart';
 import 'map_legend.dart';
 import 'contour_layer.dart' show groundResolution;
 import 'contour_providers.dart';
@@ -153,6 +156,9 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   /// beim Kaltstart, bevor die Trails geladen sind. Eingelöst, sobald er
   /// kommt; ein Wunsch auf einen Trail, den man nie sieht, verfällt.
   String? _pendingFocus;
+
+  /// Das Suchfeld oben (#576), geöffnet von der Lupe.
+  bool _searchOpen = false;
 
   /// Die Kamera beim letzten Stillstand — daran hängen Orte und
   /// offizielle Trails (welche Zellen, welcher Ausschnitt).
@@ -985,35 +991,10 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       case final OfficialTrail o:
         showOfficialTrailSheet(context, o);
       case final Poi p:
-        showPoiSheet(
-          context,
-          p,
-          onPlan: (role) =>
-              unawaited(_planFromPlace(p.position, role, name: p.name)),
-          onRoute: () => unawaited(_routeTo(p.position, name: p.name)),
-          onRemember: () => unawaited(
-            rememberStartPoint(
-              context,
-              ref,
-              p.position,
-              name: p.name ?? p.kind.label(context.l10n),
-            ),
-          ),
-        );
+        _showPoi(p);
       // Ein gemerkter Startpunkt (#543): wie ein Ort, mit Navi-App.
       case final StartPoint p:
-        showStartPointSheet(
-          context,
-          p,
-          onStart: () => unawaited(_planFromStartPoint(p)),
-          onTarget: () {
-            ref.read(loopPlannerProvider.notifier).noteStartPointChosen(p);
-            unawaited(_routeTo(p.position, name: p.name, saved: true));
-          },
-          onRemember: (p) => unawaited(
-            rememberStartPoint(context, ref, p.position, name: p.name),
-          ),
-        );
+        _showStartPoint(p);
       // Ein Buddy (#519): wer, wie genau, wie alt.
       case final BuddyMapHit b:
         ScaffoldMessenger.of(context)
@@ -1026,6 +1007,58 @@ class _MapScreenState extends ConsumerState<MapScreen> {
             ),
           );
     }
+  }
+
+  void _showPoi(Poi p) => showPoiSheet(
+    context,
+    p,
+    onPlan: (role) => unawaited(_planFromPlace(p.position, role, name: p.name)),
+    onRoute: () => unawaited(_routeTo(p.position, name: p.name)),
+    onRemember: () => unawaited(
+      rememberStartPoint(
+        context,
+        ref,
+        p.position,
+        name: p.name ?? p.kind.label(context.l10n),
+      ),
+    ),
+  );
+
+  void _showStartPoint(StartPoint p) => showStartPointSheet(
+    context,
+    p,
+    onStart: () => unawaited(_planFromStartPoint(p)),
+    onTarget: () {
+      ref.read(loopPlannerProvider.notifier).noteStartPointChosen(p);
+      unawaited(_routeTo(p.position, name: p.name, saved: true));
+    },
+    onRemember: (p) =>
+        unawaited(rememberStartPoint(context, ref, p.position, name: p.name)),
+  );
+
+  /// Ein Treffer der Suche (#576): wie ein Tipp auf die Karte. Ein Trail
+  /// wird eingepasst und leuchtet (unten die Schnellkarte), ein Ort oder
+  /// Startpunkt kommt in die Mitte, und sein Blatt geht auf — wartet der
+  /// Planer auf einen Punkt, ist der Treffer dieser Punkt.
+  void _pickSearchHit(Object hit) {
+    setState(() => _searchOpen = false);
+    switch (hit) {
+      case final Trail t:
+        if (_focusOn(t.id)) setState(() => _selectedTrailId = t.id);
+      case final Poi p:
+        _flyTo(p.position);
+        if (!_takeLoopPick(p.position)) _showPoi(p);
+      case final StartPoint p:
+        _flyTo(p.position);
+        if (!_takeLoopPick(p.position)) _showStartPoint(p);
+    }
+  }
+
+  /// Nah genug heran, dass man den Ort in seiner Umgebung sieht — wer
+  /// schon näher ist, bleibt dort.
+  void _flyTo(LatLng at) {
+    _fittedOnce = true;
+    _controller.move(at, math.max(_controller.zoom, kMapSearchFlyZoom));
   }
 
   /// „Meine Position": eine der Stellen, die nach der Berechtigung
@@ -2365,6 +2398,25 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                   ),
                 ),
               ),
+              // Das Suchfeld (#576) liegt über Bannern und Glühbirne — solange
+              // es offen ist, ist es das, was oben zählt.
+              if (_searchOpen)
+                SafeArea(
+                  child: Align(
+                    alignment: Alignment.topCenter,
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 560),
+                        child: MapSearchPanel(
+                          center: _controller.center,
+                          onPick: _pickSearchHit,
+                          onClose: () => setState(() => _searchOpen = false),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
               if (ride != null || focusRide != null)
                 SafeArea(
                   child: Align(
@@ -2562,6 +2614,21 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                                 mainAxisSize: MainAxisSize.min,
                                 crossAxisAlignment: CrossAxisAlignment.end,
                                 children: [
+                                  // Suchen (#576): oben in der Spalte, sie öffnet
+                                  // das Feld oben auf der Karte.
+                                  CoachAnchor(
+                                    id: MapCoach.search,
+                                    child: MapRoundButton(
+                                      key: const ValueKey('search-button'),
+                                      tooltip: context.l10n.mapSearchTooltip,
+                                      icon: Icons.search,
+                                      active: _searchOpen,
+                                      onPressed: () => setState(
+                                        () => _searchOpen = !_searchOpen,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 10),
                                   // Kartenebenen (#190): EIN Blatt, direkt — welche
                                   // Trails, offizielle Trails, Orte. Es liegt über
                                   // jeder Leiste und ändert an ihr nichts.

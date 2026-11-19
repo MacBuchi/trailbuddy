@@ -6092,7 +6092,7 @@
   "@tourMapLayersTitle": {
     "description": "Karten-Tour: Schritt zum Knopf „Kartenebenen“. Auch in Vorführungen übernommen."
   },
-  "tourMapLayersText": "Der oberste Knopf: welche Trails die Karte zeigt, die offiziellen Trails der Region und Orte wie Einkehr, Wasser und Rad-Service.",
+  "tourMapLayersText": "Der Knopf mit den Ebenen: welche Trails die Karte zeigt, die offiziellen Trails der Region und Orte wie Einkehr, Wasser und Rad-Service.",
   "@tourMapLayersText": {
     "description": "Karten-Tour: Text zum Knopf „Kartenebenen“."
   },
@@ -6775,7 +6775,7 @@
   "@highlightMapLayersTitle": {
     "description": "Entdecken, Eintrag „map-layers“: Überschrift (auch im Neuheiten-Blatt nach einem Update)."
   },
-  "highlightMapLayersText": "Der oberste Knopf rechts öffnet die Kartenebenen direkt: Trail-Filter, offizielle Trails und Orte in einem Blatt. Die Offline-Karten haben ihren eigenen Knopf darunter, die Glühbirne steht jetzt oben rechts.",
+  "highlightMapLayersText": "Der Ebenen-Knopf rechts öffnet die Kartenebenen direkt: Trail-Filter, offizielle Trails und Orte in einem Blatt. Die Offline-Karten haben ihren eigenen Knopf darunter, die Glühbirne steht jetzt oben rechts.",
   "@highlightMapLayersText": {
     "description": "Entdecken, Eintrag „map-layers“: Text, zwei bis drei Sätze (auch im Neuheiten-Blatt)."
   },
@@ -7031,7 +7031,7 @@
   "@highlightPoisTitle": {
     "description": "Entdecken, Eintrag „pois“: Überschrift (auch im Neuheiten-Blatt nach einem Update)."
   },
-  "highlightPoisText": "Einkehr, Wasser, Rad-Service: Welche Orte die Karte zeigt, wählst du unter „Kartenebenen\", dem obersten Knopf rechts.",
+  "highlightPoisText": "Einkehr, Wasser, Rad-Service: Welche Orte die Karte zeigt, wählst du unter „Kartenebenen\", dem Ebenen-Knopf rechts.",
   "@highlightPoisText": {
     "description": "Entdecken, Eintrag „pois“: Text, zwei bis drei Sätze (auch im Neuheiten-Blatt)."
   },
@@ -11464,5 +11464,61 @@
         "type": "String"
       }
     }
+  },
+  "mapSearchTooltip": "Suchen",
+  "@mapSearchTooltip": {
+    "description": "Tooltip der Lupe in der Knopfspalte der Karte (#576)."
+  },
+  "mapSearchHint": "Trail, Startpunkt oder Ort suchen",
+  "@mapSearchHint": {
+    "description": "Platzhalter im Suchfeld der Karte."
+  },
+  "mapSearchClose": "Suche schließen",
+  "@mapSearchClose": {
+    "description": "Tooltip des X im Suchfeld der Karte."
+  },
+  "mapSearchTrails": "Trails",
+  "@mapSearchTrails": {
+    "description": "Abschnitt der Trefferliste: Trails des eigenen Netzes."
+  },
+  "mapSearchStartPoints": "Startpunkte",
+  "@mapSearchStartPoints": {
+    "description": "Abschnitt der Trefferliste: gemerkte Startpunkte."
+  },
+  "mapSearchPois": "Orte in der Nähe",
+  "@mapSearchPois": {
+    "description": "Abschnitt der Trefferliste: Orte (POIs) rund um die Kartenmitte."
+  },
+  "mapSearchGuess": "Nichts heißt so. Meintest du …?",
+  "@mapSearchGuess": {
+    "description": "Über der Trefferliste, wenn nur der Tippfehler-Ausgleich etwas fand."
+  },
+  "mapSearchNothing": "Nichts gefunden. Gesucht wird in deinen Trails und Startpunkten und in den Orten rund um die Kartenmitte.",
+  "@mapSearchNothing": {
+    "description": "Wenn die Kartensuche nichts findet; sagt, wo gesucht wird."
+  },
+  "mapSearchPoisLoading": "Orte in der Nähe werden geladen …",
+  "@mapSearchPoisLoading": {
+    "description": "Solange die Orte rund um die Kartenmitte noch laden."
+  },
+  "mapSearchPoisUnavailable": "Orte in der Nähe gerade nicht erreichbar",
+  "@mapSearchPoisUnavailable": {
+    "description": "Ohne Netz und ohne gespeicherten Bereich um die Kartenmitte."
+  },
+  "highlightMapSearchTitle": "Suche auf der Karte",
+  "@highlightMapSearchTitle": {
+    "description": "Titel des Neuheiten-Eintrags zur Kartensuche (#576)."
+  },
+  "highlightMapSearchText": "Die Lupe findet deine Trails, gemerkte Startpunkte und Orte in der Nähe — vom Brunnen bis zum Radladen. Ein Tipp, und die Karte springt hin.",
+  "@highlightMapSearchText": {
+    "description": "Text des Neuheiten-Eintrags zur Kartensuche."
+  },
+  "demoMapSearchTitle": "Suchen",
+  "@demoMapSearchTitle": {
+    "description": "Vorführung der Kartensuche: Titel des Schritts an der Lupe."
+  },
+  "demoMapSearchText": "Tipp auf die Lupe und schreib los: ein Trail, ein Startpunkt oder etwas wie „Trinkwasser“. Gesucht wird in deinem Netz und in den Orten rund um die Kartenmitte.",
+  "@demoMapSearchText": {
+    "description": "Vorführung der Kartensuche: Text des Schritts an der Lupe."
   }
 }

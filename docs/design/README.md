@@ -390,7 +390,12 @@ Werk aus.
   mit Stop-Quadrat), darüber 44 px: Position, Runde planen (seit 0.72.0,
   #158 Schritt 5 — ein eigener Knopf, nicht die Glühbirne),
   Offline-Karten, Kartenebenen (seit 0.75.0 zwei Knöpfe, #190: die
-  Ebenen öffnen ihr Blatt direkt, Offline-Karten die linke Leiste).
+  Ebenen öffnen ihr Blatt direkt, Offline-Karten die linke Leiste),
+  zuoberst die Lupe (seit 0.191.0, #576): Sie öffnet ein Suchfeld als
+  Karte oben über der Karte, 12 px Rand, höchstens 560 px breit, darunter
+  die Treffer in drei Abschnitten (Trails mit Schild, Startpunkte mit
+  Pin, Orte mit ihrer Nadel; Entfernung rechts in Mono). Offen trägt die
+  Lupe den Rand in der Marke; das Feld liegt über Bannern und Glühbirne.
 - **Rechts oben — immer:** die Glühbirne, 44 px (seit 0.75.0, #180;
   Betreiber: abgesetzt vom Menü). Die Banner oben halten rechts immer
   52 px frei (`kBannerRightInset`), auch ohne Banner — so liegt nichts

@@ -668,6 +668,19 @@ Map<String, HighlightDemo> highlightDemos(AppLocalizations l) => {
       ),
     ]),
   ),
+  // Die Suche auf der Karte (#576): die Lupe oben in der Knopfspalte.
+  'map-search': HighlightDemo(
+    route: '/',
+    script: _demo('map-search', [
+      CoachStep(
+        title: l.demoMapSearchTitle,
+        text: l.demoMapSearchText,
+        lit: const [MapCoach.search],
+        gesture: CoachGesture.tap,
+        requires: const [MapCoach.search],
+      ),
+    ]),
+  ),
   'start-points': HighlightDemo(
     route: '/',
     script: _demo('start-points', [
