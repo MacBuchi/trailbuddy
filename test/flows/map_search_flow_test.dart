@@ -2,12 +2,14 @@
 // Lupe → Feld; ein Trail wird eingepasst und leuchtet, ein Ort und ein
 // Startpunkt kommen in die Mitte und öffnen ihr Blatt; Orte aller
 // Gruppen um die Kartenmitte, auch wenn die Gruppe auf der Karte aus ist;
-// ohne Netz sagt die Suche es; X und Zurück schließen. Alle Koordinaten
+// ohne Netz sagt die Suche es; X und Zurück schließen. Stufe 2: Ortsnamen
+// aus dem Index des Hosts (hier `FakePlaceSource`). Alle Koordinaten
 // sind erfunden (A7).
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:trailbuddy/features/map/map_search.dart';
+import 'package:trailbuddy/features/map/place.dart';
 import 'package:trailbuddy/features/map/poi.dart';
 import 'package:trailbuddy/features/map/poi_source.dart';
 import 'package:trailbuddy/models/start_point.dart';
@@ -23,6 +25,7 @@ void main() {
   late String annaId;
   late FakeTrailRepository trails;
   late FakePoiSource pois;
+  late FakePlaceSource places;
   late String hirschId;
 
   const here = LatLng(47.5, 10.5);
@@ -30,6 +33,21 @@ void main() {
   const shop = LatLng(47.48, 10.49);
 
   setUp(() {
+    places = FakePlaceSource([
+      const Place(
+        id: 'node/40',
+        kind: PlaceKind.peak,
+        name: 'Grünstein',
+        ele: 2042,
+        position: LatLng(47.9, 10.9),
+      ),
+      const Place(
+        id: 'node/41',
+        kind: PlaceKind.hut,
+        name: 'Grünsteinhütte',
+        position: LatLng(47.88, 10.88),
+      ),
+    ]);
     backend = FakeBackend();
     annaId = backend.addUser(username: 'anna').id;
     backend.signInAs(annaId);
@@ -66,7 +84,7 @@ void main() {
   });
 
   Future<void> start(WidgetTester tester) async {
-    await pumpApp(tester, backend, trails: trails, pois: pois);
+    await pumpApp(tester, backend, trails: trails, pois: pois, places: places);
     await settle(tester, frames: 20);
     fakeMap(tester).move(here, 13);
     await settle(tester, frames: 20);
@@ -193,5 +211,54 @@ void main() {
     await tester.binding.handlePopRoute();
     await settle(tester);
     expect(find.byKey(const ValueKey('map-search')), findsNothing);
+  });
+
+  testWidgets(
+    'Ortsnamen (#576 Stufe 2): ein Gipfel weit weg, hin; die Hütte öffnet ihr Blatt',
+    (tester) async {
+      await start(tester);
+      await openAndType(tester, 'Grünstein');
+      expect(places.queries.last, 'Grünstein');
+      expect(
+        find.byKey(const ValueKey('map-search-place-node/40')),
+        findsOneWidget,
+      );
+      expect(find.text('Gipfel · 2042 m'), findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey('map-search-place-node/40')));
+      await settle(tester, frames: 20);
+      expect(find.byKey(const ValueKey('map-search')), findsNothing);
+      expect(fakeMap(tester).center.latitude, closeTo(47.9, 1e-6));
+      expect(
+        fakeMap(tester).zoom,
+        greaterThanOrEqualTo(PlaceKind.peak.flyZoom),
+      );
+
+      await openAndType(tester, 'grunsteinhutte');
+      await tester.tap(find.byKey(const ValueKey('map-search-place-node/41')));
+      await settle(tester, frames: 20);
+      expect(fakeMap(tester).center.latitude, closeTo(47.88, 1e-6));
+      expect(
+        find.byKey(const ValueKey('poi-route')),
+        findsOneWidget,
+        reason: 'eine Hütte ist ein Ort der Karte — ihr Blatt ist offen',
+      );
+    },
+  );
+
+  testWidgets('Ortsnamen ohne Netz: die Suche sagt, woher sie kommen', (
+    tester,
+  ) async {
+    places.offline = true;
+    await start(tester);
+    await openAndType(tester, 'Grünstein');
+    expect(
+      find.byKey(const ValueKey('map-search-places-offline')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('map-search-place-node/40')),
+      findsOneWidget,
+    );
   });
 }

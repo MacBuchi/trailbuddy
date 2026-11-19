@@ -40,6 +40,7 @@ import 'package:trailbuddy/features/map/map_view/map_view.dart';
 import 'package:trailbuddy/features/keep_alive/keep_alive.dart';
 import 'package:trailbuddy/features/routing/nav_service.dart';
 import 'package:trailbuddy/features/map/poi_source.dart';
+import 'package:trailbuddy/features/map/place_source.dart';
 import 'package:trailbuddy/features/map/way_layer.dart';
 import 'package:trailbuddy/features/offline_areas/area_store.dart';
 import 'package:trailbuddy/features/offline_areas/tile_store.dart';
@@ -117,6 +118,7 @@ List<Override> overridesFor(
   Settings? settings,
   FakeTrailRepository? trails,
   FakePoiSource? pois,
+  FakePlaceSource? places,
   FakeOfficialTrailsSource? official,
   MemoryOfficialTrailsCache? officialCache,
   Position? position,
@@ -215,6 +217,7 @@ List<Override> overridesFor(
   // Und keine Orte-Dateien vom Host: Eine Karte, die auf einen Trail
   // zoomt, liegt über Zoom 12 und fragte sonst wirklich an.
   poiSourceProvider.overrideWithValue(pois ?? FakePoiSource()),
+  placeSourceProvider.overrideWithValue(places ?? FakePlaceSource()),
   // Ebenso die offiziellen Trails: Vorgabe ist ein Index ohne
   // Regionen, gemerkt wird im Speicher statt im App-Verzeichnis.
   officialTrailsSourceProvider.overrideWithValue(
@@ -325,6 +328,7 @@ Future<void> pumpApp(
   Settings? settings,
   FakeTrailRepository? trails,
   FakePoiSource? pois,
+  FakePlaceSource? places,
   FakeOfficialTrailsSource? official,
   MemoryOfficialTrailsCache? officialCache,
   Position? position,
@@ -374,6 +378,7 @@ Future<void> pumpApp(
         settings: settings,
         trails: trails,
         pois: pois,
+        places: places,
         official: official,
         officialCache: officialCache,
         position: position,

@@ -14,6 +14,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:pmtiles/pmtiles.dart';
 import 'package:trailbuddy/features/map/online_map.dart';
+import 'package:trailbuddy/features/map/place.dart';
 import 'package:trailbuddy/features/map/poi.dart';
 import 'package:trailbuddy/features/map/way_layer.dart';
 import 'package:trailbuddy/features/offline_areas/area_downloader.dart';
@@ -233,6 +234,7 @@ void main() {
         build: '20260928',
         prefix: 'pois-20260928',
         cells: {PoiGroup.water: allCells.toSet()},
+        placeCells: allCells.toSet(),
       );
       final downloader = make(poiManifest: poiManifest);
       final plan = await downloader.plan(shape);
@@ -245,8 +247,15 @@ void main() {
       final area = await downloader.download(plan, name: 'Zwei Streifen');
       expect(area.shape, isA<TileSetShape>());
       expect(area.tiles, plan.tiles.length);
-      expect(area.poiFiles.length, shape.poiCells().length);
-      expect(area.poiFiles.length, lessThan(allCells.length));
+      // Je Zelle der Form die Orte UND die Ortsnamen (#576 Stufe 2): Die
+      // Suche findet Dörfer und Gipfel des Bereichs auch ohne Netz.
+      expect(area.poiFiles.toSet(), {
+        for (final c in shape.poiCells()) ...[
+          poiCellFileName(c, PoiGroup.water),
+          placeCellFileName(c),
+        ],
+      });
+      expect(area.poiFiles.length, lessThan(2 * allCells.length));
       expect(
         (await tiles.index('dach', TileLayer.map)).length,
         plan.tiles.length,

@@ -200,6 +200,14 @@ Dateien, und für Schritt 3 sind die Orte eines Bereichs schlicht die
 Dateien seiner Zellen — dieselbe Ablage wie die Kacheln. Nadeln, Filter
 und Blatt bleiben, wie sie sind.
 
+**Ortsnamen der Kartensuche (#576 Stufe 2, seit 0.192.0).** Derselbe
+Lauf schreibt Ortschaften, Gipfel, Pässe und Hütten (`tool/pois/places.json`)
+in dasselbe Präfix: je Zelle `<z>_<s>.places.json` (im Bündel, kommt mit
+jedem Bereich mit — offline sucht die App dort) und je Namensschlüssel
+`names/<zwei oder drei Buchstaben>.json` für die Suche online. Kein
+Geocoder, kein neuer Host; den Host erreicht nur der Schlüssel.
+Einzelheiten: `lib/features/map/CLAUDE.md`, „Suche auf der Karte".
+
 ### 3.5 Die Wege-Ebene für das Zerlege-Blatt
 
 Das Zerlege-Blatt (#29, **seit 0.20.0**) liest aus den gespeicherten Kacheln die Ebene

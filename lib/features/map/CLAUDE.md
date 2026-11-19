@@ -536,8 +536,8 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     (`shownStartPoints`, Name und Buddy) und die Orte der Zelle der
     Kartenmitte samt acht Nachbarn (`mapSearchPoiCells`, ~33 × 33 km)
     über Name UND Art in der Sprache der Oberfläche. Kein Suchdienst,
-    kein neues Netzziel. Stufe 2 (Ortsnamen aus einem eigenen Index auf
-    `tiles.mcbuchi.de`) ist entschieden, nicht gebaut.
+    kein neues Netzziel. Dazu seit 0.192.0 die Ortsnamen (Stufe 2,
+    unten).
   - **Orte ALLER Gruppen**: Die Suche fragt `PoiController.ensure` mit
     `PoiGroup.values` — „Radladen" findet auch, wer „Rad-Service" auf der
     Karte aus hat; die Karte zeichnet weiter nur ihre Gruppen
@@ -558,3 +558,44 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
   `test/flows/map_search_flow_test.dart` (Gegenproben 2026-11-19: nur
   eingeschaltete Gruppen, ohne `PopScope`, Trail ohne Auswahl, Raten je
   Abschnitt, ohne Art als Suchtext — je rot).
+  **Stufe 2, Ortsnamen** (seit 0.192.0, `place.dart`, `place_source.dart`):
+  Ortschaften (Stadt bis Weiler), Gipfel, Pässe/Sättel und Hütten,
+  nur benannte, gebaut im selben Lauf wie die Orte (`poi-data.yml`,
+  `tool/poi_extract.py`, Arten in `tool/pois/places.json`). Fünf Dinge,
+  die man wissen muss:
+  - **Zwei Formen derselben Einträge** im Präfix `pois-<build>/`: je
+    Zelle `<z>_<s>.places.json` (im Bündel, kommt mit jedem Bereich mit:
+    `_poiNames` im Downloader) und je Namensschlüssel
+    `names/<schlüssel>.json`. Das Manifest nennt beides unter `places`
+    (`PoiManifest.placeCells`/`placeNames`); alte Apps lesen nichts davon
+    (unbekannte Gruppen und Felder fallen still weg, das Bündel legt die
+    Zellen ungelesen ab). Bestehende Bereiche bekommen die Ortsnamen erst
+    beim nächsten Speichern/Fortsetzen.
+  - **Der Schlüssel**: Jedes Wort eines Namens (und von `name:de`,
+    `alt`) legt den Eintrag unter seinen ersten zwei gefalteten
+    Buchstaben ab; eine Datei über `NAME_SPLIT` Einträgen wird nach dem
+    dritten geteilt (Wörter aus genau zwei Buchstaben bleiben in der
+    Zweier-Datei). Die App nimmt das LÄNGSTE getippte Wort, erst drei,
+    dann zwei Buchstaben, nur was das Manifest nennt (`placeNameKey`).
+    **Nur dieser Schlüssel geht an den Host** — steht so in der
+    Datenschutzerklärung.
+  - **Faltung zweimal**: `fold()`/`name_words()` in Python und
+    `foldSearchText`/`placeNameWords` in Dart müssen gleich falten, sonst
+    liegt ein Name unter einem Schlüssel, den die App nie fragt.
+    `places.json` trägt `fold_cases`/`word_cases`, beide Seiten prüfen
+    sie (`--self-test`, `test/map/place_test.dart`).
+  - **Ohne Netz** (oder ein Bau ohne `places`): die Ortsnamen-Zellen
+    aller gespeicherten Bereiche (`StoredArea.poiFiles`), gefiltert auf
+    Wörter mit denselben zwei Buchstaben, je Lauf gemerkt; die Suche sagt
+    „Ohne Netz: … nur aus deinen gespeicherten Bereichen". Region nach
+    der Kartenmitte (#220).
+  - **Ein Treffer fliegt** auf `PlaceKind.flyZoom` (Stadt 12 … Gipfel
+    15, wer näher ist, bleibt); eine Hütte ist zugleich ein Ort der Karte
+    (`asPoi`) und öffnet ihr Blatt, steht sie schon unter den Orten, fehlt
+    sie unter den Ortsnamen. Die Karte zeichnet Ortsnamen nicht — die
+    Grundkarte trägt sie. Der Harness hängt `FakePlaceSource` ein.
+  Tests: `test/map/place_test.dart`, Flow „Ortsnamen" in
+  `map_search_flow_test.dart`, Bereich in `area_downloader_test.dart`
+  (Gegenproben 2026-11-19: Zellen nicht im Bereich, Hütte ohne Blatt,
+  doppelte Hütte, kein Rückfall offline, ungeprüfter Schlüssel, kein
+  Offline-Hinweis, Python-Faltung ohne `ss` — je rot).

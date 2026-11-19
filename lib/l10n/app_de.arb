@@ -11469,7 +11469,7 @@
   "@mapSearchTooltip": {
     "description": "Tooltip der Lupe in der Knopfspalte der Karte (#576)."
   },
-  "mapSearchHint": "Trail, Startpunkt oder Ort suchen",
+  "mapSearchHint": "Trail, Startpunkt, Ort oder Gipfel suchen",
   "@mapSearchHint": {
     "description": "Platzhalter im Suchfeld der Karte."
   },
@@ -11493,7 +11493,7 @@
   "@mapSearchGuess": {
     "description": "Über der Trefferliste, wenn nur der Tippfehler-Ausgleich etwas fand."
   },
-  "mapSearchNothing": "Nichts gefunden. Gesucht wird in deinen Trails und Startpunkten und in den Orten rund um die Kartenmitte.",
+  "mapSearchNothing": "Nichts gefunden. Gesucht wird in deinen Trails und Startpunkten, in den Orten rund um die Kartenmitte und in Ortschaften, Gipfeln, Pässen und Hütten.",
   "@mapSearchNothing": {
     "description": "Wenn die Kartensuche nichts findet; sagt, wo gesucht wird."
   },
@@ -11505,11 +11505,47 @@
   "@mapSearchPoisUnavailable": {
     "description": "Ohne Netz und ohne gespeicherten Bereich um die Kartenmitte."
   },
+  "mapSearchPlaces": "Ortschaften & Gipfel",
+  "@mapSearchPlaces": {
+    "description": "Abschnitt der Trefferliste: Ortsnamen aus dem Index des Kartenhosts (#576 Stufe 2)."
+  },
+  "mapSearchPlacesLoading": "Ortschaften und Gipfel werden gesucht …",
+  "@mapSearchPlacesLoading": {
+    "description": "Solange die Namensdatei vom Kartenhost lädt."
+  },
+  "mapSearchPlacesOffline": "Ohne Netz: Ortschaften und Gipfel nur aus deinen gespeicherten Bereichen",
+  "@mapSearchPlacesOffline": {
+    "description": "Wenn der Kartenhost nicht erreichbar ist und die Ortsnamen aus gespeicherten Bereichen kommen."
+  },
+  "placeKindCity": "Stadt",
+  "@placeKindCity": {
+    "description": "Art eines Ortsnamens: place=city."
+  },
+  "placeKindTown": "Kleinstadt",
+  "@placeKindTown": {
+    "description": "Art eines Ortsnamens: place=town."
+  },
+  "placeKindVillage": "Dorf",
+  "@placeKindVillage": {
+    "description": "Art eines Ortsnamens: place=village."
+  },
+  "placeKindHamlet": "Weiler",
+  "@placeKindHamlet": {
+    "description": "Art eines Ortsnamens: place=hamlet."
+  },
+  "placeKindPeak": "Gipfel",
+  "@placeKindPeak": {
+    "description": "Art eines Ortsnamens: natural=peak."
+  },
+  "placeKindPass": "Pass",
+  "@placeKindPass": {
+    "description": "Art eines Ortsnamens: Pass oder Sattel."
+  },
   "highlightMapSearchTitle": "Suche auf der Karte",
   "@highlightMapSearchTitle": {
     "description": "Titel des Neuheiten-Eintrags zur Kartensuche (#576)."
   },
-  "highlightMapSearchText": "Die Lupe findet deine Trails, gemerkte Startpunkte und Orte in der Nähe — vom Brunnen bis zum Radladen. Ein Tipp, und die Karte springt hin.",
+  "highlightMapSearchText": "Die Lupe findet deine Trails, gemerkte Startpunkte, Orte in der Nähe — vom Brunnen bis zum Radladen — und Ortschaften, Gipfel, Pässe und Hütten. Ein Tipp, und die Karte springt hin.",
   "@highlightMapSearchText": {
     "description": "Text des Neuheiten-Eintrags zur Kartensuche."
   },

@@ -63,17 +63,9 @@ class HostPoiSource implements PoiSource {
   Future<PoiManifest?> _loadManifest(MapRegion region) async {
     final cached = _manifests[region.id];
     if (cached != null) return cached;
-    if (region.isDach) {
-      return _manifests[region.id] = await fetchPoiManifest(_client);
-    }
-    final uri = region.manifestUri(RegionLayer.pois);
-    if (uri == null) return null;
-    final res = await _client.get(uri).timeout(_timeout);
-    if (res.statusCode != 200) throw PoiUnavailable(res.statusCode);
-    return _manifests[region.id] = PoiManifest.fromJson(
-      jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>,
-      dir: region.dir,
-    );
+    final m = await fetchRegionPoiManifest(_client, region);
+    if (m != null) _manifests[region.id] = m;
+    return m;
   }
 
   @override
@@ -135,6 +127,24 @@ class HostPoiSource implements PoiSource {
     if (res.statusCode != 200) throw PoiUnavailable(res.statusCode);
     return parsePoiFile(res.body);
   }
+}
+
+/// Das Orte-Manifest der [region] (#220); null, wenn die Region keine
+/// Orte hat, [PoiUnavailable] bei einer Antwort ohne 200. Geteilt von
+/// [HostPoiSource] und der Ortsnamen-Suche (#576).
+Future<PoiManifest?> fetchRegionPoiManifest(
+  http.Client client,
+  MapRegion region,
+) async {
+  if (region.isDach) return fetchPoiManifest(client);
+  final uri = region.manifestUri(RegionLayer.pois);
+  if (uri == null) return null;
+  final res = await client.get(uri).timeout(const Duration(seconds: 20));
+  if (res.statusCode != 200) throw PoiUnavailable(res.statusCode);
+  return PoiManifest.fromJson(
+    jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>,
+    dir: region.dir,
+  );
 }
 
 /// Das Orte-Manifest vom Host; wirft [PoiUnavailable], solange keins

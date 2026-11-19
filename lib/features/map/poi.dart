@@ -300,7 +300,17 @@ class PoiManifest {
     required this.cells,
     this.dir = '',
     this.bundle,
+    this.placeCells = const {},
+    this.placeNames = const {},
   });
+
+  /// Die Zellen mit Ortsnamen (#576, `<z>_<s>.places.json`) — leer bei
+  /// einem Bau ohne Ortsnamen.
+  final Set<PoiCell> placeCells;
+
+  /// Die Schlüssel der Namensdateien (`names/<schlüssel>.json`), zwei oder
+  /// drei Buchstaben.
+  final Set<String> placeNames;
 
   /// Das Bündel des Baus — null bei einem Bau von vor dem 2026-10-09 oder
   /// einem Feld, das nicht passt (dann holt die ganze Region Datei für
@@ -340,7 +350,30 @@ class PoiManifest {
       throw FormatException('Unerwartetes Orte-Präfix: $prefix');
     }
     final raw = j['cells'] as Map<String, dynamic>;
+    // Die Ortsnamen (#576): fehlen sie oder passen sie nicht, sucht die
+    // App ohne sie — die Orte der Karte hängen nicht daran.
+    final places = j['places'];
+    var placeCells = const <PoiCell>{};
+    var placeNames = const <String>{};
+    if (places is Map<String, dynamic>) {
+      final cells = places['cells'];
+      final names = places['names'];
+      if (cells is List && names is List) {
+        placeCells = {
+          for (final c in cells)
+            if (c is String && _cell.hasMatch(c)) c,
+        };
+        // Ein Schlüssel wird Teil einer Adresse — nur Kleinbuchstaben und
+        // Ziffern, zwei oder drei.
+        placeNames = {
+          for (final n in names)
+            if (n is String && _nameKey.hasMatch(n)) n,
+        };
+      }
+    }
     return PoiManifest(
+      placeCells: placeCells,
+      placeNames: placeNames,
       build: j['build'] as String,
       prefix: prefix,
       dir: dir,
@@ -352,6 +385,9 @@ class PoiManifest {
     );
   }
 }
+
+final _cell = RegExp(r'^-?\d+,-?\d+$');
+final _nameKey = RegExp(r'^[a-z0-9]{2,3}$');
 
 /// Liest eine Zellendatei (`pois-<build>/<zeile>_<spalte>.<gruppe>.json`).
 /// Was keiner bekannten Art zugeordnet ist oder keine Lage hat, fällt

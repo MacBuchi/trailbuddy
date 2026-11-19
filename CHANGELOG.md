@@ -4,6 +4,17 @@
 
 ## Suche auf der Karte
 
+*Version 0.192.0, 2026-11-19*
+
+- Die Lupe findet jetzt auch **Ortschaften, Gipfel, Pässe und Hütten** —
+  nicht nur in der Nähe, sondern im ganzen Kartengebiet. Ein Tipp, und
+  die Karte fliegt hin; eine Hütte öffnet gleich ihr Blatt.
+- Die Namen kommen aus einer eigenen Liste auf unserem Kartenspeicher,
+  nicht von einem fremden Suchdienst. Abgefragt werden nur die ersten
+  zwei oder drei Buchstaben des gesuchten Worts.
+- Ohne Netz sucht die Lupe in den Ortsnamen deiner gespeicherten
+  Bereiche — neu gespeicherte Bereiche bringen sie mit.
+
 *Version 0.191.0, 2026-11-19*
 
 - Neu oben in der Knopfspalte: die **Lupe**. Sie findet deine Trails und

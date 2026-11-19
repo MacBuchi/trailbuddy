@@ -1,6 +1,6 @@
-// Das Suchfeld über der Karte (#576, Stufe 1): geöffnet von der Lupe in
-// der Knopfspalte, oben ein Feld, darunter die Treffer in drei
-// Abschnitten. Gerechnet wird in `map_search.dart`; ein Tipp gibt den
+// Das Suchfeld über der Karte (#576): geöffnet von der Lupe in der
+// Knopfspalte, oben ein Feld, darunter die Treffer in vier Abschnitten —
+// der vierte (Stufe 2) die Ortsnamen aus dem Index des Kartenhosts. Gerechnet wird in `map_search.dart`; ein Tipp gibt den
 // Treffer an die Karte, die ihn wie einen Tipp auf die Karte behandelt.
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -16,6 +16,8 @@ import '../../models/trail.dart';
 import '../trails/grade_shield.dart';
 import '../trails/trail_providers.dart';
 import 'map_search.dart';
+import 'place.dart';
+import 'place_source.dart';
 import 'poi.dart';
 import 'poi_layer.dart' show PoiGlyph;
 import 'poi_source.dart';
@@ -33,7 +35,7 @@ class MapSearchPanel extends ConsumerStatefulWidget {
   /// alle Treffer nach Entfernung zu ihr sortiert.
   final LatLng center;
 
-  /// Ein [Trail], [StartPoint] oder [Poi].
+  /// Ein [Trail], [StartPoint], [Poi] oder [Place].
   final void Function(Object hit) onPick;
   final VoidCallback onClose;
 
@@ -45,6 +47,32 @@ class _MapSearchPanelState extends ConsumerState<MapSearchPanel> {
   final _field = TextEditingController();
   late final List<PoiCell> _cells = mapSearchPoiCells(widget.center);
   static final _allGroups = PoiGroup.values.toSet();
+
+  /// Die Ortsnamen zur letzten Eingabe; [_placesFor] ist die Eingabe, zu
+  /// der sie gehören — kommt eine ältere Antwort zu spät, zählt sie nicht.
+  PlaceLookup _places = kNoPlaces;
+  String? _placesFor;
+  bool _placesLoading = false;
+
+  Future<void> _lookupPlaces(String text) async {
+    _placesFor = text;
+    if (longestPlaceWord(text) == null) {
+      setState(() {
+        _places = kNoPlaces;
+        _placesLoading = false;
+      });
+      return;
+    }
+    setState(() => _placesLoading = true);
+    final found = await ref
+        .read(placeSourceProvider)
+        .lookup(text, widget.center);
+    if (!mounted || _placesFor != text) return;
+    setState(() {
+      _places = found;
+      _placesLoading = false;
+    });
+  }
 
   @override
   void initState() {
@@ -80,13 +108,15 @@ class _MapSearchPanelState extends ConsumerState<MapSearchPanel> {
         ref.watch(currentUserIdProvider),
       ),
       pois: poiState.inCells(_cells, _allGroups),
+      places: _places.places,
       kindLabel: (k) => k.label(l),
     );
     final typed = _field.text.trim().isNotEmpty;
     final empty =
         result.trails.isEmpty &&
         result.startPoints.isEmpty &&
-        result.pois.isEmpty;
+        result.pois.isEmpty &&
+        result.places.isEmpty;
     final maxList = MediaQuery.sizeOf(context).height * 0.5;
 
     return PopScope(
@@ -117,7 +147,7 @@ class _MapSearchPanelState extends ConsumerState<MapSearchPanel> {
                       hintText: l.mapSearchHint,
                       border: InputBorder.none,
                     ),
-                    onChanged: (_) => setState(() {}),
+                    onChanged: _lookupPlaces,
                   ),
                 ),
                 IconButton(
@@ -174,6 +204,25 @@ class _MapSearchPanelState extends ConsumerState<MapSearchPanel> {
                           onTap: () => widget.onPick(p),
                         ),
                     ],
+                    if (result.places.isNotEmpty) ...[
+                      _Header(l.mapSearchPlaces),
+                      for (final p in result.places)
+                        _PlaceRow(
+                          p,
+                          center: widget.center,
+                          onTap: () => widget.onPick(p),
+                        ),
+                    ],
+                    if (_placesLoading)
+                      _Note(
+                        l.mapSearchPlacesLoading,
+                        key: const ValueKey('map-search-places-loading'),
+                      )
+                    else if (_places.offline)
+                      _Note(
+                        l.mapSearchPlacesOffline,
+                        key: const ValueKey('map-search-places-offline'),
+                      ),
                     // Was die Orte gerade tun — erst, wenn sie den
                     // Unterschied machen könnten.
                     if (!loaded && poiState.unavailable)
@@ -186,7 +235,7 @@ class _MapSearchPanelState extends ConsumerState<MapSearchPanel> {
                         l.mapSearchPoisLoading,
                         key: const ValueKey('map-search-pois-loading'),
                       )
-                    else if (empty)
+                    else if (empty && !_placesLoading)
                       _Note(
                         l.mapSearchNothing,
                         key: const ValueKey('map-search-nothing'),
@@ -347,6 +396,37 @@ class _PoiRow extends StatelessWidget {
       ),
       subtitle: poi.name == null ? null : Text(kind),
       trailing: _Distance(_away(center, poi.position)),
+      onTap: onTap,
+    );
+  }
+}
+
+class _PlaceRow extends StatelessWidget {
+  const _PlaceRow(this.place, {required this.center, required this.onTap});
+
+  final Place place;
+  final LatLng center;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final l = context.l10n;
+    final muted = AppPalette.of(context).muted;
+    final details = [
+      place.kind.label(l),
+      if (place.ele != null) '${place.ele} m',
+      ?place.alt,
+    ].join(' · ');
+    return ListTile(
+      key: ValueKey('map-search-place-${place.id}'),
+      minTileHeight: 48,
+      leading: SizedBox(
+        width: 32,
+        child: Center(child: Icon(place.kind.icon, color: muted)),
+      ),
+      title: Text(place.name, maxLines: 1, overflow: TextOverflow.ellipsis),
+      subtitle: Text(details, maxLines: 1, overflow: TextOverflow.ellipsis),
+      trailing: _Distance(_away(center, place.position)),
       onTap: onTap,
     );
   }
