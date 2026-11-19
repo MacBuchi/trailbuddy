@@ -2,6 +2,14 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## No more error with “Buddys unterwegs” during a ride
+
+*Version 0.190.1, 2026-11-19*
+
+- With “Buddys unterwegs” switched on, an internal error could occur
+  during a recording when a new ride point and a new position arrived at
+  the same time. The check now waits until the app has handled both.
+
 ## Safer among buddies
 
 *Version 0.190.0, 2026-11-19*

@@ -90,6 +90,7 @@ class _NearbyHostState extends ConsumerState<NearbyHost> {
   Timer? _tick;
   bool _wasActive = false;
   final _subs = <ProviderSubscription<Object?>>[];
+  bool _syncQueued = false;
 
   @override
   void initState() {
@@ -109,7 +110,7 @@ class _NearbyHostState extends ConsumerState<NearbyHost> {
           ),
     );
     void watch<T>(ProviderListenable<T> p) =>
-        _subs.add(ref.listenManual<T>(p, (_, _) => _sync()));
+        _subs.add(ref.listenManual<T>(p, (_, _) => _queueSync()));
     watch(nearbyPauseProvider);
     watch(nearbyPositionProvider);
     watch(friendshipsProvider);
@@ -118,6 +119,20 @@ class _NearbyHostState extends ConsumerState<NearbyHost> {
     watch(currentUserIdProvider);
     watch(liveShareProvider);
     _sync();
+  }
+
+  /// Gleicht NACH dem Flush ab, einmal für alle Änderungen eines Durchgangs
+  /// (W47, #566): Ein Listener läuft mitten im Flush der Provider. Las
+  /// `_sync` dort `nearbyPauseProvider`, während Riverpod gerade über
+  /// dessen Abhängigkeiten lief (Fahrt und Fix im selben Frame), baute die
+  /// Pause sich darin neu — `ConcurrentModificationError`.
+  void _queueSync() {
+    if (_syncQueued) return;
+    _syncQueued = true;
+    scheduleMicrotask(() {
+      _syncQueued = false;
+      _sync();
+    });
   }
 
   void _sync() {

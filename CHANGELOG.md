@@ -2,6 +2,15 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Kein Fehler mehr mit „Buddys unterwegs" in der Fahrt
+
+*Version 0.190.1, 2026-11-19*
+
+- Mit eingeschaltetem „Buddys unterwegs" konnte während einer
+  Aufzeichnung ein interner Fehler auftreten, wenn ein neuer Punkt der
+  Fahrt und eine neue Position gleichzeitig ankamen. Der Abgleich wartet
+  jetzt, bis die App mit beidem fertig ist.
+
 ## Sicherer unter Buddys
 
 *Version 0.190.0, 2026-11-19*
