@@ -727,11 +727,20 @@ void main() {
       for (final tip in [
         'Invite buddies to TrailBuddy',
         'Set alias',
-        'Remove buddy',
         'Decline',
+        // Entfernen, Melden, Blockieren im Menü (#584) — an Buddy und Anfrage.
+        'More for jan',
+        'More for lea',
       ]) {
         expect(find.byTooltip(tip), findsOneWidget, reason: tip);
       }
+      await tester.tap(find.byTooltip('More for jan'));
+      await settle(tester);
+      for (final item in ['Remove buddy', 'Report', 'Block']) {
+        expect(find.text(item), findsOneWidget, reason: item);
+      }
+      await tester.tapAt(const Offset(5, 5));
+      await settle(tester);
       expect(find.text('MEINE BUDDYS · 1'), findsNothing);
 
       // Die Anfrage von Lea: drei Nachrichten, bevor ich annehme.

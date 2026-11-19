@@ -213,6 +213,10 @@ final routerProvider = Provider<GoRouter>((ref) {
                     builder: (context, state) => const LanguageScreen(),
                   ),
                   GoRoute(
+                    path: 'blocked',
+                    builder: (context, state) => const BlockedUsersScreen(),
+                  ),
+                  GoRoute(
                     path: 'about',
                     builder: (context, state) => const AboutScreen(),
                   ),

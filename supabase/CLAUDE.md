@@ -217,3 +217,27 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
   `grants_check.sql` „buddy_nearby", `schema_check.sh` Spalte `homie` und
   die RPC. Beide Wege lokal mit `tool/schema_local_test.sh` im
   `postgis/postgis:16-3.4`-Container.
+- **Blockieren und Melden** (Patch 033, #584): `user_blocks` (lesen und
+  löschen nur der Blockierende, anlegen nur über `block_user`, das in
+  derselben Transaktion die Beziehung löscht — die Trigger der
+  Freundschaft räumen Aliase, Nachrichten, Schalter ab). Drei Dinge, die
+  man wissen muss:
+  - **`friendships_skip_blocked` (BEFORE INSERT) gibt `null` zurück** statt
+    zu werfen: Die Anfrage entsteht nicht, der Client sieht keinen
+    Fehler. Ein Fehler verriete die Sperre. Nachrichten brauchen ohnehin
+    eine Beziehung (`may_message`).
+  - **`block_user` und `report_content` nur mit Verbindung** (auch offene
+    Anfrage) oder bestehender eigener Sperre — sonst nennte `my_blocks()`
+    den Namen zu jeder Kennung. `my_blocks()` ist Definer, weil das
+    Profil nach dem Blockieren nicht mehr lesbar ist.
+  - **`content_reports` hat KEINEN Client-Grant**, nur `service_role`
+    (select, update für `handled_at`, delete). Der Text einer gemeldeten
+    Nachricht wird in der RPC aus `buddy_messages` kopiert (nur von ihm an
+    mich); 20 Meldungen je Tag und Person; nach 180 Tagen weg
+    (`sweep_content_reports`, cron `content-reports-sweep`).
+  `matcher_check.sql` Block 36 (Gegenproben: Trigger ohne Prüfung ⇒
+  „Bernds Anfrage entsteht nicht" rot; Nachricht ohne Absenderfilter ⇒
+  „Bernd meldet nicht seine eigene Nachricht als Annas" rot),
+  `grants_check.sql` „block_report", `schema_check.sh` Tabelle und drei
+  RPCs. Beide Wege lokal mit `tool/schema_local_test.sh` im
+  `postgis/postgis:16-3.4`-Container, Dumps gleich.

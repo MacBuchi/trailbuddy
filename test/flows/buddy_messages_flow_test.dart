@@ -213,7 +213,9 @@ void main() {
     await openTab(tester, 'Buddys');
     expect(find.byKey(const Key('buddys-unread-badge')), findsWidgets);
 
-    await tester.tap(find.byTooltip('Buddy entfernen'));
+    await tester.tap(find.byTooltip(RegExp(r'^Mehr zu ')).first);
+    await settle(tester);
+    await tester.tap(find.text('Buddy entfernen'));
     await settle(tester);
     expect(
       find.textContaining('eure Nachrichten werden für beide gelöscht'),
@@ -252,9 +254,14 @@ void main() {
     await pumpApp(tester, backend);
     await openConversation(tester, bert.id);
 
+    // Eine fremde Nachricht lässt sich nicht zurücknehmen — der lange
+    // Druck bietet dort das Melden an (#584).
     await tester.longPress(find.text('von bert'));
     await settle(tester);
     expect(find.text('Nachricht zurücknehmen?'), findsNothing);
+    expect(find.text('Nachricht von bert melden'), findsOneWidget);
+    await tester.tap(find.text('Abbrechen'));
+    await settle(tester);
 
     await tester.longPress(find.text('von mir'));
     await settle(tester);

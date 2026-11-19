@@ -26,6 +26,7 @@ import '../coach/coach.dart';
 import '../feedback/feedback_dialog.dart';
 import '../help/tab_tours.dart' show ProfileCoach;
 import '../highlights/highlight_sheet.dart' show unseenHighlightCountProvider;
+import '../../models/friendship.dart' show BlockedUser;
 import '../friends/friend_providers.dart';
 import '../offline_areas/area_providers.dart' show storedAreasProvider;
 import '../offline_areas/area_store.dart' show visibleAreas;
@@ -74,6 +75,7 @@ class ProfileScreen extends ConsumerWidget {
     final mode = ref.watch(appearanceProvider);
     final stillValid = ref.watch(stillValidQuestionsProvider).length;
     final proposals = ref.watch(mergeProposalsProvider).length;
+    final blockedCount = ref.watch(blocksProvider).valueOrNull?.length ?? 0;
     final l = context.l10n;
 
     return Scaffold(
@@ -222,6 +224,16 @@ class ProfileScreen extends ConsumerWidget {
               },
               onTap: () => context.push('/profile/language'),
             ),
+            // Blockierte (#584) — nur, wenn es welche gibt; der Weg hierher
+            // steht in der Rückfrage vor dem Blockieren.
+            if (blockedCount > 0)
+              _ProfileRow(
+                id: 'blocked',
+                icon: Icons.block,
+                title: l.safetyBlockedTitle,
+                value: l.safetyBlockedSubtitle(blockedCount),
+                onTap: () => context.push('/profile/blocked'),
+              ),
             _ProfileRow(
               id: 'account',
               icon: Icons.person_outline,
@@ -519,6 +531,77 @@ class LanguageScreen extends StatelessWidget {
     title: context.l10n.profileLanguageTitle,
     children: const [_LanguageSection()],
   );
+}
+
+/// Wen ich blockiert habe (#584) — mit „Freigeben". Die Verbindung kommt
+/// dadurch nicht zurück, dafür braucht es eine neue Anfrage.
+class BlockedUsersScreen extends StatelessWidget {
+  const BlockedUsersScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) => _ProfilePage(
+    title: context.l10n.safetyBlockedTitle,
+    children: const [_BlockedUsersSection()],
+  );
+}
+
+class _BlockedUsersSection extends ConsumerWidget {
+  const _BlockedUsersSection();
+
+  Future<void> _unblock(
+    BuildContext context,
+    WidgetRef ref,
+    BlockedUser user,
+  ) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final l = context.l10n;
+    try {
+      await ref.read(blocksProvider.notifier).unblock(user.id);
+      messenger.showSnackBar(
+        SnackBar(content: Text(l.safetyUnblocked(user.username))),
+      );
+    } catch (e, s) {
+      logError('Freigeben', e, s);
+      messenger.showSnackBar(SnackBar(content: Text(friendlyError(l, e))));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l = context.l10n;
+    final theme = Theme.of(context);
+    final palette = AppPalette.of(context);
+    final async = ref.watch(blocksProvider);
+    final blocked = async.valueOrNull ?? const <BlockedUser>[];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          l.safetyBlockedIntro,
+          style: theme.textTheme.bodyMedium?.copyWith(color: palette.muted),
+        ),
+        const SizedBox(height: 12),
+        if (async.hasError && blocked.isEmpty)
+          Text(friendlyError(l, async.error!))
+        else if (async.isLoading && blocked.isEmpty)
+          const Center(child: CircularProgressIndicator())
+        else if (blocked.isEmpty)
+          Text(l.safetyBlockedEmpty)
+        else
+          for (final user in blocked)
+            ListTile(
+              key: ValueKey('blocked-${user.id}'),
+              contentPadding: EdgeInsets.zero,
+              leading: LetterAvatar(name: user.username, colorKey: user.id),
+              title: Text(user.username),
+              trailing: OutlinedButton(
+                onPressed: () => _unblock(context, ref, user),
+                child: Text(l.safetyUnblock),
+              ),
+            ),
+      ],
+    );
+  }
 }
 
 class RiderProfileScreen extends StatelessWidget {

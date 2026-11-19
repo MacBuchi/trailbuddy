@@ -91,7 +91,9 @@ void main() {
     await pumpApp(tester, backend);
     await openBuddys(tester);
 
-    await tester.tap(find.byTooltip('Buddy entfernen'));
+    await tester.tap(find.byTooltip(RegExp(r'^Mehr zu ')).first);
+    await settle(tester);
+    await tester.tap(find.text('Buddy entfernen'));
     await settle(tester);
     expect(find.text('Andi als Buddy entfernen?'), findsOneWidget);
     await tester.tap(find.text('Entfernen'));

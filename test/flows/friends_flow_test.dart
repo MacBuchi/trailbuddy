@@ -256,7 +256,9 @@ void main() {
     await pumpApp(tester, backend);
     await openTab(tester, 'Buddys');
 
-    await tester.tap(find.byTooltip('Buddy entfernen'));
+    await tester.tap(find.byTooltip(RegExp(r'^Mehr zu ')).first);
+    await settle(tester);
+    await tester.tap(find.text('Buddy entfernen'));
     await settle(tester);
     expect(find.text('lilli92 als Buddy entfernen?'), findsOneWidget);
 
@@ -265,7 +267,9 @@ void main() {
     await settle(tester);
     expect(backend.friendships, hasLength(1));
 
-    await tester.tap(find.byTooltip('Buddy entfernen'));
+    await tester.tap(find.byTooltip(RegExp(r'^Mehr zu ')).first);
+    await settle(tester);
+    await tester.tap(find.text('Buddy entfernen'));
     await settle(tester);
     await tester.tap(find.text('Entfernen'));
     await settle(tester, frames: 12);

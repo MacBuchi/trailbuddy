@@ -87,6 +87,20 @@ class FakeBackend {
 
   final feedback = <Map<String, dynamic>>[];
 
+  /// `user_blocks` (Patch 033): wer wen blockiert hat. Die Regeln (nur
+  /// mit Verbindung, Anfragen still verworfen) stehen im Freund-Fake.
+  final blocks = <({String blocker, String blocked, DateTime at})>[];
+
+  /// `content_reports` (Patch 033) — lesen kann sie nur der Test, wie in
+  /// echt nur der Betreiber.
+  final contentReports = <Map<String, dynamic>>[];
+
+  bool blockedBetween(String a, String b) => blocks.any(
+    (x) =>
+        (x.blocker == a && x.blocked == b) ||
+        (x.blocker == b && x.blocked == a),
+  );
+
   /// `push_devices`: Token → Konto (Patch 008). Ein Token gehört zu genau
   /// einem Konto, wie die Tabelle.
   final pushDevices = <String, String>{};
@@ -698,6 +712,8 @@ class FakeFriendRepository implements FriendRepository {
       // Wie in echt: unique-Constraint auf dem Freundschafts-Paar.
       throw StateError('duplicate friendship');
     }
+    // Trigger `friendships_skip_blocked` (Patch 033): still verworfen.
+    if (backend.blockedBetween(_uid, addresseeId)) return;
     backend.addFriendship(_uid, addresseeId, status: 'pending');
   }
 
@@ -729,6 +745,102 @@ class FakeFriendRepository implements FriendRepository {
       );
     }
     backend.friendships.removeWhere((f) => f.id == friendshipId);
+  }
+
+  bool _involved(String other) => backend.friendships.any(
+    (f) =>
+        (f.requesterId == _uid && f.addresseeId == other) ||
+        (f.requesterId == other && f.addresseeId == _uid),
+  );
+
+  bool _iBlocked(String other) =>
+      backend.blocks.any((b) => b.blocker == _uid && b.blocked == other);
+
+  /// `block_user` (Patch 033): nur mit Verbindung; beendet sie wie
+  /// [remove], mit allen Triggern.
+  @override
+  Future<void> block(String otherId) async {
+    backend.failIfOffline();
+    if (!_involved(otherId) && !_iBlocked(otherId)) {
+      throw StateError('42501 block_user: keine Verbindung');
+    }
+    if (!_iBlocked(otherId)) {
+      backend.blocks.add((blocker: _uid, blocked: otherId, at: DateTime.now()));
+    }
+    final ids = [
+      for (final f in backend.friendships)
+        if ((f.requesterId == _uid && f.addresseeId == otherId) ||
+            (f.requesterId == otherId && f.addresseeId == _uid))
+          f.id,
+    ];
+    for (final id in ids) {
+      await remove(id);
+    }
+  }
+
+  /// `ub_delete_own`: nur die eigene Sperre.
+  @override
+  Future<void> unblock(String otherId) async {
+    backend.failIfOffline();
+    backend.blocks.removeWhere(
+      (b) => b.blocker == _uid && b.blocked == otherId,
+    );
+  }
+
+  /// `my_blocks()`: neueste zuerst.
+  @override
+  Future<List<BlockedUser>> fetchBlocks() async {
+    backend.failIfOffline();
+    final mine = backend.blocks.where((b) => b.blocker == _uid).toList()
+      ..sort((a, b) => b.at.compareTo(a.at));
+    return [
+      for (final b in mine)
+        BlockedUser(
+          id: b.blocked,
+          username: backend.userById(b.blocked).username,
+          avatar: backend.userById(b.blocked).avatar,
+          createdAt: b.at,
+        ),
+    ];
+  }
+
+  /// `report_content`: nur, wen ich kenne oder blockiert habe; eine
+  /// Nachricht nur, wenn sie von ihm an mich ging — der Text kommt aus der
+  /// Nachricht, nicht vom Client.
+  @override
+  Future<void> report(
+    String reportedId, {
+    String? messageId,
+    required ReportReason reason,
+    String? note,
+  }) async {
+    backend.failIfOffline();
+    if (!_involved(reportedId) && !_iBlocked(reportedId)) {
+      throw StateError('42501 report_content: keine Verbindung');
+    }
+    String? excerpt;
+    if (messageId != null) {
+      final m = backend.messages.where(
+        (m) =>
+            m.id == messageId &&
+            m.senderId == reportedId &&
+            m.recipientId == _uid,
+      );
+      if (m.isEmpty) {
+        throw StateError('42501 report_content: keine solche Nachricht');
+      }
+      excerpt = m.first.body;
+    }
+    final clean = note?.trim();
+    backend.contentReports.add({
+      'reporter_id': _uid,
+      'reported_id': reportedId,
+      'kind': messageId == null ? 'user' : 'message',
+      'message_id': messageId,
+      'excerpt': excerpt,
+      'reason': reason.wire,
+      'note': (clean == null || clean.isEmpty) ? null : clean,
+    });
   }
 
   /// Policy `fa_select`: nur, was ICH vergeben habe.

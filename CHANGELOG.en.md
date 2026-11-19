@@ -2,6 +2,20 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## Safer among buddies
+
+*Version 0.190.0, 2026-11-19*
+
+- You can **block** someone: from a buddy row via the “⋮” menu, from a
+  request and in a conversation. You are then no longer connected, your
+  messages are gone for both of you, and neither of you can send the
+  other a new request. The blocked person is not told. You can unblock
+  in your profile under “Blocked users”.
+- You can **report** a person or a single message — with a reason and,
+  if you like, a note. The report goes only to the operator, not to the
+  person. To report a message, long-press it.
+- “Remove buddy” is now in the same “⋮” menu on the buddy row.
+
 ## More stable
 
 *Version 0.189.3, 2026-11-19*
