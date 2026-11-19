@@ -2,6 +2,15 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## More stable
+
+*Version 0.189.3, 2026-11-19*
+
+- The app no longer freezes when the phone's location service hangs.
+  Until now, stopping a ride or switching off your position could leave
+  the app "not responding" while the system was stuck. The app now only
+  listens to the location data it really needs.
+
 ## Tidied up
 
 *Versions 0.189.1–0.189.2, 2026-11-18*
