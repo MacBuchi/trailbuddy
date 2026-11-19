@@ -86,6 +86,16 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
   Seit 0.82.1 hängt die Glättung an der PUNKTLISTE, nicht am Trail, und
   die Ebenen gleicht `keyed_layers.dart` ab (siehe „Speichern ohne
   Neuladen des Netzes").
+- **Kein NMEA, kein Binder-Aufruf beim Abmelden** (#586, seit 0.189.3):
+  `geolocator_android` bis 5.2.0 meldete bei JEDEM Strom und Fix einen
+  NMEA-Listener und GNSS-Status-Callback auf dem Main-Thread an und ab;
+  hing der Standortdienst (Emulator, Android 16: Verklemmung in
+  system_server zwischen `stopNmea` und `reportNmea`), stand die App im
+  ANR. Seit 5.2.1 nur mit `useMSLAltitude` — das die App deshalb nie
+  setzt. Das Paket ist direkt in `pubspec.yaml` festgeschrieben,
+  `test/dependency_floor_test.dart` wacht über die Untergrenze; wer ein
+  Plattformpaket wegen einer Absturz- oder ANR-Korrektur anhebt, trägt
+  es dort ein.
 - **Eigene Position** (`lib/features/map/position_provider.dart`,
   PilzBuddy-Muster): Der Strom (`positionStreamProvider`) fragt NIE nach
   der Berechtigung, nur der Knopf „Meine Position" über

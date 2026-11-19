@@ -440,7 +440,9 @@ Betreiber, nicht im Repo; neu aufnehmen so:
    Folge von `geo fix` hing der GNSS-Dienst des Emulators (Android 16) in
    einer Verklemmung — `stopNmea` wartet auf die HAL, deren
    `reportNmea` auf dieselbe Sperre —, und die App stand im ANR, weil
-   der Geolocator beim Abmelden darauf wartet (2026-11-19). Ein Bild der
+   der Geolocator beim Abmelden darauf wartete (2026-11-19; behoben mit
+   `geolocator_android` 5.2.1 in 0.189.3, #586 — Fahrt im Emulator vor
+   dem nächsten Bilderlauf neu prüfen). Ein Bild der
    Fahrt kommt vom Gerät. Zoomen geht mit dem
    Ein-Finger-Doppeltipp-Ziehen (`input tap` + `input motionevent`), nicht
    mit `sendevent`. Bilder mit `adb exec-out screencap -p`, für Play ohne

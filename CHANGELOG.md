@@ -2,6 +2,16 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Stabiler
+
+*Version 0.189.3, 2026-11-19*
+
+- Die App friert nicht mehr ein, wenn der Standortdienst des Handys
+  hängt. Bisher konnte das Beenden einer Fahrt oder das Ausschalten der
+  Position die App in „reagiert nicht" schicken, wenn das System gerade
+  klemmte. Die App hört jetzt nur noch auf die Standortdaten, die sie
+  wirklich braucht.
+
 ## Aufgeräumt
 
 *Versionen 0.189.1–0.189.2, 2026-11-18*
