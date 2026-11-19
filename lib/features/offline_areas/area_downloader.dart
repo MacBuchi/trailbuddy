@@ -34,6 +34,7 @@ import '../map/map_providers.dart' show kMapTilesBase;
 import '../map/map_regions.dart' show kDachRegionId;
 import '../map/online_map.dart';
 import '../map/way_layer.dart';
+import '../map/place.dart';
 import '../map/poi.dart';
 import 'area_plan.dart';
 import 'area_store.dart';
@@ -468,7 +469,9 @@ class AreaDownloader {
 
   /// Die Orte-Dateien der Form, alle Gruppen, die das Manifest nennt —
   /// alle Gruppen, damit der Filter offline umschaltbar bleibt; die Dateien
-  /// sind klein. Die Zellen kommen aus der FORM, nicht aus der Hülle.
+  /// sind klein. Dazu die Ortsnamen derselben Zellen (#576 Stufe 2): Mit
+  /// ihnen findet die Suche Dörfer und Gipfel auch ohne Netz. Die Zellen
+  /// kommen aus der FORM, nicht aus der Hülle.
   List<String> _poiNames(AreaShape shape) {
     final pm = poiManifest;
     if (pm == null) return const [];
@@ -478,12 +481,15 @@ class AreaDownloader {
         for (final g in PoiGroup.values)
           for (final c in pm.cells[g] ?? const <PoiCell>{})
             poiCellFileName(c, g),
+        for (final c in pm.placeCells) placeCellFileName(c),
       ]..sort();
     }
     return [
-      for (final cell in shape.poiCells())
+      for (final cell in shape.poiCells()) ...[
         for (final g in PoiGroup.values)
           if (pm.has(cell, g)) poiCellFileName(cell, g),
+        if (pm.placeCells.contains(cell)) placeCellFileName(cell),
+      ],
     ];
   }
 

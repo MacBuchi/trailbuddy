@@ -89,6 +89,7 @@ import '../update/update_banner.dart';
 import 'map_buttons.dart';
 import 'map_search.dart' show kMapSearchFlyZoom;
 import 'map_search_panel.dart';
+import 'place.dart';
 import 'map_legend.dart';
 import 'contour_layer.dart' show groundResolution;
 import 'contour_providers.dart';
@@ -1051,14 +1052,21 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       case final StartPoint p:
         _flyTo(p.position);
         if (!_takeLoopPick(p.position)) _showStartPoint(p);
+      // Ein Ortsname (#576 Stufe 2): hin, so nah wie seine Art es will;
+      // eine Hütte ist zugleich ein Ort der Karte und öffnet ihr Blatt.
+      // Die übrigen tragen ihren Namen schon in der Grundkarte.
+      case final Place p:
+        _flyTo(p.position, zoom: p.kind.flyZoom);
+        if (_takeLoopPick(p.position)) return;
+        if (p.asPoi case final poi?) _showPoi(poi);
     }
   }
 
   /// Nah genug heran, dass man den Ort in seiner Umgebung sieht — wer
   /// schon näher ist, bleibt dort.
-  void _flyTo(LatLng at) {
+  void _flyTo(LatLng at, {double zoom = kMapSearchFlyZoom}) {
     _fittedOnce = true;
-    _controller.move(at, math.max(_controller.zoom, kMapSearchFlyZoom));
+    _controller.move(at, math.max(_controller.zoom, zoom));
   }
 
   /// „Meine Position": eine der Stellen, die nach der Berechtigung

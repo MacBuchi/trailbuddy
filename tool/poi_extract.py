@@ -41,6 +41,20 @@ offline maps 8.6): `pois-<build>/bundle.tsv.gz`, a header line and one
 `bundle` with its size and sha256. A phone that stores the whole region
 fetches that instead of thousands of cells.
 
+Every build also carries the PLACE NAMES the map search finds (#576
+stage 2; tool/pois/places.json: towns, villages, hamlets, peaks, passes,
+huts — named ones only), in two shapes from the same records:
+- per cell `<row>_<col>.places.json`, in the bundle too, so a stored
+  area takes the places along and the search works offline there;
+- per name key `names/<key>.json`: every word of a name, folded like the
+  app's `foldSearchText`, files the place under its first two letters —
+  or, where that file would grow past NAME_SPLIT places, under its first
+  three or four. The manifest lists the keys under `places.names`; the app asks
+  for the one file its typed word names. Only those two to four letters
+  reach the host, never the rest of the query or the view.
+Old apps read neither: unknown manifest members are ignored, and the
+bundle reader keeps a file of an unknown group without looking at it.
+
 Usage:
   python3 tool/poi_extract.py build --build 20260928 --out build/pois \
       [--bbox W,S,E,N] [--summary summary.md] a.osm.pbf [b.osm.pbf ...]
@@ -59,6 +73,7 @@ import io
 import json
 import math
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -67,6 +82,20 @@ import time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 KINDS_FILE = os.path.join(HERE, "pois", "kinds.json")
+PLACES_FILE = os.path.join(HERE, "pois", "places.json")
+
+# The group name of the place cell files (`<row>_<col>.places.json`). Not
+# a PoiGroup: the map never draws them, only the search reads them.
+PLACES_GROUP = "places"
+
+# A name file with more places than this is split by the third letter
+# (#576): "be" for Bergen, Berg, Bernau … would otherwise be the one file
+# every "Ber…" query downloads in full.
+NAME_SPLIT = 1500
+
+# The longest name key: four letters ("schw"). Beyond, a file stays as
+# large as it is — no German place-name stem is that common.
+NAME_KEY_MAX = 4
 
 # The app's grid (poi.dart: _cellLat, _cellLon). Change both or neither.
 CELL_LAT = 0.1
@@ -116,7 +145,45 @@ def kind_of(tags, kinds):
     return None
 
 
-def filter_expression(kinds):
+def load_places(path=PLACES_FILE):
+    with open(path, encoding="utf-8") as handle:
+        data = json.load(handle)
+    if data.get("format") != FORMAT:
+        raise SystemExit(f"{path}: format {data.get('format')} != {FORMAT}")
+    for k in data["kinds"]:
+        if not k["rules"]:
+            raise SystemExit(f"{path}: place kind {k['kind']} without rules")
+    return data
+
+
+def fold(text):
+    """The app's `foldSearchText` (lib/core/search_text.dart), step for
+    step: lower case, umlauts and their spellings to one letter, then
+    only a-z and 0-9. Both sides must agree, or a name is filed under a
+    key the app never asks for — places.json `fold_cases` holds them
+    together (here and in test/map/place_test.dart)."""
+    folded = text.lower()
+    for a, b in (("ä", "a"), ("ö", "o"), ("ü", "u"), ("ß", "ss"),
+                 ("ae", "a"), ("oe", "o"), ("ue", "u"), ("ss", "s")):
+        folded = folded.replace(a, b)
+    return "".join(c for c in folded if "a" <= c <= "z" or "0" <= c <= "9")
+
+
+_WORD = re.compile(r"[^\W_]+")
+
+
+def name_words(name):
+    """The folded words of a name that are long enough for a key (two
+    letters) — `placeNameWords` in the app splits the same way."""
+    out = []
+    for raw in _WORD.findall(name):
+        w = fold(raw)
+        if len(w) >= 2:
+            out.append(w)
+    return out
+
+
+def filter_expression(kinds, places=None):
     """The `osmium tags-filter` selectors: the FIRST tag of every rule.
 
     Multi-tag rules (charging_station + bicycle=yes) are narrowed here in
@@ -125,7 +192,7 @@ def filter_expression(kinds):
     stable.
     """
     out = set()
-    for k in kinds:
+    for k in kinds + list((places or {}).get("kinds", ())):
         for rule in k["rules"]:
             key, value = next(iter(rule.items()))
             out.add(f"nwr/{key}={value}")
@@ -275,6 +342,81 @@ def place_of(feature, kinds):
     return kind["group"], record
 
 
+def parse_ele(text):
+    """`ele` in whole metres, or None: OSM has "1780", "1780.5",
+    "1780 m" and worse."""
+    if not text:
+        return None
+    m = re.match(r"^\s*(-?\d+(?:[.,]\d+)?)\s*(m|m\.)?\s*$", text)
+    if not m:
+        return None
+    return round(float(m.group(1).replace(",", ".")))
+
+
+def place_record_of(feature, places):
+    """A feature to a place record (#576) — or None when it is not one of
+    the kinds or has no name, position or id. Huts are POIs too; the same
+    feature may become both."""
+    props = feature.get("properties") or {}
+    tags = {str(k): str(v) for k, v in props.items() if k not in ("id", "@id")}
+    kind = kind_of(tags, places["kinds"])
+    name = tags.get("name", "").strip()
+    if kind is None or not name:
+        return None
+    center = center_of(feature.get("geometry") or {})
+    ident = osm_id(unique_id_of(feature))
+    if center is None or ident is None:
+        return None
+    lat, lon = center
+    record = {"id": ident, "kind": kind["kind"], "name": name,
+              "lat": round(lat, 6), "lng": round(lon, 6)}
+    # The German name where the local one differs (Bozen for "Bolzano -
+    # Bozen" is in it already; Meran for Merano is not) — the app's UI
+    # language is German first.
+    alt = tags.get("name:de", "").strip()
+    if alt and alt != name:
+        record["alt"] = alt
+    ele = parse_ele(tags.get("ele"))
+    if ele is not None and kind["kind"] in ("peak", "pass", "hut"):
+        record["ele"] = ele
+    return record
+
+
+def name_keys(records):
+    """Name key -> {id: record}. Every word of name and alt files the
+    place under its first two letters; a key with more than NAME_SPLIT
+    places keeps only the places whose word IS that key and hands the
+    rest to keys one letter longer — down to NAME_KEY_MAX letters ("sch"
+    alone was 1.1 MB in the first DACH plan run, 2026-11-19). The app asks
+    the longest key the manifest names, so every way finds the same."""
+    def split(key, entries, out):
+        if len(entries) <= NAME_SPLIT or len(key) >= NAME_KEY_MAX:
+            out[key] = {i: r for i, (r, _) in entries.items()}
+            return
+        longer = {}
+        for ident, (record, words) in entries.items():
+            for w in words:
+                if not w.startswith(key):
+                    continue
+                if len(w) == len(key):
+                    out.setdefault(key, {})[ident] = record
+                else:
+                    longer.setdefault(w[:len(key) + 1], {}).setdefault(
+                        ident, (record, set()))[1].add(w)
+        for k, e in longer.items():
+            split(k, e, out)
+
+    two = {}
+    for record in records:
+        words = set(name_words(record["name"]) + name_words(record.get("alt", "")))
+        for w in words:
+            two.setdefault(w[:2], {}).setdefault(record["id"], (record, set()))[1].add(w)
+    out = {}
+    for key, entries in two.items():
+        split(key, entries, out)
+    return out
+
+
 # --------------------------------------------------------------- writing
 
 def dump(obj):
@@ -282,9 +424,11 @@ def dump(obj):
                       separators=(",", ":")) + "\n"
 
 
-def build(features, kinds, groups, build_id, out_dir, sources=(), bbox=None):
+def build(features, kinds, groups, build_id, out_dir, sources=(), bbox=None,
+          places=None):
     """Places -> files under out_dir/pois-<build>/ plus out_dir/pois.json.
-    With [bbox], places outside it are dropped (`outside`). Returns the
+    With [bbox], places outside it are dropped (`outside`). With
+    [places] (places.json), the place names too (#576). Returns the
     manifest."""
     if not (build_id.isdigit() and len(build_id) == 8):
         raise SystemExit(f"--build must be YYYYMMDD, got {build_id!r}")
@@ -293,7 +437,13 @@ def build(features, kinds, groups, build_id, out_dir, sources=(), bbox=None):
     counts = {k["kind"]: 0 for k in kinds}
     dropped = {"no_kind": 0, "no_position": 0, "no_id": 0, "outside": 0}
     samples = []   # the first raw features, shown when nothing survives
+    named = {}     # id -> place record (#576)
     for feature in features:
+        if places is not None:
+            named_record = place_record_of(feature, places)
+            if named_record is not None and in_bbox(named_record["lat"],
+                                                    named_record["lng"], bbox):
+                named.setdefault(named_record["id"], named_record)
         placed = place_of(feature, kinds)
         if isinstance(placed, str):
             dropped[placed] += 1
@@ -333,6 +483,9 @@ def build(features, kinds, groups, build_id, out_dir, sources=(), bbox=None):
         total_bytes += len(text.encode("utf-8"))
         cells[group].append(cell)
         bundle_lines.append(f"{cell_file(cell, group)}\t{text}")
+    place_info = None
+    if places is not None:
+        place_info = write_places(named, places, build_id, target, bundle_lines)
     bundle = write_bundle(os.path.join(target, BUNDLE_NAME), build_id, bundle_lines)
     manifest = {
         "format": FORMAT,
@@ -348,6 +501,8 @@ def build(features, kinds, groups, build_id, out_dir, sources=(), bbox=None):
         "bytes": total_bytes,
         "dropped": dropped,
     }
+    if place_info is not None:
+        manifest["places"] = place_info
     if not by_file and samples:
         # Nothing survived: say what osmium actually delivered, so the
         # log explains the failure instead of just counting it.
@@ -358,6 +513,43 @@ def build(features, kinds, groups, build_id, out_dir, sources=(), bbox=None):
         handle.write(json.dumps(manifest, ensure_ascii=False, sort_keys=True,
                                 indent=1) + "\n")
     return manifest
+
+
+def write_places(named, places, build_id, target, bundle_lines):
+    """The place files of a build (#576): one per cell (also into
+    [bundle_lines], sorted with the POI cells by the caller's order —
+    appended after them) and one per name key under `names/`. Returns
+    the manifest's `places` member."""
+    by_cell = {}
+    counts = {k["kind"]: 0 for k in places["kinds"]}
+    for record in named.values():
+        by_cell.setdefault(cell_of(record["lat"], record["lng"]), {})[record["id"]] = record
+        counts[record["kind"]] += 1
+    cells = []
+    total = 0
+    for cell, records in sorted(by_cell.items()):
+        text = dump({"format": FORMAT, "build": build_id, "cell": cell,
+                     "places": [records[k] for k in sorted(records)]})
+        name = cell_file(cell, PLACES_GROUP)
+        with open(os.path.join(target, name), "w", encoding="utf-8") as handle:
+            handle.write(text)
+        total += len(text.encode("utf-8"))
+        cells.append(cell)
+        bundle_lines.append(f"{name}\t{text}")
+    names_dir = os.path.join(target, "names")
+    os.makedirs(names_dir)
+    keys = name_keys(named.values())
+    largest = 0
+    for key, records in sorted(keys.items()):
+        text = dump({"format": FORMAT, "build": build_id, "key": key,
+                     "places": [records[k] for k in sorted(records)]})
+        with open(os.path.join(names_dir, f"{key}.json"), "w", encoding="utf-8") as handle:
+            handle.write(text)
+        size = len(text.encode("utf-8"))
+        total += size
+        largest = max(largest, size)
+    return {"cells": cells, "names": sorted(keys), "counts": counts,
+            "bytes": total, "largest_name_file": largest}
 
 
 def write_bundle(path, build_id, lines):
@@ -414,16 +606,29 @@ def summary_md(manifest, kinds):
     for k in kinds:
         lines.append(f"| {k['group']} | {len(manifest['cells'][k['group']])} "
                      f"| {k['kind']} | {manifest['counts'][k['kind']]} |")
+    places = manifest.get("places")
+    if places is not None:
+        lines += [
+            "",
+            f"### Place names (#576): {sum(places['counts'].values())} places, "
+            f"{len(places['cells'])} cell files, {len(places['names'])} name files, "
+            f"{places['bytes'] / 1e6:.1f} MB, largest name file "
+            f"{places['largest_name_file'] / 1e3:.0f} kB",
+            "",
+            "| kind | places |",
+            "|---|---|",
+        ]
+        lines += [f"| {k} | {n} |" for k, n in places["counts"].items()]
     return "\n".join(lines) + "\n"
 
 
 # ---------------------------------------------------------------- osmium
 
-def osmium_features(pbf_paths, kinds, workdir, runner=subprocess.run):
+def osmium_features(pbf_paths, kinds, workdir, runner=subprocess.run, places=None):
     """Filter each extract to the candidate objects and export them as
     GeoJSON features (points, and areas for closed ways/multipolygons —
     a Biergarten is usually an area). Yields features across all inputs."""
-    expression = filter_expression(kinds)
+    expression = filter_expression(kinds, places)
     for index, pbf in enumerate(pbf_paths):
         filtered = os.path.join(workdir, f"filtered-{index}.osm.pbf")
         exported = os.path.join(workdir, f"features-{index}.geojsonl")
@@ -627,7 +832,110 @@ def self_test():
     assert len(got) == 20 and len(calls) == 4
     assert calls[0][:2] == ["osmium", "tags-filter"] and calls[0][-len(expr):] == expr
     assert calls[1][:2] == ["osmium", "export"] and "--add-unique-id=type_id" in calls[1]
+    _self_test_places(kinds, groups)
     print("poi_extract self-test: ok")
+
+
+_PLACE_FIXTURE = "\n".join([
+    # A village node with a German name, a peak with ele, an unnamed peak
+    # (dropped), a pass as saddle with "1810 m", a hut (POI AND place),
+    # a town as an area.
+    '{"type":"Feature","id":"n20","properties":{"place":"village","name":"Merano",'
+    '"name:de":"Meran"},"geometry":{"type":"Point","coordinates":[11.16,46.67]}}',
+    '{"type":"Feature","id":"n21","properties":{"natural":"peak","name":"Hörnle",'
+    '"ele":"1548"},"geometry":{"type":"Point","coordinates":[11.01,47.62]}}',
+    '{"type":"Feature","id":"n22","properties":{"natural":"peak","ele":"999"},'
+    '"geometry":{"type":"Point","coordinates":[11.02,47.63]}}',
+    '{"type":"Feature","id":"n23","properties":{"natural":"saddle","name":"Hochjoch",'
+    '"ele":"1810 m"},"geometry":{"type":"Point","coordinates":[11.03,47.64]}}',
+    '{"type":"Feature","id":"n24","properties":{"tourism":"alpine_hut",'
+    '"name":"Hörnle-Hütte","ele":"1390"},"geometry":{"type":"Point","coordinates":[11.0,47.61]}}',
+    '{"type":"Feature","id":"a10","properties":{"place":"town","name":"Bad Tölz"},'
+    '"geometry":{"type":"Polygon","coordinates":[[[11.5,47.7],[11.6,47.7],'
+    '[11.6,47.8],[11.5,47.8],[11.5,47.7]]]}}',
+    "",
+])
+
+
+def _self_test_places(kinds, groups):
+    global NAME_SPLIT
+    places = load_places()
+    assert [k["kind"] for k in places["kinds"]] == \
+        ["city", "town", "village", "hamlet", "peak", "pass", "hut"]
+    for raw, folded in places["fold_cases"]:
+        assert fold(raw) == folded, (raw, fold(raw), folded)
+    for raw, words in places["word_cases"]:
+        assert name_words(raw) == words, (raw, name_words(raw), words)
+    expr = filter_expression(kinds, places)
+    assert "nwr/place=village" in expr and "nwr/mountain_pass=yes" in expr
+    assert expr.count("nwr/tourism=alpine_hut") == 1, "a hut is asked once"
+    assert parse_ele("1548") == 1548 and parse_ele("1810 m") == 1810
+    assert parse_ele("1780,6") == 1781 and parse_ele("ca. 1800") is None
+    assert parse_ele("") is None
+
+    feats = list(read_geojsonseq(io.StringIO(_PLACE_FIXTURE)))
+    assert place_record_of(feats[0], places) == {
+        "id": "node/20", "kind": "village", "name": "Merano", "alt": "Meran",
+        "lat": 46.67, "lng": 11.16}, place_record_of(feats[0], places)
+    assert place_record_of(feats[1], places)["ele"] == 1548
+    assert place_record_of(feats[2], places) is None, "an unnamed peak is no place"
+    assert place_record_of(feats[3], places)["kind"] == "pass"
+    assert "ele" not in place_record_of(feats[5], places), "a town has no ele"
+
+    # The split: below NAME_SPLIT one two-letter key; above, the
+    # three-letter keys, and the two-letter key keeps only two-letter words.
+    recs = [{"id": f"node/{i}", "name": n} for i, n in
+            enumerate(["Berg", "Bernau", "Be", "Bad Tölz"])]
+    keys = name_keys(recs)
+    assert sorted(keys) == ["ba", "be", "to"], sorted(keys)
+    assert sorted(keys["be"]) == ["node/0", "node/1", "node/2"]
+    saved = NAME_SPLIT
+    NAME_SPLIT = 2
+    try:
+        keys = name_keys(recs)
+    finally:
+        NAME_SPLIT = saved
+    assert sorted(keys) == ["ba", "be", "ber", "to"], sorted(keys)
+    assert sorted(keys["be"]) == ["node/2"] and sorted(keys["ber"]) == ["node/0", "node/1"]
+    # Three places under "ber" are still too many for 2: on to four letters.
+    NAME_SPLIT = 2
+    try:
+        keys = name_keys(recs + [{"id": "node/9", "name": "Ber"}])
+    finally:
+        NAME_SPLIT = saved
+    assert sorted(keys) == ["ba", "be", "ber", "berg", "bern", "to"], sorted(keys)
+    assert sorted(keys["ber"]) == ["node/9"], "a word that IS the key stays there"
+
+    with tempfile.TemporaryDirectory() as tmp:
+        all_feats = feats + list(read_geojsonseq(io.StringIO(_FIXTURE)))
+        manifest = build(all_feats, kinds, groups, "20261119", tmp, ["dach"],
+                         places=places)
+        prefix = os.path.join(tmp, "pois-20261119")
+        info = manifest["places"]
+        assert info["counts"] == {"city": 0, "town": 1, "village": 1, "hamlet": 0,
+                                  "peak": 1, "pass": 1, "hut": 1}, info["counts"]
+        assert info["cells"] == ["466,74", "476,73", "477,77"], info["cells"]
+        # Meran is filed under its German name too; the hut under both words.
+        assert info["names"] == ["ba", "ho", "hu", "me", "to"], info["names"]
+        with open(os.path.join(prefix, "names", "ho.json"), encoding="utf-8") as h:
+            ho = json.load(h)
+        assert ho["key"] == "ho" and [p["id"] for p in ho["places"]] == \
+            ["node/21", "node/23", "node/24"], ho
+        with open(os.path.join(prefix, "476_73.places.json"), encoding="utf-8") as h:
+            cell = json.load(h)
+        assert cell["cell"] == "476,73" and [p["kind"] for p in cell["places"]] == \
+            ["peak", "pass", "hut"], cell
+        # The hut is a POI as well; the POI files and counts are untouched.
+        assert manifest["counts"]["hut"] == 1 and manifest["files"] == 6
+        # The bundle carries the place cells after the POI cells, not the names.
+        header, bundled = read_bundle(os.path.join(prefix, BUNDLE_NAME))
+        assert header["files"] == 9 and "476_73.places.json" in bundled
+        assert not any(n.startswith("names") for n in bundled)
+        assert manifest["bundle"]["files"] == 9
+        assert "### Place names (#576): 5 places" in summary_md(manifest, kinds)
+        # Without places.json, nothing of it.
+        plain = build(all_feats, kinds, groups, "20261119", tmp, ["dach"])
+        assert "places" not in plain and plain["bundle"]["files"] == 6
 
 
 # ------------------------------------------------------------------ main
@@ -662,8 +970,9 @@ def main():
         self_test()
         return
     kinds, groups = load_kinds()
+    places = load_places()
     if args.command == "filter-expression":
-        print(" ".join(filter_expression(kinds)))
+        print(" ".join(filter_expression(kinds, places)))
         return
     if args.command != "build":
         parser.print_help()
@@ -673,12 +982,14 @@ def main():
     if args.geojsonseq:
         with open(args.geojsonseq, encoding="utf-8") as handle:
             manifest = build(read_geojsonseq(handle), kinds, groups, args.build,
-                             args.out, [os.path.basename(args.geojsonseq)], bbox=bbox)
+                             args.out, [os.path.basename(args.geojsonseq)], bbox=bbox,
+                             places=places)
     elif args.pbf:
         with tempfile.TemporaryDirectory() as workdir:
-            manifest = build(osmium_features(args.pbf, kinds, workdir), kinds, groups,
-                             args.build, args.out, [os.path.basename(p) for p in args.pbf],
-                             bbox=bbox)
+            manifest = build(osmium_features(args.pbf, kinds, workdir, places=places),
+                             kinds, groups, args.build, args.out,
+                             [os.path.basename(p) for p in args.pbf], bbox=bbox,
+                             places=places)
     else:
         raise SystemExit("build needs extracts or --geojsonseq")
     md = summary_md(manifest, kinds)

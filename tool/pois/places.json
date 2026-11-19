@@ -1,0 +1,30 @@
+{
+  "format": 1,
+  "_comment": "The place names the map search finds (#576 stage 2), ONE list for two readers: tool/poi_extract.py builds the place index with it, and test/map/place_test.dart holds PlaceKind in lib/features/map/place.dart to it, kind for kind, in this order. The FIRST matching kind wins. Only NAMED objects become places. Huts are also a POI kind (kinds.json): the search finds them anywhere by name, the map shows them as places nearby. fold_cases are pairs (raw, folded) both sides fold identically — Python fold() and Dart foldSearchText(); the shard key of a name is cut from its folded words.",
+  "kinds": [
+    {"kind": "city", "rules": [{"place": "city"}]},
+    {"kind": "town", "rules": [{"place": "town"}]},
+    {"kind": "village", "rules": [{"place": "village"}]},
+    {"kind": "hamlet", "rules": [{"place": "hamlet"}]},
+    {"kind": "peak", "rules": [{"natural": "peak"}]},
+    {"kind": "pass", "rules": [{"mountain_pass": "yes"}, {"natural": "saddle"}]},
+    {"kind": "hut", "rules": [{"tourism": "alpine_hut"}]}
+  ],
+  "fold_cases": [
+    ["Garmisch-Partenkirchen", "garmischpartenkirchen"],
+    ["Bad Tölz", "badtolz"],
+    ["Großglockner", "grosglockner"],
+    ["Füssen", "fusen"],
+    ["Oetz", "otz"],
+    ["Saint-Étienne", "sainttienne"],
+    ["Hörnle 1548", "hornle1548"],
+    ["Bozen - Bolzano", "bozenbolzano"]
+  ],
+  "word_cases": [
+    ["Garmisch-Partenkirchen", ["garmisch", "partenkirchen"]],
+    ["Bad Tölz", ["bad", "tolz"]],
+    ["St. Anton am Arlberg", ["st", "anton", "am", "arlberg"]],
+    ["Saint-Étienne", ["saint", "tienne"]],
+    ["A", []]
+  ]
+}

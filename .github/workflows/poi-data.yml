@@ -27,6 +27,13 @@ name: POI Data
 # it read, and the previous build stays until r2-prune.yml removes it.
 # One pair per region of tool/regions.json, Canada's under `ca/`.
 #
+# The same run builds the place names of the map search (#576 stage 2:
+# towns, villages, peaks, passes, huts — tool/pois/places.json): per cell
+# next to the POI cells and in the bundle (offline with a stored area),
+# and per name key under `names/` (the online search asks for one file).
+# No other host, no geocoder: the query's first letters are all that
+# reach tiles.mcbuchi.de.
+#
 # Two modes: `plan` builds and reports, uploads nothing; `publish`
 # builds, uploads, verifies. Monthly: DACH on the 2nd, Canada on the
 # 16th; DACH the day after the
@@ -196,6 +203,13 @@ jobs:
               print(f"::error::Only {total} places in {m['files']} files — an extract is broken or truncated; not publishing.")
               sys.exit(1)
           print(f"{total} places in {m['files']} files")
+          # The place names of the map search (#576): a build without them
+          # would turn the search's place section silently empty.
+          named = sum(m["places"]["counts"].values())
+          if named < 1000 or len(m["places"]["names"]) < 100:
+              print(f"::error::Only {named} place names in {len(m['places']['names'])} name files — not publishing.")
+              sys.exit(1)
+          print(f"{named} place names, {len(m['places']['names'])} name files")
           PY
 
       - name: Upload to R2
@@ -311,9 +325,27 @@ jobs:
           with open(path, "wb") as h:
               h.write(body)
           _, files = poi_extract.read_bundle(path)
-          cell_names = sorted(n for n in os.listdir(f"build/pois/{local['prefix']}") if n != bundle["file"])
+          # Cell files only: the place names under `names/` are not in it (#576).
+          folder = f"build/pois/{local['prefix']}"
+          cell_names = sorted(n for n in os.listdir(folder)
+                              if n != bundle["file"] and os.path.isfile(f"{folder}/{n}"))
           assert sorted(files) == cell_names, "bundle: other files than the cells"
           print(f"ok  {bundle['file']} ({len(body)} bytes, {len(files)} files)")
+          # One place cell and one name file of the search (#576), byte for
+          # byte and with CORS, as the app reads them.
+          places = local["places"]
+          for name in (f"{places['cells'][len(places['cells']) // 2].replace(',', '_')}.places.json",
+                       f"names/{places['names'][len(places['names']) // 2]}.json"):
+              req = urllib.request.Request(f"{base}/{local['prefix']}/{name}",
+                                           headers={"Origin": "https://macbuchi.github.io",
+                                                    "User-Agent": "TrailBuddy poi-data verify (github.com/MacBuchi/trailbuddy)"})
+              with urllib.request.urlopen(req, timeout=60) as r:
+                  body = r.read()
+                  cors = r.headers.get("access-control-allow-origin")
+              assert cors, f"{name}: no access-control-allow-origin"
+              with open(f"{folder}/{name}", "rb") as h:
+                  assert body == h.read(), f"{name}: public bytes differ from the upload"
+              print(f"ok  {name} ({len(body)} bytes)")
           PY
           {
             echo "## Places published"
@@ -321,6 +353,7 @@ jobs:
             echo "- \`$PUBLIC_BASE/${REGION_DIR}pois-$BUILD/\`, manifest \`$PUBLIC_BASE/$POIS_MANIFEST\`"
             echo "- 200 + CORS verified on the manifest, one cell file per group byte-identical"
             echo "- bundle for a whole region: bytes and sha256 as in the manifest, unpacks to every cell file"
+            echo "- place names of the map search (#576): one cell file and one name file byte-identical"
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Update the region index

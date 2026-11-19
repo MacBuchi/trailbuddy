@@ -393,8 +393,10 @@ Werk aus.
   Ebenen öffnen ihr Blatt direkt, Offline-Karten die linke Leiste),
   zuoberst die Lupe (seit 0.191.0, #576): Sie öffnet ein Suchfeld als
   Karte oben über der Karte, 12 px Rand, höchstens 560 px breit, darunter
-  die Treffer in drei Abschnitten (Trails mit Schild, Startpunkte mit
-  Pin, Orte mit ihrer Nadel; Entfernung rechts in Mono). Offen trägt die
+  die Treffer in vier Abschnitten (Trails mit Schild, Startpunkte mit
+  Pin, Orte mit ihrer Nadel, seit 0.192.0 „Ortschaften & Gipfel" mit
+  gedämpftem Symbol der Art und Art · Höhe darunter; Entfernung rechts
+  in Mono). Offen trägt die
   Lupe den Rand in der Marke; das Feld liegt über Bannern und Glühbirne.
 - **Rechts oben — immer:** die Glühbirne, 44 px (seit 0.75.0, #180;
   Betreiber: abgesetzt vom Menü). Die Banner oben halten rechts immer

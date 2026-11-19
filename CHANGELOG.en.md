@@ -4,6 +4,17 @@
 
 ## Search on the map
 
+*Version 0.192.0, 2026-11-19*
+
+- The magnifier now also finds **towns, villages, peaks, passes and
+  huts** — not only nearby but across the whole map. One tap and the map
+  flies there; a hut opens its sheet right away.
+- The names come from our own list on our map storage, not from a
+  third-party search service. Only the first two to four letters of the
+  word you search for are requested.
+- Without a connection the magnifier searches the place names of your
+  saved areas — newly saved areas bring them along.
+
 *Version 0.191.0, 2026-11-19*
 
 - New at the top of the button column: the **magnifier**. It finds your

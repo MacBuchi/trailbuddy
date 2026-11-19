@@ -1,3 +1,6 @@
+import 'package:latlong2/latlong.dart';
+import 'package:trailbuddy/features/map/place.dart';
+import 'package:trailbuddy/features/map/place_source.dart';
 import 'package:trailbuddy/features/map/poi.dart';
 import 'package:trailbuddy/features/map/poi_source.dart';
 
@@ -37,5 +40,32 @@ class FakePoiSource implements PoiSource {
             p.position.longitude <= box.e)
           p,
     ];
+  }
+}
+
+/// Ortsnamen ohne Netz (#576 Stufe 2): liefert, was der Host liefern
+/// würde — die Einträge mit einem Wort, das wie das längste getippte Wort
+/// beginnt (zwei Buchstaben, wie eine ungeteilte Namensdatei). Merkt sich
+/// jede Anfrage; [offline] spielt den Rückfall auf gespeicherte Bereiche.
+class FakePlaceSource implements PlaceSource {
+  FakePlaceSource([List<Place>? places]) : places = places ?? [];
+
+  final List<Place> places;
+  final queries = <String>[];
+  bool offline = false;
+
+  @override
+  Future<PlaceLookup> lookup(String query, LatLng center) async {
+    queries.add(query);
+    final word = longestPlaceWord(query);
+    if (word == null) return kNoPlaces;
+    final prefix = word.substring(0, 2);
+    return (
+      places: [
+        for (final p in places)
+          if (placeHasWordStarting(p, prefix)) p,
+      ],
+      offline: offline,
+    );
   }
 }
