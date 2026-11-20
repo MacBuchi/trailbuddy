@@ -577,7 +577,8 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     nach dem nächsten Buchstaben geteilt, bis `NAME_KEY_MAX` (4) — Wörter,
     die genau der Schlüssel sind, bleiben in seiner Datei. Gemessen am
     ersten DACH-Plan-Lauf (2026-11-19, 330 735 Ortsnamen): bis drei
-    Buchstaben war „sch" 1,1 MB groß. Die App nimmt das LÄNGSTE getippte
+    Buchstaben war „sch" 1,1 MB groß, bis vier ist die größte Datei
+    550 kB (3 615 Dateien). Die App nimmt das LÄNGSTE getippte
     Wort und davon den längsten Anfang, den das Manifest nennt
     (`placeNameKey`, 4 → 3 → 2).
     **Nur dieser Schlüssel geht an den Host** — steht so in der
