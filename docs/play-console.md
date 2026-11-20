@@ -13,11 +13,14 @@ samt den Manifesten der Plugins, die Netzziele in
 > diese Datei in denselben PR (PR-Vorlage, dritter Haken) — dann sieht man
 > beim Review, dass die Konsole nachzuziehen ist.
 
-Stand: 19. November 2026, App-Version 0.190.0. **App-Eintrag angelegt
-(2026-11-19), Datensicherheit und Inhaltsbewertung ausgefüllt, noch nicht
-eingereicht** — vor der Produktion steht die rechtliche Prüfung (Konzept
-10.7, #39); Blockieren und Melden gibt es seit 0.190.0 (#584, die
-IARC-Antworten unten sind in der Console nachzuziehen); der
+Stand: 20. November 2026, App-Version 0.192.3. **Im geschlossenen Test
+zur Überprüfung eingereicht (2026-11-20, AAB 0.192.3)** — App-Eintrag
+angelegt (2026-11-19), Datensicherheit, Inhaltsbewertung, beide
+Vordergrunddienst-Deklarationen (LOCATION mit „Standortfreigabe") und der
+Zugang für Googles Prüfer eingetragen. **Offen:** die IARC-Antworten zu
+Blockieren und Melden (seit 0.190.0, #584; „Ab 0.190.0 … ändern" unten)
+sind in der Console noch nicht nachgezogen. Vor der Produktion steht die
+rechtliche Prüfung (Konzept 10.7, #39); der
 Entwurf der Nutzungsbedingungen liegt daneben in
 `docs/nutzungsbedingungen-entwurf.md`.
 
@@ -550,14 +553,15 @@ Inhalte verlangt beides.
 ### Vor dem Upload
 
 - [ ] Rechtliche Prüfung von Nutzungsbedingungen und Datenschutzerklärung (Konzept 10.7)
-- [ ] Erste Beförderung gelaufen — sonst sind Datenschutz-, Impressums- und Löschseite nicht erreichbar
+- [x] Erste Beförderung gelaufen — sonst sind Datenschutz-, Impressums- und Löschseite nicht erreichbar
 - [ ] AAB aus dem Release-Workflow (Artefakt `android-aab`), nicht die APK; Berechtigungen am AAB gemessen (0.158.0, 2026-11-07) — mit dem AAB des Uploads wiederholen
 - [ ] Im Play-Build fehlt der Update-Hinweis (`PLAY_BUILD=true`)
 - [x] Beide Demo-Videos der Vordergrunddienste aufgenommen (2026-11-20, 0.192.3)
-- [ ] Beide Deklarationen samt Video-Link in der Konsole eingetragen
+- [x] Beide Deklarationen samt Video-Link in der Konsole eingetragen (2026-11-20; LOCATION mit „Standortfreigabe")
+- [ ] IARC: Blockieren und Melden (#584) in der Console nachgezogen
 - [x] Store-Grafiken: Symbol und Vorstellungsgrafik unter `store/`, Screenshots beim Betreiber
 - [ ] Supabase in einem Pro-Plan (Konzept 10.9) — ein pausiertes Projekt heißt eine tote App für Prüfer
-- [ ] Testkonto für Googles Prüfer angelegt; wo Adresse und Passwort liegen, steht im DocuHub, nicht hier
+- [x] Testkonto für Googles Prüfer angelegt und unter „App-Zugriff" hinterlegt (2026-11-20); wo Adresse und Passwort liegen, steht im DocuHub, nicht hier
 - [ ] Version 1.0.0 mit dem Store-Eintrag, nicht mit einer Schemaänderung (CLAUDE.md, SemVer)
 
 **Die Regel „12 Tester, 14 Tage"** für persönliche Konten ab 2023-11-13
