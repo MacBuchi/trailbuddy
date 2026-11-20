@@ -2147,5 +2147,19 @@
   "highlightMapSearchTitle": "Search on the map",
   "highlightMapSearchText": "The magnifier finds your trails, saved start points, places nearby — from a water fountain to a bike shop — and towns, peaks, passes and huts. One tap and the map jumps there.",
   "demoMapSearchTitle": "Search",
-  "demoMapSearchText": "Tap the magnifier and start typing: a trail, a start point or something like “drinking water”. The search covers your network and the places around the centre of the map."
+  "demoMapSearchText": "Tap the magnifier and start typing: a trail, a start point or something like “drinking water”. The search covers your network and the places around the centre of the map.",
+  "profileDevTitle": "Development",
+  "profileDevValue": "Requests to the map host",
+  "devHostTitle": "Requests to the map host",
+  "devHostSince": "Since {time}",
+  "devHostKindMap": "Map",
+  "devHostKindWays": "Ways",
+  "devHostKindHeights": "Elevation",
+  "devHostKindManifest": "Manifests",
+  "devHostKindPois": "Places",
+  "devHostKindNames": "Place search",
+  "devHostKindOther": "Other",
+  "devHostTotal": "Total",
+  "devHostReset": "Reset",
+  "devHostNote": "Only requests that actually go over the network are counted, nothing served from a cache. On Android the dev app also counts the map and way tiles the map view loads itself."
 }

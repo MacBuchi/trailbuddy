@@ -112,6 +112,36 @@ void main() {
     expect(kotlin, contains('maximumRange'));
   });
 
+  test('der Zähler des Kartenhosts: Kanal gleich, nur in der Dev-App '
+      'vor MapLibre (#596 H7)', () {
+    final dir = 'android/app/src/main/kotlin/${appId.replaceAll('.', '/')}';
+    final counter = File('$dir/HostRequestCounter.kt').readAsStringSync();
+    final activity = File('$dir/MainActivity.kt').readAsStringSync();
+    final dart = File('lib/features/map/host_requests.dart').readAsStringSync();
+    const channel = 'de.mcbuchi.trailbuddy/host_requests';
+    expect(counter, contains('"$channel"'));
+    expect(dart, contains("'$channel'"));
+    // Beide Methoden, die Dart ruft.
+    expect(counter, contains('"counts" ->'));
+    expect(counter, contains('"reset" ->'));
+    expect(counter, contains('HttpRequestUtil.setOkHttpClient'));
+    // Die echte App lädt weiter über MapLibres eigenen Client.
+    expect(
+      activity,
+      matches(
+        RegExp(
+          r'if\s*\(\s*packageName\.endsWith\("\.dev"\)\s*\)\s*'
+          r'HostRequestCounter\.install\(\)',
+        ),
+      ),
+    );
+    // OkHttp bringt MapLibre mit; die App übersetzt nur dagegen.
+    expect(
+      File('android/app/build.gradle.kts').readAsStringSync(),
+      contains('compileOnly("com.squareup.okhttp3:okhttp:'),
+    );
+  });
+
   test(
     'Bild-im-Bild: Kanal in Kotlin und Dart gleich, Activity darf ins Fenster (#232)',
     () {

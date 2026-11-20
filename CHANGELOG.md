@@ -2,6 +2,18 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Weniger Anfragen an den Kartenspeicher: erst messen
+
+*Version 0.192.1, 2026-11-20*
+
+- Nur in der Entwicklungs-App und der Web-Vorschau: Im Profil steht eine
+  neue Zeile „Entwicklung“. Dort zählt die App, wie oft sie seit dem
+  Start beim Kartenspeicher war — getrennt nach Karte, Wegen, Höhen,
+  Manifesten, Orten und Ortsnamen-Suche, mit „Zurücksetzen“ für eine
+  neue Messrunde. Das ist die Grundlage, um die Anfragen zu senken,
+  besonders in gespeicherten Bereichen. In der normalen App ändert sich
+  nichts.
+
 ## Suche auf der Karte
 
 *Version 0.192.0, 2026-11-19*

@@ -11556,5 +11556,62 @@
   "demoMapSearchText": "Tipp auf die Lupe und schreib los: ein Trail, ein Startpunkt oder etwas wie „Trinkwasser“. Gesucht wird in deinem Netz und in den Orten rund um die Kartenmitte.",
   "@demoMapSearchText": {
     "description": "Vorführung der Kartensuche: Text des Schritts an der Lupe."
+  },
+  "profileDevTitle": "Entwicklung",
+  "@profileDevTitle": {
+    "description": "Profil, Zeile und Seitentitel — nur in der Dev-App und der Web-Vorschau: Messwerkzeuge für den Betreiber."
+  },
+  "profileDevValue": "Anfragen an den Kartenhost",
+  "@profileDevValue": {
+    "description": "Profil, Zeile „Entwicklung“: Untertitel."
+  },
+  "devHostTitle": "Anfragen an den Kartenhost",
+  "@devHostTitle": {
+    "description": "Seite „Entwicklung“: Überschrift des Zählers, wie oft die App Dateien vom eigenen Kartenhost geholt hat."
+  },
+  "devHostSince": "Seit {time}",
+  "@devHostSince": {
+    "description": "Seite „Entwicklung“: seit wann gezählt wird (App-Start oder Zurücksetzen); {time} ist eine Uhrzeit.",
+    "placeholders": {"time": {"type": "String"}}
+  },
+  "devHostKindMap": "Karte",
+  "@devHostKindMap": {
+    "description": "Seite „Entwicklung“, Zählerzeile: Kacheln der Grundkarte."
+  },
+  "devHostKindWays": "Wege",
+  "@devHostKindWays": {
+    "description": "Seite „Entwicklung“, Zählerzeile: Kacheln der Ebene „Wege“."
+  },
+  "devHostKindHeights": "Höhen",
+  "@devHostKindHeights": {
+    "description": "Seite „Entwicklung“, Zählerzeile: Höhenkacheln."
+  },
+  "devHostKindManifest": "Manifeste",
+  "@devHostKindManifest": {
+    "description": "Seite „Entwicklung“, Zählerzeile: kleine Verzeichnisdateien, die sagen, welcher Kartenstand aktuell ist."
+  },
+  "devHostKindPois": "Orte",
+  "@devHostKindPois": {
+    "description": "Seite „Entwicklung“, Zählerzeile: Dateien mit Orten auf der Karte (Hütten, Wasser …)."
+  },
+  "devHostKindNames": "Ortsnamen-Suche",
+  "@devHostKindNames": {
+    "description": "Seite „Entwicklung“, Zählerzeile: Dateien der Suche nach Ortsnamen."
+  },
+  "devHostKindOther": "Sonstiges",
+  "@devHostKindOther": {
+    "description": "Seite „Entwicklung“, Zählerzeile: alles andere."
+  },
+  "devHostTotal": "Zusammen",
+  "@devHostTotal": {
+    "description": "Seite „Entwicklung“, Summe aller Zählerzeilen."
+  },
+  "devHostReset": "Zurücksetzen",
+  "@devHostReset": {
+    "description": "Seite „Entwicklung“, Knopf: Zähler auf null, neue Messrunde."
+  },
+  "devHostNote": "Gezählt wird, was wirklich ans Netz geht, nicht was aus einem Speicher kommt. Auf Android zählt die Dev-App auch Karte und Wege, die die Kartenansicht selbst lädt.",
+  "@devHostNote": {
+    "description": "Seite „Entwicklung“: Erklärung unter dem Zähler."
   }
 }

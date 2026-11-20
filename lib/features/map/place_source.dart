@@ -18,6 +18,7 @@ import 'map_regions.dart';
 import 'place.dart';
 import 'poi.dart';
 import 'poi_source.dart';
+import 'host_requests.dart';
 
 /// Was eine Suche nach Ortsnamen ergab: die Kandidaten (gefiltert wird in
 /// `mapSearchOf`) und ob sie aus den gespeicherten Bereichen statt vom
@@ -38,7 +39,7 @@ class HostPlaceSource implements PlaceSource {
     required Future<List<MapRegion>> Function() regions,
     required Future<List<String>> Function() storedNames,
     required Future<String?> Function(String name) readLocal,
-  }) : _client = client ?? http.Client(),
+  }) : _client = client ?? hostClient(),
        _regions = regions,
        _storedNames = storedNames,
        _readLocal = readLocal;

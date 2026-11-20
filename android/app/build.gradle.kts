@@ -145,4 +145,8 @@ dependencies {
     // Die Route auf die Garmin-Uhr (#449 G2, `GarminBridge.kt`): Garmins
     // Companion-SDK, spricht über die Garmin-Connect-App mit der Uhr.
     implementation("com.garmin.connectiq:ciq-companion-app-sdk:2.4.0@aar")
+    // Der Zähler vor MapLibres HTTP (#596 H7, `HostRequestCounter.kt`):
+    // nur zum Übersetzen — zur Laufzeit bringt MapLibre OkHttp selbst mit,
+    // in seiner Fassung. Hebt MapLibre OkHttp auf 5, zieht diese Zeile mit.
+    compileOnly("com.squareup.okhttp3:okhttp:4.12.0")
 }
