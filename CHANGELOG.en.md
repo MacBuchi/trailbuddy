@@ -2,6 +2,21 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## Search on the device first
+
+*Version 0.192.2, 2026-11-20*
+
+- The search on the map now finds towns and peaks in your saved areas
+  and in what was loaded before first — without asking the network. Only
+  a tap on “Search more places online” asks the map storage; after that
+  the open field keeps searching online as you type.
+- A name that matches what you typed exactly, or starts with it, now
+  comes first — “Au” finds Au before the nearer Pfaffenau.
+- After jumping to a place, a short pin shows exactly where it is.
+- Places and name lists that were loaded once stay on the device (up to
+  20 MB) and are not fetched again; their index is asked for at most once
+  a day. That saves mobile data and requests.
+
 ## Fewer requests to the map storage: measuring first
 
 *Version 0.192.1, 2026-11-20*

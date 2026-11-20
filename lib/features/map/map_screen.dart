@@ -87,7 +87,7 @@ import '../trails/trail_providers.dart';
 import '../trails/trail_sheet.dart';
 import '../update/update_banner.dart';
 import 'map_buttons.dart';
-import 'map_search.dart' show kMapSearchFlyZoom;
+import 'map_search.dart' show kMapSearchFlyZoom, kMapSearchPinDuration;
 import 'map_search_panel.dart';
 import 'place.dart';
 import 'map_legend.dart';
@@ -160,6 +160,12 @@ class _MapScreenState extends ConsumerState<MapScreen> {
 
   /// Das Suchfeld oben (#576), geöffnet von der Lupe.
   bool _searchOpen = false;
+
+  /// Die kurze Nadel am Ziel eines Ortsnamens (#596, Fund aus dem Test
+  /// von #576): Die Grundkarte trägt den Namen, aber nicht, WO genau.
+  /// Weg nach [kMapSearchPinDuration] oder beim nächsten Tipp.
+  LatLng? _searchPin;
+  Timer? _searchPinTimer;
 
   /// Die Kamera beim letzten Stillstand — daran hängen Orte und
   /// offizielle Trails (welche Zellen, welcher Ausschnitt).
@@ -529,6 +535,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     FlutterForegroundTask.removeTaskDataCallback(_onRideTick);
     _loadDebounce?.cancel();
     _loopNoteTimer?.cancel();
+    _searchPinTimer?.cancel();
     super.dispose();
   }
 
@@ -618,6 +625,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   /// Ein Tipp ins Leere: Wartet der Planer auf seinen Start, ist der Tipp
   /// der Start; sonst hebt er die Auswahl eines Trails auf (#178).
   void _onMapTap(MapTap tap) {
+    _clearSearchPin();
     if (_takeLoopStart(tap)) return;
     if (_selectedTrailId != null) setState(() => _selectedTrailId = null);
   }
@@ -924,6 +932,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   }
 
   void _onHit(Object hit, MapTap tap) {
+    _clearSearchPin();
     // Auch ein Tipp auf eine Linie ist ein Punkt, solange der Planer
     // seinen Start sucht — ein Trailkopf ist ein guter Start. Ein Ort
     // gibt seine Lage, nicht die des Fingers (#331 Schritt 3).
@@ -1058,8 +1067,21 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       case final Place p:
         _flyTo(p.position, zoom: p.kind.flyZoom);
         if (_takeLoopPick(p.position)) return;
+        _showSearchPin(p.position);
         if (p.asPoi case final poi?) _showPoi(poi);
     }
+  }
+
+  void _showSearchPin(LatLng at) {
+    _searchPinTimer?.cancel();
+    setState(() => _searchPin = at);
+    _searchPinTimer = Timer(kMapSearchPinDuration, _clearSearchPin);
+  }
+
+  void _clearSearchPin() {
+    _searchPinTimer?.cancel();
+    _searchPinTimer = null;
+    if (_searchPin != null && mounted) setState(() => _searchPin = null);
   }
 
   /// Nah genug heran, dass man den Ort in seiner Umgebung sieht — wer
@@ -2115,6 +2137,20 @@ class _MapScreenState extends ConsumerState<MapScreen> {
             width: RouteCursorSymbol.size,
             height: RouteCursorSymbol.size,
             child: const RouteCursorSymbol(),
+          ),
+        // Das Ziel eines Ortsnamens aus der Suche (#596), kurz.
+        if (_searchPin != null)
+          MapViewMarker(
+            key: const ValueKey('map-search-pin'),
+            point: _searchPin!,
+            width: 36,
+            height: 36,
+            alignment: Alignment.topCenter,
+            child: const Icon(
+              Icons.location_on,
+              size: 36,
+              color: AppColors.brand,
+            ),
           ),
         // Die Nadel des langen Drucks (#177), solange sein Menü offen ist.
         if (_pressedPoint != null)

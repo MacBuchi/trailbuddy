@@ -40,7 +40,7 @@ nichts.
 | Namensdateien (`names/<schlüssel>.json`) | je Schlüssel | **nein** | **nein**: erst der Host, der Bereich nur bei Netzfehler | **nein**; dazu doppelte Anfragen beim Tippen |
 | Bündel (`bundle.tsv.gz`) | einmal je ganzer Region | ja (`HIT`) | — | — |
 
-Der Kern: **Kaum etwas kommt heute aus dem Edge-Cache.** Die Notiz
+Der Kern (vor H1): **Kaum etwas kam aus dem Edge-Cache.** Die Notiz
 „die kleinen Dateien liegen im Edge-Cache“ in `lib/features/map/CLAUDE.md`
 stimmt nicht. Cloudflare cacht ab Werk nur bestimmte Endungen, und
 `.json` und `.pmtiles` gehören nicht dazu.
@@ -56,6 +56,18 @@ Zellen- und Namensdateien aus der Edge, dazu die Höhen- und
 Wege-Archive, die unter 512 MB liegen. R2 sieht dann je Rechenzentrum
 und Datei einen Fehlgriff statt jeder Anfrage. Prüfen: `cf-cache-status:
 HIT` beim zweiten Abruf. Größter Effekt, kein Code.
+
+**Gesetzt am 2026-11-20** (Betreiber): Regel „trailbuddy tiles",
+`http.host eq "tiles.mcbuchi.de"` und Pfad ab `/trailbuddy/`, „Eligible
+for cache", Edge TTL „Use cache-control header if present, bypass cache
+if not" (eine Datei ohne Header bleibt ungecacht wie vorher, statt still
+zwei Stunden alt zu werden), Browser TTL „Respect origin TTL". Geprüft
+mit `curl`, zweiter Abruf: `HIT` für alle fünf Manifeste, Orte-Zelle,
+Namensdatei, und — als Range über 16 kB — für `heights-<bau>.pmtiles`
+und `ways-<bau>.pmtiles`. Cloudflare bedient Range-Anfragen also aus
+einem gecachten Archiv unter 512 MB; das ist die erste Frage von H2.
+`dach-<bau>.pmtiles` (2,8 GB) steht auf `BYPASS`. Die CORS-Antwort ist
+`*` für jede Herkunft, eine gecachte Antwort passt also zu jedem Origin.
 
 **H2 — Karte in Stücke unter 512 MB** (⚙️ `map-data.yml`, ☁️ App). Das
 2,8-GB-Archiv kann Cloudflare nie cachen, jede Kachel geht an R2. Wird es
@@ -77,7 +89,10 @@ bauen, und beim Verlassen wieder sichtbar. Erst ein Spike: Kann
 Schalter „Nur gespeicherte Karten“ je Region als Rückfall. Im Web ist
 das schon so (der Speicher kommt zuerst).
 
-**H4 — Gesehenes auch für kleine Dateien** (☁️). Orte-Zellen,
+**H4 — Gesehenes auch für kleine Dateien** (☁️; **gebaut seit 0.192.2**
+für Orte-Zellen, Namensdateien und Orte-Manifeste, `lib/data/seen_host_files.dart`;
+Höhenkacheln für das Profil eines Trails und die übrigen Manifeste
+folgen). Orte-Zellen,
 Namensdateien und Höhenkacheln, die vom Host kamen, landen in einem
 Speicher auf dem Gerät: Android Dateien, Browser IndexedDB, Schlüssel mit
 Bau, Deckel z. B. 20 MB, die älteste geht zuerst. Dasselbe Muster wie
@@ -87,7 +102,7 @@ höchstens alle 24 h neu fragen, sofort bei „Aktualisieren“ in „Meine
 Bereiche“. Mit H1 sinken die R2-Kosten schon; H4 spart dazu die
 Anfragen selbst und macht die App ohne Netz vollständiger.
 
-**H5 — Suche offline zuerst** (☁️). Ortsnamen: erst die Zellen der
+**H5 — Suche offline zuerst** (☁️; **gebaut seit 0.192.2**). Ortsnamen: erst die Zellen der
 gespeicherten Bereiche. Gibt es dort einen Treffer, geht nichts raus.
 Sonst fragt die App den Host, eine Anfrage je Schlüssel, laufende
 Anfragen werden geteilt und das Ergebnis gemerkt (H4). **Entschieden
@@ -136,11 +151,13 @@ und das ist der Normalfall bei Trails.
 
 ## 5. Reihenfolge für die nächste Sitzung
 
-1. **H1** (👤, 5 min) — der Betreiber setzt die Cache-Regel, ich prüfe
-   mit `curl` (`HIT`) und korrigiere die Notiz in `lib/features/map/CLAUDE.md`.
+1. ~~**H1** (👤, 5 min) — der Betreiber setzt die Cache-Regel, ich prüfe
+   mit `curl` (`HIT`) und korrigiere die Notiz in `lib/features/map/CLAUDE.md`.~~
+   2026-11-20, siehe H1.
 2. **H7** Zähler (☁️), dann die Grundlinie am Gerät (📱).
-3. **H5** mit den Testfunden (doppelte Anfragen, Reihenfolge, Nadel) und
-   **H4** — ein PR, ein Bump.
+3. ~~**H5** mit den Testfunden (doppelte Anfragen, Reihenfolge, Nadel) und
+   **H4** — ein PR, ein Bump.~~ 0.192.2; offen aus H4: Höhenkacheln für
+   das Trail-Profil, Manifeste von Karte, Wegen, Höhen und Regionen.
 4. **H3** Spike (📱), dann bauen.
 5. **H2** Messung (⚙️), dann entscheiden.
 6. **H6**.

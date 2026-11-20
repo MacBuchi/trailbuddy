@@ -35,14 +35,18 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     hält Reihenfolge, Regeln und Gruppen zusammen. Die ERSTE passende
     Art gewinnt (Biergarten vor Gasthaus: `biergarten=yes`); Parkplätze
     ohne `access=private/no`; Ladesäulen nur mit `bicycle=yes`.
-  - **Das Manifest gilt je App-Lauf, eine Zelle je Gruppe wird einmal
-    gefragt**, und nur, wenn das Manifest sie nennt — eine leere Zelle
+  - **Das Manifest gilt 24 h (seit 0.192.2, `PoiManifests`, vorher je
+    App-Lauf), eine Zelle je Gruppe wird einmal gefragt und danach auf
+    dem Gerät behalten** (#596 H4, unten), und nur, wenn das Manifest sie nennt — eine leere Zelle
     kostet keine Anfrage. Erst ab Zoom 12, Raster 0,1° × 0,15° (dasselbe
     `floor()` auf denselben Doubles in Dart und Python); der Filter ist
     gerätelokal (`Settings.poiGroups`, Vorgabe nur „Wasser"). Ist alles
-    aus, geht KEINE Anfrage raus. Die kleinen Dateien liegen im
-    Edge-Cache (anders als das Archiv, #55); kein neues Netzziel, der
-    Host steht schon in der Datenschutzerklärung.
+    aus, geht KEINE Anfrage raus. **Im Edge-Cache liegen sie seit der
+    Cache-Regel H1** (2026-11-20, `docs/konzept-traffic.md`; vorher
+    `DYNAMIC`, Cloudflare cacht `.json` ab Werk nicht; Manifeste 300 s,
+    gebaute Dateien `immutable` — ein Workflow, der den
+    `Cache-Control`-Header vergisst, fällt still aus dem Cache); kein neues
+    Netzziel, der Host steht schon in der Datenschutzerklärung.
   - **Ohne veröffentlichten Bau gibt es keine Orte**: 404 auf das
     Manifest heißt „Orte gerade nicht erreichbar", bis `poi-data.yml`
     einmal auf `main` gelaufen ist. Ein Bau mit unter 100 000 Orten
@@ -587,7 +591,8 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     liegt ein Name unter einem Schlüssel, den die App nie fragt.
     `places.json` trägt `fold_cases`/`word_cases`, beide Seiten prüfen
     sie (`--self-test`, `test/map/place_test.dart`).
-  - **Ohne Netz** (oder ein Bau ohne `places`): die Ortsnamen-Zellen
+  - **Online nur nach Tipp** (seit 0.192.2, #596 H5, siehe unten);
+    **ohne Netz** (oder ein Bau ohne `places`): die Ortsnamen-Zellen
     aller gespeicherten Bereiche (`StoredArea.poiFiles`), gefiltert auf
     Wörter mit denselben zwei Buchstaben, je Lauf gemerkt; die Suche sagt
     „Ohne Netz: … nur aus deinen gespeicherten Bereichen". Region nach
@@ -631,3 +636,45 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     oder der Kachelspeicher bedient, erreicht weder OkHttp noch den
     Client. Ob MapLibre mit Netz abgelaufene Kacheln neu fragt, zeigt
     damit erst die Messung am Gerät.
+- **Suche offline zuerst und Gesehenes für kleine Dateien** (#596 H5 und
+  H4, seit 0.192.2; Konzept `docs/konzept-traffic.md`, Betreiber
+  2026-11-20: „Erst nach Tipp weiter suchen"). Fünf Dinge, die man wissen
+  muss:
+  - **`PlaceSource.lookup(online:)`**: Ohne sucht die Quelle nur in den
+    Ortsnamen-Zellen der Bereiche und in der GEMERKTEN Namensdatei des
+    Schlüssels (das gemerkte Manifest jeden Alters nennt den Schlüssel) —
+    keine Anfrage, auch kein Manifest. Die Zeile
+    `map-search-places-online` schaltet `_online` im Feld an, bis es
+    zugeht; jedes neue Feld fängt offline an. `offline: true` heißt nur
+    noch „online gewollt, nicht erreicht".
+  - **Laufende Abrufe werden geteilt** (`_inflight` je Namensdatei, je
+    Orte-Zelle, je Manifest). **`whenComplete(() => map.remove(k))` hängt
+    für immer**: `remove` gibt die Future selbst zurück, und
+    `whenComplete` wartet auf das, was der Rückruf liefert — auf sich
+    selbst. Immer ein Block ohne Rückgabe (beim Bau so gefunden, jeder
+    Test lief in den 30-s-Timeout).
+  - **`PoiManifests` gehört Karte UND Suche** (`poiManifestsProvider`):
+    im Speicher je Lauf, gemerkt in `SeenHostFiles`, neu gefragt erst
+    nach `kHostManifestMaxAge` (24 h); ohne Netz gilt das gemerkte jeden
+    Alters. Das Schreiben des Manifests wird abgewartet (einmal am Tag),
+    das der Zellen und Namensdateien nicht. Der Bereichs-Download fragt
+    weiter frisch (`fetchPoiManifest`).
+  - **Die Ablage** (`lib/data/seen_host_files.dart`): Schlüssel = Pfad
+    unter dem Host (mit Bau), 20 MB, älteste nach Ablagezeit zuerst (kein
+    „zuletzt gebraucht" — die Zeit ist zugleich das Alter des Manifests).
+    Android eine Datei je Schlüssel in `seen_host/` (Name kodiert, flach;
+    Backup-Ausschluss), Browser IndexedDB (`browser_db.dart` v5), der
+    Harness `MemorySeenHostFiles`. Reihenfolge je Datei: Bereich →
+    Ablage → Host.
+  - **Treffer: genau, „beginnt mit", ein Wort, Rest** (`matchRank`), erst
+    danach nach Entfernung — in jedem Abschnitt. Ein Ortsname setzt am Ziel
+    `kMapSearchPinDuration` (6 s) die Nadel `map-search-pin`; ein Tipp auf
+    die Karte (`_onMapTap`, `_onHit`) nimmt sie.
+  Tests: `place_test` (ohne Tipp, gesehen, geteilt), `poi_test`
+  („Gesehenes"), `seen_host_files_test`, `test/web/seen_host_files_browser_test.dart`,
+  `map_search_test`, Flow „Ortsnamen" in `map_search_flow_test`.
+  Gegenproben 2026-11-20 (elf, je rot): online ohne Tipp im Feld und in
+  der Quelle, Zelle nicht aus der Ablage, Manifest ohne 24 h, ohne altes
+  Manifest offline, Namensdatei und Zelle nicht geteilt, Rang aus, keine
+  Nadel, Nadel bleibt beim Tipp, gemerkte Namensdatei offline nicht
+  gelesen.

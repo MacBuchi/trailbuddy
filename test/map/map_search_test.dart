@@ -5,6 +5,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:trailbuddy/features/map/map_search.dart';
+import 'package:trailbuddy/features/map/place.dart';
 import 'package:trailbuddy/features/map/poi.dart';
 import 'package:trailbuddy/features/trails/trail_geometry.dart';
 import 'package:trailbuddy/models/start_point.dart';
@@ -156,6 +157,36 @@ void main() {
     );
     expect(many.pois, hasLength(kMapSearchMaxPois));
     expect(many.pois.first.id, 'node/0');
+  });
+
+  test('genau vor „beginnt mit" vor „ein Wort" vor dem Rest, dann nah '
+      '(#596, Fund aus #576)', () {
+    Place place(String id, String name, double lat) => Place(
+      id: id,
+      kind: PlaceKind.village,
+      name: name,
+      position: LatLng(lat, 11),
+    );
+    final r = mapSearchOf(
+      query: 'Au',
+      center: center,
+      trails: const [],
+      startPoints: const [],
+      pois: const [],
+      places: [
+        place('n/1', 'Pfaffenau', 47.001),
+        place('n/2', 'Bad Au', 47.002),
+        place('n/3', 'Aurach', 47.003),
+        place('n/4', 'Au', 47.2),
+      ],
+      kindLabel: (k) => k.label(l10nDe),
+    );
+    expect(
+      [for (final p in r.places) p.name],
+      ['Au', 'Aurach', 'Bad Au', 'Pfaffenau'],
+    );
+    expect(matchRank('au', ['Bad Au']), 2);
+    expect(matchRank('grunstein', ['Grünstein']), 0);
   });
 
   test('ein langer Trail ist nah, wenn er durchs Bild läuft', () {

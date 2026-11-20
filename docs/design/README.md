@@ -396,7 +396,11 @@ Werk aus.
   die Treffer in vier Abschnitten (Trails mit Schild, Startpunkte mit
   Pin, Orte mit ihrer Nadel, seit 0.192.0 „Ortschaften & Gipfel" mit
   gedämpftem Symbol der Art und Art · Höhe darunter; Entfernung rechts
-  in Mono). Offen trägt die
+  in Mono). Seit 0.192.2 (#596) steht unter den Treffern die Zeile
+  „Weitere Orte online suchen" (Symbol und Text in `accentText`), solange
+  das Feld noch nicht online sucht; nach einem Ortsnamen steht am Ziel
+  6 s lang dieselbe Nadel in der Marke wie beim langen Druck (36 px,
+  Spitze auf dem Ort), ein Tipp auf die Karte nimmt sie früher. Offen trägt die
   Lupe den Rand in der Marke; das Feld liegt über Bannern und Glühbirne.
 - **Rechts oben — immer:** die Glühbirne, 44 px (seit 0.75.0, #180;
   Betreiber: abgesetzt vom Menü). Die Banner oben halten rechts immer

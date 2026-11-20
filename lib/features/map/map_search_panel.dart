@@ -54,6 +54,11 @@ class _MapSearchPanelState extends ConsumerState<MapSearchPanel> {
   String? _placesFor;
   bool _placesLoading = false;
 
+  /// Online wird erst nach dem Tipp auf „Weitere Orte online suchen"
+  /// gesucht (#596 H5, Betreiber 2026-11-20) — dann, solange das Feld
+  /// offen ist; vorher geht keine Anfrage an den Kartenhost.
+  bool _online = false;
+
   Future<void> _lookupPlaces(String text) async {
     _placesFor = text;
     if (longestPlaceWord(text) == null) {
@@ -63,10 +68,10 @@ class _MapSearchPanelState extends ConsumerState<MapSearchPanel> {
       });
       return;
     }
-    setState(() => _placesLoading = true);
+    if (_online) setState(() => _placesLoading = true);
     final found = await ref
         .read(placeSourceProvider)
-        .lookup(text, widget.center);
+        .lookup(text, widget.center, online: _online);
     if (!mounted || _placesFor != text) return;
     setState(() {
       _places = found;
@@ -213,6 +218,30 @@ class _MapSearchPanelState extends ConsumerState<MapSearchPanel> {
                           onTap: () => widget.onPick(p),
                         ),
                     ],
+                    if (!_online && longestPlaceWord(_field.text) != null)
+                      ListTile(
+                        key: const ValueKey('map-search-places-online'),
+                        minTileHeight: 48,
+                        leading: SizedBox(
+                          width: 32,
+                          child: Center(
+                            child: Icon(
+                              Icons.travel_explore,
+                              color: AppPalette.of(context).accentText,
+                            ),
+                          ),
+                        ),
+                        title: Text(
+                          l.mapSearchPlacesOnline,
+                          style: TextStyle(
+                            color: AppPalette.of(context).accentText,
+                          ),
+                        ),
+                        onTap: () {
+                          setState(() => _online = true);
+                          _lookupPlaces(_field.text);
+                        },
+                      ),
                     if (_placesLoading)
                       _Note(
                         l.mapSearchPlacesLoading,

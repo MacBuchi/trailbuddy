@@ -11,7 +11,9 @@ const kBrowserDbName = 'trailbuddy';
 /// v2: gesehene Kacheln der Online-Karte (#155).
 /// v3: Ausgangskorb und Kopie des Netzes (#153).
 /// v4: der Kachelspeicher der Bereiche (#229, `tile_store_idb.dart`).
-const kBrowserDbVersion = 4;
+/// v5: gesehene kleine Dateien des Kartenhosts (#596 H4,
+/// `seen_host_files.dart`).
+const kBrowserDbVersion = 5;
 
 /// Der Index der Bereiche (ein Eintrag, die Liste als JSON-Text).
 const kAreaIndexStore = 'area_index';
@@ -47,6 +49,13 @@ const kAreaTileStore = 'area_tiles';
 /// ohne die Bytes anzufassen.
 const kAreaTileIndexStore = 'area_tile_index';
 
+/// Gesehene kleine Dateien des Kartenhosts (#596 H4): Schlüssel ist der
+/// Pfad unter dem Host (mit Bau), Wert der Text.
+const kSeenHostFileStore = 'seen_host_files';
+
+/// Ihr Index (gleicher Schlüssel, Wert: Text `Bytes|Zeit`).
+const kSeenHostFileIndexStore = 'seen_host_file_index';
+
 const _stores = [
   kAreaIndexStore,
   kAreaArchiveStore,
@@ -57,6 +66,8 @@ const _stores = [
   kTrailCacheStore,
   kAreaTileStore,
   kAreaTileIndexStore,
+  kSeenHostFileStore,
+  kSeenHostFileIndexStore,
 ];
 
 /// EINE Verbindung je Sitzung, egal wie viele Speicher sie benutzen.
