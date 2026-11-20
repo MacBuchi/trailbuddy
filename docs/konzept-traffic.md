@@ -90,9 +90,12 @@ Anfragen selbst und macht die App ohne Netz vollständiger.
 **H5 — Suche offline zuerst** (☁️). Ortsnamen: erst die Zellen der
 gespeicherten Bereiche. Gibt es dort einen Treffer, geht nichts raus.
 Sonst fragt die App den Host, eine Anfrage je Schlüssel, laufende
-Anfragen werden geteilt und das Ergebnis gemerkt (H4). Offen für den
-Betreiber: Soll die App ohne lokalen Treffer von selbst fragen oder
-erst nach einem Tipp auf „Weitere Orte online suchen“? Orte (POIs) in
+Anfragen werden geteilt und das Ergebnis gemerkt (H4). **Entschieden
+(Betreiber, 2026-11-20: „Erst nach Tipp weiter suchen“):** Ohne lokalen
+Treffer fragt die App nicht von selbst. Unter den Treffern steht eine
+Zeile „Weitere Orte online suchen“, erst ihr Tipp schickt den Schlüssel
+an den Host. Ohne gespeicherten Bereich gilt dasselbe: Online gesucht
+wird immer nur auf Tipp. Orte (POIs) in
 der Suche: wie heute erst der Bereich; Zellen außerhalb gehen über H4.
 Mit hinein gehören die Funde aus dem Test: Ein Name, der genau der
 Eingabe entspricht oder mit ihr beginnt, kommt zuerst, und das Ziel
