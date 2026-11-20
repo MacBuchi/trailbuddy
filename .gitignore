@@ -60,3 +60,6 @@ CLAUDE.local.md
 *.kml
 *.fit
 *.zip
+
+# Gradle caches of the local plugins
+packages/*/android/.gradle/

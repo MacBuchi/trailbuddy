@@ -4,7 +4,7 @@ publish_to: 'none'
 
 # Beide Teile erhöhen (z. B. 0.1.0+1 → 0.1.1+2). Ein Bump auf main taggt und
 # baut ein Prerelease (release.yml); ohne Bump kein Release (Version Guard).
-version: 0.193.1+296
+version: 0.194.0+297
 
 environment:
   sdk: ^3.11.0
@@ -147,6 +147,8 @@ dependencies:
   # ohne neuen Host; ein eigenes Plugin, weil flutter_tts unter AGP 9
   # (builtInKotlin) nicht baut, und ein Plugin statt eines Kanals in
   # MainActivity, weil der Dienst eine eigene Engine hat.
+  tb_ambient:
+    path: packages/tb_ambient
   tb_voice:
     path: packages/tb_voice
 dev_dependencies:

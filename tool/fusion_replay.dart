@@ -34,7 +34,10 @@ Future<void> main(List<String> args) async {
     final parts = line.split(',');
     final t = parts.length > 1 ? int.tryParse(parts[1]) : null;
     if (t == null) continue;
-    origin ??= t;
+    // Licht und Nähe (Datei v4) nicht: Ein Sensor „bei Änderung" liefert
+    // seinen letzten Wert mit der Zeit dieser Änderung, auch Minuten vor
+    // dem Start.
+    if (const {'a', 'w', 'g'}.contains(parts[0])) origin ??= t;
     final values = [
       for (final p in parts.skip(2)) double.tryParse(p) ?? double.nan,
     ];

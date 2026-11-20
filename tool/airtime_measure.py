@@ -29,7 +29,9 @@ docs/konzept-airtime.md section 8):
   v2) the same for jumps (j/k/n lines), and the head names the mount the
   app carried over from the last ride ("# mount,...", the fusion starts
   from it as the app did) and the sensors' range ("# range,..."). Since
-  0.145.0 (file v3) the same for stoppies (s/p/q lines).
+  0.145.0 (file v3) the same for stoppies (s/p/q lines). Since file v4
+  (#491) optional ambient light (b) and proximity (x) lines, if the
+  phone has the sensors -- features for a later pocket model, no rule.
 
 The sensor files carry coordinates and stay on the operator's computer,
 NEVER in this repository. The report has times (seconds from the start
@@ -83,6 +85,9 @@ class Log:
         self.a: list[tuple[float, float, float, float]] = []  # t_s, x, y, z
         self.w: list[tuple[float, float, float, float]] = []
         self.g: list[tuple[float, float]] = []  # t_s, speed m/s (no position kept)
+        # Optional since file v4 (#491), only if the phone has the sensor:
+        self.light: list[tuple[float, float]] = []  # t_s, lux
+        self.prox: list[tuple[float, float, float]] = []  # t_s, distance cm, max range cm
         # What the app detected and what the rider answered (wheelie_notify.dart):
         self.events: list[tuple[float, float]] = []  # start s, duration s
         self.answers: dict[float, bool] = {}  # start s -> "Stimmt"
@@ -103,9 +108,24 @@ class Log:
         return self._g_times
 
 
+def _origin(lines: list[str]) -> float | None:
+    """The first accelerometer, gyroscope or GPS time. Not a light or
+    proximity line (file v4): an on-change sensor delivers its last value
+    with the time it last changed, possibly minutes before the start."""
+    for line in lines:
+        parts = line.strip().split(",")
+        if len(parts) > 1 and parts[0] in ("a", "w", "g"):
+            try:
+                return int(parts[1]) / 1e6
+            except ValueError:
+                continue
+    return None
+
+
 def parse(lines) -> Log:
     log = Log()
-    t0 = None
+    lines = list(lines)
+    t0 = _origin(lines)
     for line in lines:
         line = line.strip()
         if line.startswith("# mount,") or line.startswith("# range,"):
@@ -135,6 +155,10 @@ def parse(lines) -> Log:
             log.w.append((t, *values))
         elif kind == "g" and len(values) == 5:
             log.g.append((t, values[3]))  # speed only
+        elif kind == "b" and len(values) == 1:
+            log.light.append((t, values[0]))
+        elif kind == "x" and len(values) == 2:
+            log.prox.append((t, *values))
         elif kind == "e" and len(values) == 3:
             log.events.append((t, values[0]))
         elif kind == "l" and len(values) == 2:

@@ -27,6 +27,10 @@
 // - **Die Zeit ist die des Ereignisses** (`sensors_plus`: Systemstart +
 //   Zeitstempel des Sensors, in µs), nicht die der Ankunft im Isolate —
 //   der Kanal liefert in Schüben.
+// - **Licht und Nähe sind optional** (#491, Plugin `tb_ambient`, Zeilen
+//   `b` und `x` seit Datei v4): Merkmale für ein späteres Modell
+//   „Tasche/Lenker", keine Regel. Hat das Gerät den Sensor nicht, fehlen
+//   die Zeilen — fehlend heißt „unbekannt", nie „hell" oder „fern".
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -36,6 +40,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:sensors_plus/sensors_plus.dart';
+import 'package:tb_ambient/tb_ambient.dart';
 
 import 'airtime_message.dart';
 import 'pocket_watch.dart';
@@ -112,10 +117,12 @@ String sensorEventsPath(String logPath) =>
 /// Die erste Zeile jeder Datei: sagt dem Werkzeug
 /// (`tool/airtime_measure.py`), was die Spalten heißen.
 const kSensorLogHeader =
-    '# trailbuddy sensor log v3\n'
+    '# trailbuddy sensor log v4\n'
     '# a,t_us,x,y,z = accelerometer incl. gravity (m/s^2)\n'
     '# w,t_us,x,y,z = gyroscope (rad/s)\n'
     '# g,t_us,lat,lng,accuracy_m,speed_mps,alt_m = GPS fix\n'
+    '# b,t_us,lux = ambient light, if the phone has the sensor (on change)\n'
+    '# x,t_us,distance_cm,max_range_cm = proximity, if the phone has the sensor (on change; many report only 0 or max)\n'
     '# e,start_us,duration_s,length_m,max_tilt_deg = wheelie detected in the app (fused pitch against the way)\n'
     '# j,start_us,duration_s,landing_g,1|0 = jump detected in the app (1 = plausible)\n'
     '# l,t_us,start_us,1|0 = answer to the wheelie at start_us (1 = "Stimmt")\n'
@@ -198,11 +205,21 @@ class SensorSources {
     required this.accel,
     required this.gyro,
     required this.gps,
+    this.light = _none,
+    this.proximity = _none,
   });
 
   final Stream<List<double>> Function() accel;
   final Stream<List<double>> Function() gyro;
   final Stream<List<double>> Function() gps;
+
+  /// Optional (#491): `[t_us, lux]` — ohne Sensor ein leerer Strom.
+  final Stream<List<double>> Function() light;
+
+  /// Optional (#491): `[t_us, Abstand cm, größter Abstand cm]`.
+  final Stream<List<double>> Function() proximity;
+
+  static Stream<List<double>> _none() => const Stream.empty();
 
   static final platform = SensorSources(
     accel: () =>
@@ -228,6 +245,8 @@ class SensorSources {
             p.altitude,
           ],
         ),
+    light: ambientLightStream,
+    proximity: ambientProximityStream,
   );
 }
 
@@ -351,6 +370,9 @@ class SensorLogger {
       _onPocket(v[0].toInt());
       _onEvents(_fusion.addGps(v[0].toInt(), v[4]));
     });
+    // Nur mitgeschrieben (#491): Merkmale fürs Modell, noch keine Regel.
+    listen('b', _sources.light);
+    listen('x', _sources.proximity);
     _sendPocket();
     _timer = Timer.periodic(flushEvery, (_) => _onTimer());
     _previewTimer = Timer.periodic(previewEvery, (_) => _sendPreview());

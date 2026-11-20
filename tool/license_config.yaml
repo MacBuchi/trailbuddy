@@ -83,6 +83,8 @@ approvedPackages:
     - integration_test
     - flutter_driver
     - fuchsia_remote_debug_protocol
-    # Unser eigenes Plugin packages/tb_voice (Sprachausgabe, #525): liegt
-    # im Repo, steht unter der Lizenz des Repos, wird nie veröffentlicht.
+    # Unsere eigenen Plugins packages/tb_voice (Sprachausgabe, #525) und
+    # packages/tb_ambient (Licht und Nähe, #491): liegen im Repo, stehen
+    # unter der Lizenz des Repos, werden nie veröffentlicht.
     - tb_voice
+    - tb_ambient
