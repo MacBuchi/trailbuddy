@@ -89,6 +89,12 @@ was öffentlich sein MUSS (Impressum, Datenschutzerklärung).
 
 - Kein direkter Push auf `main`: Feature-Branch → PR → CI grün → Squash-Merge.
   (Branch-Schutz und Squash-Vorgabe: Repo-Einstellungen, vom Betreiber.)
+- **Pläne gehören ins Issue, `docs/` zum Code** (Betreiber, 2026-11-20):
+  Pläne, Konzepte für kommende Arbeit und Entscheidungen dazu kommen
+  in den Text oder die Kommentare des Issues, nicht als eigener
+  Doku-PR. `docs/` ändert sich im selben PR wie der Code, der es
+  umsetzt. Ein reiner Doku-PR ist die Ausnahme (Fehler in bestehender
+  Doku, oder der Betreiber will es so).
 - **Conventional Commits** für Commit- und PR-Titel:
   `<typ>(<bereich>): <was>`, Typen `feat`, `fix`, `perf`, `refactor`,
   `docs`, `test`, `ci`, `build`, `chore`; der Bereich ist optional
