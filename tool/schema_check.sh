@@ -356,6 +356,10 @@ check_rpc_protected "search_profiles-RPC" "search_profiles" '{"query":"schema-ch
 # Konto-Löschung: muss existieren und darf nur für Angemeldete aufrufbar
 # sein.
 check_rpc_protected "delete_own_account-RPC" "delete_own_account" '{}'
+# Statusabfrage für den Betreiber (Patch 034): für anon ausführbar, aber nur mit
+# dem richtigen Token. Ein falscher Token muss mit 42501 abprallen – kommt
+# eine Antwort mit Zahlen zurück, wäre die Token-Prüfung kaputt.
+check_rpc_protected "ops_health-RPC ohne gültigen Token" "ops_health" '{"p_token":"schema-check"}'
 
 # Der Schreibweg für Aufzeichnungen (Konzept 4.1): Signatur
 # (coords double precision[], source text, recorded_at timestamptz,
