@@ -202,3 +202,18 @@ begin
   end if;
   raise notice 'grants_check block_report: ok';
 end $$;
+
+-- Statusabfrage (patch_034): die Token-Tabelle sieht kein Client, und
+-- ops_health ist genau für anon da (das Monitoring hat nur den
+-- Publishable Key) – nicht für angemeldete Nutzer.
+do $$
+begin
+  if has_table_privilege('anon', 'app_internal.ops_config', 'select')
+     or has_table_privilege('authenticated', 'app_internal.ops_config', 'select') then
+    raise exception 'ops_config ist für Clients lesbar — der Token-Hash wäre offen';
+  end if;
+  if not has_function_privilege('anon', 'public.ops_health(text)', 'execute') then
+    raise exception 'anon darf ops_health nicht aufrufen — die Statusabfrage bliebe leer';
+  end if;
+  raise notice 'grants_check ops_health: ok';
+end $$;
