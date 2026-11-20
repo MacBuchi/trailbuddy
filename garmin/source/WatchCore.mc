@@ -168,7 +168,9 @@ class WatchCore {
         stats = new RideStats(0);
         setRoute(r);
         if (wait != 0) {
-            ui.setWaiting(str(Rez.Strings.Loading));
+            // Beim Start die Fassung statt „Lade Route" (#592): Nach dem
+            // Aufspielen sieht man sofort, ob die neue .prg drauf ist.
+            ui.setWaiting("v" + TbVersion.VERSION);
             ev(71); // Stand: Lader wartet
         }
     }
