@@ -41,9 +41,11 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     kostet keine Anfrage. Erst ab Zoom 12, Raster 0,1° × 0,15° (dasselbe
     `floor()` auf denselben Doubles in Dart und Python); der Filter ist
     gerätelokal (`Settings.poiGroups`, Vorgabe nur „Wasser"). Ist alles
-    aus, geht KEINE Anfrage raus. **Im Edge-Cache liegen sie erst mit
-    der Cache-Regel H1** (`docs/konzept-traffic.md`; gemessen 2026-11-20:
-    `DYNAMIC`, Cloudflare cacht `.json` ab Werk nicht); kein neues
+    aus, geht KEINE Anfrage raus. **Im Edge-Cache liegen sie seit der
+    Cache-Regel H1** (2026-11-20, `docs/konzept-traffic.md`; vorher
+    `DYNAMIC`, Cloudflare cacht `.json` ab Werk nicht; Manifeste 300 s,
+    gebaute Dateien `immutable` — ein Workflow, der den
+    `Cache-Control`-Header vergisst, fällt still aus dem Cache); kein neues
     Netzziel, der Host steht schon in der Datenschutzerklärung.
   - **Ohne veröffentlichten Bau gibt es keine Orte**: 404 auf das
     Manifest heißt „Orte gerade nicht erreichbar", bis `poi-data.yml`

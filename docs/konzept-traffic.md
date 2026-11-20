@@ -40,7 +40,7 @@ nichts.
 | Namensdateien (`names/<schlüssel>.json`) | je Schlüssel | **nein** | **nein**: erst der Host, der Bereich nur bei Netzfehler | **nein**; dazu doppelte Anfragen beim Tippen |
 | Bündel (`bundle.tsv.gz`) | einmal je ganzer Region | ja (`HIT`) | — | — |
 
-Der Kern: **Kaum etwas kommt heute aus dem Edge-Cache.** Die Notiz
+Der Kern (vor H1): **Kaum etwas kam aus dem Edge-Cache.** Die Notiz
 „die kleinen Dateien liegen im Edge-Cache“ in `lib/features/map/CLAUDE.md`
 stimmt nicht. Cloudflare cacht ab Werk nur bestimmte Endungen, und
 `.json` und `.pmtiles` gehören nicht dazu.
@@ -56,6 +56,18 @@ Zellen- und Namensdateien aus der Edge, dazu die Höhen- und
 Wege-Archive, die unter 512 MB liegen. R2 sieht dann je Rechenzentrum
 und Datei einen Fehlgriff statt jeder Anfrage. Prüfen: `cf-cache-status:
 HIT` beim zweiten Abruf. Größter Effekt, kein Code.
+
+**Gesetzt am 2026-11-20** (Betreiber): Regel „trailbuddy tiles",
+`http.host eq "tiles.mcbuchi.de"` und Pfad ab `/trailbuddy/`, „Eligible
+for cache", Edge TTL „Use cache-control header if present, bypass cache
+if not" (eine Datei ohne Header bleibt ungecacht wie vorher, statt still
+zwei Stunden alt zu werden), Browser TTL „Respect origin TTL". Geprüft
+mit `curl`, zweiter Abruf: `HIT` für alle fünf Manifeste, Orte-Zelle,
+Namensdatei, und — als Range über 16 kB — für `heights-<bau>.pmtiles`
+und `ways-<bau>.pmtiles`. Cloudflare bedient Range-Anfragen also aus
+einem gecachten Archiv unter 512 MB; das ist die erste Frage von H2.
+`dach-<bau>.pmtiles` (2,8 GB) steht auf `BYPASS`. Die CORS-Antwort ist
+`*` für jede Herkunft, eine gecachte Antwort passt also zu jedem Origin.
 
 **H2 — Karte in Stücke unter 512 MB** (⚙️ `map-data.yml`, ☁️ App). Das
 2,8-GB-Archiv kann Cloudflare nie cachen, jede Kachel geht an R2. Wird es
@@ -139,8 +151,9 @@ und das ist der Normalfall bei Trails.
 
 ## 5. Reihenfolge für die nächste Sitzung
 
-1. **H1** (👤, 5 min) — der Betreiber setzt die Cache-Regel, ich prüfe
-   mit `curl` (`HIT`) und korrigiere die Notiz in `lib/features/map/CLAUDE.md`.
+1. ~~**H1** (👤, 5 min) — der Betreiber setzt die Cache-Regel, ich prüfe
+   mit `curl` (`HIT`) und korrigiere die Notiz in `lib/features/map/CLAUDE.md`.~~
+   2026-11-20, siehe H1.
 2. **H7** Zähler (☁️), dann die Grundlinie am Gerät (📱).
 3. ~~**H5** mit den Testfunden (doppelte Anfragen, Reihenfolge, Nadel) und
    **H4** — ein PR, ein Bump.~~ 0.192.2; offen aus H4: Höhenkacheln für
