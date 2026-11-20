@@ -230,10 +230,26 @@ jobs:
           endpoint="https://${R2_ACCOUNT_ID}.eu.r2.cloudflarestorage.com"
           # `prefix` in the manifest is relative to its folder: the root
           # for DACH, `ca/` for Canada.
-          aws --endpoint-url "$endpoint" s3 sync "build/pois/pois-${BUILD}/" \
-            "s3://${R2_BUCKET}/${R2_PREFIX}/${REGION_DIR}pois-${BUILD}/" \
-            --exclude bundle.tsv.gz --content-type application/json \
-            --cache-control "public, max-age=31536000, immutable" --no-progress --only-show-errors
+          # Since the place names (#576) a build is ~36 000 files, and R2
+          # answers a burst with 503 "Reduce your concurrent request rate"
+          # (first publish, 2026-11-20: two files of 36 000). Adaptive
+          # retries in the CLI, and up to three passes of the sync — a
+          # second pass uploads only what is still missing. The manifest
+          # flips only after a clean pass, so a failed run changes nothing.
+          export AWS_RETRY_MODE=adaptive AWS_MAX_ATTEMPTS=10
+          for pass in 1 2 3; do
+            if aws --endpoint-url "$endpoint" s3 sync "build/pois/pois-${BUILD}/" \
+                "s3://${R2_BUCKET}/${R2_PREFIX}/${REGION_DIR}pois-${BUILD}/" \
+                --exclude bundle.tsv.gz --content-type application/json \
+                --cache-control "public, max-age=31536000, immutable" --no-progress --only-show-errors; then
+              break
+            fi
+            if [ "$pass" = 3 ]; then
+              echo "::error::upload still incomplete after three passes"; exit 1
+            fi
+            echo "::warning::upload pass $pass incomplete, syncing the rest"
+            sleep 30
+          done
           # The whole region in one file (#229) lies in the same folder, so
           # pruning a build takes it along; gzip as a body, NOT as a
           # Content-Encoding — a client that unpacks it on the fly would
