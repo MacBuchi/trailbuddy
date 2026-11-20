@@ -31,7 +31,7 @@ import 'base_map_providers.dart';
 import 'map_providers.dart';
 import 'map_regions.dart';
 import 'online_map.dart';
-import 'host_requests.dart';
+import 'host_manifests.dart';
 
 /// Das Kachelformat des Archivs — gespiegelt aus `tool/way_archive.py`
 /// (`FORMAT`, `ZOOM`, `LAYER`, `KEY`, `UPHILL_KEY`);
@@ -336,23 +336,25 @@ class WaysManifest {
   };
 }
 
-/// Holt das Manifest vom Host; wirft bei allem, was nicht passt.
-Future<WaysManifest?> fetchWaysManifest() async {
-  final response = await hostGet(
-    Uri.parse(kWaysManifestUrl),
-  ).timeout(kMapManifestTimeout);
-  if (response.statusCode != 200) {
-    throw http.ClientException('Wege-Manifest: HTTP ${response.statusCode}');
-  }
-  return WaysManifest.fromJson(
-    jsonDecode(response.body) as Map<String, dynamic>,
+/// Holt das Manifest — höchstens einmal am Tag (#596 H4); wirft bei
+/// allem, was nicht passt.
+Future<WaysManifest?> fetchWaysManifest(HostManifests manifests) async {
+  final uri = Uri.parse(kWaysManifestUrl);
+  final m = await manifests.load(
+    uri,
+    (text) => WaysManifest.fromJson(jsonDecode(text) as Map<String, dynamic>),
   );
+  if (m == null) throw http.ClientException('Wege-Manifest: HTTP 404', uri);
+  return m;
 }
 
 /// Die Naht für Tests (kein Netz).
-final waysManifestLoaderProvider = Provider<Future<WaysManifest?> Function()>(
-  (ref) => fetchWaysManifest,
-);
+final waysManifestLoaderProvider = Provider<Future<WaysManifest?> Function()>((
+  ref,
+) {
+  final manifests = ref.watch(hostManifestsProvider);
+  return () => fetchWaysManifest(manifests);
+});
 
 /// Der Schalter in „Kartenebenen", gerätelokal, Vorgabe an. Aus heißt:
 /// keine Anfrage.

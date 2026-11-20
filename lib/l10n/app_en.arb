@@ -1506,6 +1506,8 @@
   "areasRegionStaleHost": "{count, plural, =1{1 of them older than the map host’s version — “Update” fetches only that one} other{{count} of them older than the map host’s version — “Update” fetches only those}}",
   "areasRegionBuildUnknown": "Map host version unknown right now",
   "areasRegionAllCurrent": "All at the version of {date}",
+  "areasRegionPlacesMissing": "{count, plural, =1{1 cell of place names for searching offline is missing — “Update” fetches it} other{{count} cells of place names for searching offline are missing — “Update” fetches them}}",
+  "areasRegionRefreshPlacesOnly": "The place names for searching offline are added, a few kB. The tiles are up to date already.",
   "areasRegionTitle": "Map {region}",
   "areasRegionTiles": "{count, plural, =1{1 tile on the device} other{{count} tiles on the device}}",
   "areasRegionRefreshTooltip": "Update outdated tiles",

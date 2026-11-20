@@ -239,6 +239,7 @@ class RegionRefreshPlan {
     this.ways = LayerPlan.none,
     this.drop = const {},
     this.poiNames = const [],
+    this.addPlaces = const {},
   });
 
   final String region;
@@ -254,8 +255,14 @@ class RegionRefreshPlan {
   /// eine Kachel am Rand) — sie gehen, sonst blieben sie für immer alt.
   final Map<TileLayer, List<int>> drop;
 
-  /// Die Orte-Dateien von Bereichen mit älterem Orte-Bau.
+  /// Die Orte-Dateien von Bereichen mit älterem Orte-Bau, dazu die
+  /// fehlenden Ortsnamen-Zellen aus [addPlaces].
   final List<String> poiNames;
+
+  /// Je Bereich die Ortsnamen-Zellen, die ihm fehlen (#596): Bereiche von
+  /// vor dem Orts-Index (0.192.0) haben keine, und die Suche fände ohne
+  /// Netz keine Dörfer darin. Sie kommen zu `StoredArea.poiFiles` dazu.
+  final Map<String, List<String>> addPlaces;
 
   /// Wie viele Kacheln veraltet sind, über alle Ebenen.
   int get staleTiles => map.covered + heights.covered + ways.covered;
@@ -264,6 +271,25 @@ class RegionRefreshPlan {
   int get fetchBytes => map.fetchBytes + heights.fetchBytes + ways.fetchBytes;
 
   bool get isEmpty => staleTiles == 0 && poiNames.isEmpty;
+}
+
+/// Die Ortsnamen-Zellen (#576 Stufe 2), die das Manifest [pm] für die Form
+/// von [area] nennt und die der Bereich nicht hat — leer für die ganze
+/// Region (ihr Bündel bringt alles), den Halter „Unterwegs geladen" und
+/// Bereiche, die ohne Orte gespeichert wurden. Eine Regel für „Meine
+/// Bereiche" und „Aktualisieren".
+List<String> missingPlaceFiles(StoredArea area, PoiManifest pm) {
+  if (area.kept || area.shape is RegionShape || area.poiBuild == null) {
+    return const [];
+  }
+  if (pm.placeCells.isEmpty) return const [];
+  final have = area.poiFiles.toSet();
+  return [
+    for (final cell in area.shape.poiCells())
+      if (pm.placeCells.contains(cell) &&
+          !have.contains(placeCellFileName(cell)))
+        placeCellFileName(cell),
+  ];
 }
 
 /// Kacheln je Block für die ganze Region (Schritt 5) — höchstens; die
@@ -921,12 +947,19 @@ class AreaDownloader {
     );
     final wayPlan = await layer(ways, TileLayer.ways, waysManifest?.build);
     final pm = poiManifest;
+    final addPlaces = <String, List<String>>{
+      if (pm != null)
+        for (final a in here)
+          if (missingPlaceFiles(a, pm) case final names when names.isNotEmpty)
+            a.id: names,
+    };
     final poiNames = pm == null
         ? const <String>[]
         : ({
             for (final a in here)
               if (a.poiBuild == null || a.poiBuild!.compareTo(pm.build) < 0)
                 ...a.poiFiles,
+            for (final names in addPlaces.values) ...names,
           }.toList()..sort());
     return RegionRefreshPlan(
       region: region,
@@ -935,6 +968,7 @@ class AreaDownloader {
       ways: wayPlan,
       drop: drop,
       poiNames: poiNames,
+      addPlaces: addPlaces,
     );
   }
 
@@ -1026,6 +1060,10 @@ class AreaDownloader {
           a
         else
           a.copyWith(
+            poiFiles: switch (plan.addPlaces[a.id]) {
+              final added? => [...a.poiFiles, ...added],
+              null => null,
+            },
             build: a.build.compareTo(manifest.sourceBuild) < 0
                 ? manifest.sourceBuild
                 : null,

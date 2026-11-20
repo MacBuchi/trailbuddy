@@ -15,13 +15,18 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
 import 'package:pmtiles/pmtiles.dart';
 import 'package:trailbuddy/core/app_colors.dart';
 import 'package:trailbuddy/features/map/map_screen.dart';
 import 'package:trailbuddy/features/map/map_view/map_view.dart';
 import 'package:trailbuddy/features/map/online_map.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:trailbuddy/features/map/host_manifests.dart';
+import 'package:trailbuddy/features/map/map_regions.dart';
+import 'package:trailbuddy/features/map/place.dart';
 import 'package:trailbuddy/features/map/poi.dart';
+import 'package:trailbuddy/features/map/poi_source.dart';
 import 'package:trailbuddy/features/map/way_layer.dart';
 import 'package:trailbuddy/features/offline_areas/area_draw.dart';
 import 'package:trailbuddy/features/offline_areas/area_overlay.dart';
@@ -146,6 +151,9 @@ void main() {
       '{"id":"n1","kind":"spring","lat":48.0,"lng":9.0},'
       '{"id":"n2","kind":"spring","lat":48.001,"lng":9.001}]}';
 
+  late _SpyManifests manifests;
+  setUp(() => manifests = _SpyManifests());
+
   Future<void> start(
     WidgetTester tester, {
     bool host = true,
@@ -156,6 +164,7 @@ void main() {
     Stream<List<ConnectivityResult>>? connectivity,
     bool wholeRegion = true,
     bool bakeOnStart = false,
+    bool places = false,
   }) async {
     final source = _sourceBytes();
     final waysSource = _waysBytes();
@@ -182,18 +191,32 @@ void main() {
           () async => ways ? _waysManifest : null,
         ),
         areaPoiManifestLoaderProvider.overrideWithValue(
-          () async => pois
+          () async => pois || places
               ? PoiManifest(
                   build: '20260928',
                   prefix: 'pois-20260928',
                   cells: {PoiGroup.water: cells.toSet()},
+                  placeCells: places ? cells.toSet() : const {},
                 )
               : null,
         ),
+        if (places)
+          // Das gemerkte Orte-Manifest, das „Meine Bereiche" ohne Netz liest.
+          poiManifestsProvider.overrideWithValue(
+            _RememberedPois(
+              PoiManifest(
+                build: '20260928',
+                prefix: 'pois-20260928',
+                cells: {PoiGroup.water: cells.toSet()},
+                placeCells: cells.toSet(),
+              ),
+            ),
+          ),
         areaPoiFileLoaderProvider.overrideWithValue((_, _) async => twoSprings),
         wholeRegionSupportedProvider.overrideWithValue(wholeRegion),
         routingBakeProvider.overrideWith(() => _SpyBake(bakeCalls)),
         routingBakeOnStartProvider.overrideWithValue(bakeOnStart),
+        hostManifestsProvider.overrideWithValue(manifests),
       ],
     );
     await settle(tester, frames: 20);
@@ -844,6 +867,65 @@ void main() {
     },
   );
 
+  testWidgets(
+    'Ortsnamen (#596): ein Bereich von vor dem Orts-Index bekommt sie über '
+    '„Aktualisieren", auch wenn keine Kachel veraltet ist',
+    (tester) async {
+      await store.putArchive('old', _sourceBytes());
+      final shape = RectShape(oldArea().bounds);
+      final water = [
+        for (final c in shape.poiCells()) poiCellFileName(c, PoiGroup.water),
+      ];
+      await store.saveIndex([
+        oldArea().copyWith(poiFiles: water, poiBuild: '20260928'),
+      ]);
+      await start(tester, places: true);
+      await openTab(tester, 'Profil');
+      await scrollTo(tester, find.text('Meine Bereiche'));
+      await tester.tap(find.text('Meine Bereiche'));
+      await settle(tester, frames: 20);
+      final row = find.byKey(const ValueKey('region-dach'));
+      expect(
+        find.descendant(
+          of: row,
+          matching: find.textContaining(
+            'mit Ortsnamen für die Suche ohne Netz',
+          ),
+        ),
+        findsOneWidget,
+      );
+      await tester.tap(find.byKey(const ValueKey('region-refresh-dach')));
+      await settle(tester, frames: 20);
+      expect(
+        find.textContaining(
+          'Die Ortsnamen für die Suche ohne Netz kommen dazu',
+        ),
+        findsOneWidget,
+      );
+      expect(
+        manifests.expired,
+        1,
+        reason:
+            '„Aktualisieren" fragt den Host frisch, nicht den Stand des Tages',
+      );
+      await tester.tap(find.widgetWithText(FilledButton, 'Aktualisieren'));
+      await settle(tester, frames: 40);
+      final area = (await store.list()).single;
+      expect(area.poiFiles.toSet(), {
+        ...water,
+        for (final c in shape.poiCells()) placeCellFileName(c),
+      });
+      expect(
+        find.descendant(
+          of: row,
+          matching: find.textContaining('Alle auf dem Stand vom 28.09.2026'),
+        ),
+        findsOneWidget,
+      );
+      expect(find.byKey(const ValueKey('region-refresh-dach')), findsNothing);
+    },
+  );
+
   Future<void> openAreas(WidgetTester tester) async {
     await openTab(tester, 'Profil');
     await scrollTo(tester, find.text('Meine Bereiche'));
@@ -1165,4 +1247,26 @@ void main() {
       expect(find.textContaining('Unvollständig'), findsNothing);
     },
   );
+}
+
+/// Ein gemerktes Orte-Manifest, ohne Ablage und ohne Host.
+class _RememberedPois extends PoiManifests {
+  _RememberedPois(this.manifest) : super(client: http.Client());
+  final PoiManifest manifest;
+
+  @override
+  Future<PoiManifest?> of(MapRegion region, {bool local = false}) async =>
+      manifest;
+}
+
+/// Zählt, wie oft „Aktualisieren" die Manifeste frisch fragen ließ.
+class _SpyManifests extends HostManifests {
+  _SpyManifests() : super(get: (uri) => throw StateError('kein Netz: $uri'));
+  var expired = 0;
+
+  @override
+  void expire() {
+    expired++;
+    super.expire();
+  }
 }

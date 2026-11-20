@@ -189,6 +189,31 @@ void main() {
     expect(matchRank('grunstein', ['Grünstein']), 0);
   });
 
+  test('der Rang gilt nur bis 30 km, weiter weg zählt die Entfernung '
+      '(#596, Fund der Grundlinie)', () {
+    Place place(String id, String name, double lat) => Place(
+      id: id,
+      kind: PlaceKind.village,
+      name: name,
+      position: LatLng(lat, 11),
+    );
+    final r = mapSearchOf(
+      query: 'Au',
+      center: center,
+      trails: const [],
+      startPoints: const [],
+      pois: const [],
+      places: [
+        place('n/1', 'Au', 48.0), // ~110 km, genau
+        place('n/2', 'Au', 50.25), // ~360 km, genau
+        place('n/3', 'Aurach', 47.036), // ~4 km, beginnt mit
+        place('n/4', 'Au', 47.25), // ~28 km, genau — noch nah
+      ],
+      kindLabel: (k) => k.label(l10nDe),
+    );
+    expect([for (final p in r.places) p.id], ['n/4', 'n/3', 'n/1', 'n/2']);
+  });
+
   test('ein langer Trail ist nah, wenn er durchs Bild läuft', () {
     // Beginnt 20 km weg, läuft aber an der Mitte vorbei.
     final through = trailFrom('Durchs Bild', [

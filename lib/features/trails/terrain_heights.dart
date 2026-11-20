@@ -1,8 +1,10 @@
 // Geländehöhen für Trails (#186, Betreiber 2026-10-02: „DEM-Höhen werden
 // gezeigt, nie gespeichert"). Dieselben Höhenkacheln wie die Planung
 // (Copernicus GLO-90, `height_tiles.dart`): erst die gespeicherten
-// Bereiche, mit Empfang dahinter der Host über den Sitzungsspeicher
-// (`OnlineHeights`, #187). Vier Abnehmer, eine Stelle:
+// Bereiche, dahinter der Host über den Sitzungsspeicher (`OnlineHeights`,
+// #187) und das Gesehene auf dem Gerät (#596 H4: eine Kachel, die einmal
+// kam, kostet nach einem Neustart nichts mehr und gilt auch ohne Netz).
+// Vier Abnehmer, eine Stelle:
 //
 // - **Anzeige**: Ein Trail ohne aufgezeichnete Höhen bekommt sein Profil
 //   aus dem Geländemodell ([terrainProfileProvider]), beschriftet mit
@@ -28,6 +30,7 @@ import 'package:latlong2/latlong.dart';
 
 import '../../core/connectivity.dart';
 import '../../core/errors.dart';
+import '../map/host_manifests.dart' show seenHostFilesProvider;
 import '../../l10n/l10n.dart';
 import '../offline_areas/area_providers.dart' show areaHeightReaderProvider;
 import '../offline_areas/height_tiles.dart';
@@ -75,7 +78,12 @@ class TerrainHeights {
     } catch (e, s) {
       logError('Höhen der Bereiche öffnen', e, s);
     }
-    final online = _ref.read(noConnectivityProvider)
+    // Auch ohne Netz: Die Quelle des Hosts liest dann nur, was schon
+    // einmal kam (#596 H4), und fragt nichts — ihr Manifest ist null.
+    // Ohne Ablage gäbe es dort nichts zu lesen.
+    final online =
+        _ref.read(noConnectivityProvider) &&
+            _ref.read(seenHostFilesProvider) == null
         ? null
         : _ref.read(onlineHeightsFactoryProvider)();
     // Die Quellen der Bereiche gehören ihrem Provider und bleiben offen;

@@ -38,7 +38,7 @@ import 'map_providers.dart';
 import 'online_map.dart';
 import 'poi.dart';
 import 'way_layer.dart';
-import 'host_requests.dart';
+import 'host_manifests.dart';
 
 /// Die Ebenen einer Region, wie sie im Index heißen.
 enum RegionLayer { map, heights, ways, pois, overview }
@@ -210,23 +210,20 @@ List<MapRegion>? rememberedRegions(String? json) {
   }
 }
 
-/// Holt den Index; null bei 404 (es gibt keinen — DACH allein), wirft bei
-/// allem anderen.
-Future<String?> fetchRegionsIndex() async {
-  final response = await hostGet(
-    Uri.parse(kRegionsIndexUrl),
-  ).timeout(kMapManifestTimeout);
-  if (response.statusCode == 404) return null;
-  if (response.statusCode != 200) {
-    throw http.ClientException('Regionen-Index: HTTP ${response.statusCode}');
-  }
-  return utf8.decode(response.bodyBytes);
-}
+/// Holt den Index — höchstens einmal am Tag (#596 H4); null bei 404 (es
+/// gibt keinen — DACH allein), wirft bei allem anderen.
+Future<String?> fetchRegionsIndex(HostManifests manifests) =>
+    manifests.load(Uri.parse(kRegionsIndexUrl), (text) {
+      // Gemerkt wird nur, was diese Fassung liest.
+      parseRegionIndex(jsonDecode(text));
+      return text;
+    });
 
 /// Die Naht für Tests (kein Netz); der Harness setzt sie auf null.
-final regionsLoaderProvider = Provider<Future<String?> Function()>(
-  (ref) => fetchRegionsIndex,
-);
+final regionsLoaderProvider = Provider<Future<String?> Function()>((ref) {
+  final manifests = ref.watch(hostManifestsProvider);
+  return () => fetchRegionsIndex(manifests);
+});
 
 /// Alle Regionen, DACH zuerst. Ohne Empfang oder wenn der Index nicht
 /// kommt: der gemerkte, sonst DACH allein. Hängt am Empfang, damit seine
@@ -377,23 +374,18 @@ MapRegion? regionFor(List<MapRegion> regions, LatBox box) {
   return null;
 }
 
-/// Holt eine JSON-Datei vom Host; null bei 404 (noch kein Bau), wirft bei
-/// allem anderen.
-Future<Map<String, dynamic>?> fetchHostJson(Uri uri) async {
-  final response = await hostGet(uri).timeout(kMapManifestTimeout);
-  if (response.statusCode == 404) return null;
-  if (response.statusCode != 200) {
-    throw http.ClientException('${uri.path}: HTTP ${response.statusCode}', uri);
-  }
-  return jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
-}
+/// Holt ein Manifest vom Host — höchstens einmal am Tag (#596 H4); null
+/// bei 404 (noch kein Bau), wirft bei allem anderen.
+Future<Map<String, dynamic>?> fetchHostJson(HostManifests manifests, Uri uri) =>
+    manifests.load(uri, (text) => jsonDecode(text) as Map<String, dynamic>);
 
 /// Die Manifeste der Regionen außer DACH — die Naht für Tests. Der
 /// Harness setzt sie auf null.
 final regionManifestLoaderProvider =
-    Provider<Future<Map<String, dynamic>?> Function(Uri)>(
-      (ref) => fetchHostJson,
-    );
+    Provider<Future<Map<String, dynamic>?> Function(Uri)>((ref) {
+      final manifests = ref.watch(hostManifestsProvider);
+      return (uri) => fetchHostJson(manifests, uri);
+    });
 
 /// Ein Manifest einer Region außer DACH über [load]; null ohne Ebene,
 /// ohne Bau, bei fremdem Format oder Netzfehler. Gemeldet wird nur, was
@@ -495,6 +487,24 @@ class RegionManifests {
   /// nennt oder noch keine gebaut ist.
   Future<OverviewManifest?> overview() =>
       loadRegionManifest(_load, region, RegionLayer.overview, _overview);
+}
+
+/// Das gemerkte Höhen-Manifest der [region] jeden Alters (#596 H4) — nie
+/// eine Anfrage; null, wenn keins liegt.
+Future<HeightsManifest?> rememberedHeightsManifest(
+  HostManifests manifests,
+  MapRegion region,
+) {
+  final uri = region.isDach
+      ? Uri.parse(kHeightsManifestUrl)
+      : region.manifestUri(RegionLayer.heights);
+  if (uri == null) return Future.value();
+  return manifests.remembered(uri, (text) {
+    final j = jsonDecode(text) as Map<String, dynamic>;
+    return region.isDach
+        ? HeightsManifest.fromJson(j)
+        : HeightsManifest.fromJson(j, dir: region.dir);
+  });
 }
 
 /// „Gesehenes bleibt liegen" je Region (#155): das gemerkte Manifest

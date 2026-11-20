@@ -59,6 +59,7 @@ import 'region_overview.dart';
 import 'tile_refs.dart';
 import 'tile_store.dart';
 import 'tile_store_sources.dart';
+import '../map/host_manifests.dart';
 import '../map/host_requests.dart';
 
 /// Die Liste aus dem Index, in Speicherreihenfolge.
@@ -199,6 +200,7 @@ class RegionTileAge {
     required this.stale,
     required this.staleBytes,
     this.build,
+    this.missingPlaces = 0,
   });
 
   /// Liegende Kacheln der Karte, die eine Form der Region deckt.
@@ -212,6 +214,13 @@ class RegionTileAge {
 
   /// Der Kartenstand des Hosts; null ohne Manifest.
   final String? build;
+
+  /// Ortsnamen-Zellen, die Bereichen der Region fehlen (#596) — gezählt
+  /// gegen das gemerkte Orte-Manifest, ohne Netz.
+  final int missingPlaces;
+
+  /// Ob „Aktualisieren" etwas zu holen hätte.
+  bool get refreshable => stale > 0 || missingPlaces > 0;
 }
 
 final regionTileAgeProvider = FutureProvider.family<RegionTileAge, MapRegion>((
@@ -247,11 +256,25 @@ final regionTileAgeProvider = FutureProvider.family<RegionTileAge, MapRegion>((
     stale += s.ids.length;
     staleBytes += s.bytes;
   }
+  // Das gemerkte Orte-Manifest jeden Alters — keine Anfrage (#596 H4).
+  PoiManifest? pois;
+  try {
+    pois = await ref.read(poiManifestsProvider).of(region, local: true);
+  } catch (_) {
+    pois = null; // ohne Manifest weiß die Zeile von keiner Lücke
+  }
+  var missingPlaces = 0;
+  if (pois != null) {
+    for (final a in areas) {
+      missingPlaces += missingPlaceFiles(a, pois).length;
+    }
+  }
   return RegionTileAge(
     tiles: stored,
     stale: stale,
     staleBytes: staleBytes,
     build: map?.sourceBuild,
+    missingPlaces: missingPlaces,
   );
 });
 
@@ -392,7 +415,7 @@ final areaHeightsManifestLoaderProvider =
     Provider<Future<HeightsManifest?> Function()>(
       (ref) => () async {
         try {
-          return await fetchHeightsManifest();
+          return await fetchHeightsManifest(ref.read(hostManifestsProvider));
         } catch (_) {
           // Kein Bau, kein Netz, fremdes Format: ohne Höhen weiter.
           return null;
@@ -407,7 +430,7 @@ final areaWaysManifestLoaderProvider =
     Provider<Future<WaysManifest?> Function()>(
       (ref) => () async {
         try {
-          return await fetchWaysManifest();
+          return await fetchWaysManifest(ref.read(hostManifestsProvider));
         } catch (_) {
           // Kein Bau, kein Netz, fremdes Format: ohne Wege weiter.
           return null;
@@ -1077,6 +1100,18 @@ class AreaDownloadNotifier extends Notifier<AreaDownloadState> {
     if (ref.read(noConnectivityProvider)) {
       throw StateError('Kein Kartenhost erreichbar');
     }
+    // Wer „Aktualisieren" tippt, will den Stand des Hosts JETZT, nicht den
+    // gemerkten des Tages (#596 H4).
+    ref.read(hostManifestsProvider).expire();
+    if (region.isDach) {
+      ref
+        ..invalidate(mapManifestProvider)
+        ..invalidate(heightsManifestProvider);
+    }
+    ref
+      ..invalidate(regionMapManifestProvider(region))
+      ..invalidate(regionHeightsManifestProvider(region))
+      ..invalidate(areaWaysAvailableProvider(region));
     final host = await _regionDownloader(region);
     if (host == null) throw StateError('Kein Kartenhost erreichbar');
     try {

@@ -508,3 +508,19 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     `overviewFetcherProvider` auf null. Tests:
     `test/map/region_overview_test.dart`, flutter_map in
     `area_layer_order_test.dart`.
+- **Ortsnamen für alte Bereiche** (#596, seit 0.193.0): Bereiche von vor
+  dem Orts-Index (0.192.0) haben keine Ortsnamen-Zellen, und die Suche
+  fand ohne Netz keine Dörfer darin. `missingPlaceFiles(area, pm)` (in
+  `area_downloader.dart`) nennt die Zellen, die das Orte-Manifest für die
+  Form nennt und die der Bereich nicht hat — nie für die ganze Region,
+  den Halter oder einen Bereich ohne Orte (`poiBuild == null`). Eine
+  Regel für zwei Stellen: `regionTileAgeProvider` zählt sie gegen das
+  GEMERKTE Orte-Manifest (`PoiManifests.of(local: true)`, keine Anfrage)
+  als `missingPlaces`, die Zeile der Region sagt es und zeigt
+  „Aktualisieren" (`RegionTileAge.refreshable`); `planRefresh` legt sie
+  in `RegionRefreshPlan.addPlaces`, `refreshRegion` hängt sie an
+  `poiFiles`. Nichts wird ungefragt geladen. Tests: `area_downloader_test`
+  („Bereiche von vor dem Orts-Index"), `offline_areas_flow_test`
+  („Ortsnamen (#596)"); Gegenproben 2026-11-20: nicht geholt, nicht
+  eingetragen, auch ohne Orte gespeichert, Knopf nur bei alten Kacheln —
+  je rot.

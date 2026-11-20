@@ -91,8 +91,10 @@ das schon so (der Speicher kommt zuerst).
 
 **H4 — Gesehenes auch für kleine Dateien** (☁️; **gebaut seit 0.192.2**
 für Orte-Zellen, Namensdateien und Orte-Manifeste, `lib/data/seen_host_files.dart`;
-Höhenkacheln für das Profil eines Trails und die übrigen Manifeste
-folgen). Orte-Zellen,
+**seit 0.193.0** auch die Manifeste von Karte, Wegen, Höhen, Regionen
+und der übrigen Regionen, `lib/features/map/host_manifests.dart`, und
+die Höhenkacheln von Trail-Profil, Export, Import und Höhenlinien, die
+ohne Netz aus der Ablage kommen). Orte-Zellen,
 Namensdateien und Höhenkacheln, die vom Host kamen, landen in einem
 Speicher auf dem Gerät: Android Dateien, Browser IndexedDB, Schlüssel mit
 Bau, Deckel z. B. 20 MB, die älteste geht zuerst. Dasselbe Muster wie
@@ -114,7 +116,12 @@ wird immer nur auf Tipp. Orte (POIs) in
 der Suche: wie heute erst der Bereich; Zellen außerhalb gehen über H4.
 Mit hinein gehören die Funde aus dem Test: Ein Name, der genau der
 Eingabe entspricht oder mit ihr beginnt, kommt zuerst, und das Ziel
-bekommt eine kurze Nadel (Design-README).
+bekommt eine kurze Nadel (Design-README). **Seit 0.193.0** gilt der
+Rang nur bis 30 km von der Kartenmitte (`kMapSearchRankNearM`, Fund der
+Grundlinie, Betreiber 2026-11-20), weiter weg zählt die Entfernung.
+Bereiche von vor dem Orts-Index bekommen ihre Ortsnamen-Zellen über
+„Aktualisieren" in „Meine Bereiche" (`missingPlaceFiles`), nie
+ungefragt.
 
 **H6 — `pois.json` verkleinern** (☁️ Werkzeug + App). 465 kB bei jedem
 App-Start, für Zellenlisten, die erst gebraucht werden, wenn eine Zelle
@@ -156,8 +163,9 @@ und das ist der Normalfall bei Trails.
    2026-11-20, siehe H1.
 2. **H7** Zähler (☁️), dann die Grundlinie am Gerät (📱).
 3. ~~**H5** mit den Testfunden (doppelte Anfragen, Reihenfolge, Nadel) und
-   **H4** — ein PR, ein Bump.~~ 0.192.2; offen aus H4: Höhenkacheln für
-   das Trail-Profil, Manifeste von Karte, Wegen, Höhen und Regionen.
+   **H4** — ein PR, ein Bump.~~ 0.192.2; der Rest von H4 (Höhenkacheln
+   für das Trail-Profil, Manifeste von Karte, Wegen, Höhen und Regionen)
+   und die zwei Suchfunde der Grundlinie: 0.193.0.
 4. **H3** Spike (📱), dann bauen.
 5. **H2** Messung (⚙️), dann entscheiden.
 6. **H6**.

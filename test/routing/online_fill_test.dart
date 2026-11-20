@@ -6,6 +6,7 @@ import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pmtiles/pmtiles.dart';
+import 'package:trailbuddy/data/seen_host_files.dart';
 import 'package:trailbuddy/features/map/pmtiles_tile_provider.dart';
 import 'package:trailbuddy/features/offline_areas/area_plan.dart';
 import 'package:trailbuddy/features/offline_areas/height_tiles.dart';
@@ -157,6 +158,47 @@ void main() {
         );
         expect(h.requests, 2);
         await h.close();
+      },
+    );
+
+    test(
+      'Gesehenes (#596 H4): eine Kachel vom Host kostet nach einem Neustart '
+      'nichts mehr — ein neuer Bau fragt wieder, ohne Manifest nichts',
+      () async {
+        final seen = MemorySeenHostFiles();
+        var opens = 0;
+        OnlineHeights run(String? archive) => OnlineHeights(
+          open: () async {
+            opens++;
+            return PmTilesArchive.fromBytes(heightsArchive());
+          },
+          // Ein neuer Lauf: leerer Sitzungsspeicher.
+          cache: OnlineTileCache(),
+          seen: seen,
+          seenArchive: () async => archive,
+        );
+        final first = run('heights-20261001.pmtiles');
+        expect((await first.tile(t.x, t.y))!.at(0.5, 0.5), 640);
+        await first.close();
+        expect(opens, 1);
+        expect(seen.texts.keys, ['heights-20261001.pmtiles/13/${t.x}/${t.y}']);
+        await Future<void>.delayed(Duration.zero); // Schreiben läuft nach
+
+        final second = run('heights-20261001.pmtiles');
+        expect((await second.tile(t.x, t.y))!.at(0.5, 0.5), 640);
+        expect(second.requests, 0);
+        expect(opens, 1, reason: 'aus der Ablage, kein Archiv geöffnet');
+        await second.close();
+
+        final newer = run('heights-20261201.pmtiles');
+        await newer.tile(t.x, t.y);
+        expect(opens, 2, reason: 'ein neuer Bau hat neue Schlüssel');
+        await newer.close();
+
+        final unknown = run(null);
+        await unknown.tile(t.x, t.y);
+        expect(opens, 3, reason: 'ohne Manifest keine Ablage, der Host fragt');
+        await unknown.close();
       },
     );
 

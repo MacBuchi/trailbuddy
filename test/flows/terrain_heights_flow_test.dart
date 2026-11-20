@@ -12,6 +12,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:pmtiles/pmtiles.dart';
+import 'package:trailbuddy/core/connectivity.dart';
 import 'package:trailbuddy/core/gpx_share.dart';
 import 'package:trailbuddy/features/offline_areas/area_providers.dart'
     show areaHeightReaderProvider;
@@ -113,14 +114,19 @@ void main() {
       'ohne Bereich mit Empfang vom Host; ohne Empfang keine Anfrage',
       (tester) async {
         var opens = 0;
-        final online = onlineHeightsFactoryProvider.overrideWithValue(
-          () => OnlineHeights(
-            open: () async {
-              opens++;
-              return PmTilesArchive.fromBytes(slopeHeightsArchive());
-            },
-            cache: OnlineTileCache(),
-          ),
+        // Wie die echte Fabrik: Ohne Empfang ist das Manifest null, das
+        // Archiv geht nicht auf (#596 H4 — die Quelle liest dann nur die
+        // Ablage).
+        final online = onlineHeightsFactoryProvider.overrideWith(
+          (ref) =>
+              () => OnlineHeights(
+                open: () async {
+                  if (ref.read(noConnectivityProvider)) return null;
+                  opens++;
+                  return PmTilesArchive.fromBytes(slopeHeightsArchive());
+                },
+                cache: OnlineTileCache(),
+              ),
         );
         trails.seedTrail(annaId, name: 'Hang');
         await openSheet(tester, 'Hang', extra: [online]);

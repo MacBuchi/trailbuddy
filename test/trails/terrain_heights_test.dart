@@ -1,8 +1,16 @@
 // Geländehöhen (#186): das Profil aus den Höhenkacheln, der Vergleich der
 // Datei-Höhen mit dem Modell, und der Rundlauf Export → Import, in dem
 // Modellhöhen nie als gemessene zurückkommen.
+import 'dart:convert';
+
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:trailbuddy/core/connectivity.dart';
+import 'package:trailbuddy/core/settings.dart';
+import 'package:trailbuddy/data/seen_host_files.dart';
+import 'package:trailbuddy/features/map/host_manifests.dart';
+import 'package:trailbuddy/features/offline_areas/area_providers.dart';
 import 'package:trailbuddy/features/offline_areas/height_tiles.dart';
 import 'package:trailbuddy/features/trails/elevation_backfill.dart';
 import 'package:trailbuddy/features/trails/gpx.dart';
@@ -15,6 +23,7 @@ import 'package:trailbuddy/features/trails/trail_import_screen.dart';
 import 'package:trailbuddy/models/trail.dart';
 
 import '../fakes/fake_heights.dart';
+import '../fakes/fake_settings.dart';
 import '../fakes/l10n_de.dart';
 
 const _line = [LatLng(48.0, 9.0), LatLng(48.005, 9.0), LatLng(48.009, 9.0)];
@@ -70,6 +79,48 @@ void main() {
         );
       },
     );
+
+    test('ohne Netz aus dem Gesehenen (#596 H4): Kacheln, die schon einmal vom '
+        'Host kamen, geben das Profil — ohne Bereich, ohne Anfrage', () async {
+      final seen = MemorySeenHostFiles();
+      await seen.write(
+        'heights.json',
+        jsonEncode({
+          'format': 1,
+          'file': 'heights-20261001.pmtiles',
+          'bytes': 1,
+          'zoom': 13,
+          'grid': kHeightGrid,
+          'build': '20261001',
+        }),
+      );
+      for (final e in slopeHeightTiles().entries) {
+        await seen.write(
+          'heights-20261001.pmtiles/13/${e.key.x}/${e.key.y}',
+          base64Encode(heightTileDeltas(e.value.values)),
+        );
+      }
+      final c = ProviderContainer(
+        overrides: [
+          settingsProvider.overrideWithValue(FakeSettings()),
+          noConnectivityProvider.overrideWithValue(true),
+          seenHostFilesProvider.overrideWithValue(seen),
+          hostManifestsProvider.overrideWithValue(
+            HostManifests(
+              seen: seen,
+              get: (uri) => throw StateError('keine Anfrage: $uri'),
+            ),
+          ),
+          areaHeightReaderProvider.overrideWith(
+            (ref) async => HeightReader(const []),
+          ),
+        ],
+      );
+      addTearDown(c.dispose);
+      final p = await c.read(terrainHeightsProvider).profile(_line);
+      expect(p, isNotNull);
+      expect(p!.startM, greaterThan(p.endM + 50));
+    });
 
     test('fehlt eine Kachel, gibt es gar kein Profil', () async {
       const far = [LatLng(47.0, 11.0), LatLng(47.01, 11.0)];

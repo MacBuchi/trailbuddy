@@ -7966,6 +7966,19 @@
       }
     }
   },
+  "areasRegionPlacesMissing": "{count, plural, =1{1 Zelle mit Ortsnamen für die Suche ohne Netz fehlt — „Aktualisieren\" holt sie} other{{count} Zellen mit Ortsnamen für die Suche ohne Netz fehlen — „Aktualisieren\" holt sie}}",
+  "@areasRegionPlacesMissing": {
+    "description": "Zeile einer Region: Bereichen von vor dem Orts-Index fehlen die Ortsnamen (Dörfer, Gipfel) für die Suche.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "areasRegionRefreshPlacesOnly": "Die Ortsnamen für die Suche ohne Netz kommen dazu, ein paar kB. Die Kacheln sind schon aktuell.",
+  "@areasRegionRefreshPlacesOnly": {
+    "description": "Dialog: Region aktualisieren, wenn nur die Ortsnamen fehlen."
+  },
   "areasRegionTitle": "Karte {region}",
   "@areasRegionTitle": {
     "description": "Zeile einer Region in Meine Bereiche; auch Name beim Aktualisieren.",

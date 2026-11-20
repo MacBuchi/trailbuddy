@@ -11,10 +11,11 @@ import '../../core/line_geometry.dart';
 import '../../core/settings.dart';
 import '../offline_areas/area_store.dart';
 import 'map_providers.dart';
-import '../../data/browser_storage.dart';
 import '../../data/seen_host_files.dart';
 import 'map_regions.dart';
 import 'poi.dart';
+export 'host_manifests.dart' show seenHostFilesProvider;
+import 'host_manifests.dart' show seenHostFilesProvider;
 import 'host_requests.dart';
 
 /// Woher die Orte kommen. Eine Schnittstelle, damit Tests ein Fake
@@ -279,12 +280,6 @@ class PoiUnavailable implements Exception {
   @override
   String toString() => 'Der Orte-Host antwortet mit $statusCode';
 }
-
-/// Die Ablage gesehener kleiner Dateien des Hosts (#596 H4) — die Naht
-/// für Tests (der Harness hängt eine im Speicher ein).
-final seenHostFilesProvider = Provider<SeenHostFiles?>(
-  (ref) => chooseSeenHostFiles(web: kIsWeb, factory: browserIdbFactory()),
-);
 
 /// Die Orte-Manifeste, EINMAL für Karte und Suche.
 final poiManifestsProvider = Provider<PoiManifests>(
