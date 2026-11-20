@@ -632,6 +632,11 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     Regel ein (`hostRequestKindOfPath`). OkHttp ist nur `compileOnly`,
     zur Laufzeit kommt MapLibres Fassung. Die echte App installiert
     nichts (`packageName.endsWith(".dev")`, `android_manifest_test`).
+    **Vorher `MapLibre.getInstance`**: `setOkHttpClient` lädt
+    `HttpRequestImpl`, dessen statischer Teil den Kontext von MapLibre
+    liest — in `onCreate` ist das Plugin noch nicht da, die Dev-App
+    0.192.1/0.192.2 brach bei jedem Start ab (0.192.3). CI sieht das
+    nicht (kein Gerät); eine Änderung hier gehört einmal aufs Pixel.
   - **Gezählt wird, was ans Netz geht**: Was MapLibres Ambient Cache
     oder der Kachelspeicher bedient, erreicht weder OkHttp noch den
     Client. Ob MapLibre mit Netz abgelaufene Kacheln neu fragt, zeigt

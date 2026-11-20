@@ -328,7 +328,7 @@ class MainActivity : FlutterActivity() {
         // Anfragen an den Kartenhost zählen (#596 H7, `HostRequestCounter.kt`):
         // nur die Dev-App hängt sich vor MapLibres HTTP; der Kanal antwortet
         // überall (ohne Zähler mit einer leeren Liste).
-        if (packageName.endsWith(".dev")) HostRequestCounter.install()
+        if (packageName.endsWith(".dev")) HostRequestCounter.install(applicationContext)
         HostRequestCounter(flutterEngine.dartExecutor.binaryMessenger)
 
         pipChannel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, PIP_CHANNEL).apply {
