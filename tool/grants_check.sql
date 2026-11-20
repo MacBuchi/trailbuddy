@@ -212,6 +212,9 @@ begin
      or has_table_privilege('authenticated', 'app_internal.ops_config', 'select') then
     raise exception 'ops_config ist für Clients lesbar — der Token-Hash wäre offen';
   end if;
+  if has_function_privilege('authenticated', 'public.ops_health(text)', 'execute') then
+    raise exception 'authenticated darf ops_health aufrufen — gebraucht wird nur anon (patch_035)';
+  end if;
   if not has_function_privilege('anon', 'public.ops_health(text)', 'execute') then
     raise exception 'anon darf ops_health nicht aufrufen — die Statusabfrage bliebe leer';
   end if;

@@ -3193,6 +3193,8 @@ end;
 $$;
 revoke all on function public.ops_health(text) from public;
 grant execute on function public.ops_health(text) to anon;
+-- nur anon: den Supabase-Default-Grant an authenticated entzieht Patch 035
+revoke execute on function public.ops_health(text) from authenticated;
 
 -- Regel: Ein neuer supabase/patch_NNN_*.sql gehört im selben PR (1) als
 -- Datei, (2) in die Struktur oben und (3) HIER in die Liste.
@@ -3232,5 +3234,6 @@ insert into public.applied_patches (filename) values
   ('patch_031_buddy_nearby.sql'),
   ('patch_032_group_ride.sql'),
   ('patch_033_block_report.sql'),
-  ('patch_034_ops_health.sql')
+  ('patch_034_ops_health.sql'),
+  ('patch_035_ops_health_anon_only.sql')
 on conflict do nothing;
