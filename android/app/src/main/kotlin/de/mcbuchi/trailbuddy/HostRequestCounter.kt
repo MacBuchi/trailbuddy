@@ -1,10 +1,12 @@
 package de.mcbuchi.trailbuddy
 
+import android.content.Context
 import io.flutter.plugin.common.BinaryMessenger
 import io.flutter.plugin.common.MethodChannel
 import okhttp3.Call
 import okhttp3.Dispatcher
 import okhttp3.OkHttpClient
+import org.maplibre.android.MapLibre
 import org.maplibre.android.module.http.HttpRequestUtil
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicInteger
@@ -42,10 +44,17 @@ class HostRequestCounter(messenger: BinaryMessenger) {
          * Hängt den Zähler vor MapLibres HTTP. Muss laufen, bevor die
          * erste Karte etwas lädt; der Client gleicht MapLibres eigener
          * Vorgabe (`HttpRequestImpl.getDispatcher`: 20 je Host).
+         *
+         * `MapLibre.getInstance` zuerst: `setOkHttpClient` lädt
+         * `HttpRequestImpl`, dessen statischer Teil den Kontext von
+         * MapLibre braucht — ohne ihn stürzte die Dev-App 0.192.1/0.192.2
+         * bei jedem Start ab (`MapLibreConfigurationException`). Das
+         * Plugin ruft dasselbe später selbst; es ist ein Singleton.
          */
-        fun install() {
+        fun install(context: Context) {
             if (installed) return
             installed = true
+            MapLibre.getInstance(context.applicationContext)
             val client = OkHttpClient.Builder()
                 .dispatcher(Dispatcher().apply { maxRequestsPerHost = 20 })
                 .build()

@@ -2,6 +2,14 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Entwicklungsversion startet wieder
+
+*Version 0.192.3, 2026-11-20*
+
+- Nur die Entwicklungsversion für Tests („TrailBuddy Dev“): Seit 0.192.1
+  brach sie unter Android gleich beim Start ab. Die normale App war nicht
+  betroffen.
+
 ## Suche zuerst auf dem Gerät
 
 *Version 0.192.2, 2026-11-20*
