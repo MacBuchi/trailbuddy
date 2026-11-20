@@ -283,12 +283,32 @@ Funktion aus.
 ### Deklarationen der Vordergrunddienste
 
 Ab Android 14 verlangt Play je Dienst-Typ ein eigenes Formular mit
-Begründung und Demo-Video. **Beide Videos fehlen noch** — aufnehmen mit
-einem Testkonto auf dem Emulator, NIE mit echten Trails oder einer echten
-Fahrt (eine Fahrt beginnt an der Haustür).
+Begründung und Demo-Video (Konsole: *Richtlinien → App-Inhalte →
+Berechtigungen für Dienste im Vordergrund*; ohne sie meldet sie „nicht
+erklärte Berechtigungen"). **Beide Videos aufgenommen** (2026-11-20, 0.192.3,
+Play-Flavor gegen live, Testkonto); sie liegen beim Betreiber, nicht im
+Repo, und gehen als nicht gelistetes YouTube-Video in die Konsole.
 
-**`FOREGROUND_SERVICE_LOCATION`** — Aufgabe **„Navigation / Standort
-verfolgen, vom Nutzer gestartet"**: Der Nutzer tippt den Aufnahme-Knopf,
+**Neu aufnehmen** (Emulator `TB_Store_1080x1920`, siehe „Grafiken"):
+Testkonto, nie ein echtes — es ist Buddy des Betreiber-Kontos, also den
+Standort per `adb emu geo fix` in eine Gegend legen, in der die Karte
+**keinen** Trail zeigt (sonst stünde ein privater Trail öffentlich auf
+YouTube). Bereich: Ausschnitt dazunehmen, „Speichern" erst tippen, wenn der
+Dialog „Lädt …" zeigt, dann `adb emu network speed edge` — bei vollem Netz
+ist ein kleiner Bereich in 2 s fertig und die Benachrichtigung nie zu sehen;
+bei EDGE schon vor dem Messen kommt der Knopf nicht. Fahrt: Aufnahme-Knopf,
+eine Folge von `geo fix` alle 2 s, Benachrichtigungsleiste (`cmd statusbar
+expand-notifications`), Home, zurück, „Fahrt beenden", verwerfen. Aufnahme
+mit `adb shell screenrecord`. Mit 0.192.3 lief die Fahrt im Emulator ohne
+ANR (Gegenprobe zu #586).
+
+**`FOREGROUND_SERVICE_LOCATION`** — Aufgaben **„Navigation / Standort
+verfolgen, vom Nutzer gestartet"** und, seit „Buddys unterwegs" (#526,
+0.186.0) und der Gruppenfahrt (#519, 0.187.0), **„Standortfreigabe"**:
+Beides ist opt-in und läuft nur während einer Fahrt in diesem Dienst — die
+Zelle von rund 5 km an die Buddys, bei „Live mit Buddys" die genaue
+Position etwa alle 15 s an die Mitfahrer (Datensicherheit oben). Der
+Nutzer tippt den Aufnahme-Knopf,
 die App misst alle fünf Sekunden die Position, auch mit dem Telefon in der
 Tasche, bis er „Fahrt beenden" tippt (spätestens nach zwölf Stunden). Die
 Dauerbenachrichtigung steht die ganze Zeit. Gemessen wird im Isolate des
@@ -298,21 +318,50 @@ zeigt: Knopf in der App, Benachrichtigung in der Statusleiste, Home, Rückkehr,
 dieselbe Benachrichtigung: Der Nutzer tippt „Navigieren", die
 Benachrichtigung zeigt alle fünf Sekunden Rest und Abstand zur Route,
 bis er „Navigation beenden" tippt (dort oder in der App) oder eine Minute
-nach der Ankunft. Die Position bleibt auf dem Gerät. Ein zweites Video
-braucht es nicht, ein Satz in der Begründung genügt. **Bild-im-Bild**
+nach der Ankunft. Ein zweites Video braucht es nicht, ein Satz in der
+Begründung genügt. **Bild-im-Bild**
 (#232, seit 0.97.0): Wischt der Nutzer während einer Navigation nach
 Hause, zeigt dieselbe Activity die Karte als schwebendes Fenster
 (`supportsPictureInPicture`). Keine Berechtigung, ausdrücklich NICHT
 `SYSTEM_ALERT_WINDOW`; Dienst, Benachrichtigung und Standort bleiben,
-wie sie sind — die Position verlässt das Gerät auch hier nicht.
+wie sie sind.
 
-**`FOREGROUND_SERVICE_DATA_SYNC`** — Aufgabe **„Verarbeitung im Netzwerk →
-Sonstiger"**: nutzergestarteter Download eines Kartenbereichs für
-unterwegs (Konzept-Schritt 3). Sichtbar über die Fortschrittsmeldung, der
-Dienst endet mit dem Download. Fahrt und Download teilen sich EINEN Dienst
-über den `KeepAliveCoordinator`; das Manifest deklariert
+Beschreibung für die Konsole (Englisch, für Googles Prüfer):
+
+> The user taps the record button to record a mountain-bike ride. While
+> the ride runs, the app reads the GPS position every few seconds, also
+> with the phone in a pocket and the screen off, and shows an ongoing
+> notification the whole time. The service stops when the user taps "End
+> ride", at the latest after 12 hours.
+> The same service and notification are used when the user starts
+> navigation along a planned route: the notification shows the remaining
+> distance and the distance to the route, and navigation ends on "End
+> navigation" or one minute after arrival. Location sharing is opt-in and
+> only happens during such a ride: a coarse ~5 km cell to the user's
+> confirmed friends ("buddies nearby"), and, if the user switches on "Live
+> with buddies", the precise position about every 15 seconds to the friends
+> riding along. The app never requests background location and never
+> starts this service without a visible user action.
+
+**`FOREGROUND_SERVICE_DATA_SYNC`** — Aufgaben **„Verarbeitung im Netzwerk
+→ Sonstiger"** und **„Lokale Verarbeitung → Sonstiger"**:
+nutzergestarteter Download eines Kartenbereichs für unterwegs
+(Konzept-Schritt 3), danach im selben Dienst das Vorberechnen der
+Routing-Stücke dieses Bereichs auf dem Gerät (`routing_bake.dart`, #380,
+Schlüssel `bake`). Sichtbar über die Fortschrittsmeldung, der Dienst endet,
+wenn beides fertig ist. Fahrt, Download und Vorberechnen teilen sich EINEN
+Dienst über den `KeepAliveCoordinator`; das Manifest deklariert
 `dataSync|location` als Obermenge, gestartet wird je Lauf nur der Typ, den
 er braucht.
+
+> The user taps "Save area" to download a map region for offline use
+> while mountain biking (map tiles, elevation and path data). The download
+> can take several minutes, so it runs in a foreground service with a
+> visible progress notification. Right after the download, still in the
+> same service, the app pre-computes route-planning data for that area on
+> the device, so planning works without a network. The service stops as
+> soon as both steps are done or when the user cancels. It is never
+> started without this user action and does not run periodically.
 
 ### Prominent Disclosure für den Standort
 
@@ -504,7 +553,8 @@ Inhalte verlangt beides.
 - [ ] Erste Beförderung gelaufen — sonst sind Datenschutz-, Impressums- und Löschseite nicht erreichbar
 - [ ] AAB aus dem Release-Workflow (Artefakt `android-aab`), nicht die APK; Berechtigungen am AAB gemessen (0.158.0, 2026-11-07) — mit dem AAB des Uploads wiederholen
 - [ ] Im Play-Build fehlt der Update-Hinweis (`PLAY_BUILD=true`)
-- [ ] Beide Demo-Videos der Vordergrunddienste aufgenommen
+- [x] Beide Demo-Videos der Vordergrunddienste aufgenommen (2026-11-20, 0.192.3)
+- [ ] Beide Deklarationen samt Video-Link in der Konsole eingetragen
 - [x] Store-Grafiken: Symbol und Vorstellungsgrafik unter `store/`, Screenshots beim Betreiber
 - [ ] Supabase in einem Pro-Plan (Konzept 10.9) — ein pausiertes Projekt heißt eine tote App für Prüfer
 - [ ] Testkonto für Googles Prüfer angelegt; wo Adresse und Passwort liegen, steht im DocuHub, nicht hier
