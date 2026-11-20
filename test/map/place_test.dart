@@ -8,6 +8,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
+import 'package:trailbuddy/data/seen_host_files.dart';
 import 'package:http/testing.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:trailbuddy/core/search_text.dart';
@@ -153,10 +154,14 @@ void main() {
           kindLabel: (k) => k.name,
         );
 
-    test('nächste zuerst, auch über den deutschen Namen', () {
-      expect(search('hornle').places, [hut, peak, far]);
-      expect(search('Meran').places, [merano]);
-    });
+    test(
+      'genau zuerst (#596), dann die nächsten; auch über den deutschen Namen',
+      () {
+        expect(search('hornle').places, [peak, hut, far]);
+        expect(search('hornl').places, [hut, peak, far]);
+        expect(search('Meran').places, [merano]);
+      },
+    );
 
     test('eine Hütte, die schon unter den Orten steht, nur dort', () {
       final r = search('hornle', pois: [hut.asPoi!]);
@@ -220,12 +225,24 @@ void main() {
     HostPlaceSource source(
       http.Client client, {
       List<String> stored = const [],
+      SeenHostFiles? seen,
     }) => HostPlaceSource(
       client: client,
       regions: () async => const [kDachRegion],
       storedNames: () async => stored,
       readLocal: (n) async => n == '476_73.places.json' ? cell : null,
+      seen: seen,
     );
+
+    MockClient host(List<String> asked, {Duration delay = Duration.zero}) =>
+        MockClient((req) async {
+          asked.add(req.url.toString());
+          await Future<void>.delayed(delay);
+          if (req.url.toString() == kPoiManifestUrl) {
+            return http.Response(jsonEncode(manifest), 200);
+          }
+          return http.Response(jsonEncode(ho), 200);
+        });
 
     test(
       'eine Namensdatei, nur der Schlüssel in der Adresse; gemerkt',
@@ -240,15 +257,15 @@ void main() {
             return http.Response(jsonEncode(ho), 200);
           }),
         );
-        final r = await s.lookup('Hörnle', center);
+        final r = await s.lookup('Hörnle', center, online: true);
         expect(r.offline, isFalse);
         expect(r.places.map((p) => p.id), ['node/21']);
-        await s.lookup('Hörnlegrat', center);
+        await s.lookup('Hörnlegrat', center, online: true);
         expect(asked, [
           kPoiManifestUrl,
           '$kMapTilesBase/pois-20261119/names/ho.json',
         ], reason: 'derselbe Schlüssel fragt nicht noch einmal');
-        expect(await s.lookup('Xaver', center), kNoPlaces);
+        expect((await s.lookup('Xaver', center, online: true)).places, isEmpty);
         expect(asked, hasLength(2), reason: '„xa" nennt der Index nicht');
       },
     );
@@ -258,7 +275,7 @@ void main() {
         MockClient((req) async => throw const SocketException('offline')),
         stored: ['476_73.places.json'],
       );
-      final r = await s.lookup('Hörnle', center);
+      final r = await s.lookup('Hörnle', center, online: true);
       expect(r.offline, isTrue);
       expect(r.places.map((p) => p.id), [
         'node/24',
@@ -273,9 +290,65 @@ void main() {
         ),
         stored: ['476_73.places.json'],
       );
-      final r = await s.lookup('Zwiesel', center);
+      final r = await s.lookup('Zwiesel', center, online: true);
       expect(r.offline, isFalse);
       expect(r.places.map((p) => p.id), ['node/25']);
+    });
+
+    test(
+      'ohne Tipp (#596 H5): nur der Bereich, keine einzige Anfrage',
+      () async {
+        final asked = <String>[];
+        final s = source(host(asked), stored: ['476_73.places.json']);
+        final r = await s.lookup('Hörnle', center);
+        expect(
+          r.offline,
+          isFalse,
+          reason: 'nichts gewollt, nichts entschuldigt',
+        );
+        expect(r.places.map((p) => p.id), ['node/24']);
+        expect(asked, isEmpty);
+      },
+    );
+
+    test(
+      'gesehen (#596 H4): nach einem Neustart ohne Anfrage, auch ohne Tipp',
+      () async {
+        final seen = MemorySeenHostFiles();
+        final asked = <String>[];
+        await source(
+          host(asked),
+          seen: seen,
+        ).lookup('Hörnle', center, online: true);
+        expect(asked, hasLength(2));
+        // Neuer App-Lauf: dieselbe Ablage, ein Host ohne Netz.
+        final again = source(
+          MockClient((req) async {
+            asked.add(req.url.toString());
+            throw const SocketException('offline');
+          }),
+          seen: seen,
+        );
+        final r = await again.lookup('Hörnle', center);
+        expect(r.places.map((p) => p.id), ['node/21']);
+        final online = await again.lookup('Hörnle', center, online: true);
+        expect(online.places.map((p) => p.id), ['node/21']);
+        expect(online.offline, isFalse);
+        expect(asked, hasLength(2), reason: 'Manifest und Datei lagen');
+      },
+    );
+
+    test('laufende Anfragen werden geteilt (#596, Fund aus #576)', () async {
+      final asked = <String>[];
+      final s = source(host(asked, delay: const Duration(milliseconds: 20)));
+      await Future.wait([
+        for (final q in ['Hö', 'Hör', 'Hörn', 'Hörnl', 'Hörnle'])
+          s.lookup(q, center, online: true),
+      ]);
+      expect(asked, [
+        kPoiManifestUrl,
+        '$kMapTilesBase/pois-20261119/names/ho.json',
+      ]);
     });
   });
 }

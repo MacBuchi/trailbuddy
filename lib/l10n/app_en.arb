@@ -2138,6 +2138,7 @@
   "mapSearchPlaces": "Towns & peaks",
   "mapSearchPlacesLoading": "Searching towns and peaks …",
   "mapSearchPlacesOffline": "Offline: towns and peaks only from your saved areas",
+  "mapSearchPlacesOnline": "Search more places online",
   "placeKindCity": "City",
   "placeKindTown": "Town",
   "placeKindVillage": "Village",

@@ -11,7 +11,9 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:trailbuddy/core/settings.dart';
+import 'package:trailbuddy/data/seen_host_files.dart';
 import 'package:trailbuddy/features/map/map_providers.dart';
+import 'package:trailbuddy/features/map/map_regions.dart';
 import 'package:trailbuddy/features/map/poi.dart';
 import 'package:trailbuddy/features/map/poi_source.dart';
 
@@ -304,6 +306,101 @@ void main() {
     expect(b.w, closeTo(9.0, 1e-9));
     expect(b.e, closeTo(9.3, 1e-9));
     expect(poiCellOf(const LatLng(47.55, 9.05)), '475,60');
+  });
+
+  group('Gesehenes (#596 H4)', () {
+    const manifest = {
+      'format': 1,
+      'build': '20260928',
+      'prefix': 'pois-20260928',
+      'cells': {
+        'water': ['475,60'],
+      },
+    };
+    const spring = {
+      'format': 1,
+      'build': '20260928',
+      'cell': '475,60',
+      'group': 'water',
+      'pois': [
+        {'id': 'node/1', 'kind': 'spring', 'lat': 47.55, 'lng': 9.05},
+      ],
+    };
+
+    MockClient host(List<String> asked, {bool offline = false}) =>
+        MockClient((req) async {
+          asked.add(req.url.toString());
+          if (offline) throw const SocketException('offline');
+          if (req.url.toString() == kPoiManifestUrl) {
+            return http.Response(jsonEncode(manifest), 200);
+          }
+          return http.Response(jsonEncode(spring), 200);
+        });
+
+    test('eine Zelle kommt nach einem Neustart aus der Ablage, ohne Netz '
+        'mit dem gemerkten Manifest', () async {
+      final seen = MemorySeenHostFiles();
+      final asked = <String>[];
+      final first = HostPoiSource(client: host(asked), seen: seen);
+      expect(
+        (await first.fetch(['475,60'], {PoiGroup.water})).map((p) => p.id),
+        ['node/1'],
+      );
+      expect(asked, hasLength(2));
+      final later = HostPoiSource(
+        client: host(asked, offline: true),
+        seen: seen,
+      );
+      expect(
+        (await later.fetch(['475,60'], {PoiGroup.water})).map((p) => p.id),
+        ['node/1'],
+      );
+      expect(
+        asked,
+        hasLength(2),
+        reason: 'Manifest jünger als 24 h, Zelle lag',
+      );
+    });
+
+    test(
+      'das Manifest höchstens einmal am Tag; ohne Netz gilt das alte',
+      () async {
+        var now = DateTime(2026, 11, 20, 8);
+        final seen = MemorySeenHostFiles(now: () => now);
+        final asked = <String>[];
+        Future<PoiManifest?> load({bool offline = false}) => PoiManifests(
+          client: host(asked, offline: offline),
+          seen: seen,
+          now: () => now,
+        ).of(kDachRegion);
+        await load();
+        now = now.add(const Duration(hours: 23));
+        await load();
+        expect(asked, [kPoiManifestUrl], reason: 'nach 23 h noch gemerkt');
+        now = now.add(const Duration(hours: 2));
+        await load();
+        expect(asked, [
+          kPoiManifestUrl,
+          kPoiManifestUrl,
+        ], reason: 'nach 25 h neu');
+        now = now.add(const Duration(days: 3));
+        final old = await load(offline: true);
+        expect(old?.folder, 'pois-20260928');
+      },
+    );
+
+    test('dieselbe Zelle zugleich: eine Anfrage', () async {
+      final asked = <String>[];
+      final source = HostPoiSource(client: host(asked));
+      await Future.wait([
+        source.fetch(['475,60'], {PoiGroup.water}),
+        source.fetch(['475,60'], {PoiGroup.water}),
+      ]);
+      expect(asked, [
+        kPoiManifestUrl,
+        '$kMapTilesBase/pois-20260928/475_60.water.json',
+      ]);
+    });
   });
 
   group('Nachladen', () {

@@ -28,6 +28,10 @@ const kMapSearchMaxPlaces = 20;
 /// Trail ab 14.
 const kMapSearchFlyZoom = 15.0;
 
+/// So lange steht die Nadel am Ziel eines Ortsnamens (#596) — lang genug,
+/// um nach dem Flug hinzusehen; ein Tipp auf die Karte nimmt sie früher.
+const kMapSearchPinDuration = Duration(seconds: 6);
+
 /// Was die Suche zeigt, je Abschnitt nach Entfernung zur Kartenmitte.
 typedef MapSearchResult = ({
   List<Trail> trails,
@@ -100,22 +104,62 @@ MapSearchResult mapSearchOf({
 
   const distance = Distance();
   double trailM(Trail x) => _nearestM(x.points, center);
+  double away(LatLng at) => distance.as(LengthUnit.Meter, center, at);
+  List<T> order<T>(
+    Map<T, int> d,
+    List<String> Function(T) texts,
+    double Function(T) meters,
+    int max,
+  ) => _nearestFirst(
+    keep(d),
+    (x) => matchRank(needle, texts(x)),
+    meters,
+  ).take(max).toList();
   return (
-    trails: _nearestFirst(keep(t), trailM).take(kMapSearchMaxTrails).toList(),
-    startPoints: _nearestFirst(
-      keep(s),
-      (x) => distance.as(LengthUnit.Meter, center, x.position),
-    ).take(kMapSearchMaxStartPoints).toList(),
-    pois: _nearestFirst(
-      keep(p),
-      (x) => distance.as(LengthUnit.Meter, center, x.position),
-    ).take(kMapSearchMaxPois).toList(),
-    places: _nearestFirst(
-      keep(n),
-      (x) => distance.as(LengthUnit.Meter, center, x.position),
-    ).take(kMapSearchMaxPlaces).toList(),
+    trails: order(t, trailSearchTexts, trailM, kMapSearchMaxTrails),
+    startPoints: order(
+      s,
+      startPointSearchTexts,
+      (x) => away(x.position),
+      kMapSearchMaxStartPoints,
+    ),
+    pois: order(
+      p,
+      (x) => poiSearchTexts(x, kindLabel),
+      (x) => away(x.position),
+      kMapSearchMaxPois,
+    ),
+    places: order(
+      n,
+      placeSearchTexts,
+      (x) => away(x.position),
+      kMapSearchMaxPlaces,
+    ),
     isGuess: best > 0,
   );
+}
+
+final _wordBreak = RegExp(r"[\s\-/,.()'’]+");
+
+/// Wie gut [texts] die gefaltete Eingabe [needle] treffen (#596, Fund aus
+/// dem Test von #576): 0 genau, 1 der Text beginnt mit ihr, 2 ein Wort
+/// darin, 3 sonst. Erst danach zählt die Entfernung — wer „Au" tippt,
+/// will Au, nicht das nähere Pfaffenau.
+int matchRank(String needle, List<String> texts) {
+  var best = 3;
+  for (final text in texts) {
+    final hay = foldSearchText(text);
+    if (hay == needle) return 0;
+    if (hay.startsWith(needle)) {
+      best = 1;
+    } else if (best > 2 &&
+        text
+            .split(_wordBreak)
+            .any((w) => foldSearchText(w).startsWith(needle))) {
+      best = 2;
+    }
+  }
+  return best;
 }
 
 /// Je Eintrag der beste Abstand: 0 für einen Teiltreffer, sonst der
@@ -145,11 +189,24 @@ Map<T, int> _distances<T>(
   return out;
 }
 
-/// Nach Entfernung sortiert; bei Gleichstand bleibt die Reihenfolge.
-List<T> _nearestFirst<T>(List<T> items, double Function(T) meters) {
-  final keyed = [
-    for (var i = 0; i < items.length; i++) (i: i, m: meters(items[i])),
-  ]..sort((a, b) => a.m != b.m ? a.m.compareTo(b.m) : a.i.compareTo(b.i));
+/// Nach [rank], dann nach Entfernung; bei Gleichstand bleibt die
+/// Reihenfolge.
+List<T> _nearestFirst<T>(
+  List<T> items,
+  int Function(T) rank,
+  double Function(T) meters,
+) {
+  final keyed =
+      [
+        for (var i = 0; i < items.length; i++)
+          (i: i, r: rank(items[i]), m: meters(items[i])),
+      ]..sort(
+        (a, b) => a.r != b.r
+            ? a.r.compareTo(b.r)
+            : a.m != b.m
+            ? a.m.compareTo(b.m)
+            : a.i.compareTo(b.i),
+      );
   return [for (final k in keyed) items[k.i]];
 }
 

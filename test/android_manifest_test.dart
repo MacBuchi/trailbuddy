@@ -624,6 +624,7 @@ void main() {
         'file:updates',
         'file:official_trails',
         'file:mbgl-offline.db',
+        'file:seen_host',
       ]),
     );
     expect(manifest, contains('@xml/backup_rules'));

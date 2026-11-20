@@ -11,6 +11,8 @@ import '../../core/line_geometry.dart';
 import '../../core/settings.dart';
 import '../offline_areas/area_store.dart';
 import 'map_providers.dart';
+import '../../data/browser_storage.dart';
+import '../../data/seen_host_files.dart';
 import 'map_regions.dart';
 import 'poi.dart';
 import 'host_requests.dart';
@@ -34,9 +36,14 @@ class HostPoiSource implements PoiSource {
     http.Client? client,
     Future<String?> Function(String name)? readLocal,
     Future<List<MapRegion>> Function()? regions,
+    SeenHostFiles? seen,
+    PoiManifests? manifests,
   }) : _client = client ?? hostClient(),
        _readLocal = readLocal,
-       _regions = regions;
+       _regions = regions,
+       _seen = seen {
+    _manifests = manifests ?? PoiManifests(client: _client, seen: seen);
+  }
 
   final http.Client _client;
 
@@ -49,9 +56,15 @@ class HostPoiSource implements PoiSource {
   /// Region, in deren Rahmen sie liegt. Ohne: DACH allein.
   final Future<List<MapRegion>> Function()? _regions;
 
-  /// Die Manifeste dieses App-Laufs, je Region. Scheitert ein Abruf,
-  /// fehlt es und der nächste Wunsch versucht es wieder.
-  final _manifests = <String, PoiManifest>{};
+  /// Was schon einmal vom Host kam (#596 H4): nach dem Bereich, vor dem
+  /// Host.
+  final SeenHostFiles? _seen;
+
+  late final PoiManifests _manifests;
+
+  /// Laufende Abrufe je Datei — wer dieselbe Zelle zugleich will (Karte
+  /// und Suche), wartet auf denselben.
+  final _inflight = <String, Future<List<Poi>>>{};
 
   /// So viele Dateien auf einmal — ein Tablet auf Zoom 12 mit allen
   /// Gruppen braucht bis zu 64, die einzeln nacheinander eine Weile
@@ -59,15 +72,6 @@ class HostPoiSource implements PoiSource {
   static const _parallel = 6;
 
   static const _timeout = Duration(seconds: 20);
-
-  /// Das Manifest der Region; null, wenn die Region keine Orte hat.
-  Future<PoiManifest?> _loadManifest(MapRegion region) async {
-    final cached = _manifests[region.id];
-    if (cached != null) return cached;
-    final m = await fetchRegionPoiManifest(_client, region);
-    if (m != null) _manifests[region.id] = m;
-    return m;
-  }
 
   @override
   Future<List<Poi>> fetch(List<PoiCell> cells, Set<PoiGroup> groups) async {
@@ -98,7 +102,7 @@ class HostPoiSource implements PoiSource {
       if (region != null) (byRegion[region] ??= []).add((c, g));
     }
     for (final MapEntry(key: region, value: cells) in byRegion.entries) {
-      final manifest = await _loadManifest(region);
+      final manifest = await _manifests.of(region);
       if (manifest == null) continue;
       for (final (c, g) in cells) {
         if (manifest.has(c, g)) wanted.add((manifest, c, g));
@@ -116,36 +120,128 @@ class HostPoiSource implements PoiSource {
     return out;
   }
 
-  Future<List<Poi>> _fetchCell(PoiManifest m, PoiCell cell, PoiGroup g) async {
-    final uri = Uri.parse(
-      '$kMapTilesBase/${m.folder}/${poiCellFileName(cell, g)}',
-    );
-    final res = await _client.get(uri).timeout(_timeout);
+  Future<List<Poi>> _fetchCell(PoiManifest m, PoiCell cell, PoiGroup g) {
+    final key = '${m.folder}/${poiCellFileName(cell, g)}';
+    return _inflight[key] ??= _fetchFile(key).whenComplete(() {
+      // Ein Block, kein Pfeil: `remove` gäbe die Future selbst zurück,
+      // und `whenComplete` wartete auf sich selbst.
+      _inflight.remove(key);
+    });
+  }
+
+  Future<List<Poi>> _fetchFile(String key) async {
+    final seen = await readSeen(_seen, key);
+    if (seen != null) {
+      try {
+        return parsePoiFile(seen);
+      } on FormatException {
+        // kaputt abgelegt: neu vom Host
+      }
+    }
+    final res = await _client
+        .get(Uri.parse('$kMapTilesBase/$key'))
+        .timeout(_timeout);
     // Eine Datei, die das Manifest nennt und die nicht da ist: der Bau
     // wurde gerade abgelöst und das alte Präfix ist schon weg. Leer, und
-    // beim nächsten App-Start gilt das neue Manifest.
+    // beim nächsten Manifest gilt das neue.
     if (res.statusCode == 404) return const [];
     if (res.statusCode != 200) throw PoiUnavailable(res.statusCode);
-    return parsePoiFile(res.body);
+    final pois = parsePoiFile(res.body);
+    unawaited(_seen?.write(key, res.body));
+    return pois;
   }
 }
 
-/// Das Orte-Manifest der [region] (#220); null, wenn die Region keine
-/// Orte hat, [PoiUnavailable] bei einer Antwort ohne 200. Geteilt von
-/// [HostPoiSource] und der Ortsnamen-Suche (#576).
-Future<PoiManifest?> fetchRegionPoiManifest(
-  http.Client client,
-  MapRegion region,
-) async {
-  if (region.isDach) return fetchPoiManifest(client);
-  final uri = region.manifestUri(RegionLayer.pois);
-  if (uri == null) return null;
-  final res = await client.get(uri).timeout(const Duration(seconds: 20));
-  if (res.statusCode != 200) throw PoiUnavailable(res.statusCode);
-  return PoiManifest.fromJson(
-    jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>,
-    dir: region.dir,
-  );
+/// Die Orte-Manifeste je Region (#220), geteilt von Karte und Suche
+/// (#596): je Lauf im Speicher, auf dem Gerät gemerkt und höchstens alle
+/// [kHostManifestMaxAge] neu gefragt; laufende Abrufe werden geteilt.
+/// Ohne Netz gilt das gemerkte jeden Alters — die Zellen, die schon
+/// einmal kamen, liegen ja auch.
+class PoiManifests {
+  PoiManifests({
+    required http.Client client,
+    SeenHostFiles? seen,
+    DateTime Function()? now,
+  }) : _client = client,
+       _seen = seen,
+       _now = now ?? DateTime.now;
+
+  final http.Client _client;
+  final SeenHostFiles? _seen;
+  final DateTime Function() _now;
+
+  final _fresh = <String, PoiManifest>{};
+  final _inflight = <String, Future<PoiManifest?>>{};
+
+  /// Der Pfad, unter dem das Manifest der [region] gemerkt wird; null:
+  /// die Region hat keine Orte.
+  static String? keyOf(MapRegion region) {
+    final uri = _uriOf(region)?.toString();
+    if (uri == null) return null;
+    return uri.startsWith('$kMapTilesBase/')
+        ? uri.substring(kMapTilesBase.length + 1)
+        : uri;
+  }
+
+  static Uri? _uriOf(MapRegion region) => region.isDach
+      ? Uri.parse(kPoiManifestUrl)
+      : region.manifestUri(RegionLayer.pois);
+
+  /// Das Manifest der [region]; null, wenn sie keine Orte hat.
+  /// [PoiUnavailable] bei einer Antwort ohne 200 und nichts Gemerktem,
+  /// Netzfehler ebenso. [local]: nur, was das Gerät hat (jedes Alter),
+  /// nie eine Anfrage.
+  Future<PoiManifest?> of(MapRegion region, {bool local = false}) async {
+    final cached = _fresh[region.id];
+    if (cached != null) return cached;
+    final key = keyOf(region);
+    if (key == null) return null;
+    if (local) return _parse(region, await readSeen(_seen, key));
+    final young = _parse(
+      region,
+      await readSeen(_seen, key, maxAge: kHostManifestMaxAge, now: _now),
+    );
+    if (young != null) return _fresh[region.id] = young;
+    return _inflight[region.id] ??= _fetch(region, _uriOf(region)!, key)
+        .whenComplete(() {
+          // Ein Block, kein Pfeil: `remove` gäbe die Future selbst zurück,
+          // und `whenComplete` wartete auf sich selbst.
+          _inflight.remove(region.id);
+        });
+  }
+
+  Future<PoiManifest?> _fetch(MapRegion region, Uri uri, String key) async {
+    try {
+      final res = await _client.get(uri).timeout(const Duration(seconds: 20));
+      if (res.statusCode != 200) throw PoiUnavailable(res.statusCode);
+      final text = utf8.decode(res.bodyBytes);
+      final m = _parse(region, text, strict: true);
+      // Abgewartet: einmal am Tag, und die nächste Frage soll es finden.
+      await _seen?.write(key, text);
+      return _fresh[region.id] = m!;
+    } catch (_) {
+      final old = _parse(region, await readSeen(_seen, key));
+      if (old != null) return old;
+      rethrow;
+    }
+  }
+
+  static PoiManifest? _parse(
+    MapRegion region,
+    String? text, {
+    bool strict = false,
+  }) {
+    if (text == null) return null;
+    try {
+      final j = jsonDecode(text) as Map<String, dynamic>;
+      return region.isDach
+          ? PoiManifest.fromJson(j)
+          : PoiManifest.fromJson(j, dir: region.dir);
+    } on Object {
+      if (strict) rethrow;
+      return null; // gemerkt, aber unlesbar: wie keins
+    }
+  }
 }
 
 /// Das Orte-Manifest vom Host; wirft [PoiUnavailable], solange keins
@@ -184,10 +280,26 @@ class PoiUnavailable implements Exception {
   String toString() => 'Der Orte-Host antwortet mit $statusCode';
 }
 
+/// Die Ablage gesehener kleiner Dateien des Hosts (#596 H4) — die Naht
+/// für Tests (der Harness hängt eine im Speicher ein).
+final seenHostFilesProvider = Provider<SeenHostFiles?>(
+  (ref) => chooseSeenHostFiles(web: kIsWeb, factory: browserIdbFactory()),
+);
+
+/// Die Orte-Manifeste, EINMAL für Karte und Suche.
+final poiManifestsProvider = Provider<PoiManifests>(
+  (ref) => PoiManifests(
+    client: hostClient(),
+    seen: ref.watch(seenHostFilesProvider),
+  ),
+);
+
 final poiSourceProvider = Provider<PoiSource>(
   (ref) => HostPoiSource(
     readLocal: ref.watch(areaStoreProvider).readPoiFile,
     regions: () => ref.read(mapRegionsProvider.future),
+    seen: ref.watch(seenHostFilesProvider),
+    manifests: ref.watch(poiManifestsProvider),
   ),
 );
 

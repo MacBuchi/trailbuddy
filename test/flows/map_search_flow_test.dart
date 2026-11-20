@@ -101,6 +101,12 @@ void main() {
     await settle(tester);
   }
 
+  /// Der Tipp auf „Weitere Orte online suchen" (#596 H5).
+  Future<void> searchOnline(WidgetTester tester) async {
+    await tester.tap(find.byKey(const ValueKey('map-search-places-online')));
+    await settle(tester);
+  }
+
   testWidgets('ein Trail: eingepasst, er leuchtet, die Schnellkarte steht', (
     tester,
   ) async {
@@ -214,16 +220,40 @@ void main() {
   });
 
   testWidgets(
-    'Ortsnamen (#576 Stufe 2): ein Gipfel weit weg, hin; die Hütte öffnet ihr Blatt',
+    'Ortsnamen (#576 Stufe 2): erst nach dem Tipp online (#596); ein Gipfel weit weg, hin, mit Nadel; die Hütte öffnet ihr Blatt',
     (tester) async {
       await start(tester);
       await openAndType(tester, 'Grünstein');
-      expect(places.queries.last, 'Grünstein');
+      expect(places.onlineQueries, isEmpty, reason: 'ohne Tipp nichts online');
+      expect(
+        find.byKey(const ValueKey('map-search-place-node/40')),
+        findsNothing,
+      );
+      await searchOnline(tester);
+      expect(places.onlineQueries.last, 'Grünstein');
+      expect(
+        find.byKey(const ValueKey('map-search-places-online')),
+        findsNothing,
+        reason: 'online bleibt an, solange das Feld offen ist',
+      );
       expect(
         find.byKey(const ValueKey('map-search-place-node/40')),
         findsOneWidget,
       );
       expect(find.text('Gipfel · 2042 m'), findsOneWidget);
+
+      // Weitertippen fragt online ohne zweiten Tipp.
+      await tester.enterText(
+        find.byKey(const ValueKey('map-search-field')),
+        'Grünsteinh',
+      );
+      await settle(tester);
+      expect(places.onlineQueries.last, 'Grünsteinh');
+      await tester.enterText(
+        find.byKey(const ValueKey('map-search-field')),
+        'Grünstein',
+      );
+      await settle(tester);
 
       await tester.tap(find.byKey(const ValueKey('map-search-place-node/40')));
       await settle(tester, frames: 20);
@@ -233,8 +263,22 @@ void main() {
         fakeMap(tester).zoom,
         greaterThanOrEqualTo(PlaceKind.peak.flyZoom),
       );
+      expect(find.byKey(const ValueKey('map-search-pin')), findsOneWidget);
+      await tester.pump(kMapSearchPinDuration);
+      await settle(tester);
+      expect(
+        find.byKey(const ValueKey('map-search-pin')),
+        findsNothing,
+        reason: 'die Nadel ist kurz',
+      );
 
+      // Ein neues Feld fängt wieder offline an.
       await openAndType(tester, 'grunsteinhutte');
+      expect(
+        find.byKey(const ValueKey('map-search-places-online')),
+        findsOneWidget,
+      );
+      await searchOnline(tester);
       await tester.tap(find.byKey(const ValueKey('map-search-place-node/41')));
       await settle(tester, frames: 20);
       expect(fakeMap(tester).center.latitude, closeTo(47.88, 1e-6));
@@ -246,12 +290,54 @@ void main() {
     },
   );
 
+  testWidgets(
+    'Ortsnamen aus dem Bereich (#596 H5): ohne Tipp gefunden, ein Tipp auf die Karte nimmt die Nadel',
+    (tester) async {
+      places.stored.add(
+        const Place(
+          id: 'node/50',
+          kind: PlaceKind.village,
+          name: 'Talheim',
+          position: LatLng(47.51, 10.51),
+        ),
+      );
+      await start(tester);
+      await openAndType(tester, 'Talheim');
+      expect(
+        find.byKey(const ValueKey('map-search-place-node/50')),
+        findsOneWidget,
+      );
+      expect(places.onlineQueries, isEmpty);
+      await tester.tap(find.byKey(const ValueKey('map-search-place-node/50')));
+      await settle(tester, frames: 20);
+      expect(find.byKey(const ValueKey('map-search-pin')), findsOneWidget);
+      await tapMapAt(tester, const LatLng(47.55, 10.6));
+      await settle(tester);
+      expect(find.byKey(const ValueKey('map-search-pin')), findsNothing);
+    },
+  );
+
   testWidgets('Ortsnamen ohne Netz: die Suche sagt, woher sie kommen', (
     tester,
   ) async {
     places.offline = true;
+    places.stored.add(
+      const Place(
+        id: 'node/40',
+        kind: PlaceKind.peak,
+        name: 'Grünstein',
+        ele: 2042,
+        position: LatLng(47.9, 10.9),
+      ),
+    );
     await start(tester);
     await openAndType(tester, 'Grünstein');
+    expect(
+      find.byKey(const ValueKey('map-search-places-offline')),
+      findsNothing,
+      reason: 'ohne Online-Wunsch gibt es nichts zu entschuldigen',
+    );
+    await searchOnline(tester);
     expect(
       find.byKey(const ValueKey('map-search-places-offline')),
       findsOneWidget,

@@ -48,24 +48,39 @@ class FakePoiSource implements PoiSource {
 /// beginnt (zwei Buchstaben, wie eine ungeteilte Namensdatei). Merkt sich
 /// jede Anfrage; [offline] spielt den Rückfall auf gespeicherte Bereiche.
 class FakePlaceSource implements PlaceSource {
-  FakePlaceSource([List<Place>? places]) : places = places ?? [];
+  FakePlaceSource([List<Place>? places, List<Place>? stored])
+    : places = places ?? [],
+      stored = stored ?? [];
 
+  /// Der Index des Hosts — nur mit `online` (#596 H5).
   final List<Place> places;
+
+  /// Was die gespeicherten Bereiche mitbringen — immer.
+  final List<Place> stored;
   final queries = <String>[];
+
+  /// Die Eingaben, zu denen online gefragt wurde.
+  final onlineQueries = <String>[];
   bool offline = false;
 
   @override
-  Future<PlaceLookup> lookup(String query, LatLng center) async {
+  Future<PlaceLookup> lookup(
+    String query,
+    LatLng center, {
+    bool online = false,
+  }) async {
     queries.add(query);
     final word = longestPlaceWord(query);
     if (word == null) return kNoPlaces;
     final prefix = word.substring(0, 2);
+    if (online) onlineQueries.add(query);
+    final from = online && !offline ? [...stored, ...places] : stored;
     return (
       places: [
-        for (final p in places)
+        for (final p in from)
           if (placeHasWordStarting(p, prefix)) p,
       ],
-      offline: offline,
+      offline: online && offline,
     );
   }
 }

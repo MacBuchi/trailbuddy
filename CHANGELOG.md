@@ -2,6 +2,22 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Suche zuerst auf dem Gerät
+
+*Version 0.192.2, 2026-11-20*
+
+- Die Suche auf der Karte findet Ortschaften und Gipfel jetzt zuerst in
+  deinen gespeicherten Bereichen und in dem, was schon einmal geladen
+  wurde — ohne Anfrage ins Netz. Erst ein Tipp auf „Weitere Orte online
+  suchen“ fragt den Kartenspeicher; danach sucht das offene Feld beim
+  Weitertippen online weiter.
+- Ein Name, der genau deiner Eingabe entspricht oder mit ihr beginnt,
+  steht jetzt oben — „Au“ findet zuerst Au, nicht das nähere Pfaffenau.
+- Nach dem Sprung zu einem Ort zeigt eine kurze Nadel, wo genau er liegt.
+- Orte und Namenslisten, die einmal geladen wurden, behält die App auf
+  dem Gerät (bis 20 MB) und holt sie nicht noch einmal; ihr Verzeichnis
+  fragt sie höchstens einmal am Tag. Das spart Datenvolumen und Anfragen.
+
 ## Weniger Anfragen an den Kartenspeicher: erst messen
 
 *Version 0.192.1, 2026-11-20*

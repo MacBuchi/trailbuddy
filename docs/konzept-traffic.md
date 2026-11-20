@@ -77,7 +77,10 @@ bauen, und beim Verlassen wieder sichtbar. Erst ein Spike: Kann
 Schalter „Nur gespeicherte Karten“ je Region als Rückfall. Im Web ist
 das schon so (der Speicher kommt zuerst).
 
-**H4 — Gesehenes auch für kleine Dateien** (☁️). Orte-Zellen,
+**H4 — Gesehenes auch für kleine Dateien** (☁️; **gebaut seit 0.192.2**
+für Orte-Zellen, Namensdateien und Orte-Manifeste, `lib/data/seen_host_files.dart`;
+Höhenkacheln für das Profil eines Trails und die übrigen Manifeste
+folgen). Orte-Zellen,
 Namensdateien und Höhenkacheln, die vom Host kamen, landen in einem
 Speicher auf dem Gerät: Android Dateien, Browser IndexedDB, Schlüssel mit
 Bau, Deckel z. B. 20 MB, die älteste geht zuerst. Dasselbe Muster wie
@@ -87,7 +90,7 @@ höchstens alle 24 h neu fragen, sofort bei „Aktualisieren“ in „Meine
 Bereiche“. Mit H1 sinken die R2-Kosten schon; H4 spart dazu die
 Anfragen selbst und macht die App ohne Netz vollständiger.
 
-**H5 — Suche offline zuerst** (☁️). Ortsnamen: erst die Zellen der
+**H5 — Suche offline zuerst** (☁️; **gebaut seit 0.192.2**). Ortsnamen: erst die Zellen der
 gespeicherten Bereiche. Gibt es dort einen Treffer, geht nichts raus.
 Sonst fragt die App den Host, eine Anfrage je Schlüssel, laufende
 Anfragen werden geteilt und das Ergebnis gemerkt (H4). **Entschieden
@@ -139,8 +142,9 @@ und das ist der Normalfall bei Trails.
 1. **H1** (👤, 5 min) — der Betreiber setzt die Cache-Regel, ich prüfe
    mit `curl` (`HIT`) und korrigiere die Notiz in `lib/features/map/CLAUDE.md`.
 2. **H7** Zähler (☁️), dann die Grundlinie am Gerät (📱).
-3. **H5** mit den Testfunden (doppelte Anfragen, Reihenfolge, Nadel) und
-   **H4** — ein PR, ein Bump.
+3. ~~**H5** mit den Testfunden (doppelte Anfragen, Reihenfolge, Nadel) und
+   **H4** — ein PR, ein Bump.~~ 0.192.2; offen aus H4: Höhenkacheln für
+   das Trail-Profil, Manifeste von Karte, Wegen, Höhen und Regionen.
 4. **H3** Spike (📱), dann bauen.
 5. **H2** Messung (⚙️), dann entscheiden.
 6. **H6**.

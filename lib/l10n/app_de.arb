@@ -11517,6 +11517,10 @@
   "@mapSearchPlacesOffline": {
     "description": "Wenn der Kartenhost nicht erreichbar ist und die Ortsnamen aus gespeicherten Bereichen kommen."
   },
+  "mapSearchPlacesOnline": "Weitere Orte online suchen",
+  "@mapSearchPlacesOnline": {
+    "description": "Zeile unter den Treffern (#596 H5): Erst ihr Tipp fragt den Kartenhost nach Ortsnamen; ohne Tipp sucht die App nur auf dem Gerät."
+  },
   "placeKindCity": "Stadt",
   "@placeKindCity": {
     "description": "Art eines Ortsnamens: place=city."

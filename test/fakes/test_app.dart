@@ -24,6 +24,7 @@ import 'package:trailbuddy/core/settings.dart';
 import 'package:trailbuddy/core/update_check.dart';
 import 'package:trailbuddy/core/widgets/start_splash.dart';
 import 'package:trailbuddy/data/providers.dart';
+import 'package:trailbuddy/data/seen_host_files.dart';
 import 'package:trailbuddy/features/garmin/garmin_bridge.dart';
 import 'package:trailbuddy/features/garmin/watch_event_store.dart';
 import 'package:trailbuddy/features/garmin/watch_shelf.dart'
@@ -218,6 +219,8 @@ List<Override> overridesFor(
   // zoomt, liegt über Zoom 12 und fragte sonst wirklich an.
   poiSourceProvider.overrideWithValue(pois ?? FakePoiSource()),
   placeSourceProvider.overrideWithValue(places ?? FakePlaceSource()),
+  // Gesehene Host-Dateien (#596 H4) im Speicher, nie im App-Verzeichnis.
+  seenHostFilesProvider.overrideWithValue(MemorySeenHostFiles()),
   // Ebenso die offiziellen Trails: Vorgabe ist ein Index ohne
   // Regionen, gemerkt wird im Speicher statt im App-Verzeichnis.
   officialTrailsSourceProvider.overrideWithValue(
