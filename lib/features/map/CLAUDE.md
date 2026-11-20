@@ -138,7 +138,7 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
   WAS die Karte zeigt (`MapViewLayers`: Kreise < Linien < Marker), und
   greift über `MapViewController` auf die Kamera zu. WIE gerendert wird,
   entscheidet `mapViewBuilderProvider`: **Android MapLibre** (nativer
-  GPU-Renderer, `maplibre` 0.3.5 exakt gepinnt), **Web flutter_map** —
+  GPU-Renderer, `maplibre` exakt gepinnt, seit 0.3.7+1), **Web flutter_map** —
   ohne Schalter, `kIsWeb` ist eine Kompilierzeit-Konstante. Web sieht
   `package:maplibre` nie (bedingter Import, ein Test hält es fest).
   `flutter_map_view.dart` bleibt im Android-Build: Baut der
@@ -731,3 +731,49 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
   Prüfung, „Aktualisieren" ohne `expire`, Höhen nicht gelesen bzw. nicht
   abgelegt, Fabrik ohne Ablage, offline ohne Host-Quelle, ohne gemerktes
   Höhen-Manifest, Rang ohne 30-km-Grenze.
+- **Im Bereich keine Online-Ebenen** (#596 H3, seit 0.193.1, nur
+  Android; `map_view/online_layers.dart`, Deckung
+  `offline_areas/area_coverage.dart`). Deckt der Kachelspeicher den
+  Ausschnitt bei Stillstand ganz, nimmt `OnlineLayerSwitch` die Ebenen
+  der Online-Karte (`online`, `online-<region>`) und der Online-Wege
+  (`ways`, `ways-region-<region>`) aus dem Stil; MapLibre lädt dann
+  nichts mehr von dort. Beim Verlassen kommen sie an ihre Stelle zurück.
+  Fünf Dinge, die man wissen muss:
+  - **Raus und rein, keine Sichtbarkeit**: `maplibre` 0.3.7+1 hat am
+    `StyleController` nur `addLayer`/`removeLayer`. Zurück kommt eine
+    Ebene aus dem JSON des angewandten Stils (`styleLayerFromJson`), unter
+    die nächste Ebene DES STILS danach, die liegt, sonst unter die
+    unterste eigene der App (`_layerSync.bottomLayerId`). Was liegt,
+    führt der Schalter selbst: `getLayerIds()` ist im Paket
+    `@visibleForTesting`. `setStyle` wäre die Alternative gewesen und
+    überträgt das ganze Trail-Netz neu.
+  - **Gedeckt heißt: aus den FORMEN der fertigen Bereiche** (`coverAreasOf`:
+    `complete`, kein Altbestand, kein Halter „Unterwegs geladen"), bei
+    der Kachelstufe, die MapLibre fragt (`vectorTileZoom`: 256er-Zoom
+    minus eins, abgerundet, gedeckelt bei 13). Unter Zoom 8 bleibt die
+    Karte online. Wege zählen nur ab `kWaysZoom` und nur aus Bereichen mit
+    Wegen; darunter bleibt ihr Stand. Ein Ausschnitt, der den Rahmen
+    eines `RectShape` gar nicht berührt, gilt als ungedeckt, auch wenn er
+    in dessen Randkachel liegt (`tilesWithin` prüft zuerst die
+    Überschneidung) — die vorsichtige Richtung.
+  - **Schwelle gegen Flackern**: Gehen erst, wenn der Speicher den
+    Ausschnitt plus die Hälfte je Seite deckt (`kOnlineHideMargin`),
+    zurück, sobald nicht einmal ein Viertel mehr gedeckt ist
+    (`kOnlineShowMargin`). Entschieden wird nur bei Stillstand; wer
+    während einer Geste weit hinauszoomt, sieht kurz den Landton.
+  - **Der Anker der Höhenlinien kann eine Online-Beschriftung sein**:
+    `_contourAnchor` weicht dann auf die nächste liegende Ebene aus
+    (`presentAnchor`). Nach `setStyle` hat der neue Stil alles wieder:
+    `reset`, dann VOR dem Abgleich der eigenen Ebenen neu entscheiden.
+  - **Ein Fehler beim Umschalten setzt alles zurück** (gemeldet, die
+    Online-Ebenen kommen wieder): lieber Anfragen als Löcher.
+  Im Browser gilt das ohnehin schon (der Speicher kommt vor dem Host).
+  Tests: `test/map/online_layers_test.dart` gegen den echten Composer und
+  den mitschreibenden Stil (`test/fakes/recording_style.dart`).
+  Gegenproben 2026-11-20 (alle rot): keine Schwelle, zurück immer nach
+  oben, Wege der Bereiche mit hinaus, Fehler ohne Rückbau, ohne Deckel
+  13, Anker nicht ausgewichen, halbe Bereiche zählen. Am Gerät geprüft
+  (Pixel XL, 2026-11-20): MapLibre nimmt die Ausdrücke des
+  Protomaps-Stils über `addLayer` an, die Reihenfolge stimmt, und der
+  Zähler bleibt im Bereich bei 0 (Zahlen in `docs/konzept-traffic.md`
+  H3).

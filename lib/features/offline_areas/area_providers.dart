@@ -49,6 +49,7 @@ import '../map/poi.dart';
 import '../map/poi_source.dart';
 import '../map/way_layer.dart';
 import '../routing/routing_bake.dart';
+import 'area_coverage.dart';
 import 'area_downloader.dart';
 import 'area_migration.dart';
 import 'area_plan.dart';
@@ -140,6 +141,12 @@ final storedAreasProvider =
     AsyncNotifierProvider<StoredAreasNotifier, List<StoredArea>>(
       StoredAreasNotifier.new,
     );
+
+/// Die fertigen Bereiche als Deckung (#596 H3): Wo sie einen Ausschnitt
+/// ganz decken, nimmt die MapLibre-Ansicht die Online-Ebenen heraus.
+final coverAreasProvider = Provider<List<CoverArea>>(
+  (ref) => coverAreasOf(ref.watch(storedAreasProvider).valueOrNull ?? const []),
+);
 
 /// Was ein Bereich ALLEIN belegt (#229): die Bytes, die sein Löschen frei
 /// gäbe — Kacheln, die ein anderer Bereich auch deckt, zählen nicht.

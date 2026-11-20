@@ -2,6 +2,15 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Im gespeicherten Bereich keine Online-Karte
+
+*Version 0.193.1, 2026-11-20*
+
+- In einem gespeicherten Bereich lädt die Karte auf Android jetzt auch
+  beim Zoomen nichts mehr aus dem Netz. Sie nimmt alles aus dem
+  Speicher, solange der Bereich den Ausschnitt ganz deckt. Am Rand des
+  Bereichs kommt die Online-Karte wieder dazu.
+
 ## Weniger Anfragen, alte Bereiche mit Ortsnamen
 
 *Version 0.193.0, 2026-11-20*

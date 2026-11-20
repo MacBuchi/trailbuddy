@@ -20,6 +20,7 @@ import 'package:maplibre/maplibre.dart' as ml;
 
 import '../../../core/app_colors.dart';
 import '../../../core/errors.dart';
+import '../../offline_areas/area_providers.dart' show coverAreasProvider;
 import '../contour_layer.dart';
 import '../contours.dart' show ContourLine;
 import '../online_map.dart' show kSeenTilesCacheBytes;
@@ -31,6 +32,7 @@ import 'map_hit_test.dart';
 import 'map_style_composer.dart' show contourAnchorIn;
 import 'map_view.dart';
 import 'maplibre_style_provider.dart';
+import 'online_layers.dart';
 
 /// Bau-Funktion für die Engine-Wahl in `map_view.dart` — Stub und echte
 /// Datei müssen dieselbe Signatur exportieren (bedingter Import).
@@ -70,6 +72,9 @@ class _MapLibreMapViewState extends ConsumerState<MapLibreMapView>
   /// dahinter neu.
   final _layerSync = KeyedLayerSync();
 
+  /// Im gespeicherten Bereich ohne Online-Ebenen (#596 H3).
+  final _online = OnlineLayerSwitch();
+
   /// Der Stil, gegen den abgeglichen wird — erst nach `onStyleLoaded`,
   /// und nach jedem `setStyle` ein neuer.
   ml.StyleController? _style;
@@ -98,7 +103,7 @@ class _MapLibreMapViewState extends ConsumerState<MapLibreMapView>
       style: final s,
       :final anchor,
     ) when identical(s, style)) {
-      return anchor;
+      return _presentAnchor(anchor);
     }
     String? anchor;
     try {
@@ -107,7 +112,29 @@ class _MapLibreMapViewState extends ConsumerState<MapLibreMapView>
       logError('Anker der Höhenlinien suchen', e, s);
     }
     _anchorOf = (style: style, anchor: anchor);
-    return anchor;
+    return _presentAnchor(anchor);
+  }
+
+  /// Ist der Anker eine Online-Ebene, die im Bereich gerade draußen ist,
+  /// gilt die nächste Ebene danach (#596 H3).
+  String? _presentAnchor(String? anchor) =>
+      presentAnchor(_online.styleOrder, anchor, _online.hiddenIds);
+
+  /// Nimmt die Online-Ebenen heraus, wo der Kachelspeicher den Ausschnitt
+  /// ganz deckt, und setzt sie beim Verlassen wieder ein (#596 H3).
+  void _switchOnline() {
+    final style = _style;
+    final controller = _ml;
+    if (style == null || controller == null || !mounted) return;
+    final camera = _cameraOf(controller);
+    if (camera == null) return;
+    final want = onlineHiddenFor(
+      areas: ref.read(coverAreasProvider),
+      view: camera.bounds,
+      zoom256: camera.zoom,
+      current: _online.hidden,
+    );
+    unawaited(_online.apply(style, want, aboveStyle: _layerSync.bottomLayerId));
   }
 
   /// Nach dem Bild abgleichen, einmal je Bild: Der Aufbau beschreibt nur,
@@ -196,6 +223,7 @@ class _MapLibreMapViewState extends ConsumerState<MapLibreMapView>
     final camera = _cameraOf(controller);
     if (camera == null) return;
     setState(() => _visibleBounds = camera.bounds);
+    _switchOnline();
     widget.config.onCameraIdle?.call(camera);
   }
 
@@ -650,6 +678,10 @@ class _MapLibreMapViewState extends ConsumerState<MapLibreMapView>
         _style = style;
         _layerSync.reset();
         _contourSync.reset();
+        // Der neue Stil hat alle Online-Ebenen wieder — VOR dem Abgleich
+        // entscheiden, damit die Höhenlinien den richtigen Anker finden.
+        _online.reset(_appliedStyle ?? '{}');
+        _switchOnline();
         _syncAll(style);
       },
       onMapCreated: (controller) {

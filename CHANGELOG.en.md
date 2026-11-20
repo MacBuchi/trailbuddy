@@ -2,6 +2,15 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## No online map inside a saved area
+
+*Version 0.193.1, 2026-11-20*
+
+- Inside a saved area, the map on Android now loads nothing from the
+  network, also when zooming. It takes everything from storage as long
+  as the area covers the whole view. At the edge of the area, the online
+  map comes back.
+
 ## Fewer requests, place names for older areas
 
 *Version 0.193.0, 2026-11-20*
