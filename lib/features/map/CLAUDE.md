@@ -377,7 +377,8 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     `seenWaysManifest`, nur bei Änderung geschrieben) und nimmt es, wenn
     keins kommt (Funkloch, Balken ohne Daten, Host weg) — dann über der
     Übersicht, die durchscheint, wo nichts liegt. Frisch heißt wie
-    bisher: keine Übersicht. Ein gemerktes Wege-Manifest fremden Formats
+    bisher: keine Übersicht. Seit 0.193.0 heißt „frisch" auch „vom Host,
+    höchstens 24 h alt" (#596 H4, „Manifeste einmal am Tag" unten). Ein gemerktes Wege-Manifest fremden Formats
     gilt als keins. `mapManifestProvider` bleibt „frisch oder null" —
     Bereiche, Planer und „Meine Bereiche" brauchen das Netz ohnehin.
   - **MapLibre liefert auch abgelaufene Kacheln**: Unsere Antworten
@@ -675,6 +676,10 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     danach nach Entfernung — in jedem Abschnitt. Ein Ortsname setzt am Ziel
     `kMapSearchPinDuration` (6 s) die Nadel `map-search-pin`; ein Tipp auf
     die Karte (`_onMapTap`, `_onHit`) nimmt sie.
+  - **Rang nur in der Nähe** (seit 0.193.0, Fund der Grundlinie):
+    `_nearestFirst` nimmt den Rang nur bis `kMapSearchRankNearM` (30 km);
+    weiter weg zählt nur die Entfernung. Zwei gleichnamige Orte in 110
+    und 360 km standen sonst vor dem Ort mit Zusatz in 4 km.
   Tests: `place_test` (ohne Tipp, gesehen, geteilt), `poi_test`
   („Gesehenes"), `seen_host_files_test`, `test/web/seen_host_files_browser_test.dart`,
   `map_search_test`, Flow „Ortsnamen" in `map_search_flow_test`.
@@ -683,3 +688,46 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
   Manifest offline, Namensdatei und Zelle nicht geteilt, Rang aus, keine
   Nadel, Nadel bleibt beim Tipp, gemerkte Namensdatei offline nicht
   gelesen.
+- **Manifeste einmal am Tag** (#596 H4, seit 0.193.0,
+  `host_manifests.dart`). Karte, Wege, Höhen, Regionen-Index und die
+  Manifeste der übrigen Regionen laden über `HostManifests.load`, das
+  Orte-Manifest weiter über `PoiManifests` (dieselbe Regel). Vier Dinge,
+  die man wissen muss:
+  - **Gemerkt wird erst, was sich lesen ließ**: `load(uri, parse)` prüft
+    die frische Antwort mit dem Parser der Ebene, bevor sie in die Ablage
+    geht. Ein gemerktes Manifest, das diese Fassung nicht liest (neues
+    Format), gilt wie keins. 404 ist null und wird nicht gemerkt; für
+    Karte, Wege und Höhen bleibt es ein `ClientException` wie vorher.
+  - **Ein Netzfehler bleibt ein Fehler**, kein Rückfall auf ein altes
+    Manifest: Was ohne Netz gilt, entscheidet jede Ebene selbst
+    (`Settings.seenMapManifest` & Co.). Ein altes Manifest jeden Alters
+    liest nur `remembered` (ohne Anfrage), etwa
+    `rememberedHeightsManifest` für die Höhen ohne Netz.
+  - **„Aktualisieren" in „Meine Bereiche" ruft `expire()`** und
+    invalidiert die Manifest-Provider der Region (`planRegionRefresh`):
+    Danach fragt jedes Manifest einmal frisch, erkannt an `_sinceExpire`
+    je Schlüssel, nicht an einer Uhrzeit (eine Zeitmarke gleich der
+    Ablagezeit hielt das Alte für neu, beim Bau so gefunden).
+  - **`seenHostFilesProvider` wohnt hier** (vorher `poi_source.dart`, dort
+    weiter exportiert). Die Lader-Nähte (`mapManifestLoaderProvider` &
+    Co.) lesen `hostManifestsProvider`; der Harness setzt sie weiter auf
+    null bzw. Fakes. Wer einen `ProviderContainer` ohne Harness baut und
+    einen Lader liest, überschreibt `hostManifestsProvider` mit einem
+    `get:` — sonst fragt der Test den echten Host.
+  **Höhenkacheln** gehen seit 0.193.0 denselben Weg (`OnlineHeights.seen`,
+  Schlüssel `<archiv>/13/x/y`, Base64 der ausgepackten Kachel):
+  Trail-Profil, Export, Import und Höhenlinien lesen erst die Ablage,
+  auch ohne Netz (`TerrainHeights` baut die Host-Quelle dann trotzdem,
+  sobald es eine Ablage gibt; ihr Manifest ist offline null, der Schlüssel
+  kommt aus dem gemerkten). Ein `ProviderContainer` ohne Harness, der
+  offline Höhen liest, setzt `seenHostFilesProvider` auf null — sonst
+  wartet die Quelle auf Regionen, während der Test abräumt
+  (`nav_replan_test`, beim Bau so gefunden).
+  Der Planer behält seine Kacheln weiter im Halter „Unterwegs geladen".
+  Tests: `test/map/host_manifests_test.dart`, `online_fill_test`
+  („Gesehenes"), `terrain_heights_test` („ohne Netz aus dem Gesehenen"),
+  `offline_areas_flow_test` (`expire`). Gegenproben 2026-11-20 (alle rot):
+  kein junges Manifest, `expire` leer, Abruf ungeteilt, gemerkt vor der
+  Prüfung, „Aktualisieren" ohne `expire`, Höhen nicht gelesen bzw. nicht
+  abgelegt, Fabrik ohne Ablage, offline ohne Host-Quelle, ohne gemerktes
+  Höhen-Manifest, Rang ohne 30-km-Grenze.

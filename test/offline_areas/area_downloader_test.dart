@@ -562,6 +562,66 @@ void main() {
   );
 
   test(
+    'Bereiche von vor dem Orts-Index bekommen beim Aktualisieren ihre '
+    'Ortsnamen (#596) — sonst nichts, und danach ist alles aktuell',
+    () async {
+      final shape = const RectShape(_bounds);
+      final cells = shape.poiCells();
+      final pm = PoiManifest(
+        build: '20261120',
+        prefix: 'pois-20261120',
+        cells: {PoiGroup.water: cells.toSet()},
+        placeCells: cells.toSet(),
+      );
+      final water = [for (final c in cells) poiCellFileName(c, PoiGroup.water)];
+      StoredArea area({String id = 'alt', String? poiBuild = '20261120'}) =>
+          StoredArea(
+            id: id,
+            name: 'Alt',
+            bounds: _bounds,
+            shape: shape,
+            minZoom: 8,
+            maxZoom: 10,
+            build: '20260928',
+            tiles: 0,
+            bytes: 0,
+            savedAt: DateTime.utc(2026, 9, 28),
+            poiFiles: water,
+            poiBuild: poiBuild,
+            format: kStoredAreaFormat,
+            complete: true,
+          );
+      final places = [for (final c in cells) placeCellFileName(c)];
+      expect(missingPlaceFiles(area(), pm), places);
+      expect(
+        missingPlaceFiles(area(poiBuild: null), pm),
+        isEmpty,
+        reason: 'ohne Orte gespeichert: keine Ortsnamen aufdrängen',
+      );
+
+      await store.saveIndex([area()]);
+      final downloader = make(poiManifest: pm);
+      final plan = await downloader.planRefresh(await store.list());
+      expect(plan.staleTiles, 0);
+      expect(plan.isEmpty, isFalse);
+      expect(plan.addPlaces, {'alt': places});
+      expect(
+        plan.poiNames.toSet(),
+        places.toSet(),
+        reason: 'die Orte sind aktuell, nur die Ortsnamen kommen',
+      );
+      poiAsked.clear();
+      final updated = await downloader.refreshRegion(plan);
+      expect(poiAsked.toSet(), places.toSet());
+      expect(updated.single.poiFiles.toSet(), {...water, ...places});
+      expect(
+        (await downloader.planRefresh(await store.list())).isEmpty,
+        isTrue,
+      );
+    },
+  );
+
+  test(
     'eine veraltete Kachel, die der neue Bau nicht mehr hat, geht beim Aktualisieren',
     () async {
       // Wege-Kacheln eines älteren Baus; der neue (20261007) hat nur jede zweite Spalte.

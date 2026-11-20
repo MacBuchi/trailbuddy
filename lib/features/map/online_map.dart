@@ -17,7 +17,7 @@ import 'map_providers.dart';
 import 'pmtiles_tile_provider.dart';
 import 'seen_tiles.dart';
 import 'seen_tiles_web.dart' if (dart.library.io) 'seen_tiles_io.dart';
-import 'host_requests.dart';
+import 'host_manifests.dart';
 
 /// Das Manifest des Kartenhosts (`dach.json`, geschrieben von
 /// `map-data.yml`): welche Datei gerade gilt und bis zu welchem Zoom sie
@@ -193,21 +193,24 @@ class OverviewManifest {
   }
 }
 
-/// Holt das Höhen-Manifest vom Host; wirft bei allem, was nicht passt.
-Future<HeightsManifest?> fetchHeightsManifest() async {
-  final response = await hostGet(Uri.parse(kHeightsManifestUrl));
-  if (response.statusCode != 200) {
-    throw http.ClientException('Höhen-Manifest: HTTP ${response.statusCode}');
-  }
-  return HeightsManifest.fromJson(
-    jsonDecode(response.body) as Map<String, dynamic>,
+/// Holt das Höhen-Manifest — höchstens einmal am Tag (#596 H4); wirft
+/// bei allem, was nicht passt.
+Future<HeightsManifest?> fetchHeightsManifest(HostManifests manifests) async {
+  final uri = Uri.parse(kHeightsManifestUrl);
+  final m = await manifests.load(
+    uri,
+    (text) =>
+        HeightsManifest.fromJson(jsonDecode(text) as Map<String, dynamic>),
   );
+  if (m == null) throw http.ClientException('Höhen-Manifest: HTTP 404', uri);
+  return m;
 }
 
 final heightsManifestLoaderProvider =
-    Provider<Future<HeightsManifest?> Function()>(
-      (ref) => fetchHeightsManifest,
-    );
+    Provider<Future<HeightsManifest?> Function()>((ref) {
+      final manifests = ref.watch(hostManifestsProvider);
+      return () => fetchHeightsManifest(manifests);
+    });
 
 /// Das Höhen-Manifest — oder null: kein Empfang, Host nicht erreichbar,
 /// noch kein Bau, unbekanntes Format. Null heißt: Ein Bereich kommt ohne
@@ -248,22 +251,24 @@ const kMapManifestPatience = Duration(milliseconds: 1500);
 /// geschätzt).
 const kSeenTilesCacheBytes = 100 * 1024 * 1024;
 
-/// Holt das Manifest vom Host — die Naht, die Tests ersetzen (kein Netz).
-Future<MapManifest?> fetchMapManifest() async {
-  final response = await hostGet(
-    Uri.parse(kMapManifestUrl),
-  ).timeout(kMapManifestTimeout);
-  if (response.statusCode != 200) {
-    throw http.ClientException('Manifest: HTTP ${response.statusCode}');
-  }
-  return MapManifest.fromJson(
-    jsonDecode(response.body) as Map<String, dynamic>,
+/// Holt das Manifest — höchstens einmal am Tag (#596 H4); die Naht, die
+/// Tests ersetzen (kein Netz).
+Future<MapManifest?> fetchMapManifest(HostManifests manifests) async {
+  final uri = Uri.parse(kMapManifestUrl);
+  final m = await manifests.load(
+    uri,
+    (text) => MapManifest.fromJson(jsonDecode(text) as Map<String, dynamic>),
   );
+  if (m == null) throw http.ClientException('Manifest: HTTP 404', uri);
+  return m;
 }
 
-final mapManifestLoaderProvider = Provider<Future<MapManifest?> Function()>(
-  (ref) => fetchMapManifest,
-);
+final mapManifestLoaderProvider = Provider<Future<MapManifest?> Function()>((
+  ref,
+) {
+  final manifests = ref.watch(hostManifestsProvider);
+  return () => fetchMapManifest(manifests);
+});
 
 /// Das Manifest — oder null: kein Empfang (dann wird gar nicht erst
 /// gefragt), Host nicht erreichbar, Datei kaputt. Null heißt für beide

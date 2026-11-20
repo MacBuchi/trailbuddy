@@ -26,6 +26,7 @@
 //   wie viele Kacheln. Jeder Schritt hat eine Frist ([kOnlineFillTimeout]) —
 //   „ein Balken, über den nichts kommt" ist im Wald der Normalfall.
 import 'dart:async';
+import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -34,7 +35,9 @@ import 'package:vector_map_tiles/vector_map_tiles.dart'
     show ProviderException, TileIdentity;
 
 import '../../core/errors.dart';
+import '../../data/seen_host_files.dart';
 import '../../core/line_geometry.dart';
+import '../map/host_manifests.dart';
 import '../map/map_regions.dart';
 import '../map/online_map.dart';
 import '../map/pmtiles_tile_provider.dart';
@@ -114,11 +117,23 @@ class OnlineHeights implements HeightTileSource {
     this.maxRequests,
     this.timeout = kOnlineFillTimeout,
     this.raw,
+    this.seen,
+    this.seenArchive,
   });
 
   /// Wohin die Bytes jeder übers Netz geholten Kachel gehen, wie sie im
   /// Archiv liegen (#478) — null: nirgends.
   final Map<(int, int), Uint8List>? raw;
+
+  /// Gesehenes für kleine Dateien (#596 H4): Eine Kachel, die einmal vom
+  /// Host kam, liegt hier unter `<archiv>/13/x/y` und kostet beim nächsten
+  /// Mal keine Anfrage — auch nach einem Neustart. Null: keine Ablage.
+  final SeenHostFiles? seen;
+
+  /// Der Pfad des Archivs unter dem Host (mit Bau, aus dem Manifest);
+  /// null ohne Manifest. Der Bau im Schlüssel macht alte Kacheln wertlos.
+  final Future<String?> Function()? seenArchive;
+  Future<String?>? _seenPrefix;
 
   /// Öffnet das Höhenarchiv des Hosts; null ohne Manifest oder Bau.
   final Future<PmTilesArchive?> Function() open;
@@ -145,6 +160,12 @@ class OnlineHeights implements HeightTileSource {
   @override
   Future<HeightTile?> tile(int x, int y) async {
     if (cache.hasHeights(x, y)) return cache.heights(x, y);
+    final seenKey = await _seenKey(x, y);
+    final remembered = await _readSeen(seenKey);
+    if (remembered != null) {
+      cache.putHeights(x, y, remembered);
+      return remembered;
+    }
     final extra = allow != null && !allow!(x, y);
     if (extra && _extra >= (maxRequests ?? 0)) return null;
     if (_failed) return null;
@@ -161,9 +182,15 @@ class OnlineHeights implements HeightTileSource {
       if (await archive.lookup(id).timeout(timeout) != null) {
         try {
           final t = await archive.tile(id).timeout(timeout);
-          tile = HeightTile.decode(t.bytes());
+          final bytes = t.bytes();
+          tile = HeightTile.decode(bytes);
           // Wie beim Speichern eines Bereichs: die Bytes des Archivs.
           raw?[(x, y)] = Uint8List.fromList(t.compressedBytes());
+          // Nicht abgewartet: Die Ablage kostet höchstens eine Anfrage
+          // beim nächsten Mal.
+          if (seenKey != null) {
+            unawaited(seen!.write(seenKey, base64Encode(bytes)));
+          }
         } on FormatException {
           tile = null;
         }
@@ -177,6 +204,27 @@ class OnlineHeights implements HeightTileSource {
       if (!looksOffline(e)) logError('Höhen online nachladen', e, s);
       _failed = true;
       return null;
+    }
+  }
+
+  Future<String?> _seenKey(int x, int y) async {
+    if (seen == null || seenArchive == null) return null;
+    try {
+      final prefix = await (_seenPrefix ??= seenArchive!());
+      return prefix == null ? null : '$prefix/$kHeightTileZoom/$x/$y';
+    } catch (_) {
+      return null; // ohne Manifest keine Ablage; der Host entscheidet
+    }
+  }
+
+  Future<HeightTile?> _readSeen(String? key) async {
+    if (key == null) return null;
+    final text = await readSeen(seen, key);
+    if (text == null) return null;
+    try {
+      return HeightTile.decode(base64Decode(text));
+    } on FormatException {
+      return null; // kaputt abgelegt: wie keine
     }
   }
 
@@ -459,6 +507,21 @@ final onlineHeightsFactoryProvider = Provider<HeightTileSource Function()>(
         open: (region) => OnlineHeights(
           open: _openHostHeights(ref, region),
           cache: ref.read(onlineTileCacheProvider),
+          // Trail-Profil, Export, Import, Höhenlinien: Was einmal kam,
+          // bleibt liegen (#596 H4). Der Planer behält seine Kacheln im
+          // Halter „Unterwegs geladen" (#478).
+          seen: ref.read(seenHostFilesProvider),
+          seenArchive: () async {
+            // Ohne Netz das gemerkte Manifest jeden Alters: Dann liest das
+            // Profil, was schon einmal kam, und fragt nichts.
+            final m =
+                await ref.read(regionHeightsManifestProvider(region).future) ??
+                await rememberedHeightsManifest(
+                  ref.read(hostManifestsProvider),
+                  region,
+                );
+            return m == null ? null : HostManifests.keyOf(m.archiveUri);
+          },
         ),
       ),
 );

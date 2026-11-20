@@ -589,7 +589,11 @@ class _RegionTile extends ConsumerWidget {
       builder: (context) => AlertDialog(
         title: Text(l.areasRegionRefreshTitle(region.name)),
         content: Text(
-          '${plan.poiNames.isEmpty ? l.areasRegionRefreshText(plan.staleTiles, formatBytes(plan.fetchBytes)) : l.areasRegionRefreshTextPlaces(plan.staleTiles, formatBytes(plan.fetchBytes))}'
+          '${plan.staleTiles == 0
+              ? l.areasRegionRefreshPlacesOnly
+              : plan.poiNames.isEmpty
+              ? l.areasRegionRefreshText(plan.staleTiles, formatBytes(plan.fetchBytes))
+              : l.areasRegionRefreshTextPlaces(plan.staleTiles, formatBytes(plan.fetchBytes))}'
           '${mobile ? '\n\n${l.areasMobileData}' : ''}',
         ),
         actions: [
@@ -624,6 +628,8 @@ class _RegionTile extends ConsumerWidget {
       state = build == null
           ? l.areasRegionStaleHost(age.stale)
           : l.areasRegionStale(age.stale, buildLabel(build));
+    } else if (age.missingPlaces > 0) {
+      state = l.areasRegionPlacesMissing(age.missingPlaces);
     } else {
       state = build == null
           ? l.areasRegionBuildUnknown
@@ -635,7 +641,7 @@ class _RegionTile extends ConsumerWidget {
       title: Text(l.areasRegionTitle(region.name)),
       subtitle: Text('${l.areasRegionTiles(age.tiles)}\n$state'),
       isThreeLine: true,
-      trailing: age.stale > 0
+      trailing: age.refreshable
           ? IconButton(
               key: ValueKey('region-refresh-${region.id}'),
               tooltip: l.areasRegionRefreshTooltip,

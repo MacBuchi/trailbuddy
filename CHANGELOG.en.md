@@ -2,6 +2,23 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## Fewer requests, place names for older areas
+
+*Version 0.193.0, 2026-11-20*
+
+- The app asks the map storage for its indexes (map, ways, heights,
+  regions) at most once a day, instead of at every start and every time
+  “My areas” opens. A tap on “Update” there still gets the newest
+  version right away.
+- Heights loaded once for a trail’s profile stay on the device. The
+  profile costs no request next time and also shows without a network.
+- Areas saved before the place search have no place names yet. “My
+  areas” now says so and fetches them with “Update”, only a few kB.
+  After that the search finds villages and peaks in them offline, too.
+- A place named exactly like what you typed only comes first when it is
+  nearby (up to 30 km). Further away, distance decides, and the nearby
+  “Aurach” comes before a distant “Au”.
+
 ## Development build starts again
 
 *Version 0.192.3, 2026-11-20*

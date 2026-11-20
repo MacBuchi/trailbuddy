@@ -139,6 +139,11 @@ MapSearchResult mapSearchOf({
   );
 }
 
+/// Bis hierher gilt der Rang eines Treffers (genau, „beginnt mit" …) vor
+/// der Entfernung; weiter weg zählt nur sie (#596). 30 km sind etwa die
+/// Nachbarschaft der Karte bei Zoom 10–11 (Betreiber, 2026-11-20).
+const kMapSearchRankNearM = 30000.0;
+
 final _wordBreak = RegExp(r"[\s\-/,.()'’]+");
 
 /// Wie gut [texts] die gefaltete Eingabe [needle] treffen (#596, Fund aus
@@ -199,7 +204,12 @@ List<T> _nearestFirst<T>(
   final keyed =
       [
         for (var i = 0; i < items.length; i++)
-          (i: i, r: rank(items[i]), m: meters(items[i])),
+          if (meters(items[i]) case final m)
+            // Der Rang gilt nur in der Nähe (#596, Fund der Grundlinie):
+            // Zwei gleichnamige Orte in 110 und 360 km stünden sonst vor
+            // dem Ort mit Zusatz 4 km weiter. Weiter weg zählt nur die
+            // Entfernung.
+            (i: i, r: m <= kMapSearchRankNearM ? rank(items[i]) : 4, m: m),
       ]..sort(
         (a, b) => a.r != b.r
             ? a.r.compareTo(b.r)

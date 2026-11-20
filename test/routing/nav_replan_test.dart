@@ -12,6 +12,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:trailbuddy/core/connectivity.dart';
+import 'package:trailbuddy/features/map/host_manifests.dart';
 import 'package:trailbuddy/core/geo.dart' as geo;
 import 'package:trailbuddy/core/line_geometry.dart';
 import 'package:trailbuddy/core/settings.dart';
@@ -265,6 +266,9 @@ void main() {
           connectivityProvider.overrideWith(
             (ref) => Stream.value(const [ConnectivityResult.none]),
           ),
+          // Keine Ablage gesehener Dateien: ohne Netz keine Host-Quelle für
+          // Höhen (#596 H4), und kein `path_provider` im Test.
+          seenHostFilesProvider.overrideWithValue(null),
           loopPlanRunnerFactoryProvider.overrideWithValue(() => _JobSpy(jobs)),
           planningGraphLoaderProvider.overrideWithValue(
             (box, {fillOnline = true}) async =>

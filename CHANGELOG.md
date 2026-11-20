@@ -2,6 +2,25 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Weniger Anfragen, alte Bereiche mit Ortsnamen
+
+*Version 0.193.0, 2026-11-20*
+
+- Die App fragt die Verzeichnisse des Kartenspeichers (Karte, Wege,
+  Höhen, Regionen) höchstens einmal am Tag statt bei jedem Start und bei
+  jedem Öffnen von „Meine Bereiche“. Wer dort „Aktualisieren“ tippt,
+  bekommt trotzdem sofort den neuesten Stand.
+- Höhen, die für das Profil eines Trails einmal geladen wurden, bleiben
+  auf dem Gerät. Das Profil kostet beim nächsten Mal keine Anfrage und
+  erscheint auch ohne Netz.
+- Bereiche, die vor der Ortssuche gespeichert wurden, kennen noch keine
+  Ortsnamen. „Meine Bereiche“ sagt es jetzt und holt sie mit
+  „Aktualisieren“ nach, nur ein paar kB. Danach findet die Suche Dörfer
+  und Gipfel darin auch ohne Netz.
+- Ein Ort, der genau so heißt wie deine Eingabe, steht nur noch dann
+  ganz oben, wenn er in der Nähe liegt (bis 30 km). Weiter weg zählt die
+  Entfernung, und das nahe „Aurach“ kommt vor dem fernen „Au“.
+
 ## Entwicklungsversion startet wieder
 
 *Version 0.192.3, 2026-11-20*
