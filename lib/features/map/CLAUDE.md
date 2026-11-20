@@ -602,3 +602,32 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
   (Gegenproben 2026-11-19: Zellen nicht im Bereich, Hütte ohne Blatt,
   doppelte Hütte, kein Rückfall offline, ungeprüfter Schlüssel, kein
   Offline-Hinweis, Python-Faltung ohne `ss` — je rot).
+- **Anfragen an den Kartenhost zählen** (#596 H7, seit 0.192.1,
+  `host_requests.dart`, `HostRequestCounter.kt`; Konzept
+  `docs/konzept-traffic.md`). Profil → „Entwicklung" (`/profile/dev`,
+  `dev_screen.dart`) zeigt je Art (Karte, Wege, Höhen, Manifeste, Orte,
+  Ortsnamen, Sonstiges), was seit Start oder „Zurücksetzen" ans Netz
+  ging — nur in Dev-App und Web-Vorschau (`devToolsVisibleProvider`).
+  Vier Dinge, die man wissen muss:
+  - **Jeder Abruf beim Host geht über `hostClient()`, `hostGet()` oder
+    `openHostPmTiles()`**, nie über `http.Client()`/`http.get`/
+    `PmTilesArchive.fromUri` direkt — `host_requests_test` sucht in
+    `lib/` danach (Ausnahmen: andere Hosts, mit Grund in der Liste).
+    Kein `runWithClient`: Flutter garantiert die Zone von Rückrufen
+    nicht, die Zählung wäre still lückenhaft.
+  - **Die Archive teilen EINEN Client, der nie schließt**:
+    `PmTilesArchive.fromUri(client:)` schließt einen übergebenen Client
+    nicht, einer je Archiv bliebe offen liegen (`HttpAt` mit
+    `closeClient` ist nur `@visibleForTesting` exportiert).
+  - **Karte und Wege auf Android lädt MapLibre selbst** (OkHttp). Die
+    Dev-App hängt vor dessen HTTP einen eigenen `Call.Factory`
+    (`HttpRequestUtil.setOkHttpClient`, Dispatcher wie MapLibres
+    Vorgabe: 20 je Host), der je Pfad zählt; Dart holt die Pfade über
+    `de.mcbuchi.trailbuddy/host_requests` und teilt sie mit DERSELBEN
+    Regel ein (`hostRequestKindOfPath`). OkHttp ist nur `compileOnly`,
+    zur Laufzeit kommt MapLibres Fassung. Die echte App installiert
+    nichts (`packageName.endsWith(".dev")`, `android_manifest_test`).
+  - **Gezählt wird, was ans Netz geht**: Was MapLibres Ambient Cache
+    oder der Kachelspeicher bedient, erreicht weder OkHttp noch den
+    Client. Ob MapLibre mit Netz abgelaufene Kacheln neu fragt, zeigt
+    damit erst die Messung am Gerät.

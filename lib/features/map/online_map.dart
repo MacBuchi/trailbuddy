@@ -17,6 +17,7 @@ import 'map_providers.dart';
 import 'pmtiles_tile_provider.dart';
 import 'seen_tiles.dart';
 import 'seen_tiles_web.dart' if (dart.library.io) 'seen_tiles_io.dart';
+import 'host_requests.dart';
 
 /// Das Manifest des Kartenhosts (`dach.json`, geschrieben von
 /// `map-data.yml`): welche Datei gerade gilt und bis zu welchem Zoom sie
@@ -194,7 +195,7 @@ class OverviewManifest {
 
 /// Holt das Höhen-Manifest vom Host; wirft bei allem, was nicht passt.
 Future<HeightsManifest?> fetchHeightsManifest() async {
-  final response = await http.get(Uri.parse(kHeightsManifestUrl));
+  final response = await hostGet(Uri.parse(kHeightsManifestUrl));
   if (response.statusCode != 200) {
     throw http.ClientException('Höhen-Manifest: HTTP ${response.statusCode}');
   }
@@ -249,9 +250,9 @@ const kSeenTilesCacheBytes = 100 * 1024 * 1024;
 
 /// Holt das Manifest vom Host — die Naht, die Tests ersetzen (kein Netz).
 Future<MapManifest?> fetchMapManifest() async {
-  final response = await http
-      .get(Uri.parse(kMapManifestUrl))
-      .timeout(kMapManifestTimeout);
+  final response = await hostGet(
+    Uri.parse(kMapManifestUrl),
+  ).timeout(kMapManifestTimeout);
   if (response.statusCode != 200) {
     throw http.ClientException('Manifest: HTTP ${response.statusCode}');
   }

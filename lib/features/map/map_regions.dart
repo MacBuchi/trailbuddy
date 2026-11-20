@@ -38,6 +38,7 @@ import 'map_providers.dart';
 import 'online_map.dart';
 import 'poi.dart';
 import 'way_layer.dart';
+import 'host_requests.dart';
 
 /// Die Ebenen einer Region, wie sie im Index heißen.
 enum RegionLayer { map, heights, ways, pois, overview }
@@ -212,9 +213,9 @@ List<MapRegion>? rememberedRegions(String? json) {
 /// Holt den Index; null bei 404 (es gibt keinen — DACH allein), wirft bei
 /// allem anderen.
 Future<String?> fetchRegionsIndex() async {
-  final response = await http
-      .get(Uri.parse(kRegionsIndexUrl))
-      .timeout(kMapManifestTimeout);
+  final response = await hostGet(
+    Uri.parse(kRegionsIndexUrl),
+  ).timeout(kMapManifestTimeout);
   if (response.statusCode == 404) return null;
   if (response.statusCode != 200) {
     throw http.ClientException('Regionen-Index: HTTP ${response.statusCode}');
@@ -379,7 +380,7 @@ MapRegion? regionFor(List<MapRegion> regions, LatBox box) {
 /// Holt eine JSON-Datei vom Host; null bei 404 (noch kein Bau), wirft bei
 /// allem anderen.
 Future<Map<String, dynamic>?> fetchHostJson(Uri uri) async {
-  final response = await http.get(uri).timeout(kMapManifestTimeout);
+  final response = await hostGet(uri).timeout(kMapManifestTimeout);
   if (response.statusCode == 404) return null;
   if (response.statusCode != 200) {
     throw http.ClientException('${uri.path}: HTTP ${response.statusCode}', uri);

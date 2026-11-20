@@ -13,6 +13,7 @@ import '../offline_areas/area_store.dart';
 import 'map_providers.dart';
 import 'map_regions.dart';
 import 'poi.dart';
+import 'host_requests.dart';
 
 /// Woher die Orte kommen. Eine Schnittstelle, damit Tests ein Fake
 /// einhängen — kein Netz in Tests. Gefragt wird je ZELLE und Gruppe;
@@ -33,7 +34,7 @@ class HostPoiSource implements PoiSource {
     http.Client? client,
     Future<String?> Function(String name)? readLocal,
     Future<List<MapRegion>> Function()? regions,
-  }) : _client = client ?? http.Client(),
+  }) : _client = client ?? hostClient(),
        _readLocal = readLocal,
        _regions = regions;
 

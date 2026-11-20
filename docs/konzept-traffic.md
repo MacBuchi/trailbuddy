@@ -113,7 +113,11 @@ Vor allem anderen:
 - In der Dev-App unter Profil → Entwicklung ein Zähler „Anfragen an den
   Kartenhost je Art seit Start“ (Karte, Wege, Höhen, Manifest, Orte,
   Namen). Damit eine feste Runde am Gerät messen: Karte schwenken im
-  Bereich und außerhalb, suchen, planen.
+  Bereich und außerhalb, suchen, planen. **Gebaut seit 0.192.1**
+  (auch in der Web-Vorschau; auf Android zählt die Dev-App zusätzlich,
+  was MapLibre über OkHttp lädt — `lib/features/map/CLAUDE.md`,
+  „Anfragen an den Kartenhost zählen"). Die Grundlinie am Gerät steht
+  noch aus.
 - Am Konto: R2-Class-B je Monat und die Cache-Quote aus Cloudflare
   Analytics, bei Bedarf über `r2-inventory.yml`.
 - Die Rate-Limiting-Regel aus #55 bekommt ihre Schwelle aus diesen

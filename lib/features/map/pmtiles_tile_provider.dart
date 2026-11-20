@@ -5,6 +5,7 @@ import 'package:pmtiles/pmtiles.dart';
 import 'package:vector_map_tiles/vector_map_tiles.dart';
 
 import 'seen_tiles.dart' show SeenTile;
+import 'host_requests.dart';
 
 /// Eine Kachelquelle, die man schließt, wenn ihre Schicht geht — ein
 /// Archiv (Dateihandle) oder der Kachelspeicher der Bereiche (#229).
@@ -53,7 +54,7 @@ class PmTilesVectorTileProvider extends ClosableVectorTileProvider {
   /// dafür 206 und CORS liefern; `map-data.yml` prüft genau das nach
   /// jedem Upload.
   static Future<PmTilesVectorTileProvider> openUri(Uri uri) async {
-    final archive = await PmTilesArchive.fromUri(uri);
+    final archive = await openHostPmTiles(uri);
     return PmTilesVectorTileProvider._(
       archive,
       archive.header.minZoom,

@@ -15,6 +15,7 @@ import 'package:http/http.dart' as http;
 import 'package:pmtiles/pmtiles.dart';
 
 import '../map/online_map.dart';
+import '../map/host_requests.dart';
 
 /// Holt eine Datei vom Host als Ganzes, mit Fortschritt und Abbruch
 /// zwischen den Stücken; null bei 404 (die Übersicht fehlt — der Bereich
@@ -31,7 +32,7 @@ Future<Uint8List?> fetchOverviewFile(
   void Function(int received, int total)? onProgress,
   void Function()? check,
 }) async {
-  final client = http.Client();
+  final client = hostClient();
   try {
     final response = await client
         .send(http.Request('GET', uri))

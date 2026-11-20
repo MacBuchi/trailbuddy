@@ -20,6 +20,7 @@ import '../features/highlights/discover_screen.dart';
 import '../features/help/map_tour.dart' show NavCoach;
 import '../features/map/map_screen.dart';
 import '../features/profile/profile_screen.dart';
+import '../features/profile/dev_screen.dart';
 import '../features/garmin/watch_shelf_actions.dart' show WatchShelfScreen;
 import '../features/offline_areas/areas_screen.dart';
 import '../features/rides/airtime_providers.dart' show AirtimeSyncTrigger;
@@ -219,6 +220,12 @@ final routerProvider = Provider<GoRouter>((ref) {
                   GoRoute(
                     path: 'about',
                     builder: (context, state) => const AboutScreen(),
+                  ),
+                  // „Entwicklung" (#596 H7): nur Dev-App und Web-Vorschau
+                  // zeigen die Zeile; die Route steht überall.
+                  GoRoute(
+                    path: 'dev',
+                    builder: (context, state) => const DevScreen(),
                   ),
                   // Die Kurzanleitung (#131). Unter dem Profil, weil sie
                   // dort als Zeile steht; die Leerzustände der anderen

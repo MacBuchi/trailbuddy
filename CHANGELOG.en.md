@@ -2,6 +2,17 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## Fewer requests to the map storage: measuring first
+
+*Version 0.192.1, 2026-11-20*
+
+- Only in the development app and the web preview: the profile has a new
+  row “Development”. It counts how often the app has asked the map
+  storage since it started — split into map, ways, elevation, manifests,
+  places and place search, with “Reset” for a new round of measuring.
+  This is the basis for cutting those requests, especially inside saved
+  areas. Nothing changes in the normal app.
+
 ## Search on the map
 
 *Version 0.192.0, 2026-11-19*

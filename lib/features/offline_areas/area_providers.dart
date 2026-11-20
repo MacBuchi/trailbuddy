@@ -33,7 +33,6 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:http/http.dart' as http;
 import 'package:pmtiles/pmtiles.dart';
 import 'package:vector_map_tiles/vector_map_tiles.dart';
 
@@ -60,6 +59,7 @@ import 'region_overview.dart';
 import 'tile_refs.dart';
 import 'tile_store.dart';
 import 'tile_store_sources.dart';
+import '../map/host_requests.dart';
 
 /// Die Liste aus dem Index, in Speicherreihenfolge.
 class StoredAreasNotifier extends AsyncNotifier<List<StoredArea>> {
@@ -362,7 +362,7 @@ final wholeRegionSupportedProvider = Provider<bool>((ref) => !kIsWeb);
 
 /// Öffnet das Archiv des Hosts für den Download — die Naht für Tests.
 final areaSourceOpenerProvider = Provider<Future<PmTilesArchive> Function(Uri)>(
-  (ref) => PmTilesArchive.fromUri,
+  (ref) => openHostPmTiles,
 );
 
 /// Das Orte-Manifest für den Download — null, wenn keins da ist (dann
@@ -370,7 +370,7 @@ final areaSourceOpenerProvider = Provider<Future<PmTilesArchive> Function(Uri)>(
 final areaPoiManifestLoaderProvider = Provider<Future<PoiManifest?> Function()>(
   (ref) => () async {
     try {
-      return await fetchPoiManifest(http.Client());
+      return await fetchPoiManifest(hostClient());
     } catch (_) {
       return null;
     }
@@ -382,7 +382,7 @@ final areaPoiFileLoaderProvider =
     Provider<Future<String?> Function(PoiManifest manifest, String name)>(
       (ref) =>
           (manifest, name) =>
-              fetchPoiFileFromHost(http.Client(), manifest, name),
+              fetchPoiFileFromHost(hostClient(), manifest, name),
     );
 
 /// Das Höhen-Manifest für den Download — null, wenn keins da ist (dann

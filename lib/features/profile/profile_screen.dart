@@ -56,6 +56,7 @@ import '../trails/trail_providers.dart'
 import '../nearby/nearby_widgets.dart' show NearbySection;
 import '../garmin/watch_shelf.dart' show watchShelfProvider;
 import '../garmin/watch_shelf_actions.dart' show watchShelfAvailableProvider;
+import '../map/host_requests.dart' show devToolsVisibleProvider;
 import 'account_dialogs.dart';
 import 'profile_providers.dart';
 import 'push_providers.dart';
@@ -266,6 +267,15 @@ class ProfileScreen extends ConsumerWidget {
               value: l.profileAboutValue,
               onTap: () => context.push('/profile/about'),
             ),
+            // Messwerkzeuge (#596 H7) — nur Dev-App und Web-Vorschau.
+            if (ref.watch(devToolsVisibleProvider))
+              _ProfileRow(
+                id: 'dev',
+                icon: Icons.developer_mode,
+                title: l.profileDevTitle,
+                value: l.profileDevValue,
+                onTap: () => context.push('/profile/dev'),
+              ),
             const SizedBox(height: 24),
             Text(
               '${version == null ? '' : 'v$version · '}'
