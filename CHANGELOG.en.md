@@ -2,6 +2,15 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## Sensor data with light and proximity
+
+*Version 0.194.0, 2026-11-20*
+
+- Recording sensor data now also writes ambient light and the proximity
+  sensor into the file, if the phone has them. Later this should help
+  the app tell more reliably whether the phone is in a pocket. Nothing
+  is detected from it yet, and no new permission is needed.
+
 ## No online map inside a saved area
 
 *Version 0.193.1, 2026-11-20*

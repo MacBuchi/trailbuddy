@@ -2,6 +2,16 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Sensordaten mit Licht und Nähe
+
+*Version 0.194.0, 2026-11-20*
+
+- Wer Sensordaten aufzeichnet, bekommt jetzt auch Helligkeit und den
+  Näherungssensor in die Datei, wenn das Handy beides hat. Damit soll
+  die App später sicherer erkennen, ob das Handy in der Tasche steckt.
+  Erkannt wird damit noch nichts, und eine neue Berechtigung braucht es
+  nicht.
+
 ## Im gespeicherten Bereich keine Online-Karte
 
 *Version 0.193.1, 2026-11-20*

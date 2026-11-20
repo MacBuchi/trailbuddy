@@ -48,7 +48,7 @@ class FakeWheelieNotices implements WheelieNotices {
 
 void main() {
   late Directory dir;
-  late StreamController<List<double>> accel, gyro, gps;
+  late StreamController<List<double>> accel, gyro, gps, light, proximity;
   late SensorSources sources;
   late Map<String, Object?> bridge;
   late FakeWheelieNotices notices;
@@ -61,10 +61,14 @@ void main() {
     accel = StreamController<List<double>>.broadcast();
     gyro = StreamController<List<double>>.broadcast();
     gps = StreamController<List<double>>.broadcast();
+    light = StreamController<List<double>>.broadcast();
+    proximity = StreamController<List<double>>.broadcast();
     sources = SensorSources(
       accel: () => accel.stream,
       gyro: () => gyro.stream,
       gps: () => gps.stream,
+      light: () => light.stream,
+      proximity: () => proximity.stream,
     );
     notices = FakeWheelieNotices();
     toApp = [];
@@ -150,7 +154,7 @@ void main() {
       await wait();
 
       final lines = (await logFile().readAsString()).split('\n');
-      expect(lines.first, '# trailbuddy sensor log v3');
+      expect(lines.first, '# trailbuddy sensor log v4');
       expect(
         lines.where(
           (l) => l.startsWith('# mount,') || l.startsWith('# range,'),
@@ -166,6 +170,33 @@ void main() {
         'a,${t.toInt()},0.1000,9.8100,-0.2500',
         'w,${t.toInt() + 10000},0.0100,-0.0200,0.5000',
         'g,${t.toInt() + 20000},7.1000,9.2000,4.5000,6.2500,812.0000',
+      ]);
+    },
+  );
+
+  test(
+    'Licht und Nähe (#491): je Wert eine Zeile b/x, ohne Sensor keine',
+    () async {
+      await tick();
+      expect(light.hasListener, isTrue);
+      expect(proximity.hasListener, isTrue);
+      light.add([t, 12.5]);
+      proximity.add([t + 5000, 0, 5]);
+      accel.add([t + 10000, 0, 0, 9.81]);
+      // Ein Gerät ohne Näherungssensor: Der Strom endet, die anderen
+      // schreiben weiter.
+      await proximity.close();
+      light.add([t + 20000, 0.0]);
+      await wait();
+      final data = (await logFile().readAsString())
+          .split('\n')
+          .where((l) => l.isNotEmpty && !l.startsWith('#'))
+          .toList();
+      expect(data, [
+        'b,${t.toInt()},12.5000',
+        'x,${t.toInt() + 5000},0.0000,5.0000',
+        'a,${t.toInt() + 10000},0.0000,0.0000,9.8100',
+        'b,${t.toInt() + 20000},0.0000',
       ]);
     },
   );
@@ -288,7 +319,7 @@ void main() {
       expect(stoppie.decel, greaterThan(kFusionStoppieDecel));
 
       final lines = (await logFile().readAsString()).split('\n');
-      expect(lines.first, '# trailbuddy sensor log v3');
+      expect(lines.first, '# trailbuddy sensor log v4');
       expect(
         lines,
         contains(

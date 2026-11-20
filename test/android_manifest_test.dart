@@ -584,6 +584,35 @@ void main() {
     expect(gradle, isNot(contains('id("kotlin')));
   });
 
+  test('Licht und Nähe kommen über ein Plugin, auch im Dienst (#491)', () {
+    // Der Logger läuft in der Engine des Vordergrund-Dienstes — ein Kanal in
+    // MainActivity fehlte dort. Namen in Java und Dart gleich, Java ohne
+    // Kotlin-Plugin (AGP 9), keine Berechtigung.
+    final java = File(
+      'packages/tb_ambient/android/src/main/java/de/mcbuchi/trailbuddy/ambient/TbAmbientPlugin.java',
+    ).readAsStringSync();
+    final dart = File(
+      'packages/tb_ambient/lib/tb_ambient.dart',
+    ).readAsStringSync();
+    final names = RegExp(
+      r'_CHANNEL = "([^"]+)"',
+    ).allMatches(java).map((m) => m.group(1)!).toList();
+    expect(names, hasLength(2));
+    for (final name in names) {
+      expect(dart, contains("'$name'"));
+    }
+    expect(
+      File('pubspec.yaml').readAsStringSync(),
+      contains('path: packages/tb_ambient'),
+    );
+    final gradle = File(
+      'packages/tb_ambient/android/build.gradle.kts',
+    ).readAsStringSync();
+    expect(gradle, isNot(contains('org.jetbrains.kotlin')));
+    expect(gradle, isNot(contains('id("kotlin')));
+    expect(manifest, isNot(contains('BODY_SENSORS')));
+  });
+
   test('google-services nur mit Datei — und die Datei kennt den Paketnamen', () {
     // Das Plugin bricht den Build ab, wenn google-services.json fehlt; bis
     // der Betreiber das Firebase-Projekt anlegt, baut die App ohne. Liegt

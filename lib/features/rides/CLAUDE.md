@@ -292,6 +292,14 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     weiterliefert (Wakelock `allowWakeLock`), zeigt erst die Datei vom
     Gerät. Erste Fahrt (2026-10-30, 17 min): 111 Hz, eine Lücke über
     100 ms — er liefert; ob der Bildschirm aus war, ist nicht notiert.
+  - **Licht und Nähe** (#491, seit 0.194.0, Datei v4, Zeilen `b` und
+    `x`): Plugin `packages/tb_ambient` (Java wie `tb_voice`, damit es auch
+    in der Engine des Dienstes hängt — ein Kanal in MainActivity fehlte
+    dort). Nur mitgeschrieben, Merkmale für das Modell „Tasche/Lenker"
+    (Plan in #491), noch keine Regel. Optional: ohne Sensor endet der
+    Strom sofort, die Zeilen fehlen — fehlend heißt „unbekannt", nie
+    „hell" oder „fern". Viele Näherungssensoren melden nur 0 oder den
+    größten Abstand, deshalb steht der in jeder Zeile mit.
 - **Wheelie, Sprung und Stoppie mit Rückmeldung** (#36, Wheelie seit
   0.143.0, Fusion und Sprung seit 0.144.0, Stoppie seit 0.145.0, hängt
   am Rohdaten-Schalter): `SensorFusion`
