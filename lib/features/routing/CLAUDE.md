@@ -1046,7 +1046,9 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
   `tool/loop_suggest_measure.dart`). Fünf Dinge, die man wissen muss:
   - **Es ist `compute(suggestReachM:)`, kein zweiter Rechenweg**: Pool =
     `loopPoolOf(...).inReach` um den Start (nach dem Fix), Budget
-    `LoopPrefs.suggestBudget`; danach `selected` = die Trails des Plans,
+    `LoopPrefs.budget` wie jede Runde (bis 0.194 `suggestBudget` mit den
+    Höhenmetern × Zeit / 3 h — seit 0.195.0 feste Limits, siehe „Das Limit
+    aus Fahrten"); danach `selected` = die Trails des Plans,
     ohne `_edit`. `LoopSession.suggestReachM` hängt am Plan (geht mit
     `clearPlan`), `planBudget` ist, was das Blatt für Skalen, „ca." und
     `loop-short` liest — nie `prefs.budget` direkt.
@@ -1116,6 +1118,20 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
   - **`FakeRideStore.finish` gibt das Rad mit** (seit 0.177.0) wie der
     echte Speicher; vorher hatte eine im Test beendete Fahrt kein
     `profile`.
+  - **Zwei Limits je Rad, beide fest** (seit 0.195.0, Betreiber
+    2026-11-20): `distBioKm`/`distEbikeKm` (`db`/`de`, „Nein" `mb`/`me`)
+    neben den Höhenmetern, Vorgabe `RiderProfile.budgetDistKm` (60/90 km,
+    nicht in `RiderParams` — das Zeitmodell rechnet nicht damit).
+    `LoopBudget.distM` (ohne Angabe unendlich: Route, spaßiger Weg) prüft
+    `fits` gegen `_Route.lengthM`. Die Zeit skaliert kein Limit mehr. Die
+    Frage nach der Fahrt (`ClimbLimitOffer.toM`/`toKm`, je null, wenn das
+    Limit hielt; kodiert mit sieben Feldern, die alten fünf lesen sich
+    weiter) stellt beide in EINER Zeile; ohne Höhen fragt nur die
+    Distanz. `limitOfferStands` entscheidet im Einstieg. Gegenproben
+    2026-11-21: ohne Distanz in `fits`, ohne sie in `runOverLimit`, ohne
+    `db` beim Lesen, ohne `distM` im Budget, ohne Distanz-Frage, ohne
+    Nein je Limit, ohne E-Vergleich der Distanz, ohne Text für beide,
+    `limitFor` immer mit Distanz — je rot.
   Tests: `test/rides/climb_limit_offer_test.dart`,
   `test/flows/climb_limit_flow_test.dart`. Gegenproben 2026-11-14: ohne
   „Nein"-Regel, ohne Frage am Ende, Frage im Einstieg nicht geleert,
@@ -1168,21 +1184,23 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     Limit ist eine Auswahl der Ansicht (`_over`) und rechnet nichts.
   - **Über dem Limit rechnet der Runner einmal je Planung**
     (`setOverLimit`, `LoopRequest.withOverLimit` → `runOverLimit`, der
-    `seed` und `growStates` mit `run` teilt; `ignoreClimb` in `fits`).
+    `seed` und `growStates` mit `run` teilt; `ignoreLimits` in `fits` —
+    Höhenmeter UND Distanz, ein Stand zählt über einem von beiden).
     `LoopSession.over` ist null, bis der Schalter einmal an war; jede
     neue Planung räumt `over`/`overOn` über `clearPlan` am Anfang von
     `compute` weg — ein zweites Zurücksetzen am Ergebnis war tot
     (Gegenprobe grün) und ist wieder raus.
-  - **`limitFor`** rundet auf 100 hm auf und rechnet beim Vorschlag
-    über das mit der Zeit skalierte Limit (`suggestBudget`) zurück aufs
-    Limit des Rads; `raiseLimitFor` merkt es (`setPrefs`) und ruft
+  - **`limitFor`** gibt je übertroffenem Limit den neuen Wert
+    (`LoopLimitRaise`: Höhenmeter auf 100 hm, Distanz auf 5 km
+    aufgerundet, das andere null) in den Zahlen des Rads — dieselben wie
+    Kopf und Kachel; `raiseLimitFor` merkt beide (`setPrefs`) und ruft
     `compute` mit demselben Umkreis.
   - **Tests**: `loop_planner_test` („Auch über dem Limit" …),
     `loop_planner_flow_test` („Runden im Vergleich" (#549 B) …, mit
     `_StripRunner`, der auf `overLimit` einen Stand mit 200 hm zu viel
     gibt). Die Karte liegt auf 360 dp nur mit der 180-dp-Grafik im Bild
     — darunter ist sie für Finder „offstage" (beim Bau so gefunden).
-    Gegenproben 2026-11-16: ohne `ignoreClimb`, ohne Zwischenspeicher
+    Gegenproben 2026-11-16: ohne `ignoreClimb` (heute `ignoreLimits`), ohne Zwischenspeicher
     der Stände über dem Limit, ohne `setPrefs` beim Anheben — je rot.
 - **Gemerkte Startpunkte im Planer** (#543 Schritt 3, seit 0.183.0, „Gemerkt" immer seit 0.184.0;
   Konzept `docs/konzept-startpunkte.md` 4, 5.1, 9; `start_point_pick.dart`,

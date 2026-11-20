@@ -1,7 +1,8 @@
 // Das Limit aus Fahrten (#516 Schritt 6, Konzept-Routing 12.5a): ein Limit
 // je Rad, eine Frage nur über dem Limit (und über einem „Nein") um einen
 // Schritt, nie nach geplanten, übernommenen oder Uhr-Fahrten, und die
-// E-Frage, wenn die Steigrate deutlich E-Bike sagt.
+// E-Frage, wenn die Steigrate deutlich E-Bike sagt. Seit 2026-11-20 dasselbe
+// für die Distanz — eine Frage für beide Limits.
 import 'package:flutter_test/flutter_test.dart';
 import 'package:trailbuddy/features/rides/climb_limit_offer.dart';
 import 'package:trailbuddy/features/rides/ride_track.dart';
@@ -211,6 +212,98 @@ void main() {
       );
       expect(ClimbLimitOffer.parse('kaputt'), isNull);
       expect(ClimbLimitOffer.parse(null), isNull);
+    });
+  });
+
+  /// [km] in 1 200 Schritten zu 10 s, die ersten 1 000 steigen um [gainM]
+  /// (360 hm/h bei 1 000 hm — Bio), dann flach.
+  List<RidePoint> track(double km, double gainM, {bool withAlt = true}) => [
+    for (var i = 0; i <= 1200; i++)
+      RidePoint(
+        lat: 47 + i * km / 1200 / 111.195,
+        lng: 11,
+        at: t0.add(Duration(seconds: 10 * i)),
+        accuracyM: 0,
+        altM: withAlt ? 800 + gainM * (i < 1000 ? i : 1000) / 1000 : null,
+      ),
+  ];
+
+  group('das Distanz-Limit (#516, Betreiber 2026-11-20)', () {
+    test('nur die Distanz: eine Frage nach km, abgerundet auf 5 km', () {
+      final prefs = LoopPrefs.defaults(bio);
+      expect(
+        climbLimitOfferFor(ride(track(63, 0)), prefs),
+        isNull,
+        reason: 'nur 3 km über 60',
+      );
+      final o = climbLimitOfferFor(ride(track(72, 0)), prefs)!;
+      expect((o.toM, o.distKm, o.toKm, o.askEbike), (null, 70, 70, false));
+      // Ohne Höhen fragt die Distanz trotzdem.
+      expect(
+        climbLimitOfferFor(ride(track(72, 0, withAlt: false)), prefs)!.toKm,
+        70,
+      );
+      expect(limitOfferStands(prefs, o), isTrue);
+      expect(limitOfferStands(prefs.withDist(bio, 70), o), isFalse);
+    });
+
+    test('beide übertroffen: EINE Frage, beide Antworten gelten für beide', () {
+      final prefs = LoopPrefs.defaults(bio);
+      final o = climbLimitOfferFor(ride(track(72, 1050)), prefs)!;
+      expect((o.toM, o.toKm, o.askEbike), (1000, 70, false));
+      final up = raiseClimbLimit(prefs, o).after;
+      expect((up.climbBioM, up.distBioKm), (1000, 70));
+      expect((up.climbEbikeM, up.distEbikeKm), (1400, 90));
+      final no = declineClimbLimit(prefs, o).after;
+      expect((no.declinedBioM, no.declinedDistBioKm), (1000, 70));
+      expect(
+        climbLimitOfferFor(ride(track(72, 1050)), no),
+        isNull,
+        reason: 'Nein gilt, bis eine Fahrt es um einen Schritt übertrifft',
+      );
+      expect(climbLimitOfferFor(ride(track(76, 1050)), no)!.toKm, 75);
+    });
+
+    test('Ja, E-Bike vergleicht auch die Distanz mit dem E-Limit', () {
+      const o = ClimbLimitOffer(
+        rideId: 'r1',
+        bike: bio,
+        climbM: 1000,
+        toM: 1000,
+        askEbike: true,
+        distKm: 100,
+        toKm: 100,
+      );
+      final a = ebikeClimbLimit(LoopPrefs.defaults(bio), o);
+      expect(
+        (a.raisedBike, a.after.climbEbikeM, a.after.distEbikeKm),
+        (ebike, 1400, 100),
+        reason: '1 000 hm liegen unter dem E-Limit, 100 km über seinen 90',
+      );
+      expect(a.after.distBioKm, 60);
+    });
+
+    test('kodiert mit sieben Feldern, die alten fünf lesen sich weiter', () {
+      const o = ClimbLimitOffer(
+        rideId: 'x-2',
+        bike: bio,
+        climbM: 300,
+        toM: null,
+        distKm: 70,
+        toKm: 70,
+      );
+      final back = ClimbLimitOffer.parse(o.encode())!;
+      expect(
+        (back.climbM, back.toM, back.distKm, back.toKm, back.askEbike),
+        (300, null, 70, 70, false),
+      );
+      final old = ClimbLimitOffer.parse('x-3|bio|1100.0|1100.0|1')!;
+      expect((old.toM, old.askEbike, old.toKm), (1100, true, null));
+      expect(
+        ClimbLimitOffer.parse('x-4|bio|300.0||0|20.0|'),
+        isNull,
+        reason: 'nichts zu fragen',
+      );
     });
   });
 

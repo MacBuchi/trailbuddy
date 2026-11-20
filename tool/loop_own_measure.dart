@@ -3,13 +3,15 @@
 // die Runden, die er wirklich gefahren ist.
 //
 // Je eigene Runde (Start ≈ Ende) rechnet es den Vorschlag ab ihrem Start,
-// mit ihrer Fahrzeit (auf die halbe Stunde des Reglers) und ihrem Rad:
-//   A  so wie die App seit 0.175.0 (Vorgabe-Limit, ohne Vorliebe),
-//   B  mit Vorliebe (0.176.0): Fahrten je Trail aus den ANDEREN Runden,
-//   C  wie B mit dem Limit, das die Fahrten gehoben hätten (0.177.0),
-//   D  wie A mit ± 30 min statt einem Viertel der Zeit (nur unter 2 h),
-//   E  wie B mit dreifacher Vorliebe (+18 % je Fahrt, höchstens +90 %) —
-//      nur zum Vergleich, ab wann sie die Wahl kippt.
+// mit ihrer Fahrzeit (auf die halbe Stunde des Reglers) und ihrem Rad, mit
+// Vorliebe (Fahrten je Trail aus den ANDEREN Runden):
+//   B  so wie die App bis 0.194 (Höhenmeter-Limit mit der Zeit skaliert,
+//      ohne Distanz),
+//   F  seit 0.195.0 (#516, Betreiber 2026-11-20): feste Limits des Rads,
+//      Höhenmeter UND Distanz (Vorgabe),
+//   G  wie F mit den Limits, die die Fahrten gehoben hätten.
+// (Bis PR #553 dazu A ohne Vorliebe, D ± 30 min, E dreifache Vorliebe —
+// gemessen und entschieden, seither nicht mehr gerechnet.)
 // Dazu, wie viel der vorgeschlagenen Trail-Meter auf Trails liegt, die
 // diese Runde wirklich fuhr bzw. die irgendeine Fahrt fuhr.
 //
@@ -132,11 +134,22 @@ void main() {
         .fold(p.budgetClimbM, math.max)
         .clamp(LoopPrefs.minClimb, LoopPrefs.maxClimb)
         .toDouble();
+    double raisedKm(RiderProfile p) => rides
+        .where((r) => r.profile == p)
+        .map(
+          (r) =>
+              (r.lengthM / 1000 / LoopPrefs.distStepKm).floor() *
+              LoopPrefs.distStepKm,
+        )
+        .fold(p.budgetDistKm, math.max)
+        .clamp(LoopPrefs.minDistKm, LoopPrefs.maxDistKm)
+        .toDouble();
     // ignore: avoid_print
     print(
-      'Trails ${trails.length}, Fahrten ${rides.length}, Limit Bio ${RiderProfile.bio.budgetClimbM.round()} → '
-      '${raised(RiderProfile.bio).round()}, E ${RiderProfile.ebike.budgetClimbM.round()} → '
-      '${raised(RiderProfile.ebike).round()}',
+      'Trails ${trails.length}, Fahrten ${rides.length}, Limit Bio ${RiderProfile.bio.budgetClimbM.round()} hm → '
+      '${raised(RiderProfile.bio).round()}, ${RiderProfile.bio.budgetDistKm.round()} km → ${raisedKm(RiderProfile.bio).round()}; '
+      'E ${RiderProfile.ebike.budgetClimbM.round()} hm → ${raised(RiderProfile.ebike).round()}, '
+      '${RiderProfile.ebike.budgetDistKm.round()} km → ${raisedKm(RiderProfile.ebike).round()}',
     );
 
     final loops = [
@@ -147,8 +160,8 @@ void main() {
     ];
     // ignore: avoid_print
     print(
-      '| Runde | Rad | gefahren: Zeit, hm, Trail-Anteil | Fall | Pool | Trails | Schätzung | Anteil | hm / Limit '
-      '| davon in dieser Runde | davon je gefahren | anders als A |',
+      '| Runde | Rad | gefahren: Zeit, hm, km, Trail-Anteil | Fall | Pool | Trails | Schätzung | Anteil | hm / Limit | km / Limit '
+      '| davon in dieser Runde | davon je gefahren | anders als B |',
     );
     var n = 0;
     for (final ride in loops) {
@@ -213,18 +226,6 @@ void main() {
             weight: loopPreferenceWeight(rides: counts[t.id] ?? 0),
           ),
       ];
-      final strong = [
-        for (final t in weighted)
-          PoolTrail(
-            id: t.id,
-            name: t.name,
-            points: t.points,
-            lengthM: t.lengthM,
-            gainM: t.gainM,
-            lossM: t.lossM,
-            weight: 1 + 3 * (t.weight - 1),
-          ),
-      ];
       double suggestClimb(double limit) =>
           ((limit *
                           math.min(h, kBudgetHours) /
@@ -238,14 +239,12 @@ void main() {
       String hm(double sec) =>
           '${sec ~/ 3600} h ${((sec % 3600) / 60).round().toString().padLeft(2, '0')}';
       Set<String>? baseIds;
-      for (final (label, pool, limit, windowS) in [
-        ('A', inReach, ride.profile.budgetClimbM, loopWindowFor(h * 3600)),
-        ('B', weighted, ride.profile.budgetClimbM, loopWindowFor(h * 3600)),
-        ('C', weighted, raised(ride.profile), loopWindowFor(h * 3600)),
-        if (h < 2) ('D', inReach, ride.profile.budgetClimbM, kLoopTimeWindowS),
-        ('E', strong, ride.profile.budgetClimbM, loopWindowFor(h * 3600)),
+      final p = ride.profile;
+      for (final (label, climb, distKm) in [
+        ('B', suggestClimb(p.budgetClimbM), double.infinity),
+        ('F', p.budgetClimbM, p.budgetDistKm),
+        ('G', raised(p), raisedKm(p)),
       ]) {
-        final climb = suggestClimb(limit);
         final plan = planLoop(
           built.graph,
           start: start,
@@ -254,9 +253,10 @@ void main() {
             timeS: h * 3600,
             climbM: climb,
             hikingM: kBudgetHikingKm * 1000,
-            windowS: windowS,
+            windowS: loopWindowFor(h * 3600),
+            distM: distKm * 1000,
           ),
-          pool: pool,
+          pool: weighted,
         );
         final s = plan.summary;
         final ids = {for (final st in plan.stops) st.trail.id};
@@ -273,13 +273,14 @@ void main() {
         final share = s == null || s.lengthM == 0 ? null : s.trailM / s.lengthM;
         // ignore: avoid_print
         print(
-          '| ${label == 'A' ? 'L$n' : ''} | ${label == 'A' ? ride.profile.name : ''} '
-          '| ${label == 'A' ? '${hm(ride.movingS)} · ${ride.climbM.round()} hm · ${(rideTrailM / ride.lengthM * 100).round()} %' : ''} '
+          '| ${label == 'B' ? 'L$n' : ''} | ${label == 'B' ? ride.profile.name : ''} '
+          '| ${label == 'B' ? '${hm(ride.movingS)} · ${ride.climbM.round()} hm · ${(ride.lengthM / 1000).round()} km · ${(rideTrailM / ride.lengthM * 100).round()} %' : ''} '
           '| $label | ${inReach.length} | ${plan.stops.length} '
           '| ${s == null ? '${plan.outcome.name} (${why.entries.map((e) => '${e.key.name} ${e.value}').join(', ')})' : hm(s.timeS)} | ${share == null ? '–' : '${(share * 100).round()} %'} '
           '| ${s == null ? '–' : '${s.gainM.round()} / ${climb.round()}'} '
+          '| ${s == null ? '–' : '${(s.lengthM / 1000).toStringAsFixed(1)} / ${distKm.isFinite ? distKm.round() : '–'}'} '
           '| ${pct(metresOn(ride.ridden.contains))} | ${pct(metresOn((id) => (counts[id] ?? 0) > 0))} '
-          '| ${label == 'A' ? '' : '${ids.difference(baseIds).length + baseIds.difference(ids).length}'} |',
+          '| ${label == 'B' ? '' : '${ids.difference(baseIds).length + baseIds.difference(ids).length}'} |',
         );
       }
     }

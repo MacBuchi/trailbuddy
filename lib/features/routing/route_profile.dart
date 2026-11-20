@@ -242,6 +242,15 @@ enum RiderProfile implements RiderParams {
   @override
   final double budgetClimbM;
 
+  /// Vorgabe „höchstens Distanz" in km (#516, Konzept-Routing 12.5a) —
+  /// das zweite Limit des Rads neben [budgetClimbM]; eine Fahrt, die
+  /// weiter war, hebt es auf Nachfrage an. Nicht in [RiderParams]: Das
+  /// Zeitmodell rechnet nicht damit, nur das Budget des Planers.
+  double get budgetDistKm => switch (this) {
+    bio => 60,
+    ebike => 90,
+  };
+
   /// Der gespeicherte Name (`Settings.riderProfile`); unbekannt ⇒ Bio.
   static RiderProfile parse(String? name) =>
       values.where((p) => p.name == name).firstOrNull ?? RiderProfile.bio;

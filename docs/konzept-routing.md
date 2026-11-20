@@ -176,6 +176,7 @@ Drei Regler im Planer-Blatt, jeder mit Vorgabe; der engste gewinnt:
 |---|---|---|---|
 | Höchstens Zeit | 3 h | 1–6 h | 30 min |
 | Höchstens Höhenmeter bergauf | 800 hm (Bio) / 1 400 hm (E) | 200–2 500 | 100 |
+| Höchstens Distanz (seit 0.195.0, #516) | 60 km (Bio) / 90 km (E) | 10–200 km | 5 km |
 | Höchstens Wanderweg (bergauf und bergab) | 2 km | 0–10 km („kein Wanderweg" = 0) | 0,5 km |
 
 Dazu das Ende der Fahrt (Vorgabe: Runde) — zurück am Start, am Ende des
@@ -1991,9 +1992,15 @@ die Regel aus 4 („ab Werk ist nichts gewählt"): Sie gilt nur noch für
 - **Der Umkreis folgt der Zeit**, kein Regler im Einstieg. Startwerte,
   vor dem Bau zu messen (12.8): 1 h → 5 km, 2 h → 8 km, 3 h → 12 km
   (`kLoopReachM`), darüber 15 km.
-- **Höhenmeter folgen aus Zeit und Rad**: die Vorgabe aus 2.3
-  (800 hm Bio / 1 400 hm E bei 3 h), linear mit der Zeit, auf die Spanne
-  geklemmt. Wer es anders will, stellt es beim Bearbeiten.
+- **Die Limits sind die des Rads, fest** (Betreiber, 2026-11-20; bis
+  0.194 skalierte der Vorschlag die Höhenmeter linear mit der Zeit —
+  am Gerät standen dann drei Zahlen für dieselbe Runde, 500 / 800 /
+  1 000): Höhenmeter UND Distanz aus 2.3, dieselben Zahlen wie beim
+  Bearbeiten, in Kachel, Kopf und Vergleich. Die Zeit kommt aus der
+  Steigleistung des Rads in hm/h (2.1, gelernt aus Fahrten) und dem
+  Tempo — sie begrenzt die Runde als Richtwert, skaliert aber kein
+  Limit. „Min aus beidem begrenzt quasi die max Strecke": Auf flachem
+  Gelände bremst sonst nur die Zeit, und 6 h hießen 100 km und mehr.
 - **Vorliebe, weich**: Ein Trail, den der Fahrer oft gefahren ist oder
   gut bewertet hat, zählt in der Zielfunktion (Trail-Meter je
   Zeitzuwachs, 3) mit einem Aufschlag auf seine Meter — nie als Filter.
@@ -2072,11 +2079,20 @@ vielleicht noch mit der Rückfrage, ob es evtl. eine E-Bike-Tour war …
 Sollte generell wenig distracting sein, auf ein notwendiges Minimum und
 nicht nach jeder Fahrt mehrere Fragen."*
 
-**Anzeige im Ergebnis.** Die Kacheln „Zeit" und „Höhenmeter" der Summe
-(#517) tragen unter der Zahl eine schmale Skala:
+*Betreiber, 2026-11-20: „Dann ist die max Höhe (ggfs noch die max
+Distanz) eine Zahl die fix steht und bei Überschreiten aus Aufzeichnung
+nach oben angepasst wird." — „Distanz und Höhenmeter geben ja das eigene
+Limit an. Nur weil keine Höhenmeter da sind heißt nicht, dass ich 600 km
+fahren kann."* Zwei Limits je Rad, beide fest, beide aus Fahrten
+angehoben; die Zeit skaliert keines (12.4).
 
-- **Höhenmeter**: gefüllt bis zum Anteil am Limit, daneben „640 von
-  800 hm". Voll heißt am Limit; die Skala läuft nie über, weil das Limit
+**Anzeige im Ergebnis.** Die Kacheln „Strecke", „Höhenmeter" und „Zeit"
+der Summe (#517) tragen unter der Zahl eine schmale Skala:
+
+- **Höhenmeter und Strecke**: gefüllt bis zum Anteil am Limit, die Zahl
+  des Limits am Ende der Skala („800", „60" — seit 0.195.0; neben dem
+  Namen schnitt „von 800" auf dem Pixel XL „Bergauf" ab). Voll heißt am
+  Limit; die Skala läuft nie über, weil das Limit
   hält — außer nach dem Ziehen von Gummipunkten oder mit Pflicht-Trails:
   Dann ist sie in der Warnfarbe voll, mit einem Strich an der Stelle des
   Limits und der Zahl dazu (Form UND Farbe, A13).
@@ -2093,8 +2109,13 @@ nicht nach jeder Fahrt mehrere Fragen."*
 
 - **Anlass**: eine selbst AUFGEZEICHNETE Fahrt (nicht geplant, nicht
   aus GPX übernommen), deren Anstieg das Höhenmeter-Limit ihres Rads um
-  mindestens einen Schritt (100 hm) übertrifft. Gemessen wie im
-  Zerlege-Blatt (`hysteresisClimb`, geglättet), auf 100 hm abgerundet.
+  mindestens einen Schritt (100 hm) übertrifft — oder deren Länge das
+  Distanz-Limit um einen Schritt (5 km). Gemessen wie im Zerlege-Blatt
+  (`hysteresisClimb`, geglättet), auf 100 hm bzw. 5 km abgerundet; ohne
+  Höhen fragt nur die Distanz.
+- **Beide übertroffen, EINE Frage**: „1 100 hm und 70 km geschafft —
+  Limits fürs Bio-Bike auf 1 100 hm und 70 km anheben?" Ja und Nein
+  gelten für beide; ein „Nein" merkt sich je Limit seinen Wert.
 - **Nur nach oben, nur mit Ja**: Die App schlägt vor, sie stellt nichts
   von selbst. „1 150 hm geschafft — Limit fürs Bio-Bike von 800 auf
   1 100 hm anheben?" mit „Anheben" und „Nein".
@@ -2127,7 +2148,7 @@ Kopf, darunter das Budget:
 ```
 ●  Start   Mein Standort                     ›
 ⚑  Ziel    Zurück zum Start (Runde)          ›
-           etwa 3 h · 800 hm · Bio    Anpassen
+           etwa 3 h · 800 hm · 60 km · Bio    Anpassen
 ```
 
 - **Tipp auf „Start"**: „Mein Standort" · „Auf der Karte tippen".
@@ -2169,15 +2190,17 @@ Die Bearbeitungsansicht ist der heutige Modus, aufgeräumt (#516):
   Wort — „Runde rechnen" / „Route rechnen" —, dort, wo danach das
   Ergebnis steht. „… dazugenommen · Rückgängig" (#375) erscheint in
   dieser Zeile statt als Leiste, die Rail und „Meine Position" verdeckt.
-- **„Anpassen"** in zwei Stufen: Zeit, Höhenmeter, Rad sofort;
-  „Feinheiten" eingeklappt.
+- **„Anpassen"** in zwei Stufen: Rad, Zeit, Höhenmeter, Distanz sofort
+  (seit 0.195.0; unter dem Rad seine Steigleistung, „Bergauf etwa
+  450 hm/h — daraus kommt die Zeit, nicht das Limit", „aus deinen
+  Fahrten", sobald gelernt); „Feinheiten" eingeklappt.
 
 Jede Option hat genau eine Ebene:
 
 | Ebene | Optionen |
 |---|---|
 | gefragt im Einstieg | Absicht; Start; Zeit (Runde) oder Ziel (Route) |
-| sichtbar beim Bearbeiten | Start, Ziel, Zeit, Höhenmeter, Rad; Auswahl, Pflicht, Zwischenpunkte |
+| sichtbar beim Bearbeiten | Start, Ziel, Zeit, Höhenmeter, Distanz, Rad; Auswahl, Pflicht, Zwischenpunkte |
 | im Ergebnis | Stil (Route), Rad — rechnen sofort (10.2) |
 | „Feinheiten", eingeklappt | Wanderweg-Budget, Radius der Liste, Bergauf bequem, Straßen / Wanderwege / steile Rampen meiden, Online ergänzen |
 
@@ -2326,11 +2349,10 @@ einem Schritt auf der normalen Karte.
      nächste Stufe aus 5 · 8 · 12 · 15 · 20 km — im Ergebnis, wenn kein
      Stand im Fenster lag, und beim leeren Umkreis
      (`LoopBlocker.noTrailsInReach`, ein Satz mit „Route" als Rat).
-   - **Die Höhenmeter skalieren das gemerkte Limit**, nicht die Vorgabe
-     des Rads: `climbM × Zeit / 3 h`, auf 100 hm gerundet, nie über dem
-     Limit. Unverändert ist das die Vorgabe aus 12.4; ein angehobenes
-     Limit (12.5a) zählt mit. Über 3 h bleibt es beim Limit — anders
-     als in der Messung, die über 3 h weiter linear rechnete.
+   - ~~**Die Höhenmeter skalieren das gemerkte Limit**: `climbM × Zeit /
+     3 h`~~ — seit 0.195.0 nicht mehr (12.4, Betreiber 2026-11-20): Der
+     Vorschlag rechnet mit denselben festen Limits wie die Auswahl
+     (`LoopPrefs.budget`, `suggestBudget` ist weg).
    - **Ein Stand unter dem Fenster gewinnt ab 5 Prozentpunkten mehr
      Anteil** (`kLoopShareBelow`), nicht unter Zeit − 2 × Fenster
      (`LoopBudget.floorTimeS`) — sonst gewänne bei 5 h eine 40-min-Runde
@@ -2546,10 +2568,14 @@ zieht nach):
    schickt beim ersten Einschalten EINE Rechnung
    (`LoopRequest.withOverLimit`, `_Planner.runOverLimit`): derselbe
    Greedy in zwei Phasen, Zwischenpunkte und Pflicht-Trails wie in
-   `run`, nur ohne Höhenmeter in `fits`; zurück kommen die Stände über
-   dem Limit (`LoopPlan.over`), ohne lokale Suche und ohne Linie. Die
+   `run`, nur ohne die Limits des Rads in `fits` (Höhenmeter, seit
+   0.195.0 auch Distanz — `ignoreLimits`); zurück kommen die Stände über
+   einem von beiden (`LoopPlan.over`), ohne lokale Suche und ohne Linie. Die
    Suchen liegen schon im Speicher des Isolates, die Rechnung ist der
    Greedy allein. Ein Tipp auf einen solchen Punkt rechnet nichts nach;
    sein Knopf „Limit auf … hm anheben" setzt das Limit des Rads auf
-   seine Höhenmeter, aufgerundet auf 100 — beim Vorschlag so, dass das
-   mit der Zeit skalierte Limit (12.4) reicht — und rechnet neu.
+   seine Höhenmeter, aufgerundet auf 100, und rechnet neu. Seit 0.195.0
+   je Limit, das der Stand übertrifft („Limit auf 70 km anheben", oder
+   beide in einem Knopf), immer in den Zahlen des Rads — dieselben wie
+   im Kopf („Limit 800 hm · 60 km"); bis dahin sprach der Knopf beim
+   Vorschlag in der skalierten Einheit (607 hm → „auf 1 000 hm").

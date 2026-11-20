@@ -48,6 +48,8 @@ import 'nav_providers.dart';
 import 'nav_sections.dart';
 import 'nav_view.dart' show NavStartButton, NavStartOptions, navStartChoiceOf;
 import 'planning_graph.dart' show planningCoverageNote;
+import 'ride_calibrator.dart'
+    show calibratedRiderProvider, riderCalibrationsProvider;
 import 'road_graph.dart';
 import 'road_graph_loader.dart' show kOnlineFillMaxTiles, kPlanMaxTiles;
 import 'route_elevation.dart';
@@ -64,6 +66,10 @@ import 'trail_head_route.dart' show routeSeconds, routeTimeLabel;
 /// Lime ohne Kontur ging im weißen Saum der Trails unter — gewählt war,
 /// zu sehen war nichts.
 const kLoopPickWidth = 12.0;
+
+/// Ab so vielen Trails mit „passt nicht ins Budget" stehen sie unter
+/// „Nicht hineingepasst" als EINE aufklappbare Zeile (15l9).
+const kLoopExcludedFoldMin = 4;
 
 /// Wie weit neben einer Trail-Linie ein Tipp im Planer noch trifft (#375,
 /// Betreiber 2026-10-18: nur auf der Linie selbst). Auf der normalen Karte
@@ -205,6 +211,30 @@ class _ParamsSheet extends ConsumerWidget {
           showSelectedIcon: false,
           onSelectionChanged: (sel) => notifier.setProfile(sel.single),
         ),
+        // Die Steigleistung des Rads (#516, Betreiber 2026-11-20): Aus ihr
+        // kommt die Zeit, die Limits darunter sind feste Zahlen.
+        Builder(
+          builder: (context) {
+            final rider = ref.watch(calibratedRiderProvider(session.profile));
+            final rate = rider.climbTrackMPerH.round();
+            return Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: Text(
+                ref
+                            .watch(riderCalibrationsProvider)
+                            .of(session.profile)
+                            .climbTrackMPerH !=
+                        null
+                    ? l.loopClimbRateLearned(rate)
+                    : l.loopClimbRate(rate),
+                key: const ValueKey('loop-climb-rate'),
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.hintColor,
+                ),
+              ),
+            );
+          },
+        ),
         const SizedBox(height: 12),
         _LoopSlider(
           key: const ValueKey('loop-time'),
@@ -223,6 +253,15 @@ class _ParamsSheet extends ConsumerWidget {
           max: LoopPrefs.maxClimb,
           step: LoopPrefs.climbStep,
           onChanged: (v) => notifier.setPrefs(prefs.copyWith(climbM: v)),
+        ),
+        _LoopSlider(
+          key: const ValueKey('loop-dist'),
+          label: l.loopMaxDist(prefs.distKm.round()),
+          value: prefs.distKm,
+          min: LoopPrefs.minDistKm,
+          max: LoopPrefs.maxDistKm,
+          step: LoopPrefs.distStepKm,
+          onChanged: (v) => notifier.setPrefs(prefs.copyWith(distKm: v)),
         ),
         // Was man einmal stellt (Konzept-Routing 12.7): eingeklappt.
         Theme(
@@ -933,6 +972,7 @@ class _ResultPanelState extends ConsumerState<_ResultPanel> {
   bool _fitsBudget(LoopSummary s, LoopBudget b) =>
       s.timeS <= b.maxTimeS + 1 &&
       s.gainM <= b.climbM + 1 &&
+      s.lengthM <= b.distM + 1 &&
       s.hikingM <= b.hikingM + 1;
 
   List<Widget> _result(
@@ -1006,8 +1046,10 @@ class _ResultPanelState extends ConsumerState<_ResultPanel> {
       ],
       // Vier Kacheln statt eines Satzes (#517, Konzept-Geräte 5.2): Länge,
       // bergauf, auf Trails (ohne Trail — die Route von A nach B, #356 —
-      // bergab), Zeit. Eine Runde trägt unter „Bergauf" und „Zeit" ihre
-      // Skala (Konzept-Routing 12.5a): wie viel vom Limit, wo im Fenster.
+      // bergab), Zeit. Eine Runde trägt unter „Strecke", „Bergauf" und
+      // „Zeit" ihre Skala (Konzept-Routing 12.5a): wie viel von den
+      // Limits des Rads (die Zahl am Ende der Skala, dieselbe wie im Kopf
+      // und im Vergleich, #516), wo im Fenster.
       Row(
         key: const ValueKey('loop-summary'),
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1017,14 +1059,22 @@ class _ResultPanelState extends ConsumerState<_ResultPanel> {
               key: const ValueKey('loop-tile-length'),
               label: l.loopTileLength,
               value: formatMeters(lengthM),
+              limit: budget == null || !budget.distM.isFinite
+                  ? null
+                  : '${(budget.distM / 1000).round()}',
+              scale: budget == null || !budget.distM.isFinite
+                  ? null
+                  : LoopBudgetScale(
+                      key: const ValueKey('loop-scale-length'),
+                      value: lengthM,
+                      mark: budget.distM,
+                    ),
             ),
             _SummaryTile(
               key: const ValueKey('loop-tile-climb'),
               label: l.loopTileClimb,
               value: '${gainM.round()} hm',
-              trailing: budget == null
-                  ? null
-                  : l.loopTileOf('${budget.climbM.round()}'),
+              limit: budget == null ? null : '${budget.climbM.round()}',
               scale: budget == null
                   ? null
                   : LoopBudgetScale(
@@ -1047,9 +1097,13 @@ class _ResultPanelState extends ConsumerState<_ResultPanel> {
             _SummaryTile(
               key: const ValueKey('loop-tile-time'),
               label: l.loopTileTime,
+              // „ca." steht klein neben dem Namen, die Zeit knapp (1:55 h):
+              // „ca. 1 h 55 min" war auf dem Pixel XL kleiner skaliert als
+              // die übrigen Kacheln (15l9).
+              trailing: budget == null ? null : l.loopTimeAboutShort,
               value: budget == null
                   ? routeTimeLabel(l, timeS)
-                  : l.loopTimeAbout(routeTimeLabel(l, timeS)),
+                  : routeTimeCompact(l, timeS),
               // Mit der Leiste behält die Kachel nur die Zahl (#549): Die
               // Skala ist dort zur Leiste über die ganze Breite geworden.
               scale: budget == null || strip != null
@@ -1180,14 +1234,16 @@ class _ResultPanelState extends ConsumerState<_ResultPanel> {
       const SizedBox(height: 4),
       Text(
         key: const ValueKey('loop-details'),
-        [
-          if (!plan.isEmpty)
-            l.loopDescents(s.trailLossM.round(), s.wastedLossM.round()),
-          if (s.mix.isNotEmpty) wayMixLine(l, s.mix),
-          // Die Schätzung kennt keine Pausen (Konzept-Routing 12.5) — als
-          // Satz, seit die Reserve nicht mehr still in der Rechnung steckt.
-          if (budget != null) l.loopNoBreaks,
-        ].join(' · '),
+        keepUnits(
+          [
+            if (!plan.isEmpty)
+              l.loopDescents(s.trailLossM.round(), s.wastedLossM.round()),
+            if (s.mix.isNotEmpty) wayMixLine(l, s.mix),
+            // Die Schätzung kennt keine Pausen (Konzept-Routing 12.5) — als
+            // Satz, seit die Reserve nicht mehr still in der Rechnung steckt.
+            if (budget != null) l.loopNoBreaks,
+          ].join(' · '),
+        ),
         style: theme.textTheme.bodyMedium,
       ),
       // Unter dem Fenster (Konzept-Routing 12.5): bewusst, weil der
@@ -1384,19 +1440,55 @@ class _ResultPanelState extends ConsumerState<_ResultPanel> {
     ];
   }
 
+  /// Die Gründe je Trail. „Passt nicht ins Budget" fasst ab
+  /// [kLoopExcludedFoldMin] Trails EINE Zeile zusammen, aufklappbar: Beim
+  /// Vorschlag standen dort rund 45 Zeilen, alle Trails im Umkreis (15l9)
+  /// — die übrigen Gründe sagen etwas über einen Trail und bleiben
+  /// einzeln.
   List<Widget> _excludedRows(BuildContext context, LoopPlan plan) {
     final theme = Theme.of(context);
+    final l = context.l10n;
     final trails = ref.read(trailsProvider).valueOrNull ?? const <Trail>[];
     final byId = {for (final t in trails) t.id: t};
+    Widget row(MapEntry<String, LoopExclusion> e) => Text(
+      key: ValueKey('loop-excluded-${e.key}'),
+      l.loopExcludedRow(
+        byId[e.key]?.displayName(l) ?? e.key,
+        _exclusionText(l, e.value),
+      ),
+      style: theme.textTheme.bodySmall,
+    );
+    final budget = [
+      for (final e in plan.excluded.entries)
+        if (e.value == LoopExclusion.budget) e,
+    ];
+    final fold = budget.length >= kLoopExcludedFoldMin;
     return [
       for (final e in plan.excluded.entries)
-        Text(
-          key: ValueKey('loop-excluded-${e.key}'),
-          context.l10n.loopExcludedRow(
-            byId[e.key]?.displayName(context.l10n) ?? e.key,
-            _exclusionText(context.l10n, e.value),
+        if (!fold || e.value != LoopExclusion.budget) row(e),
+      if (fold)
+        Theme(
+          data: theme.copyWith(dividerColor: Colors.transparent),
+          child: ExpansionTile(
+            key: const ValueKey('loop-excluded-budget'),
+            tilePadding: EdgeInsets.zero,
+            childrenPadding: EdgeInsets.zero,
+            dense: true,
+            visualDensity: VisualDensity.compact,
+            expandedCrossAxisAlignment: CrossAxisAlignment.start,
+            title: Text(
+              l.loopExclBudgetFolded(budget.length),
+              style: theme.textTheme.bodySmall,
+            ),
+            children: [
+              for (final e in budget)
+                Text(
+                  key: ValueKey('loop-excluded-${e.key}'),
+                  byId[e.key]?.displayName(l) ?? e.key,
+                  style: theme.textTheme.bodySmall,
+                ),
+            ],
           ),
-          style: theme.textTheme.bodySmall,
         ),
     ];
   }
@@ -1565,13 +1657,37 @@ String loopHoursLabel(AppLocalizations l, double h) {
 }
 
 /// „Forstweg 2,1 km · Nebenstraße 300 m" — die Klassen nach Länge; EINE
-/// Fassung für Runde und Weg.
+/// Fassung für Runde und Weg. Zahl und Einheit hängen fest zusammen
+/// ([keepUnits]): Auf dem Pixel XL brach „6,9 | km" um (15l9).
 String wayMixLine(AppLocalizations l, Map<WayClass, double> mix) {
   final entries = mix.entries.toList()
     ..sort((a, b) => b.value.compareTo(a.value));
   return entries
-      .map((e) => l.routingWayMix(e.key.label(l), formatMeters(e.value)))
+      .map(
+        (e) =>
+            l.routingWayMix(e.key.label(l), keepUnits(formatMeters(e.value))),
+      )
       .join(' · ');
+}
+
+/// Ein geschütztes Leerzeichen zwischen Zahl und Einheit (km, m, hm, h,
+/// min) — ein Satz bricht dann vor der Zahl um, nie zwischen ihr und der
+/// Einheit.
+String keepUnits(String text) => text.replaceAllMapped(
+  RegExp(r'(\d) (km|hm|min|m|h)\b'),
+  (m) => '${m[1]}\u00a0${m[2]}',
+);
+
+/// Die Zeit knapp für eine Kachel: „45 min", „2 h", „1:55 h" — auf
+/// 5 min gerundet wie [routeTimeLabel].
+String routeTimeCompact(AppLocalizations l, double seconds) {
+  final min = ((routeSeconds(seconds) / 60) / 5).round() * 5;
+  if (min < 5) return l.routingTimeUnder5;
+  if (min < 60) return l.routingTimeMinutes(min);
+  final h = min ~/ 60, m = min % 60;
+  return m == 0
+      ? l.routingTimeHours(h)
+      : l.routingTimeClock(h, '$m'.padLeft(2, '0'));
 }
 
 /// Die gewählten Trails leuchten, solange der Planer offen ist und keine
@@ -1630,12 +1746,19 @@ class _SummaryTile extends StatelessWidget {
     required this.value,
     this.trailing,
     this.scale,
+    this.limit,
   });
 
   final String label;
   final String value;
+
+  /// Klein rechts neben dem Namen („ca.").
   final String? trailing;
   final Widget? scale;
+
+  /// Das Limit als Zahl am Ende der Skala (#516): Neben dem Namen
+  /// schnitt „von 800" auf dem Pixel XL „Bergauf" ab (15l9).
+  final String? limit;
 
   @override
   Widget build(BuildContext context) {
@@ -1683,7 +1806,26 @@ class _SummaryTile extends StatelessWidget {
               style: AppFonts.numbers(theme.textTheme.titleMedium),
             ),
           ),
-          if (scale case final w?) ...[const SizedBox(height: 3), w],
+          if (scale case final w?) ...[
+            const SizedBox(height: 3),
+            if (limit case final t?)
+              Row(
+                children: [
+                  Expanded(child: w),
+                  const SizedBox(width: 4),
+                  Text(
+                    t,
+                    key: const ValueKey('loop-tile-limit'),
+                    maxLines: 1,
+                    style: AppFonts.numbers(
+                      small,
+                    ).copyWith(fontSize: 10, height: 1),
+                  ),
+                ],
+              )
+            else
+              w,
+          ],
         ],
       ),
     );

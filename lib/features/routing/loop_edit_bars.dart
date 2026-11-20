@@ -24,7 +24,7 @@ import '../trails/trail_providers.dart'
     show startPointsProvider, trailByIdProvider;
 import 'loop_planner.dart' show LoopEndMode;
 import 'loop_planner_controller.dart';
-import 'loop_planner_sheet.dart' show LoopStartFlag, loopHoursLabel;
+import 'loop_planner_sheet.dart' show LoopStartFlag, keepUnits, loopHoursLabel;
 import 'start_point_pick.dart';
 
 /// Die Fahnen des Planers sind antippbar (#516, Konzept-Routing 12.6): Ein
@@ -83,10 +83,13 @@ class LoopEditHeader extends ConsumerWidget {
             ? l.loopHeadMine
             : targetTrail?.displayName(l) ?? s.targetName ?? l.loopHeadPicked,
     };
-    final budget = l.loopHeadBudget(
-      loopHoursLabel(l, s.prefs.hours),
-      s.prefs.climbM.round(),
-      s.profile.label(l),
+    final budget = keepUnits(
+      l.loopHeadBudget(
+        loopHoursLabel(l, s.prefs.hours),
+        s.prefs.climbM.round(),
+        s.prefs.distKm.round(),
+        s.profile.label(l),
+      ),
     );
 
     Widget row(
@@ -216,14 +219,17 @@ class LoopEditHeader extends ConsumerWidget {
                       targetValue,
                       () => showLoopTargetChoice(context, ref),
                     ),
+                    // Unter der Flagge, nicht unter dem Wert, und auf zwei
+                    // Zeilen: „2 h · 800 hm · B…" war auf dem Pixel XL
+                    // abgeschnitten (15l9), mit der Distanz wäre es mehr.
                     Row(
                       children: [
-                        const SizedBox(width: 32 + 44),
+                        const SizedBox(width: 32),
                         Expanded(
                           child: Text(
                             budget,
                             key: const ValueKey('loop-head-budget'),
-                            maxLines: 1,
+                            maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                             style: AppFonts.numbers(theme.textTheme.bodySmall),
                           ),

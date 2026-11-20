@@ -648,15 +648,21 @@ Schwierigkeit (E9) —, eine unbestätigte Meldung gedämpft mit „?"
 - **Summe im Ergebnis des Planers** (#517, Skalen seit 0.174.0, #516;
   `loop_planner_sheet.dart`: `_SummaryTile`, `LoopBudgetScale`): vier
   Kacheln Strecke / Bergauf / Trails / Zeit, Beschriftung `labelSmall`,
-  Zahl in Mono. Eine Runde trägt unter „Bergauf" und „Zeit" eine
+  Zahl in Mono. Eine Runde trägt unter „Strecke" (seit 0.195.0, das
+  Distanz-Limit), „Bergauf" und „Zeit" eine
   **Skala, keinen Ring** (Konzept-Routing 12.5a): 4 px hoch, Spur in
   `line`, Füllung in `brandMark`, ein 2 px breiter Strich in `text` am
   Limit bzw. an der gewählten Zeit; bei der Zeit das Fenster ± 30 min
   als Feld in `brandMark` mit 30 % Deckung. Über dem Erlaubten (Limit,
   Fensterende — getunt oder mit Pflicht-Trails) ist die Füllung
   `warningText`, und der Strich steht mitten in ihr: Form UND Farbe.
-  Das Limit steht als „von 800" rechts in der Beschriftungszeile, die
-  Zeit als „ca. 3 h 10 min". Eine Route zu einem Ziel hat keine Skala.
+  Das Limit steht seit 0.195.0 als Zahl am rechten Ende der Skala
+  (Mono 10, „800", „60"), die Zeit knapp als „3:10 h" mit „ca." klein
+  rechts in der Beschriftungszeile — bis dahin „von 800" und
+  „ca. 3 h 10 min" in derselben Zeile, auf dem Pixel XL abgeschnitten
+  bzw. kleiner skaliert als die übrigen Kacheln (15l9). Zahl und Einheit
+  tragen in Sätzen ein geschütztes Leerzeichen (`keepUnits`). Eine Route
+  zu einem Ziel hat keine Skala.
   **Seit 0.179.0 (#549, Konzept-Routing 12.10 A, Entwurf
   `docs/design/planer-zeitskala/`) ist die Zeit-Skala einer Runde die
   Leiste „andere Runden"** (`loop_state_strip.dart`) über die ganze

@@ -27,7 +27,6 @@
 // Die Engine urteilt nie über Erlaubnis (Konzept 7): Wanderweg zählt gegen
 // das Budget und steht im Ergebnis; ob man dort fahren darf, sagt sie
 // nicht. Rein, ohne Widgets, ohne Riverpod, ohne Platte.
-import 'dart:math' as math;
 
 import 'package:latlong2/latlong.dart';
 
@@ -132,12 +131,18 @@ class LoopBudget {
     required this.climbM,
     required this.hikingM,
     this.windowS = kLoopTimeWindowS,
+    this.distM = double.infinity,
   });
 
   final double timeS;
   final double climbM;
   final double hikingM;
   final double windowS;
+
+  /// Das Distanz-Limit des Rads in Metern (#516, Konzept-Routing 12.5a):
+  /// eine Grenze wie die Höhenmeter — auf flachem Gelände bremst sonst
+  /// nur die Zeit. Ohne Angabe keine Grenze (Route, spaßiger Weg).
+  final double distM;
 
   /// Bis hierhin zählt ein Stand zum Fenster.
   double get maxTimeS => timeS + windowS;
@@ -154,11 +159,12 @@ class LoopBudget {
   /// Anteil gewinnen ([kLoopShareBelow]).
   double get floorTimeS => timeS - 2 * windowS;
 
-  LoopBudget copyWith({double? climbM}) => LoopBudget(
+  LoopBudget copyWith({double? climbM, double? distM}) => LoopBudget(
     timeS: timeS,
     climbM: climbM ?? this.climbM,
     hikingM: hikingM,
     windowS: windowS,
+    distM: distM ?? this.distM,
   );
 }
 
@@ -989,12 +995,13 @@ class _Planner {
   bool shortForShare = false;
 
   /// Der zweite Greedy für „Auch über dem Limit" ([runOverLimit]) rechnet
-  /// ohne Höhenmeter-Grenze.
-  bool ignoreClimb = false;
+  /// ohne die Limits des Rads — Höhenmeter und Distanz.
+  bool ignoreLimits = false;
 
   bool fits(_Route r) =>
       r.timeS <= timeCap + 1e-6 &&
-      (ignoreClimb || r.climbM <= budget.climbM + 1e-6) &&
+      (ignoreLimits || r.climbM <= budget.climbM + 1e-6) &&
+      (ignoreLimits || r.lengthM <= budget.distM + 1e-6) &&
       r.hikingM <= budget.hikingM + 1e-6;
 
   int passes(List<int> seq, int i) => seq.where((x) => x == i).length;
@@ -1145,11 +1152,11 @@ class _Planner {
   }
 
   /// „Auch über dem Limit" (#549, Konzept-Routing 12.10 B): derselbe
-  /// Greedy ohne Höhenmeter-Grenze; zurück kommen nur die Stände über dem
-  /// Limit ([LoopPlan.over]). Keine lokale Suche, keine Linie — ein
+  /// Greedy ohne die Limits des Rads; zurück kommen nur die Stände über
+  /// einem von beiden — Höhenmeter oder Distanz ([LoopPlan.over]). Keine lokale Suche, keine Linie — ein
   /// solcher Stand wird nicht gefahren, sein Tipp hebt das Limit an.
   LoopPlan runOverLimit() {
-    ignoreClimb = true;
+    ignoreLimits = true;
     final seeded = seed();
     if (seeded.failed case final failed?) return failed;
     final states = [seeded.route!];
@@ -1157,7 +1164,8 @@ class _Planner {
     final over = <LoopState>[];
     _Route? prev;
     for (final r in states) {
-      if (r.climbM > budget.climbM + 1e-6 &&
+      if ((r.climbM > budget.climbM + 1e-6 ||
+              r.lengthM > budget.distM + 1e-6) &&
           r.seq.any((i) => !pool[i].waypoint)) {
         over.add(stateOf(r, prev));
       }
@@ -1743,6 +1751,10 @@ class LoopPrefs {
     this.intentRoute = false,
     this.declinedBioM,
     this.declinedEbikeM,
+    this.distBioKm = 60,
+    this.distEbikeKm = 90,
+    this.declinedDistBioKm,
+    this.declinedDistEbikeKm,
   });
 
   final double hours;
@@ -1763,8 +1775,40 @@ class LoopPrefs {
   /// wird erst wieder, wenn eine Fahrt ihn um einen Schritt übertrifft.
   final double? declinedBioM, declinedEbikeM;
 
+  /// Das Distanz-Limit je Rad in km (#516, Betreiber 2026-11-20:
+  /// „Distanz und Höhenmeter geben ja das eigene Limit an … Min aus
+  /// beidem begrenzt quasi die max Strecke"). Fest wie die Höhenmeter,
+  /// eine weitere Fahrt hebt es auf Nachfrage an; die Zeit skaliert es nicht.
+  final double distBioKm, distEbikeKm;
+
+  /// Ein „Nein" zum Anheben der Distanz, je Rad wie [declinedBioM].
+  final double? declinedDistBioKm, declinedDistEbikeKm;
+
   /// Das Limit des Rads, mit dem gerade geplant wird.
   double get climbM => climbOf(bike);
+
+  /// Das Distanz-Limit des Rads, mit dem gerade geplant wird.
+  double get distKm => distOf(bike);
+
+  double distOf(RiderProfile p) =>
+      p == RiderProfile.ebike ? distEbikeKm : distBioKm;
+
+  double? declinedDistOf(RiderProfile p) =>
+      p == RiderProfile.ebike ? declinedDistEbikeKm : declinedDistBioKm;
+
+  /// Das Distanz-Limit eines Rads, geklemmt auf die Spanne des Reglers.
+  LoopPrefs withDist(RiderProfile p, double km) {
+    final v = km.clamp(minDistKm, maxDistKm).toDouble();
+    return p == RiderProfile.ebike
+        ? _with(distEbikeKm: v)
+        : _with(distBioKm: v);
+  }
+
+  /// Ein „Nein" zur Distanz merken ([km]) oder vergessen (null).
+  LoopPrefs withDeclinedDist(RiderProfile p, double? km) =>
+      p == RiderProfile.ebike
+      ? _with(declinedDistEbikeKm: () => km)
+      : _with(declinedDistBioKm: () => km);
 
   double climbOf(RiderProfile p) =>
       p == RiderProfile.ebike ? climbEbikeM : climbBioM;
@@ -1790,6 +1834,10 @@ class LoopPrefs {
     climbEbikeM: other.climbEbikeM,
     declinedBioM: () => other.declinedBioM,
     declinedEbikeM: () => other.declinedEbikeM,
+    distBioKm: other.distBioKm,
+    distEbikeKm: other.distEbikeKm,
+    declinedDistBioKm: () => other.declinedDistBioKm,
+    declinedDistEbikeKm: () => other.declinedDistEbikeKm,
   );
 
   /// Ein „Nein" merken ([m]) oder vergessen (null).
@@ -1843,6 +1891,7 @@ class LoopPrefs {
 
   static const minHours = 1.0, maxHours = 6.0, hoursStep = 0.5;
   static const minClimb = 200.0, maxClimb = 2500.0, climbStep = 100.0;
+  static const minDistKm = 10.0, maxDistKm = 200.0, distStepKm = 5.0;
   static const minHikingKm = 0.0, maxHikingKm = 10.0, hikingStep = 0.5;
   static const minRadiusKm = 2.0, maxRadiusKm = 30.0, radiusStep = 1.0;
 
@@ -1852,6 +1901,8 @@ class LoopPrefs {
     bike: p,
     climbBioM: RiderProfile.bio.budgetClimbM,
     climbEbikeM: RiderProfile.ebike.budgetClimbM,
+    distBioKm: RiderProfile.bio.budgetDistKm,
+    distEbikeKm: RiderProfile.ebike.budgetDistKm,
     hikingKm: kBudgetHikingKm,
     endMode: LoopEndMode.loop,
   );
@@ -1891,6 +1942,10 @@ class LoopPrefs {
       ),
       declinedBioM: declined('nb'),
       declinedEbikeM: declined('ne'),
+      distBioKm: clamp('db', d.distBioKm, minDistKm, maxDistKm),
+      distEbikeKm: clamp('de', d.distEbikeKm, minDistKm, maxDistKm),
+      declinedDistBioKm: declined('mb'),
+      declinedDistEbikeKm: declined('me'),
       hikingKm: clamp('w', d.hikingKm, minHikingKm, maxHikingKm),
       // `r` war bis 0.122 ein Schalter (1/0); 2 ist das Ziel. Ältere Apps
       // lesen jedes „nicht 0" als Runde — und seit #356 auch diese: Das
@@ -1920,6 +1975,8 @@ class LoopPrefs {
   String encode() =>
       'h=$hours;c=$climbM;cb=$climbBioM;ce=$climbEbikeM'
       '${declinedBioM == null ? '' : ';nb=$declinedBioM'}${declinedEbikeM == null ? '' : ';ne=$declinedEbikeM'}'
+      ';db=$distBioKm;de=$distEbikeKm'
+      '${declinedDistBioKm == null ? '' : ';mb=$declinedDistBioKm'}${declinedDistEbikeKm == null ? '' : ';me=$declinedDistEbikeKm'}'
       ';w=$hikingKm;r=${switch (endMode) {
         LoopEndMode.loop => 1,
         LoopEndMode.lastTrail => 0,
@@ -1932,30 +1989,24 @@ class LoopPrefs {
         RouteMode.easy => 'e',
       }};u=${easyUp ? 1 : 0};a=${intentRoute ? 1 : 0}';
 
+  /// Das Budget jeder Runde, Vorschlag wie Auswahl (#516, Betreiber
+  /// 2026-11-20): die Zeit als Richtwert, Höhenmeter und Distanz als feste
+  /// Limits des Rads — die Zeit skaliert sie nicht mehr (bis 0.194 galt
+  /// das Höhenmeter-Limit beim Vorschlag für 3 h und kürzer anteilig).
   LoopBudget get budget => LoopBudget(
     timeS: hours * 3600,
     climbM: climbM,
     hikingM: hikingKm * 1000,
     windowS: loopWindowFor(hours * 3600),
+    distM: distKm * 1000,
   );
 
-  /// Das Budget des Vorschlags (Konzept-Routing 12.4, #516 Schritt 4):
-  /// die Höhenmeter des Limits mit der Zeit skaliert — das Limit gilt für
-  /// [kBudgetHours], kürzer anteilig, länger nie darüber.
-  LoopBudget get suggestBudget => budget.copyWith(climbM: suggestClimbM);
-
-  double get suggestClimbM {
-    final scaled =
-        (climbM * math.min(hours, kBudgetHours) / kBudgetHours / climbStep)
-            .round() *
-        climbStep;
-    return scaled.clamp(minClimb, math.max(minClimb, climbM)).toDouble();
-  }
-
-  /// [climbM] stellt das Limit des Rads [bike].
+  /// [climbM] stellt das Höhenmeter-, [distKm] das Distanz-Limit des
+  /// Rads [bike].
   LoopPrefs copyWith({
     double? hours,
     double? climbM,
+    double? distKm,
     double? hikingKm,
     LoopEndMode? endMode,
     double? radiusKm,
@@ -1964,17 +2015,22 @@ class LoopPrefs {
     RouteMode? style,
     bool? easyUp,
     bool? intentRoute,
-  }) => (climbM == null ? this : withClimb(bike, climbM))._with(
-    hours: hours,
-    hikingKm: hikingKm,
-    endMode: endMode,
-    radiusKm: radiusKm,
-    fillOnline: fillOnline,
-    route: route,
-    style: style,
-    easyUp: easyUp,
-    intentRoute: intentRoute,
-  );
+  }) => (climbM == null ? this : withClimb(bike, climbM))
+      ._withDistOrSelf(distKm)
+      ._with(
+        hours: hours,
+        hikingKm: hikingKm,
+        endMode: endMode,
+        radiusKm: radiusKm,
+        fillOnline: fillOnline,
+        route: route,
+        style: style,
+        easyUp: easyUp,
+        intentRoute: intentRoute,
+      );
+
+  LoopPrefs _withDistOrSelf(double? km) =>
+      km == null ? this : withDist(bike, km);
 
   LoopPrefs _with({
     double? hours,
@@ -1983,6 +2039,10 @@ class LoopPrefs {
     double? climbEbikeM,
     double? Function()? declinedBioM,
     double? Function()? declinedEbikeM,
+    double? distBioKm,
+    double? distEbikeKm,
+    double? Function()? declinedDistBioKm,
+    double? Function()? declinedDistEbikeKm,
     double? hikingKm,
     LoopEndMode? endMode,
     double? radiusKm,
@@ -2000,6 +2060,14 @@ class LoopPrefs {
     declinedEbikeM: declinedEbikeM == null
         ? this.declinedEbikeM
         : declinedEbikeM(),
+    distBioKm: distBioKm ?? this.distBioKm,
+    distEbikeKm: distEbikeKm ?? this.distEbikeKm,
+    declinedDistBioKm: declinedDistBioKm == null
+        ? this.declinedDistBioKm
+        : declinedDistBioKm(),
+    declinedDistEbikeKm: declinedDistEbikeKm == null
+        ? this.declinedDistEbikeKm
+        : declinedDistEbikeKm(),
     hikingKm: hikingKm ?? this.hikingKm,
     endMode: endMode ?? this.endMode,
     radiusKm: radiusKm ?? this.radiusKm,

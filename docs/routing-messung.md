@@ -1452,3 +1452,31 @@ Der dichte Pool (`perf_loop_planner_measure.dart`, erfundenes Gitter):
 dieselben Pläne (Fingerabdrücke gleich), erste Rechnung 12 Trails
 103 → 132 ms, 30 Trails 151 → 217 ms, 40 Trails 328 → 427 ms, 60 Trails
 (E-MTB 5 h) 572 → 698 ms.
+
+## #516 — feste Limits statt skalierter Höhenmeter, dazu die Distanz (gemessen 2026-11-21, am Rechner, private Daten)
+
+Entscheidung des Betreibers (2026-11-20, #516): Höhenmeter und Distanz
+sind feste Limits je Rad, aus Fahrten angehoben; die Zeit skaliert
+keines mehr (Konzept-Routing 12.4, 12.5a). Gemessen mit
+`tool/loop_own_measure.dart` im eigenen Netz (584 Trails, 30 Fahrten, wie
+im Abschnitt „der Vorschlag im eigenen Netz"), je eigene Runde mit
+Vorliebe: **B** wie bis 0.194 (Höhenmeter × Zeit / 3 h, ohne Distanz),
+**F** seit 0.195.0 (800 hm / 60 km Bio, 1 400 hm / 90 km E), **G** wie F
+mit den Limits, die die Fahrten gehoben hätten (Bio 1 100 hm / 60 km,
+E 2 500 hm / 90 km — keine Fahrt war länger als die Vorgabe plus 5 km).
+
+- **Kein Vorschlag ändert sich**: In allen 9 Runden mit geladenem Rahmen
+  nehmen B, F und G dieselben Trails (Spalte „anders als B": 0), mit
+  derselben Zeit und demselben Anteil; eine Runde bleibt leer wie 2026-11-14
+  (der Start an einem Weg mit nur einer offenen Richtung).
+- **Die Zeit bindet, nicht die Höhenmeter**: Auch das skalierte Limit
+  lag nie an (465 / 500, 147 / 300, 455 / 500, 309 / 400, 623 / 800,
+  418 / 500, E 488 / 900). Was die Skalierung bewirkte, war allein die
+  dritte Zahl im Blatt.
+- **Die Distanz bindet hier nie**: die Vorschläge 7–34 km gegen 60 km
+  (Bio) und 17 km gegen 90 km (E). Sie ist die Grenze für flaches
+  Gelände und lange Zeiten, nicht für dieses Netz.
+
+Nicht gemessen: eine Runde, bei der die Distanz bindet — im eigenen
+Netz gibt es keine; `loop_planner_test` („das Distanz-Limit greift …")
+hält die Regel fest.

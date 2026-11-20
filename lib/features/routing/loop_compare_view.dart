@@ -20,7 +20,7 @@ import '../../l10n/l10n.dart';
 import '../trails/grade_shield.dart';
 import 'loop_planner.dart';
 import 'loop_planner_controller.dart';
-import 'loop_planner_sheet.dart' show LoopBudgetScale;
+import 'loop_planner_sheet.dart' show LoopBudgetScale, routeTimeCompact;
 import 'loop_state_strip.dart' show loopStripRange, loopStripVisible;
 import 'trail_head_route.dart' show routeTimeLabel;
 
@@ -157,6 +157,7 @@ class _LoopCompareViewState extends ConsumerState<LoopCompareView> {
                       l.loopCompareTarget(
                         routeTimeLabel(l, budget.timeS),
                         budget.climbM.round(),
+                        (budget.distM / 1000).round(),
                       ),
                       style: theme.textTheme.titleMedium?.copyWith(
                         fontFamily: AppFonts.display,
@@ -280,6 +281,7 @@ class _LoopCompareViewState extends ConsumerState<LoopCompareView> {
                       shown.strip != null &&
                       loopCompareIsPeak(chain, chain.indexOf(shown.state)),
                   limit: budget.climbM,
+                  limitDistM: budget.distM,
                 ),
               ],
             ),
@@ -294,14 +296,20 @@ class _LoopCompareViewState extends ConsumerState<LoopCompareView> {
                 _close();
                 unawaited(n.raiseLimitFor(st));
               },
-              child: Text(
-                l.loopCompareRaise(
-                  ref
-                      .read(loopPlannerProvider.notifier)
-                      .limitFor(shown.state)
-                      .round(),
+              child: Text(switch (ref
+                  .read(loopPlannerProvider.notifier)
+                  .limitFor(shown.state)) {
+                (climbM: final m?, distKm: final d?) => l.loopCompareRaiseBoth(
+                  m.round(),
+                  d.round(),
                 ),
-              ),
+                (climbM: null, distKm: final d?) => l.loopCompareRaiseDist(
+                  d.round(),
+                ),
+                (climbM: final m, distKm: _) => l.loopCompareRaise(
+                  (m ?? budget.climbM).round(),
+                ),
+              }),
             )
           else
             FilledButton(
@@ -529,7 +537,10 @@ class _Chart extends StatelessWidget {
                 painter: _RingPainter(
                   fraction: budget.climbM <= 0 ? 0 : s.climbM / budget.climbM,
                   track: p.line,
-                  fill: isOver || s.climbM > budget.climbM + 1
+                  fill:
+                      isOver ||
+                          s.climbM > budget.climbM + 1 ||
+                          s.lengthM > budget.distM + 1
                       ? p.warningText
                       : p.brandMark,
                   dashed: isOver,
@@ -591,11 +602,15 @@ class _Card extends ConsumerWidget {
     required this.isPick,
     required this.isPeak,
     required this.limit,
+    required this.limitDistM,
   });
 
   final LoopComparePoint point;
   final bool isPick, isPeak;
   final double limit;
+
+  /// Das Distanz-Limit in Metern (#516).
+  final double limitDistM;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -604,8 +619,13 @@ class _Card extends ConsumerWidget {
     final p = AppPalette.of(context);
     final s = point.state;
     final isOver = point.over != null;
+    final overM = s.climbM - limit, overKm = (s.lengthM - limitDistM) / 1000;
     final sub = isOver
-        ? l.loopCompareOverBy((s.climbM - limit).round())
+        ? (overM > 1 && overKm > 0.05
+              ? l.loopCompareOverByBoth(overM.round(), overKm.ceil())
+              : overKm > 0.05
+              ? l.loopCompareOverByDist(overKm.ceil())
+              : l.loopCompareOverBy(overM.round()))
         : isPick
         ? l.loopStripNotePickPlain
         : isPeak
@@ -666,18 +686,35 @@ class _Card extends ConsumerWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Knapp und mit Abstand (15l9: „1 h 55 min" lief ohne Lücke in
+              // „35 %").
               Expanded(
                 child: cell(
                   l.loopTileTime,
-                  Text(routeTimeLabel(l, s.timeS), style: value),
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      routeTimeCompact(l, s.timeS),
+                      key: const ValueKey('loop-compare-time'),
+                      maxLines: 1,
+                      style: value,
+                    ),
+                  ),
                 ),
               ),
+              const SizedBox(width: 8),
               Expanded(
                 child: cell(
                   l.loopTileTrail,
-                  Text('${(s.trailShare * 100).round()} %', style: value),
+                  Text(
+                    '${(s.trailShare * 100).round()}\u00a0%',
+                    maxLines: 1,
+                    style: value,
+                  ),
                 ),
               ),
+              const SizedBox(width: 8),
               Expanded(
                 child: cell(
                   l.loopTileClimb,
