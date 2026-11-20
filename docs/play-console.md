@@ -17,9 +17,8 @@ Stand: 20. November 2026, App-Version 0.192.3. **Im geschlossenen Test
 zur Überprüfung eingereicht (2026-11-20, AAB 0.192.3)** — App-Eintrag
 angelegt (2026-11-19), Datensicherheit, Inhaltsbewertung, beide
 Vordergrunddienst-Deklarationen (LOCATION mit „Standortfreigabe") und der
-Zugang für Googles Prüfer eingetragen. **Offen:** die IARC-Antworten zu
-Blockieren und Melden (seit 0.190.0, #584; „Ab 0.190.0 … ändern" unten)
-sind in der Console noch nicht nachgezogen. Vor der Produktion steht die
+Zugang für Googles Prüfer eingetragen. Der IARC-Fragebogen enthält Blockieren
+und Melden (#584; Abschnitt „Inhaltsbewertung"). Vor der Produktion steht die
 rechtliche Prüfung (Konzept 10.7, #39); der
 Entwurf der Nutzungsbedingungen liegt daneben in
 `docs/nutzungsbedingungen-entwurf.md`.
@@ -533,22 +532,37 @@ Ehrlich antworten, sonst passt die Bewertung nicht zum Binary:
   Personen und Nachrichten prüft der Betreiber (#584). Feedback wird
   öffentlich.
 
-Die Fragen zu nutzergenerierten Inhalten, so am 2026-11-19 beantwortet:
-Kategorie „Alle anderen App-Typen"; Inhalte im App-Paket nein · Text und
-Bilder austauschen **ja** · geteilte Nutzerinhalte die primäre Quelle
-**ja** (die Trails sind Beiträge) · öffentliche Nacktheit bzw. Gewalt nein
-(nichts ist öffentlich) · blockieren nein · melden nein · Chatmoderation
-nein · nur mit eingeladenen Freunden **ja**.
+**Der Fragebogen, wie er in der Console steht** (Stand 2026-11-20, mit der
+Einreichung des geschlossenen Tests; eine Änderung heißt dort „neuen
+Fragebogen starten", der den alten beim Absenden ersetzt):
 
-**Ab 0.190.0 (#584) in der Console ändern:** **blockieren ja** (an der
-Buddy-Zeile, an einer Anfrage und im Verlauf; Freigeben im Profil unter
-„Blockierte Nutzer") · **melden ja** (eine Person und eine einzelne
-Nachricht, mit Grund; die Meldung landet in `content_reports`, lesbar nur
-mit dem Service-Schlüssel, also im Supabase-Dashboard — der Betreiber
-setzt dort `handled_at`, wenn er sie bearbeitet hat). Fotos und
-Trail-Texte meldet man über die Person, die sie eingetragen hat
-(Betreiber 2026-11-19: schlank). Googles Richtlinie für nutzergenerierte
-Inhalte verlangt beides.
+| Abschnitt | Frage | Antwort |
+|---|---|---|
+| Kategorie | | Alle anderen App-Typen |
+| Heruntergeladene App | Freigaberelevante Inhalte im App-Paket? | Nein |
+| Teilen von Benutzerinhalten | Natives Feature für Text/Sprache/Bilder zwischen Nutzern? | **Ja** |
+| | Nutzerinhalte die primäre Inhaltsquelle? | **Ja** (die Trails sind Beiträge) |
+| | Öffentliches Teilen von Nacktheit / drastischer Gewalt? | Nein (nichts ist öffentlich) |
+| | Blockieren von Nutzern oder Inhalten? | **Ja** (#584) |
+| | Melden von Nutzern oder Inhalten? | **Ja** (#584) |
+| | Chatmoderation? | Nein |
+| | Interaktion auf eingeladene Freunde beschränkbar? | **Ja** |
+| Online-Inhalte | Inhalte außerhalb des Downloads (Filme, Produkte, KI, Artikel)? | Nein — Karte und Trails sind keine Inhalte dieser Art; Nutzerinhalte stehen oben |
+| Altersbeschränkte Produkte | Schwerpunkt Bewerben/Verkaufen? | Nein |
+| Sonstiges | Aktueller, exakter Standort an andere Nutzer? | **Ja** (Gruppenfahrt, #519) |
+| | Digitale Käufe? | Nein |
+| | Auszahlungen, Gutscheine, Krypto, NFTs? | Nein |
+| | Webbrowser oder Suchmaschine? | Nein |
+| | Hauptsächlich Nachrichten oder Bildung? | Nein |
+
+Blockieren (an der Buddy-Zeile, an einer Anfrage und im Verlauf; Freigeben
+im Profil unter „Blockierte Nutzer") und Melden (eine Person und eine
+einzelne Nachricht, mit Grund; die Meldung landet in `content_reports`,
+lesbar nur mit dem Service-Schlüssel, also im Supabase-Dashboard — der
+Betreiber setzt dort `handled_at`, wenn er sie bearbeitet hat) gibt es seit
+0.190.0. Fotos und Trail-Texte meldet man über die Person, die sie
+eingetragen hat (Betreiber 2026-11-19: schlank). Googles Richtlinie für
+nutzergenerierte Inhalte verlangt beides.
 
 ### Vor dem Upload
 
@@ -558,7 +572,7 @@ Inhalte verlangt beides.
 - [ ] Im Play-Build fehlt der Update-Hinweis (`PLAY_BUILD=true`)
 - [x] Beide Demo-Videos der Vordergrunddienste aufgenommen (2026-11-20, 0.192.3)
 - [x] Beide Deklarationen samt Video-Link in der Konsole eingetragen (2026-11-20; LOCATION mit „Standortfreigabe")
-- [ ] IARC: Blockieren und Melden (#584) in der Console nachgezogen
+- [x] IARC: Blockieren und Melden (#584) in der Console nachgezogen (Stand 2026-11-20)
 - [x] Store-Grafiken: Symbol und Vorstellungsgrafik unter `store/`, Screenshots beim Betreiber
 - [ ] Supabase in einem Pro-Plan (Konzept 10.9) — ein pausiertes Projekt heißt eine tote App für Prüfer
 - [x] Testkonto für Googles Prüfer angelegt und unter „App-Zugriff" hinterlegt (2026-11-20); wo Adresse und Passwort liegen, steht im DocuHub, nicht hier
