@@ -84,10 +84,19 @@ MapLibre lädt nur Kacheln einer Quelle, deren Ebenen sichtbar sind. Ist
 der Ausschnitt beim aktuellen Zoom ganz von gespeicherten Kacheln
 gedeckt (der Index ist bekannt), schaltet die App die Ebenen der
 Online-Karte und der Online-Wege unsichtbar, ohne den Stil neu zu
-bauen, und beim Verlassen wieder sichtbar. Erst ein Spike: Kann
-`maplibre` 0.3.5 die Sichtbarkeit einer Ebene ändern? Wenn nicht, ein
-Schalter „Nur gespeicherte Karten“ je Region als Rückfall. Im Web ist
-das schon so (der Speicher kommt zuerst).
+bauen, und beim Verlassen wieder sichtbar. Im Web ist das schon so (der
+Speicher kommt zuerst). **Gebaut seit 0.193.1** (Spike 2026-11-20:
+`maplibre` 0.3.7+1 kennt keine Sichtbarkeit je Ebene; Betreiber:
+„Ebenen raus/rein“ statt Neuaufbau des Stils oder Schalter je Region).
+Die Ebenen gehen aus dem Stil und kommen an ihre Stelle zurück,
+gedeckt heißt aus den Formen der fertigen Bereiche, mit einer Schwelle
+am Rand (`lib/features/map/CLAUDE.md`, „Im Bereich keine
+Online-Ebenen“). Gemessen am Pixel XL (2026-11-20, Dev-App 0.193.1):
+im Bereich zwei Zoomstufen und vier Schwenks 0 Anfragen (Grundlinie:
+6 fürs Zoomen), mit „Wege“ an acht Schwenks bei 100 m Maßstab 0; vom
+Überblick bis 100 m hinein einmalig 1 Karte und 2 Wege, die schon
+laufen, bevor die Kamera stillsteht. Hinaus kommt die Online-Karte
+zurück (25 Kacheln auf ~16 Schwenks), mit Namen über den Wegen.
 
 **H4 — Gesehenes auch für kleine Dateien** (☁️; **gebaut seit 0.192.2**
 für Orte-Zellen, Namensdateien und Orte-Manifeste, `lib/data/seen_host_files.dart`;
@@ -166,7 +175,7 @@ und das ist der Normalfall bei Trails.
    **H4** — ein PR, ein Bump.~~ 0.192.2; der Rest von H4 (Höhenkacheln
    für das Trail-Profil, Manifeste von Karte, Wegen, Höhen und Regionen)
    und die zwei Suchfunde der Grundlinie: 0.193.0.
-4. **H3** Spike (📱), dann bauen.
+4. ~~**H3** Spike (📱), dann bauen.~~ 0.193.1; Messung am Gerät.
 5. **H2** Messung (⚙️), dann entscheiden.
 6. **H6**.
 

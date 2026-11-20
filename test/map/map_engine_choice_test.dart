@@ -80,6 +80,8 @@ void main() {
       // von der MapLibre-Engine, also ebenfalls hinter dem bedingten Import.
       'lib/features/map/map_view/keyed_layers.dart',
       'lib/features/map/map_view/maplibre_map_view.dart',
+      // Die Online-Ebenen im Bereich (#596 H3) — ebenso nur für sie.
+      'lib/features/map/map_view/online_layers.dart',
     ]);
     final keyedUsers = Directory('lib')
         .listSync(recursive: true)
@@ -89,6 +91,14 @@ void main() {
         .map((f) => f.path.replaceAll('\\', '/'))
         .toList();
     expect(keyedUsers, ['lib/features/map/map_view/maplibre_map_view.dart']);
+    final onlineUsers = Directory('lib')
+        .listSync(recursive: true)
+        .whereType<File>()
+        .where((f) => f.path.endsWith('.dart'))
+        .where((f) => f.readAsStringSync().contains("online_layers.dart'"))
+        .map((f) => f.path.replaceAll('\\', '/'))
+        .toList();
+    expect(onlineUsers, ['lib/features/map/map_view/maplibre_map_view.dart']);
   });
 
   test('beide Engines verankern den Quellenhinweis unten links', () {
