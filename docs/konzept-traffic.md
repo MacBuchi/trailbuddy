@@ -7,6 +7,11 @@ damit es skalierbar bleibt, ohne dass die Kosten explodieren. Wenn man
 ein Gebiet offline geladen hat, erwarte ich, dass gar keine Anfrage
 rausgeht. Auch bei Suchen nach POI und so weiter.“
 
+**Abgeschlossen am 2026-11-20** (#596): H1, H3, H4, H5 und H7 sind
+gebaut und gemessen, H6 fällt weg, H2 ist mit einer Schwelle
+zurückgestellt (#606). Die Abschnitte unten bleiben als Begründung
+stehen.
+
 Betroffen ist nur `tiles.mcbuchi.de` (Cloudflare R2 hinter der eigenen
 Domain). Supabase hat eigene Kontingente und bekommt bei Bedarf ein
 eigenes Konzept; die offiziellen Trails kommen von GitHub und kosten
@@ -79,6 +84,15 @@ und wie viel ein erster Fehlgriff kostet. Die Alternative, ein Worker
 vor R2, ist im Free-Plan auf 100 000 Aufrufe am Tag begrenzt und
 skaliert deshalb nicht kostenlos.
 
+**Zurückgestellt (Betreiber, 2026-11-20) → #606.** Gemessen: Eine
+Range-Anfrage an `dach-<bau>.pmtiles` kommt als `BYPASS`, jede
+Kartenkachel außerhalb eines Bereichs ist also ein R2-Abruf. Das Konto
+stand am 2026-11-20 aber bei 23 050 Class-B-Operationen im Monat, 0,23 %
+der freien 10 Mio. (Class A 73 630 von 1 Mio., Speicher 6,12 von 10 GB).
+Dagegen stünde ein Stil mit dem ganzen Protomaps-Ebenensatz je Stück.
+Gebaut wird, wenn Class B über 3 Mio. im Monat steigt oder vor dem
+Play-Store-Eintrag. Näher an der Grenze liegt der Speicher.
+
 **H3 — Android: keine Online-Kachel im Bereich** (☁️ bauen, 📱 messen).
 MapLibre lädt nur Kacheln einer Quelle, deren Ebenen sichtbar sind. Ist
 der Ausschnitt beim aktuellen Zoom ganz von gespeicherten Kacheln
@@ -96,7 +110,10 @@ im Bereich zwei Zoomstufen und vier Schwenks 0 Anfragen (Grundlinie:
 6 fürs Zoomen), mit „Wege“ an acht Schwenks bei 100 m Maßstab 0; vom
 Überblick bis 100 m hinein einmalig 1 Karte und 2 Wege, die schon
 laufen, bevor die Kamera stillsteht. Hinaus kommt die Online-Karte
-zurück (25 Kacheln auf ~16 Schwenks), mit Namen über den Wegen.
+zurück (25 Kacheln auf ~16 Schwenks), mit Namen über den Wegen. Am
+Pixel 7 Pro mit ganz DACH gespeichert: vier lange Schwenks bei 300 m
+Maßstab, Wege an, 0 Anfragen; eine ganze Region deckt wie ein
+gezeichneter Bereich.
 
 **H4 — Gesehenes auch für kleine Dateien** (☁️; **gebaut seit 0.192.2**
 für Orte-Zellen, Namensdateien und Orte-Manifeste, `lib/data/seen_host_files.dart`;
@@ -132,7 +149,12 @@ Bereiche von vor dem Orts-Index bekommen ihre Ortsnamen-Zellen über
 „Aktualisieren" in „Meine Bereiche" (`missingPlaceFiles`), nie
 ungefragt.
 
-**H6 — `pois.json` verkleinern** (☁️ Werkzeug + App). 465 kB bei jedem
+~~**H6 — `pois.json` verkleinern**~~ — **fällt weg** (Betreiber,
+2026-11-20). Gemessen auf der Leitung: Cloudflare liefert die Datei
+komprimiert, rund 90 kB mit gzip (Android, Darts `HttpClient`) und 31 kB
+mit Brotli (Browser); seit H4 höchstens einmal am Tag. Ein neues Format
+in Werkzeug und App samt zweitem Manifest für alte Apps lohnt für etwa
+80 kB am Tag nicht. Der alte Plan: 465 kB bei jedem
 App-Start, für Zellenlisten, die erst gebraucht werden, wenn eine Zelle
 fehlt. Die Listen kommen in eine eigene Datei je Gruppe, oder das
 Manifest trägt nur eine Bitmap des Rasters. Mit H4 (24 h) ist das nur
@@ -147,10 +169,11 @@ Vor allem anderen:
   Bereich und außerhalb, suchen, planen. **Gebaut seit 0.192.1**
   (auch in der Web-Vorschau; auf Android zählt die Dev-App zusätzlich,
   was MapLibre über OkHttp lädt — `lib/features/map/CLAUDE.md`,
-  „Anfragen an den Kartenhost zählen"). Die Grundlinie am Gerät steht
-  noch aus.
+  „Anfragen an den Kartenhost zählen"). Grundlinie am Gerät
+  2026-11-20 (in #596).
 - Am Konto: R2-Class-B je Monat und die Cache-Quote aus Cloudflare
-  Analytics, bei Bedarf über `r2-inventory.yml`.
+  Analytics. Abgelesen 2026-11-20: siehe H2 und Abschnitt 5;
+  `r2-inventory.yml` listet nur Dateien, keine Operationen.
 - Die Rate-Limiting-Regel aus #55 bekommt ihre Schwelle aus diesen
   Zahlen.
 
@@ -170,16 +193,29 @@ und das ist der Normalfall bei Trails.
 1. ~~**H1** (👤, 5 min) — der Betreiber setzt die Cache-Regel, ich prüfe
    mit `curl` (`HIT`) und korrigiere die Notiz in `lib/features/map/CLAUDE.md`.~~
    2026-11-20, siehe H1.
-2. **H7** Zähler (☁️), dann die Grundlinie am Gerät (📱).
+2. ~~**H7** Zähler (☁️), dann die Grundlinie am Gerät (📱).~~ 0.192.1,
+   Grundlinie 2026-11-20.
 3. ~~**H5** mit den Testfunden (doppelte Anfragen, Reihenfolge, Nadel) und
    **H4** — ein PR, ein Bump.~~ 0.192.2; der Rest von H4 (Höhenkacheln
    für das Trail-Profil, Manifeste von Karte, Wegen, Höhen und Regionen)
    und die zwei Suchfunde der Grundlinie: 0.193.0.
 4. ~~**H3** Spike (📱), dann bauen.~~ 0.193.1; Messung am Gerät.
-5. **H2** Messung (⚙️), dann entscheiden.
-6. **H6**.
+5. ~~**H2** Messung (⚙️), dann entscheiden.~~ Zurückgestellt → #606.
+6. ~~**H6**.~~ Fällt weg.
 
 Fertig, wenn: (a) in einem gespeicherten Bereich zählt der Zähler beim
 Schwenken, Suchen und Planen **0** Anfragen an den Kartenhost; (b) ein
-zweiter Besuch eines gesehenen Ausschnitts kostet 0 Anfragen; (c) die
-Cache-Quote in Cloudflare liegt bei den kleinen Dateien über 90 %.
+zweiter Besuch eines gesehenen Ausschnitts kostet 0 Anfragen; ~~(c) die
+Cache-Quote in Cloudflare liegt bei den kleinen Dateien über 90 %~~ —
+mit einem Tester nicht messbar: Mit H4 geht jede Datei einmal als Miss
+raus und bleibt dann auf dem Gerät, die Quote misst also nur, was sich
+Geräte teilen. Stattdessen (c): **keine kleine Datei geht als
+`DYNAMIC` oder `BYPASS` raus, und ein zweiter Client bekommt dieselbe
+Datei als `HIT`.**
+
+Erfüllt am 2026-11-20: (a) Pixel XL im Bereich und Pixel 7 Pro mit ganz
+DACH, 0 Anfragen beim Schwenken; (b) mit H4; (c) Cloudflare zeigte bei
+den kleinen Dateien nur noch Miss und Hit, zwei zufällige Orte-Zellen
+kamen beim zweiten Abruf als `HIT`. Seit demselben Tag ist Smart Tiered
+Cache an (Caching → Tiered Cache, kostenlos): Die Rechenzentren teilen
+sich eine obere Ebene, die R2 fragt.
