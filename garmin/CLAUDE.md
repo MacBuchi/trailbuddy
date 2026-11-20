@@ -242,7 +242,8 @@ Abbiegehinweise.
 - **Der Start wartet aufs Handy** (`wait` in `WatchCore`, Betreiber
   2026-11-06): Mit verbundenem Handy lädt `initialize` NICHT die
   gespeicherte Route, sondern einen Platzhalter, und die Ansicht zeigt
-  den Lader (`NavView.setWaiting`). `n` vom Handy heißt „Route kommt"
+  den Lader (`NavView.setWaiting`) mit der Fassung `v<VERSION>` (#592;
+  „Lade Route … %" bleibt fürs Dekodieren). `n` vom Handy heißt „Route kommt"
   (Frist 45 s je Stück), `k` „deine ist aktuell" → `loadStored`; ohne
   Antwort nach `ANSWER_MS` = 8 s auch (3 s waren zu kurz: „hallo" hin
   und Antwort zurück messen 5–7 s, 2026-11-06). Der Takt ist der EINE Timer
