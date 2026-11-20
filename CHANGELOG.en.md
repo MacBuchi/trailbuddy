@@ -19,6 +19,14 @@
   nearby (up to 30 km). Further away, distance decides, and the nearby
   “Aurach” comes before a distant “Au”.
 
+## Development build starts again
+
+*Version 0.192.3, 2026-11-20*
+
+- Only the development build for testing (“TrailBuddy Dev”): since
+  0.192.1 it quit right at start on Android. The regular app was not
+  affected.
+
 ## Search on the device first
 
 *Version 0.192.2, 2026-11-20*

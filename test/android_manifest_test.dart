@@ -125,13 +125,19 @@ void main() {
     expect(counter, contains('"counts" ->'));
     expect(counter, contains('"reset" ->'));
     expect(counter, contains('HttpRequestUtil.setOkHttpClient'));
+    // MapLibre zuerst: `setOkHttpClient` lädt `HttpRequestImpl`, dessen
+    // statischer Teil den Kontext von MapLibre braucht — ohne ihn stürzte
+    // die Dev-App 0.192.1/0.192.2 bei jedem Start ab.
+    final init = counter.indexOf('MapLibre.getInstance(');
+    expect(init, isNonNegative);
+    expect(init, lessThan(counter.indexOf('HttpRequestUtil.setOkHttpClient(')));
     // Die echte App lädt weiter über MapLibres eigenen Client.
     expect(
       activity,
       matches(
         RegExp(
           r'if\s*\(\s*packageName\.endsWith\("\.dev"\)\s*\)\s*'
-          r'HostRequestCounter\.install\(\)',
+          r'HostRequestCounter\.install\(applicationContext\)',
         ),
       ),
     );

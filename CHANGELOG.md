@@ -21,6 +21,14 @@
   ganz oben, wenn er in der Nähe liegt (bis 30 km). Weiter weg zählt die
   Entfernung, und das nahe „Aurach“ kommt vor dem fernen „Au“.
 
+## Entwicklungsversion startet wieder
+
+*Version 0.192.3, 2026-11-20*
+
+- Nur die Entwicklungsversion für Tests („TrailBuddy Dev“): Seit 0.192.1
+  brach sie unter Android gleich beim Start ab. Die normale App war nicht
+  betroffen.
+
 ## Suche zuerst auf dem Gerät
 
 *Version 0.192.2, 2026-11-20*
