@@ -3888,6 +3888,18 @@
       }
     }
   },
+  "routingTimeClock": "{hours}:{minutes} h",
+  "@routingTimeClock": {
+    "description": "Knappe Fahrzeit für eine Kachel, z. B. „1:55 h“; minutes ist zweistellig fertig formatiert.",
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      },
+      "minutes": {
+        "type": "String"
+      }
+    }
+  },
   "routingLocating": "Standort wird ermittelt …",
   "@routingLocating": {
     "description": "Rundenplaner und Routen-Blatt: Fortschritt, solange der Standort gesucht wird."
@@ -4101,6 +4113,33 @@
     "description": "Regler im Planer: Höhenbudget in Höhenmetern.",
     "placeholders": {
       "climb": {
+        "type": "int"
+      }
+    }
+  },
+  "loopMaxDist": "Höchstens {km} km Strecke",
+  "@loopMaxDist": {
+    "description": "Regler im Planer (#516): das Distanz-Limit des Rads in km — eine feste Zahl wie die Höhenmeter, die Zeit skaliert sie nicht.",
+    "placeholders": {
+      "km": {
+        "type": "int"
+      }
+    }
+  },
+  "loopClimbRate": "Bergauf etwa {rate} hm/h (Vorgabe) — daraus kommt die Zeit, nicht das Limit",
+  "@loopClimbRate": {
+    "description": "Unter dem Rad in „Anpassen“ (#516): die Steigleistung des Rads auf Forstweg, mit der der Planer die Zeit schätzt; noch nicht aus Fahrten gelernt.",
+    "placeholders": {
+      "rate": {
+        "type": "int"
+      }
+    }
+  },
+  "loopClimbRateLearned": "Bergauf etwa {rate} hm/h, aus deinen Fahrten — daraus kommt die Zeit, nicht das Limit",
+  "@loopClimbRateLearned": {
+    "description": "Wie loopClimbRate, wenn die Steigleistung aus eigenen Fahrten gelernt ist.",
+    "placeholders": {
+      "rate": {
         "type": "int"
       }
     }
@@ -4488,6 +4527,15 @@
   "loopExclBudget": "passt nicht ins Budget",
   "@loopExclBudget": {
     "description": "Grund, warum ein Trail nicht in die Runde passt."
+  },
+  "loopExclBudgetFolded": "{count, plural, =1{1 Trail passt nicht ins Budget} other{{count} Trails passen nicht ins Budget}}",
+  "@loopExclBudgetFolded": {
+    "description": "Unter „Nicht hineingepasst“: viele Trails mit demselben Grund als EINE aufklappbare Zeile; aufgeklappt stehen die Namen darunter.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   },
   "loopName": "Runde: {names}",
   "@loopName": {
@@ -9966,14 +10014,9 @@
       }
     }
   },
-  "loopTileOf": "von {limit}",
-  "@loopTileOf": {
-    "description": "Kachel „Bergauf“ im Ergebnis einer Runde (Konzept-Routing 12.5a): das Höhenmeter-Limit neben der Beschriftung, z. B. „von 800“.",
-    "placeholders": {
-      "limit": {
-        "type": "String"
-      }
-    }
+  "loopTimeAboutShort": "ca.",
+  "@loopTimeAboutShort": {
+    "description": "Kachel „Zeit“ im Ergebnis einer Runde: klein neben dem Namen — die Zeit ist eine Schätzung (Konzept-Routing 12.5)."
   },
   "loopNoBreaks": "Zeit ohne Pausen geschätzt",
   "@loopNoBreaks": {
@@ -9988,9 +10031,9 @@
       }
     }
   },
-  "loopSuggestLine": "{count, plural, =1{Vorschlag: 1 Trail in {radius}} other{Vorschlag: {count} Trails in {radius}}}",
+  "loopSuggestLine": "{count, plural, =1{Vorschlag: 1 Trail im Umkreis von {radius}} other{Vorschlag: {count} Trails im Umkreis von {radius}}}",
   "@loopSuggestLine": {
-    "description": "Ergebnis des Planers über der Summe, wenn der Planer die Trails selbst gewählt hat (Konzept-Routing 12.4); radius ist der Umkreis um den Start, fertig formatiert („12 km“).",
+    "description": "Ergebnis des Planers über der Summe, wenn der Planer die Trails selbst gewählt hat (Konzept-Routing 12.4); radius ist der Umkreis um den Start, fertig formatiert („12 km“) — nicht die Länge der Trails.",
     "placeholders": {
       "count": {
         "type": "int"
@@ -10103,14 +10146,17 @@
   "@loopHeadPickOnMap": {
     "description": "Planer, Wahl von Start oder Ziel: der nächste Tipp auf die Karte setzt den Punkt."
   },
-  "loopHeadBudget": "{time} · {climb} hm · {bike}",
+  "loopHeadBudget": "{time} · {climb} hm · {dist} km · {bike}",
   "@loopHeadBudget": {
-    "description": "Planer, Kopf: das Budget in einer Zeile — Zeit, Höhenmeter bergauf, Rad.",
+    "description": "Planer, Kopf: das Budget — Zeit, Höhenmeter-Limit, Distanz-Limit, Rad (darf auf zwei Zeilen umbrechen).",
     "placeholders": {
       "time": {
         "type": "String"
       },
       "climb": {
+        "type": "int"
+      },
+      "dist": {
         "type": "int"
       },
       "bike": {
@@ -10299,6 +10345,45 @@
       }
     }
   },
+  "distLimitAsk": "{km} km geschafft — Limit fürs {bike} von {from} auf {to} km anheben?",
+  "@distLimitAsk": {
+    "description": "Wie climbLimitAsk, für das Distanz-Limit: Die Fahrt war länger als das Limit des Rads.",
+    "placeholders": {
+      "km": {
+        "type": "int"
+      },
+      "bike": {
+        "type": "String"
+      },
+      "from": {
+        "type": "int"
+      },
+      "to": {
+        "type": "int"
+      }
+    }
+  },
+  "bothLimitAsk": "{climb} hm und {km} km geschafft — Limits fürs {bike} auf {climbTo} hm und {kmTo} km anheben?",
+  "@bothLimitAsk": {
+    "description": "Wie climbLimitAsk, wenn die Fahrt beide Limits des Rads übertraf: EINE Frage für beide.",
+    "placeholders": {
+      "climb": {
+        "type": "int"
+      },
+      "km": {
+        "type": "int"
+      },
+      "bike": {
+        "type": "String"
+      },
+      "climbTo": {
+        "type": "int"
+      },
+      "kmTo": {
+        "type": "int"
+      }
+    }
+  },
   "climbLimitRaise": "Anheben",
   "@climbLimitRaise": {
     "description": "Knopf an der Frage climbLimitAsk: das Limit anheben."
@@ -10336,18 +10421,36 @@
       }
     }
   },
-  "climbLimitMoved": "Als E-Bike-Fahrt gespeichert",
-  "@climbLimitMoved": {
-    "description": "Nach „Ja, E-Bike“, wenn die Fahrt das Limit des E-Bikes nicht übertrifft."
-  },
-  "climbLimitMovedRaised": "Als E-Bike-Fahrt gespeichert · Limit fürs E-Bike jetzt {to} hm",
-  "@climbLimitMovedRaised": {
-    "description": "Nach „Ja, E-Bike“, wenn die Fahrt auch das Limit des E-Bikes übertraf: Es ist angehoben.",
+  "distLimitRaised": "Limit fürs {bike} jetzt {to} km",
+  "@distLimitRaised": {
+    "description": "Nach dem Anheben: das neue Distanz-Limit des Rads, daneben Rückgängig.",
     "placeholders": {
+      "bike": {
+        "type": "String"
+      },
       "to": {
         "type": "int"
       }
     }
+  },
+  "bothLimitRaised": "Limits fürs {bike} jetzt {climb} hm und {km} km",
+  "@bothLimitRaised": {
+    "description": "Nach dem Anheben beider Limits, daneben Rückgängig.",
+    "placeholders": {
+      "bike": {
+        "type": "String"
+      },
+      "climb": {
+        "type": "int"
+      },
+      "km": {
+        "type": "int"
+      }
+    }
+  },
+  "climbLimitMoved": "Als E-Bike-Fahrt gespeichert",
+  "@climbLimitMoved": {
+    "description": "Nach „Ja, E-Bike“, wenn die Fahrt das Limit des E-Bikes nicht übertrifft."
   },
   "climbLimitDeclined": "Limit fürs {bike} bleibt bei {from} hm",
   "@climbLimitDeclined": {
@@ -10357,6 +10460,33 @@
         "type": "String"
       },
       "from": {
+        "type": "int"
+      }
+    }
+  },
+  "distLimitDeclined": "Limit fürs {bike} bleibt bei {from} km",
+  "@distLimitDeclined": {
+    "description": "Nach „Nein“ an distLimitAsk; gefragt wird erst wieder nach einer noch längeren Fahrt.",
+    "placeholders": {
+      "bike": {
+        "type": "String"
+      },
+      "from": {
+        "type": "int"
+      }
+    }
+  },
+  "bothLimitDeclined": "Limits fürs {bike} bleiben bei {climb} hm und {km} km",
+  "@bothLimitDeclined": {
+    "description": "Nach „Nein“ an bothLimitAsk.",
+    "placeholders": {
+      "bike": {
+        "type": "String"
+      },
+      "climb": {
+        "type": "int"
+      },
+      "km": {
         "type": "int"
       }
     }
@@ -10493,14 +10623,17 @@
   "@loopCompareTitle": {
     "description": "Kopf der Ansicht „Runden im Vergleich“ (#549, Konzept-Routing 12.10 B), in Großbuchstaben."
   },
-  "loopCompareTarget": "Etwa {time} · Limit {climb} hm",
+  "loopCompareTarget": "Etwa {time} · Limit {climb} hm · {dist} km",
   "@loopCompareTarget": {
-    "description": "Unterzeile im Kopf von „Runden im Vergleich“: Zielzeit (fertig formatiert) und Höhenmeter-Limit der Planung.",
+    "description": "Unterzeile im Kopf von „Runden im Vergleich“: Zielzeit (fertig formatiert), Höhenmeter- und Distanz-Limit des Rads — dieselben Zahlen wie im Kopf der Bearbeitung.",
     "placeholders": {
       "time": {
         "type": "String"
       },
       "climb": {
+        "type": "int"
+      },
+      "dist": {
         "type": "int"
       }
     }
@@ -10552,6 +10685,27 @@
       }
     }
   },
+  "loopCompareOverByDist": "{km} km über dem Limit",
+  "@loopCompareOverByDist": {
+    "description": "Karte zu einem Punkt über dem Limit: um wie viele Kilometer über dem Distanz-Limit.",
+    "placeholders": {
+      "km": {
+        "type": "int"
+      }
+    }
+  },
+  "loopCompareOverByBoth": "{climb} hm und {km} km über dem Limit",
+  "@loopCompareOverByBoth": {
+    "description": "Karte zu einem Punkt über beiden Limits: Höhenmeter und Kilometer zu viel.",
+    "placeholders": {
+      "climb": {
+        "type": "int"
+      },
+      "km": {
+        "type": "int"
+      }
+    }
+  },
   "loopComparePeak": "lohnt sich: Anteil steigt",
   "@loopComparePeak": {
     "description": "Karte zu einem Gipfel der Grafik: mehr Trail-Anteil als die Runden davor und danach."
@@ -10577,6 +10731,27 @@
     "description": "Knopf an einer Runde über dem Limit: das Höhenmeter-Limit des Rads anheben und neu rechnen.",
     "placeholders": {
       "climb": {
+        "type": "int"
+      }
+    }
+  },
+  "loopCompareRaiseDist": "Limit auf {km} km anheben",
+  "@loopCompareRaiseDist": {
+    "description": "Knopf an einer Runde über dem Distanz-Limit: das Limit des Rads anheben und neu rechnen.",
+    "placeholders": {
+      "km": {
+        "type": "int"
+      }
+    }
+  },
+  "loopCompareRaiseBoth": "Limits auf {climb} hm und {km} km anheben",
+  "@loopCompareRaiseBoth": {
+    "description": "Knopf an einer Runde über beiden Limits: beide Limits des Rads anheben und neu rechnen.",
+    "placeholders": {
+      "climb": {
+        "type": "int"
+      },
+      "km": {
         "type": "int"
       }
     }

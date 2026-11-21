@@ -2,6 +2,25 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## Fixed limits per bike, also for distance
+
+*Version 0.195.0, 2026-11-21*
+
+- The loop planner works with two fixed limits per bike: climbing and,
+  new, distance (60 km for the bio bike and 90 km for the e-bike by
+  default). You set both under "Adjust". The time no longer shrinks the
+  limits; the same number shows everywhere, in the header, the tiles
+  and the comparison.
+- Below the bike you see how fast you climb, about "450 m/h". The
+  planner estimates the time from that. Once your rides are learned,
+  it shows your own value.
+- After a recording that was longer than your limit, the app asks
+  whether to raise it — as before for climbing, and for both in one
+  question.
+- Tidied up: "Climb" and the time fit their tiles again, the header
+  wraps instead of cutting off, numbers stay with their units, and many
+  trails that do not fit the budget show as one line to expand.
+
 ## Sensor data with light and proximity
 
 *Version 0.194.0, 2026-11-20*

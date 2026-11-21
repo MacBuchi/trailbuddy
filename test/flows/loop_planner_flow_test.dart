@@ -39,6 +39,7 @@ import 'package:trailbuddy/features/routing/loop_edit_bars.dart'
 import 'package:trailbuddy/features/routing/loop_planner.dart'
     show
         LoopEndMode,
+        LoopExclusion,
         LoopOutcome,
         LoopPlan,
         LoopState,
@@ -201,6 +202,40 @@ class _SpyRunner implements LoopPlanRunner {
 /// Runden" mitgibt (#549) — die Fixtur hat nur einen Trail, also gäbe es
 /// sonst einen Stiel. Ein Stand nachgerechnet kommt eine Viertelstunde vor
 /// seiner rohen Zeit an: Der Punkt rückt.
+/// Gibt der echten Planung [extra] Trails mit „passt nicht ins Budget"
+/// dazu — wie beim Vorschlag, der alle im Umkreis in den Pool nimmt (15l9).
+class _ExcludedRunner extends _SpyRunner {
+  _ExcludedRunner(this.extra);
+
+  final int extra;
+
+  @override
+  Future<LoopPlan> plan(
+    LoopRequest request, {
+    void Function(double value)? onProgress,
+  }) async {
+    final p = await super.plan(request, onProgress: onProgress);
+    if (p.outcome != LoopOutcome.ok) return p;
+    return LoopPlan(
+      p.outcome,
+      sections: p.sections,
+      summary: p.summary,
+      stops: p.stops,
+      excluded: {
+        ...p.excluded,
+        for (var i = 0; i < extra; i++) 'weit-$i': LoopExclusion.budget,
+      },
+      points: p.points,
+      order: p.order,
+      snaps: p.snaps,
+      shortForShare: p.shortForShare,
+      states: p.states,
+      pick: p.pick,
+      self: p.self,
+    );
+  }
+}
+
 class _StripRunner extends _SpyRunner {
   late List<LoopState> states;
 
@@ -480,6 +515,8 @@ void main() {
   /// „Anpassen" im Kopf und die eingeklappten „Feinheiten" auf (#516).
   Future<void> openFine(WidgetTester tester) async {
     await tapRail(tester, 'loop-adjust');
+    await tester.ensureVisible(find.byKey(const ValueKey('loop-fine')));
+    await settle(tester, frames: 2);
     await tester.tap(find.byKey(const ValueKey('loop-fine')));
     await settle(tester, frames: 6);
   }
@@ -576,7 +613,7 @@ void main() {
       expect(
         find.descendant(
           of: find.byKey(const ValueKey('loop-tile-time')),
-          matching: find.textContaining(RegExp(r'^ca\. ')),
+          matching: find.text('ca.'),
         ),
         findsOneWidget,
       );
@@ -587,9 +624,26 @@ void main() {
       expect(
         find.descendant(
           of: find.byKey(const ValueKey('loop-tile-climb')),
-          matching: find.text('von 800'),
+          matching: find.text('800'),
         ),
         findsOneWidget,
+        reason: 'das Limit am Ende der Skala, nicht neben „Bergauf" (15l9)',
+      );
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey('loop-tile-length')),
+          matching: find.text('60'),
+        ),
+        findsOneWidget,
+        reason: 'das Distanz-Limit des Rads (#516)',
+      );
+      expect(
+        tester
+            .widget<LoopBudgetScale>(
+              find.byKey(const ValueKey('loop-scale-length')),
+            )
+            .mark,
+        60000,
       );
       expect(find.byKey(const ValueKey('loop-short')), findsOneWidget);
       expect(find.textContaining('ohne Pausen geschätzt'), findsOneWidget);
@@ -1784,6 +1838,19 @@ void main() {
         findsNothing,
         reason: 'das Ende steht im Kopf',
       );
+      expect(
+        find.byKey(const ValueKey('loop-dist')),
+        findsOneWidget,
+        reason: 'das Distanz-Limit gleich unter den Höhenmetern (#516)',
+      );
+      expect(
+        find.text(
+          'Bergauf etwa 450 hm/h (Vorgabe) — daraus kommt die Zeit, nicht das Limit',
+        ),
+        findsOneWidget,
+      );
+      await tester.ensureVisible(find.byKey(const ValueKey('loop-fine')));
+      await settle(tester, frames: 2);
       await tester.tap(find.byKey(const ValueKey('loop-fine')));
       await settle(tester, frames: 6);
       expect(find.byKey(const ValueKey('loop-radius')), findsOneWidget);
@@ -3582,7 +3649,10 @@ void main() {
         }, reason: 'die Trails des Vorschlags sind die Auswahl');
         expect(s.changed, isFalse);
         expect(s.prefs.endMode, LoopEndMode.loop);
-        expect(find.text('Vorschlag: 1 Trail in 10 km'), findsOneWidget);
+        expect(
+          find.text('Vorschlag: 1 Trail im Umkreis von 10 km'),
+          findsOneWidget,
+        );
 
         // „Bearbeiten": das Ergebnis geht zu, die Auswahl bleibt.
         await tester.ensureVisible(find.byKey(const ValueKey('loop-edit')));
@@ -3597,11 +3667,61 @@ void main() {
           isNull,
           reason: 'neu gerechnet wird aus der Auswahl',
         );
+        // Ein Limit je Zahl, dieselben wie Kachel und Vergleich (#516);
+        // Zahl und Einheit hängen fest zusammen (15l9).
         expect(
-          find.textContaining('2 h 30 min'),
-          findsOneWidget,
-          reason: 'das Budget im Kopf trägt die Zeit',
+          tester
+              .widget<Text>(find.byKey(const ValueKey('loop-head-budget')))
+              .data!
+              .replaceAll('\u00a0', ' '),
+          '2 h 30 min · 800 hm · 60 km · Bio-Bike',
+          reason: 'das Budget im Kopf trägt Zeit und beide Limits',
         );
+      },
+    );
+
+    testWidgets(
+      'viele „passt nicht ins Budget" sind EINE Zeile zum Aufklappen (15l9)',
+      (tester) async {
+        for (final (extra, folded) in [(5, true), (3, false)]) {
+          await tester.pumpWidget(const SizedBox());
+          await start(
+            tester,
+            areaStore: await _areaWithTrack(),
+            runner: () => _ExcludedRunner(extra),
+          );
+          await openEntry(tester);
+          await tapKey(tester, 'loop-entry-go', frames: 30);
+          final fold = find.byKey(const ValueKey('loop-excluded-budget'));
+          if (!folded) {
+            expect(fold, findsNothing, reason: '$extra Zeilen bleiben einzeln');
+            expect(
+              find.byKey(
+                const ValueKey('loop-excluded-weit-0'),
+                skipOffstage: false,
+              ),
+              findsOneWidget,
+            );
+            continue;
+          }
+          await tester.scrollUntilVisible(
+            fold,
+            200,
+            scrollable: find.byType(Scrollable).last,
+          );
+          await settle(tester, frames: 2);
+          expect(find.text('5 Trails passen nicht ins Budget'), findsOneWidget);
+          expect(
+            find.byKey(const ValueKey('loop-excluded-weit-0')),
+            findsNothing,
+          );
+          await tester.tap(fold);
+          await settle(tester, frames: 6);
+          expect(
+            find.byKey(const ValueKey('loop-excluded-weit-4')),
+            findsOneWidget,
+          );
+        }
       },
     );
 
@@ -3635,7 +3755,10 @@ void main() {
           find.text('Vorschlag des Planers · zuletzt dazu: Hexentanz'),
           findsOneWidget,
         );
-        expect(find.text('Vorschlag: 1 Trail in 12 km'), findsOneWidget);
+        expect(
+          find.text('Vorschlag: 1 Trail im Umkreis von 12 km'),
+          findsOneWidget,
+        );
         // Der Vorschlag ist der höchste Stiel, der gezeigte trägt den Ring.
         double stemH(int k) =>
             tester.getSize(find.byKey(ValueKey('loop-strip-stem-$k'))).height;
@@ -3663,7 +3786,10 @@ void main() {
           hex,
         }, reason: 'beim Vorschlag sind die Trails des Stands die Auswahl');
         expect(find.text('Andere Runde: 1 Trail'), findsOneWidget);
-        expect(find.text('Vorschlag: 1 Trail in 12 km'), findsNothing);
+        expect(
+          find.text('Vorschlag: 1 Trail im Umkreis von 12 km'),
+          findsNothing,
+        );
         expect(find.text('Länger: zusätzlich Kammweg'), findsOneWidget);
 
         // Waagrecht ziehen bis zum kürzeren.
@@ -3681,7 +3807,10 @@ void main() {
         expect(runner.requests.length, before);
         expect(session(tester).stripShown, 1);
         expect(session(tester).plan, same(first));
-        expect(find.text('Vorschlag: 1 Trail in 12 km'), findsOneWidget);
+        expect(
+          find.text('Vorschlag: 1 Trail im Umkreis von 12 km'),
+          findsOneWidget,
+        );
       },
     );
 
@@ -3775,12 +3904,17 @@ void main() {
           tester.element(find.byType(MaterialApp)),
         ).read(loopPlannerProvider.notifier);
         final over = session(tester).over!.single;
-        final limit = notifier.limitFor(over);
+        final limit = notifier.limitFor(over).climbM!;
         expect(
           find.text('Limit auf ${limit.round()} hm anheben'),
           findsOneWidget,
         );
         expect(limit, greaterThan(session(tester).prefs.climbM));
+        expect(
+          notifier.limitFor(over).distKm,
+          isNull,
+          reason: 'die Distanz reicht — nur die Höhenmeter steigen',
+        );
 
         // Aus und wieder an: nichts mehr zu rechnen.
         final before = runner.requests.length;

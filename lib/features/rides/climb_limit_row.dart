@@ -1,7 +1,8 @@
 // Die eine Zeile nach einer Fahrt (#516 Schritt 6, Konzept-Routing 12.5a):
 // „1 100 hm geschafft — Limit fürs Bio-Bike von 800 auf 1 100 hm
-// anheben?" mit „Anheben" und „Nein", oder — sah die Fahrt nach E-Bike
-// aus — „War es eins?". Kein Dialog, keine Benachrichtigung: Sie steht im
+// anheben?" (oder dasselbe für die Distanz, oder beide in einem Satz) mit
+// „Anheben" und „Nein", oder — sah die Fahrt nach E-Bike aus — „War es
+// eins?". Kein Dialog, keine Benachrichtigung: Sie steht im
 // Zerlege-Blatt am Ende der Aufzeichnung und, blieb sie unbeantwortet,
 // einmal im Einstieg des Planers.
 //
@@ -63,7 +64,7 @@ ClimbLimitOffer? takePendingClimbLimit(WidgetRef ref) {
       );
   if (offer == null) return null;
   final prefs = ref.read(loopPlannerProvider).prefs;
-  return climbLimitExceeded(prefs, offer.bike, offer.climbM) ? offer : null;
+  return limitOfferStands(prefs, offer) ? offer : null;
 }
 
 class ClimbLimitRow extends ConsumerStatefulWidget {
@@ -78,12 +79,9 @@ class ClimbLimitRow extends ConsumerStatefulWidget {
 class _ClimbLimitRowState extends ConsumerState<ClimbLimitRow> {
   ClimbLimitAnswer? _answer;
 
-  /// Das Limit des Rads, als die Frage stand — „von 800" bleibt stehen,
+  /// Die Limits des Rads, als die Frage stand — „von 800" bleibt stehen,
   /// auch wenn die Antwort es ändert.
-  late final double _fromM = ref
-      .read(loopPlannerProvider)
-      .prefs
-      .climbOf(widget.offer.bike);
+  late final LoopPrefs _from = ref.read(loopPlannerProvider).prefs;
 
   ClimbLimitOffer get _offer => widget.offer;
 
@@ -125,18 +123,33 @@ class _ClimbLimitRowState extends ConsumerState<ClimbLimitRow> {
     final theme = Theme.of(context);
     final answer = _answer;
     final bike = _offer.bike.label(l);
-    final climb = _offer.climbM.round(), to = _offer.toM.round();
+    final climb = _offer.climbM.round(), km = _offer.distKm.round();
+    final fromM = _from.climbOf(_offer.bike).round();
+    final fromKm = _from.distOf(_offer.bike).round();
     if (answer != null) {
-      final raisedTo = answer.raisedBike == null
-          ? 0
-          : answer.after.climbOf(answer.raisedBike!).round();
+      String raised(RiderProfile p) {
+        final b = p.label(l);
+        final m = answer.after.climbOf(p), d = answer.after.distOf(p);
+        final upM = m != answer.before.climbOf(p);
+        final upKm = d != answer.before.distOf(p);
+        return upM && upKm
+            ? l.bothLimitRaised(b, m.round(), d.round())
+            : upKm
+            ? l.distLimitRaised(b, d.round())
+            : l.climbLimitRaised(b, m.round());
+      }
+
       final text = answer.movedToEbike
           ? (answer.raisedBike == null
                 ? l.climbLimitMoved
-                : l.climbLimitMovedRaised(raisedTo))
-          : answer.raisedBike == null
-          ? l.climbLimitDeclined(bike, _fromM.round())
-          : l.climbLimitRaised(bike, raisedTo);
+                : '${l.climbLimitMoved} · ${raised(answer.raisedBike!)}')
+          : answer.raisedBike != null
+          ? raised(answer.raisedBike!)
+          : _offer.toM != null && _offer.toKm != null
+          ? l.bothLimitDeclined(bike, fromM, fromKm)
+          : _offer.toKm != null
+          ? l.distLimitDeclined(bike, fromKm)
+          : l.climbLimitDeclined(bike, fromM);
       return Row(
         key: const ValueKey('climb-limit'),
         children: [
@@ -172,7 +185,22 @@ class _ClimbLimitRowState extends ConsumerState<ClimbLimitRow> {
             ),
           )
         : (
-            l.climbLimitAsk(climb, bike, _fromM.round(), to),
+            switch ((_offer.toM, _offer.toKm)) {
+              (final m?, final d?) => l.bothLimitAsk(
+                climb,
+                km,
+                bike,
+                m.round(),
+                d.round(),
+              ),
+              (null, final d?) => l.distLimitAsk(km, bike, fromKm, d.round()),
+              (final m, _) => l.climbLimitAsk(
+                climb,
+                bike,
+                fromM,
+                (m ?? _offer.climbM).round(),
+              ),
+            },
             (
               key: 'climb-limit-raise',
               text: l.climbLimitRaise,

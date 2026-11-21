@@ -202,6 +202,46 @@ void main() {
     expect(find.byKey(const ValueKey('climb-limit')), findsNothing);
   });
 
+  testWidgets(
+    'Distanz und Höhenmeter in EINER Frage (#516, 2026-11-20): Anheben, Rückgängig, Nein',
+    (tester) async {
+      settings.climbLimitPending = const ClimbLimitOffer(
+        rideId: 'r1',
+        bike: RiderProfile.bio,
+        climbM: 1100,
+        toM: 1100,
+        distKm: 70,
+        toKm: 70,
+      ).encode();
+      await pump(tester);
+      await tester.tap(find.byKey(const ValueKey('loop-button')));
+      await settle(tester, frames: 10);
+      expect(
+        find.text(
+          '1100 hm und 70 km geschafft — Limits fürs Bio-Bike auf 1100 hm und 70 km anheben?',
+        ),
+        findsOneWidget,
+      );
+      await tester.tap(find.byKey(const ValueKey('climb-limit-raise')));
+      await settle(tester);
+      expect((prefs().climbBioM, prefs().distBioKm), (1100, 70));
+      expect(
+        find.text('Limits fürs Bio-Bike jetzt 1100 hm und 70 km'),
+        findsOneWidget,
+      );
+      await tester.tap(find.byKey(const ValueKey('climb-limit-undo')));
+      await settle(tester);
+      expect((prefs().climbBioM, prefs().distBioKm), (800, 60));
+      await tester.tap(find.byKey(const ValueKey('climb-limit-keep')));
+      await settle(tester);
+      expect((prefs().declinedBioM, prefs().declinedDistBioKm), (1100, 70));
+      expect(
+        find.text('Limits fürs Bio-Bike bleiben bei 800 hm und 60 km'),
+        findsOneWidget,
+      );
+    },
+  );
+
   test(
     'im Planer hat jedes Rad sein Limit: der Wechsel holt das andere, der Regler stellt das eigene',
     () {

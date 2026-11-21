@@ -659,7 +659,7 @@ void main() {
     );
 
     test(
-      'der Vorschlag: Umkreis und Höhenmeter folgen der Zeit (Konzept-Routing 12.4)',
+      'der Vorschlag: der Umkreis folgt der Zeit, die Limits nicht (#516, 2026-11-20)',
       () {
         expect(loopSuggestReachM(1), 5000);
         expect(loopSuggestReachM(1.5), 6500);
@@ -671,26 +671,17 @@ void main() {
         expect(loopSuggestNextReachM(6500), 8000);
         expect(loopSuggestNextReachM(20000), isNull);
         final bio = LoopPrefs.defaults(RiderProfile.bio);
-        expect(bio.climbM, 800, reason: 'Vorbedingung: Vorgabe für 3 h');
-        expect(
-          bio.copyWith(hours: 1).suggestBudget.climbM,
-          300,
-          reason: '800 × 1/3, auf 100 gerundet',
-        );
-        expect(bio.copyWith(hours: 1.5).suggestBudget.climbM, 400);
-        expect(bio.copyWith(hours: 3).suggestBudget.climbM, 800);
-        expect(
-          bio.copyWith(hours: 5).suggestBudget.climbM,
-          800,
-          reason: 'nie über dem Limit',
-        );
-        // Ein angehobenes Limit zählt mit.
-        expect(
-          bio.copyWith(hours: 1.5, climbM: 1200).suggestBudget.climbM,
-          600,
-        );
-        // Fenster und Zeit wie beim Bearbeiten.
-        expect(bio.copyWith(hours: 1).suggestBudget.windowS, 15 * 60);
+        expect(bio.climbM, 800);
+        expect(bio.distKm, 60);
+        // Feste Limits: Bis 0.194 galten die Höhenmeter beim Vorschlag für
+        // 3 h und kürzer anteilig (1 h → 300) — drei Zahlen für eine Runde.
+        for (final h in [1.0, 1.5, 3.0, 5.0]) {
+          final b = bio.copyWith(hours: h).budget;
+          expect(b.climbM, 800, reason: '$h h');
+          expect(b.distM, 60000, reason: '$h h');
+        }
+        expect(bio.copyWith(hours: 1.5, climbM: 1200).budget.climbM, 1200);
+        expect(bio.copyWith(hours: 1).budget.windowS, 15 * 60);
       },
     );
 
@@ -718,190 +709,267 @@ void main() {
     });
   });
 
-  group(
-    'die Stände für die Leiste „andere Runden" (#549, Konzept-Routing 12.10)',
-    () {
-      // Wie „im Fenster gewinnt …": N neben dem Start, F am Ende von 3 km
-      // Forstweg. Jeder Stand ist der vorige plus EIN Trail.
-      final g = buildRoadGraph([
-        _way([(0, 0), (0, 1000)]),
-        _way([(0, 0), (3000, 0), (3000, 1000)]),
-      ], lat0: 47.5).graph;
-      PoolTrail down(String id, double x, int grade) => PoolTrail(
-        id: id,
-        name: id,
-        points: _m([(x + 10, 990), (x + 10, 500), (x + 10, 10)]),
-        lengthM: 1000,
-        grade: grade,
+  group('die Stände für die Leiste „andere Runden" (#549, Konzept-Routing 12.10)', () {
+    // Wie „im Fenster gewinnt …": N neben dem Start, F am Ende von 3 km
+    // Forstweg. Jeder Stand ist der vorige plus EIN Trail.
+    final g = buildRoadGraph([
+      _way([(0, 0), (0, 1000)]),
+      _way([(0, 0), (3000, 0), (3000, 1000)]),
+    ], lat0: 47.5).graph;
+    PoolTrail down(String id, double x, int grade) => PoolTrail(
+      id: id,
+      name: id,
+      points: _m([(x + 10, 990), (x + 10, 500), (x + 10, 10)]),
+      lengthM: 1000,
+      grade: grade,
+    );
+    final near = down('N', 0, 1), far = down('F', 3000, 3);
+    LoopPlan go(
+      double timeS, {
+      double windowS = kLoopTimeWindowS,
+      List<String>? state,
+    }) => planLoop(
+      g,
+      start: start,
+      profile: _bio,
+      budget: LoopBudget(
+        timeS: timeS,
+        climbM: 800,
+        hikingM: 2000,
+        windowS: windowS,
+      ),
+      pool: [near, far],
+      state: state,
+      searchBudget: const Duration(milliseconds: 50),
+    );
+    final t1 = planLoop(
+      g,
+      start: start,
+      profile: _bio,
+      budget: _big,
+      pool: [near],
+    ).summary!.timeS;
+    final t2 = go(24 * 3600, windowS: 0).summary!.timeS;
+
+    test(
+      'über dem Fenster weiter bis Zeit + 2 × Fenster — gewählt wird nur im Fenster',
+      () {
+        expect(
+          t2 - t1,
+          inInclusiveRange(kLoopTimeWindowS / 2, 2 * kLoopTimeWindowS),
+          reason: 'Vorbedingung',
+        );
+        // N + F liegt anderthalb Fenster über der Zeit: auf der Leiste, nie
+        // der Vorschlag.
+        final time = t2 - 1.5 * kLoopTimeWindowS;
+        final plan = go(time);
+        expect(plan.stops.map((s) => s.trail.id), ['N']);
+        expect(plan.states.map((s) => s.order), [
+          ['N'],
+          ['N', 'F'],
+        ]);
+        expect(plan.states.last.timeS, greaterThan(time + kLoopTimeWindowS));
+        expect(
+          plan.states.last.timeS,
+          lessThanOrEqualTo(time + 2 * kLoopTimeWindowS),
+        );
+        expect(plan.pick, 0);
+        expect(
+          plan.states[plan.pick!].order,
+          plan.order,
+          reason: 'der Vorschlag ist die gezeigte Runde',
+        );
+        // Was ein Punkt sagt: der Trail, der dazukam, der höchste Grad, der Anteil.
+        final [first, second] = plan.states;
+        expect(first.addedId, 'N', reason: 'dazu zur Runde ohne Trail');
+        expect(
+          (second.addedId, second.addedName, second.addedGrade),
+          ('F', 'F', 3),
+        );
+        expect((first.grade, second.grade), (1, 3));
+        expect((first.trails, second.trails), (1, 2));
+        expect(
+          first.trailShare,
+          greaterThan(second.trailShare),
+          reason: 'F hängt an 6 km Verbindung',
+        );
+        expect(second.lengthM, greaterThan(first.lengthM));
+        // Über Zeit + 2 × Fenster nichts mehr.
+        expect(go(t2 - 2 * kLoopTimeWindowS - 120).states, hasLength(1));
+      },
+    );
+
+    test('ein Stand nachgerechnet: seine Folge, seine Zeit als Deckel', () {
+      final plan = go(t2 - 1.5 * kLoopTimeWindowS);
+      final other = go(
+        t2 - 1.5 * kLoopTimeWindowS,
+        state: plan.states.last.order,
       );
-      final near = down('N', 0, 1), far = down('F', 3000, 3);
-      LoopPlan go(
-        double timeS, {
-        double windowS = kLoopTimeWindowS,
-        List<String>? state,
-      }) => planLoop(
+      expect(other.outcome, LoopOutcome.ok);
+      expect(other.stops.map((s) => s.trail.id), ['N', 'F']);
+      expect(
+        other.summary!.timeS,
+        lessThanOrEqualTo(plan.states.last.timeS + 1),
+      );
+      expect(
+        other.states,
+        isEmpty,
+        reason: 'die Leiste bleibt die der ersten Rechnung',
+      );
+      expect(other.self!.order, other.order);
+      expect(other.excluded, isEmpty);
+      // Zurück auf den kürzeren: F hat seinen Grund.
+      final back = go(
+        t2 - 1.5 * kLoopTimeWindowS,
+        state: plan.states.first.order,
+      );
+      expect(back.stops.map((s) => s.trail.id), ['N']);
+      expect(back.excluded, {'F': LoopExclusion.budget});
+    });
+
+    test('ohne Fenster keine Leiste: spaßiger Weg, Route, Grenze', () {
+      expect(go(t2, windowS: 0).states, isEmpty);
+      final route = planLoop(
         g,
         start: start,
         profile: _bio,
-        budget: LoopBudget(
-          timeS: timeS,
-          climbM: 800,
-          hikingM: 2000,
-          windowS: windowS,
-        ),
-        pool: [near, far],
-        state: state,
-        searchBudget: const Duration(milliseconds: 50),
+        budget: kRouteDirectBudget,
+        pool: const [],
+        end: _m([(2990, 0)]).single,
+        returnToStart: false,
+        bare: true,
       );
-      final t1 = planLoop(
-        g,
-        start: start,
-        profile: _bio,
-        budget: _big,
-        pool: [near],
-      ).summary!.timeS;
-      final t2 = go(24 * 3600, windowS: 0).summary!.timeS;
+      expect(route.states, isEmpty);
+      expect(route.self, isNull);
+    });
 
-      test(
-        'über dem Fenster weiter bis Zeit + 2 × Fenster — gewählt wird nur im Fenster',
-        () {
-          expect(
-            t2 - t1,
-            inInclusiveRange(kLoopTimeWindowS / 2, 2 * kLoopTimeWindowS),
-            reason: 'Vorbedingung',
-          );
-          // N + F liegt anderthalb Fenster über der Zeit: auf der Leiste, nie
-          // der Vorschlag.
-          final time = t2 - 1.5 * kLoopTimeWindowS;
-          final plan = go(time);
-          expect(plan.stops.map((s) => s.trail.id), ['N']);
-          expect(plan.states.map((s) => s.order), [
-            ['N'],
-            ['N', 'F'],
-          ]);
-          expect(plan.states.last.timeS, greaterThan(time + kLoopTimeWindowS));
-          expect(
-            plan.states.last.timeS,
-            lessThanOrEqualTo(time + 2 * kLoopTimeWindowS),
-          );
-          expect(plan.pick, 0);
-          expect(
-            plan.states[plan.pick!].order,
-            plan.order,
-            reason: 'der Vorschlag ist die gezeigte Runde',
-          );
-          // Was ein Punkt sagt: der Trail, der dazukam, der höchste Grad, der Anteil.
-          final [first, second] = plan.states;
-          expect(first.addedId, 'N', reason: 'dazu zur Runde ohne Trail');
-          expect(
-            (second.addedId, second.addedName, second.addedGrade),
-            ('F', 'F', 3),
-          );
-          expect((first.grade, second.grade), (1, 3));
-          expect((first.trails, second.trails), (1, 2));
-          expect(
-            first.trailShare,
-            greaterThan(second.trailShare),
-            reason: 'F hängt an 6 km Verbindung',
-          );
-          expect(second.lengthM, greaterThan(first.lengthM));
-          // Über Zeit + 2 × Fenster nichts mehr.
-          expect(go(t2 - 2 * kLoopTimeWindowS - 120).states, hasLength(1));
-        },
-      );
-
-      test('ein Stand nachgerechnet: seine Folge, seine Zeit als Deckel', () {
-        final plan = go(t2 - 1.5 * kLoopTimeWindowS);
-        final other = go(
-          t2 - 1.5 * kLoopTimeWindowS,
-          state: plan.states.last.order,
+    test(
+      '„Auch über dem Limit": ein Greedy ohne Höhenmeter-Grenze, nur die Stände darüber',
+      () {
+        // F hat 500 hm, das Limit 300: Im Plan steht nur N, über dem Limit
+        // die Runde mit F — gleiche Zeit, gleicher Pool.
+        final steep = PoolTrail(
+          id: 'F',
+          name: 'F',
+          points: far.points,
+          lengthM: 1000,
+          grade: 3,
+          gainM: 500,
         );
-        expect(other.outcome, LoopOutcome.ok);
-        expect(other.stops.map((s) => s.trail.id), ['N', 'F']);
-        expect(
-          other.summary!.timeS,
-          lessThanOrEqualTo(plan.states.last.timeS + 1),
-        );
-        expect(
-          other.states,
-          isEmpty,
-          reason: 'die Leiste bleibt die der ersten Rechnung',
-        );
-        expect(other.self!.order, other.order);
-        expect(other.excluded, isEmpty);
-        // Zurück auf den kürzeren: F hat seinen Grund.
-        final back = go(
-          t2 - 1.5 * kLoopTimeWindowS,
-          state: plan.states.first.order,
-        );
-        expect(back.stops.map((s) => s.trail.id), ['N']);
-        expect(back.excluded, {'F': LoopExclusion.budget});
-      });
-
-      test('ohne Fenster keine Leiste: spaßiger Weg, Route, Grenze', () {
-        expect(go(t2, windowS: 0).states, isEmpty);
-        final route = planLoop(
+        LoopPlan run({bool overLimit = false}) => planLoop(
           g,
           start: start,
           profile: _bio,
-          budget: kRouteDirectBudget,
-          pool: const [],
-          end: _m([(2990, 0)]).single,
-          returnToStart: false,
-          bare: true,
+          budget: LoopBudget(timeS: t2, climbM: 300, hikingM: 2000),
+          pool: [near, steep],
+          overLimit: overLimit,
+          searchBudget: const Duration(milliseconds: 50),
         );
-        expect(route.states, isEmpty);
-        expect(route.self, isNull);
-      });
+        final plan = run();
+        expect(plan.stops.map((s) => s.trail.id), ['N']);
+        expect(plan.states.map((s) => s.order), [
+          ['N'],
+        ], reason: 'F passt in keinen Stand der Leiste');
+        expect(plan.over, isEmpty, reason: 'nur auf Nachfrage');
+        final over = run(overLimit: true);
+        expect(over.outcome, LoopOutcome.ok);
+        expect(
+          over.over.map((s) => s.order),
+          [
+            ['N', 'F'],
+          ],
+          reason:
+              'N allein liegt unter dem Limit und steht schon auf der Leiste',
+        );
+        expect(over.over.single.climbM, greaterThan(300));
+        expect((over.over.single.addedId, over.over.single.grade), ('F', 3));
+        expect(
+          over.points,
+          isEmpty,
+          reason: 'keine Linie — ein solcher Stand wird nicht gefahren',
+        );
+        expect(over.states, isEmpty);
+      },
+    );
 
-      test(
-        '„Auch über dem Limit": ein Greedy ohne Höhenmeter-Grenze, nur die Stände darüber',
-        () {
-          // F hat 500 hm, das Limit 300: Im Plan steht nur N, über dem Limit
-          // die Runde mit F — gleiche Zeit, gleicher Pool.
-          final steep = PoolTrail(
-            id: 'F',
-            name: 'F',
-            points: far.points,
-            lengthM: 1000,
-            grade: 3,
-            gainM: 500,
-          );
-          LoopPlan run({bool overLimit = false}) => planLoop(
-            g,
-            start: start,
-            profile: _bio,
-            budget: LoopBudget(timeS: t2, climbM: 300, hikingM: 2000),
-            pool: [near, steep],
-            overLimit: overLimit,
-            searchBudget: const Duration(milliseconds: 50),
-          );
-          final plan = run();
-          expect(plan.stops.map((s) => s.trail.id), ['N']);
-          expect(plan.states.map((s) => s.order), [
-            ['N'],
-          ], reason: 'F passt in keinen Stand der Leiste');
-          expect(plan.over, isEmpty, reason: 'nur auf Nachfrage');
-          final over = run(overLimit: true);
-          expect(over.outcome, LoopOutcome.ok);
-          expect(
-            over.over.map((s) => s.order),
-            [
-              ['N', 'F'],
-            ],
-            reason:
-                'N allein liegt unter dem Limit und steht schon auf der Leiste',
-          );
-          expect(over.over.single.climbM, greaterThan(300));
-          expect((over.over.single.addedId, over.over.single.grade), ('F', 3));
-          expect(
-            over.points,
-            isEmpty,
-            reason: 'keine Linie — ein solcher Stand wird nicht gefahren',
-          );
-          expect(over.states, isEmpty);
-        },
+    test(
+      'das Distanz-Limit greift wie die Höhenmeter, „Auch über dem Limit" sieht es (#516, 2026-11-20)',
+      () {
+        // Flach, viel Zeit: Ohne Distanz-Limit nimmt die Runde N und F.
+        final free = go(24 * 3600, windowS: 0);
+        expect(free.stops.map((s) => s.trail.id).toSet(), {'N', 'F'});
+        final nOnly = planLoop(
+          g,
+          start: start,
+          profile: _bio,
+          budget: _big,
+          pool: [near],
+        ).summary!.lengthM;
+        final both = free.summary!.lengthM;
+        expect(both, greaterThan(nOnly + 1000), reason: 'Vorbedingung');
+        final limit = (nOnly + both) / 2;
+        LoopPlan run({bool overLimit = false}) => planLoop(
+          g,
+          start: start,
+          profile: _bio,
+          budget: LoopBudget(
+            timeS: 24 * 3600,
+            climbM: 800,
+            hikingM: 2000,
+            windowS: 0,
+            distM: limit,
+          ),
+          pool: [near, far],
+          overLimit: overLimit,
+          searchBudget: const Duration(milliseconds: 50),
+        );
+        final plan = run();
+        expect(plan.stops.map((s) => s.trail.id), [
+          'N',
+        ], reason: 'die Zeit reicht, die Distanz nicht');
+        expect(plan.summary!.lengthM, lessThanOrEqualTo(limit));
+        expect(plan.excluded, {'F': LoopExclusion.budget});
+        final over = run(overLimit: true);
+        expect(over.over.map((s) => s.order.toSet()), [
+          {'N', 'F'},
+        ]);
+        expect(over.over.single.lengthM, greaterThan(limit));
+        expect(
+          over.over.single.climbM,
+          lessThanOrEqualTo(800),
+          reason: 'über dem Limit nur wegen der Distanz',
+        );
+      },
+    );
+  });
+
+  test(
+    'das Distanz-Limit je Rad wird gemerkt, ohne Eintrag gilt die Vorgabe (#516)',
+    () {
+      final d = LoopPrefs.defaults(RiderProfile.bio);
+      expect((d.distBioKm, d.distEbikeKm), (60.0, 90.0));
+      expect(d.distBioKm, RiderProfile.bio.budgetDistKm);
+      expect(d.distEbikeKm, RiderProfile.ebike.budgetDistKm);
+      final set = d
+          .copyWith(distKm: 75)
+          .withDist(RiderProfile.ebike, 120)
+          .withDeclinedDist(RiderProfile.bio, 80);
+      final back = LoopPrefs.parse(set.encode(), RiderProfile.bio);
+      expect((back.distBioKm, back.distEbikeKm), (75.0, 120.0));
+      expect(back.declinedDistOf(RiderProfile.bio), 80);
+      expect(back.declinedDistOf(RiderProfile.ebike), isNull);
+      expect(back.withBike(RiderProfile.ebike).budget.distM, 120000);
+      // Eine App bis 0.194 kannte kein `db`/`de`.
+      final old = LoopPrefs.parse(
+        'h=3.0;c=800.0;cb=800.0;ce=1400.0',
+        RiderProfile.bio,
       );
+      expect((old.distBioKm, old.distEbikeKm), (60.0, 90.0));
+      // Geklemmt auf den Regler.
+      expect(d.withDist(RiderProfile.bio, 5000).distBioKm, LoopPrefs.maxDistKm);
+      // „Rückgängig" nach einer Antwort nimmt die Distanz mit.
+      expect(d.withLimitsOf(set).distOf(RiderProfile.ebike), 120);
+      expect(d.withLimitsOf(set).declinedDistOf(RiderProfile.bio), 80);
     },
   );
 

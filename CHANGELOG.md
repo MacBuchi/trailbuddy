@@ -2,6 +2,27 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Feste Limits fürs Rad, auch für die Strecke
+
+*Version 0.195.0, 2026-11-21*
+
+- Der Rundenplaner rechnet mit zwei festen Limits je Rad: Höhenmeter
+  und, neu, Kilometer (Vorgabe 60 km fürs Bio-Bike, 90 km fürs E-Bike).
+  Beides stellst du unter „Anpassen". Die Zeit verkleinert die Limits
+  nicht mehr; überall steht dieselbe Zahl, im Kopf, in den Kacheln und
+  im Vergleich.
+- Unter dem Rad steht, wie schnell du bergauf kommst, etwa „450 hm/h".
+  Daraus schätzt der Planer die Zeit. Hast du Fahrten eingeordnet,
+  steht dort dein eigener Wert.
+- Nach einer Aufzeichnung, die weiter war als dein Limit, fragt die App,
+  ob sie es anheben soll — wie bisher bei den Höhenmetern, und bei
+  beiden in einer Frage.
+- Aufgeräumt: „Bergauf" und die Zeit passen wieder in ihre Kacheln, die
+  Kopfzeile bricht um statt abzuschneiden, Zahl und Einheit bleiben
+  zusammen, und viele Trails, die nicht ins Budget passen, stehen als
+  eine Zeile zum Aufklappen da. Beim Vorschlag heißt es jetzt „im
+  Umkreis von 8 km".
+
 ## Sensordaten mit Licht und Nähe
 
 *Version 0.194.0, 2026-11-20*

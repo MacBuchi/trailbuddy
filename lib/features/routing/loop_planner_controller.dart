@@ -173,15 +173,14 @@ class LoopSession {
       strip.isNotEmpty && stripPick != null && stripShown != null && !tuned;
 
   /// Die gezeigte Planung ist ein Vorschlag (#516 Schritt 4,
-  /// Konzept-Routing 12.4): der Pool aus diesem Umkreis um den Start,
-  /// die Höhenmeter aus [LoopPrefs.suggestBudget]. Null für alles, was
-  /// aus einer Auswahl gerechnet ist.
+  /// Konzept-Routing 12.4): der Pool aus diesem Umkreis um den Start.
+  /// Null für alles, was aus einer Auswahl gerechnet ist.
   final double? suggestReachM;
 
   /// Das Budget, mit dem die gezeigte Planung gerechnet ist — Skalen,
-  /// „ca." und „Kürzer als …" im Blatt lesen es.
-  LoopBudget get planBudget =>
-      suggestReachM != null ? prefs.suggestBudget : prefs.budget;
+  /// „ca." und „Kürzer als …" im Blatt lesen es. Seit #516 (2026-11-20)
+  /// dasselbe für Vorschlag und Auswahl: feste Limits, keine Skalierung.
+  LoopBudget get planBudget => prefs.budget;
 
   /// Der Planer-Modus ist an: Leiste links, Tipps wählen Trails.
   final bool open;
@@ -1071,9 +1070,9 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
   ///
   /// Mit [suggestReachM] ist es der Vorschlag (#516 Schritt 4): Der Pool
   /// sind alle wählbaren Abfahrten mit beiden Enden in diesem Umkreis um
-  /// den Start (`loopPoolOf`, wie „Alle wählen"), die Höhenmeter aus
-  /// [LoopPrefs.suggestBudget]; danach sind die Trails des Vorschlags
-  /// die Auswahl — „Bearbeiten" fängt dort an.
+  /// den Start (`loopPoolOf`, wie „Alle wählen"), mit den Limits des
+  /// Rads; danach sind die Trails des Vorschlags die Auswahl —
+  /// „Bearbeiten" fängt dort an.
   Future<void> compute({double? suggestReachM}) async {
     if (state.busy) return;
     // Gerechnet wird in der Bearbeitung — auch, wenn der Einstieg gleich
@@ -1250,11 +1249,7 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
           profile: ref
               .read(calibratedRiderProvider(state.profile))
               .withPrefs(state.prefs.planRoute),
-          budget: free
-              ? kRouteDirectBudget
-              : suggest
-              ? state.prefs.suggestBudget
-              : state.prefs.budget,
+          budget: free ? kRouteDirectBudget : state.prefs.budget,
           pool: [
             for (final t in chosen)
               if (!direct || state.mandatory.contains(t.id))
@@ -1607,30 +1602,44 @@ class LoopPlannerNotifier extends Notifier<LoopSession> {
     }
   }
 
-  /// Das Limit, mit dem [s] ginge (#549): seine Höhenmeter auf den
-  /// nächsten Schritt aufgerundet. Beim Vorschlag ist das Limit mit der
-  /// Zeit skaliert ([LoopPrefs.suggestBudget]) — angehoben wird das Limit
-  /// des Rads so, dass das skalierte reicht.
-  double limitFor(LoopState s) {
-    final used = _planRequest?.budget.climbM ?? state.planBudget.climbM;
+  /// Die Limits, mit denen [s] ginge (#549, #516): je Limit, das [s]
+  /// übertrifft, sein eigener Wert auf den nächsten Schritt aufgerundet;
+  /// eines, das reicht, bleibt null. Beide Zahlen sind die des Rads —
+  /// dieselben, die Kachel, Kopf und Vergleich nennen.
+  LoopLimitRaise limitFor(LoopState s) {
     final prefs = state.prefs;
-    final need = used <= 0 ? s.climbM : prefs.climbM * s.climbM / used;
-    final v = (need / LoopPrefs.climbStep).ceil() * LoopPrefs.climbStep;
-    return v.clamp(LoopPrefs.minClimb, LoopPrefs.maxClimb).toDouble();
+    double? climb, dist;
+    if (s.climbM > prefs.climbM + 1e-6) {
+      final v = (s.climbM / LoopPrefs.climbStep).ceil() * LoopPrefs.climbStep;
+      climb = v.clamp(LoopPrefs.minClimb, LoopPrefs.maxClimb).toDouble();
+    }
+    final km = s.lengthM / 1000;
+    if (km > prefs.distKm + 1e-6) {
+      final v = (km / LoopPrefs.distStepKm).ceil() * LoopPrefs.distStepKm;
+      dist = v.clamp(LoopPrefs.minDistKm, LoopPrefs.maxDistKm).toDouble();
+    }
+    return (climbM: climb, distKm: dist);
   }
 
   /// „Limit anheben" an einem Stand über dem Limit (Konzept-Routing 12.10
-  /// B, 12.5a): Das Limit des Rads steigt auf [limitFor], gemerkt, und
+  /// B, 12.5a): Die Limits des Rads steigen auf [limitFor], gemerkt, und
   /// die Runde wird neu gerechnet — mit denselben Eingaben, Vorschlag
   /// bleibt Vorschlag.
   Future<void> raiseLimitFor(LoopState s) {
     final reach = state.suggestReachM;
     final quick = state.quick;
-    setPrefs(state.prefs.withClimb(state.prefs.bike, limitFor(s)));
+    final raise = limitFor(s);
+    var prefs = state.prefs;
+    if (raise.climbM case final c?) prefs = prefs.withClimb(prefs.bike, c);
+    if (raise.distKm case final d?) prefs = prefs.withDist(prefs.bike, d);
+    setPrefs(prefs);
     state = state.copyWith(quick: quick);
     return compute(suggestReachM: reach);
   }
 }
+
+/// Was „Limit anheben" stellt: je Limit der neue Wert, null = bleibt.
+typedef LoopLimitRaise = ({double? climbM, double? distKm});
 
 final loopPlannerProvider = NotifierProvider<LoopPlannerNotifier, LoopSession>(
   LoopPlannerNotifier.new,
