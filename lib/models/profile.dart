@@ -1,4 +1,5 @@
 import '../l10n/l10n.dart';
+import 'avatar_config.dart';
 
 /// Mindestlänge des Benutzernamens — EINE Quelle für Registrierung und
 /// „Benutzername ändern" (Muster `minPasswordLength`).
@@ -54,22 +55,19 @@ class Profile {
   /// Benutzernamen; im eigenen Profil bisher nicht bearbeitbar.
   final String? displayName;
 
-  /// Index in einen künftigen Avatar-Katalog. Heute zeigt die App den
-  /// ersten Buchstaben des Namens (`LetterAvatar`); die Spalte bleibt,
-  /// damit ein Katalog später keinen Schema-Patch braucht.
-  final int avatar;
+  final AvatarConfig? avatar;
 
   const Profile({
     required this.id,
     required this.username,
     this.displayName,
-    this.avatar = 0,
+    this.avatar,
   });
 
   factory Profile.fromJson(Map<String, dynamic> json) => Profile(
     id: json['id'] as String,
     username: json['username'] as String,
     displayName: json['display_name'] as String?,
-    avatar: json['avatar'] as int? ?? 0,
+    avatar: AvatarConfig.fromProfile(json),
   );
 }

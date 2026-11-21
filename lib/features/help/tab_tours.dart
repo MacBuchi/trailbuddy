@@ -85,6 +85,9 @@ abstract final class HelpCoach {
 abstract final class ProfileCoach {
   /// Die Liste; untere Zeilen werden erst beim Scrollen gebaut.
   static const list = 'profile.list';
+  static const avatarEdit = 'profile.avatar-edit';
+  static const avatarEditor = 'profile.avatar-editor';
+  static const avatarPreview = 'profile.avatar-preview';
 
   /// Eine Zeile, je `_ProfileRow.id`.
   static String row(String id) => 'profile.$id';

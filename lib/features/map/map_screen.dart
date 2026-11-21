@@ -2167,7 +2167,11 @@ class _MapScreenState extends ConsumerState<MapScreen> {
             ),
           ),
         // Buddys (#519) unter der eigenen Position.
-        ...buddyMarkers(buddies, ref.watch(nearbyBuddyNameProvider)),
+        ...buddyMarkers(
+          buddies,
+          ref.watch(nearbyBuddyNameProvider),
+          avatars: ref.watch(nearbyBuddyAvatarsProvider),
+        ),
         if (position != null)
           MapViewMarker(
             key: const ValueKey('my-position'),

@@ -5,10 +5,7 @@ import '../app_colors.dart';
 /// Ein Avatar mit dem ersten Buchstaben des Namens — als abgerundetes
 /// Quadrat (Design 1k/1l).
 ///
-/// Bewusst schlicht: TrailBuddy hat (noch) keinen Avatar-Katalog, und ein
-/// Bild, das jeder gleich hätte, sagte weniger als der Buchstabe. Das Feld
-/// `avatar` am Profil bleibt dafür frei — kommt ein Katalog, tauscht man
-/// dieses Widget an EINER Stelle, nicht in jeder Liste.
+/// Standard für Profile ohne gewählten MTB-Avatar.
 ///
 /// Die Fläche: Lime für mich selbst (ohne [colorKey]), für andere eine
 /// von [AppColors.avatarFills], fest je Nutzer-id — Lime heißt „mein",
@@ -30,7 +27,9 @@ class LetterAvatar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final trimmed = name.trim();
-    final letter = trimmed.isEmpty ? '?' : trimmed[0].toUpperCase();
+    final letter = trimmed.isEmpty
+        ? '?'
+        : trimmed.characters.first.toUpperCase();
     return Container(
       width: size,
       height: size,

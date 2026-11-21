@@ -11,6 +11,8 @@ import '../../core/app_theme.dart';
 import '../../core/app_info.dart';
 import '../../core/errors.dart';
 import '../../core/widgets/letter_avatar.dart';
+import '../../core/widgets/rider_avatar.dart';
+import '../../models/avatar_config.dart';
 import '../../core/widgets/motion.dart';
 import '../../data/providers.dart';
 import '../../models/friendship.dart';
@@ -497,6 +499,7 @@ class _FriendsScreenState extends ConsumerState<FriendsScreen> {
                     coach: i == 0,
                     id: f.otherId(uid),
                     username: f.otherUsername(uid),
+                    avatar: f.otherAvatar(uid),
                     alias: names.aliasOf(f.otherId(uid)),
                     shared:
                         shared?[f.otherId(uid)] ?? (shared == null ? null : 0),
@@ -868,6 +871,7 @@ class _BuddyRow extends StatelessWidget {
     required this.id,
     required this.username,
     required this.alias,
+    required this.avatar,
     required this.shared,
     required this.onRemove,
     this.coach = false,
@@ -878,6 +882,7 @@ class _BuddyRow extends StatelessWidget {
   final String id;
   final String username;
   final String? alias;
+  final AvatarConfig? avatar;
   final int? shared;
   final VoidCallback onRemove;
 
@@ -890,7 +895,12 @@ class _BuddyRow extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
         children: [
-          LetterAvatar(name: alias ?? username, colorKey: id, size: 44),
+          RiderAvatar(
+            name: alias ?? username,
+            config: avatar,
+            colorKey: id,
+            size: 44,
+          ),
           const SizedBox(width: 14),
           Expanded(
             child: Column(

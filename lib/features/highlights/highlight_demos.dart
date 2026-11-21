@@ -105,6 +105,24 @@ CoachStep _profileRow(String id, String title, String text) => CoachStep(
 /// [AppLocalizations] (#209).
 Map<String, HighlightDemo> highlightDemos(AppLocalizations l) => {
   // ─── Highlights ────────────────────────────────────────────────
+  'mtb-avatar': HighlightDemo(
+    route: '/profile',
+    script: _demo('mtb-avatar', [
+      CoachStep(
+        title: l.demoMtbAvatarOpenTitle,
+        text: l.demoMtbAvatarOpenText,
+        lit: const [ProfileCoach.avatarEdit],
+        scrollIn: ProfileCoach.list,
+        gesture: CoachGesture.tap,
+      ),
+      CoachStep(
+        title: l.demoMtbAvatarBuildTitle,
+        text: l.demoMtbAvatarBuildText,
+        scene: ProfileCoach.avatarEditor,
+        lit: const [ProfileCoach.avatarPreview],
+      ),
+    ]),
+  ),
   'whole-region': HighlightDemo(
     route: '/profile',
     script: _demo('whole-region', [

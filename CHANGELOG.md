@@ -2,6 +2,16 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Dein MTB-Avatar
+
+*Version 0.197.0, 2026-11-21*
+
+Im Profil kannst du aus Helmen, Frisuren, Brillen, Farben und mehr deinen
+Avatar zusammenstellen. Nimm eine Vorlage oder würfle und passe sie an.
+Deine bestätigten Buddys sehen den gespeicherten Avatar in der Liste, im
+Chat und bei einer Live-Gruppenfahrt auf der Karte. Im Editor kannst du
+jederzeit wieder zu Initialen wechseln.
+
 ## Verschlüsselte Datenbank-Sicherungen
 
 *Version 0.196.1, 2026-11-21*

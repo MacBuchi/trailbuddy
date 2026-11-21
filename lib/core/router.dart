@@ -19,6 +19,7 @@ import '../features/help/help_screen.dart';
 import '../features/highlights/discover_screen.dart';
 import '../features/help/map_tour.dart' show NavCoach;
 import '../features/map/map_screen.dart';
+import '../features/profile/avatar_editor_screen.dart';
 import '../features/profile/profile_screen.dart';
 import '../features/profile/dev_screen.dart';
 import '../features/garmin/watch_shelf_actions.dart' show WatchShelfScreen;
@@ -160,6 +161,10 @@ final routerProvider = Provider<GoRouter>((ref) {
                 // Navigator.push — die Tab-Leiste bleibt sichtbar, und
                 // laufende Vorgänge überleben den Tab-Wechsel.
                 routes: [
+                  GoRoute(
+                    path: 'avatar',
+                    builder: (context, state) => const AvatarEditorScreen(),
+                  ),
                   GoRoute(
                     path: 'import',
                     builder: (context, state) => const TrailImportScreen(),

@@ -6,7 +6,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:trailbuddy/core/widgets/rider_avatar.dart';
 import 'package:trailbuddy/features/nearby/nearby_core.dart';
+import 'package:trailbuddy/models/avatar_config.dart';
 import 'package:trailbuddy/features/nearby/nearby_host.dart';
 import 'package:trailbuddy/features/nearby/nearby_providers.dart';
 import 'package:trailbuddy/features/rides/ride_providers.dart';
@@ -109,6 +111,22 @@ void main() {
     },
   );
 
+  testWidgets('der genaue Live-Marker nutzt den Avatar des Buddys', (
+    tester,
+  ) async {
+    anni.avatarConfig = AvatarConfig.standard;
+    nearby.setCell(anni.id, near, live: true);
+    nearby.setPosition(anni.id, _lat + 2 / 111.2, _lon);
+    await pump(tester, riding: ride(DateTime(2026, 9, 28, 11)));
+    containerOf(tester).read(liveShareProvider.notifier).set(true);
+    await settle(tester);
+    final marker = find.byKey(ValueKey('buddy-live-${anni.id}'));
+    expect(
+      find.descendant(of: marker, matching: find.byType(AvatarPortrait)),
+      findsOneWidget,
+    );
+  });
+
   testWidgets('Live endet mit der Fahrt — die nächste beginnt aus', (
     tester,
   ) async {
@@ -140,11 +158,17 @@ void main() {
   testWidgets('Homie: Annis Zelle steht grob auf der Karte, Bens nicht', (
     tester,
   ) async {
+    anni.avatarConfig = AvatarConfig.standard;
     nearby.homieBy[anni.id] = {me.id};
     nearby.setCell(anni.id, far);
     nearby.setCell(ben.id, far);
     await pump(tester);
     expect(find.byKey(ValueKey('buddy-cell-${anni.id}')), findsOneWidget);
+    expect(
+      find.byType(AvatarPortrait),
+      findsNothing,
+      reason: 'die grobe Zelle behält Initialen',
+    );
     expect(
       find.byKey(ValueKey('buddy-cell-${ben.id}')),
       findsNothing,

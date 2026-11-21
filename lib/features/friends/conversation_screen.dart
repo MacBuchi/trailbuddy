@@ -18,6 +18,7 @@ import 'package:intl/intl.dart';
 
 import '../../core/app_colors.dart';
 import '../../core/errors.dart';
+import '../../core/widgets/rider_avatar.dart';
 import '../../data/message_repository.dart';
 import '../../data/providers.dart';
 import '../../l10n/l10n.dart';
@@ -65,6 +66,8 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
     // den Verlauf öffnet, will den neuesten Stand. Danach gelesen
     // markieren.
     WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      ref.invalidate(friendshipsProvider);
       ref.invalidate(messagesProvider);
       await _markRead();
     });
@@ -207,15 +210,32 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
     return Scaffold(
       // Mit Alias beide Namen, wie in der Buddy-Liste.
       appBar: AppBar(
-        title: alias == null
-            ? Text(name)
-            : Column(
+        title: Row(
+          children: [
+            RiderAvatar(
+              name: name,
+              config: friendship?.otherAvatar(uid),
+              colorKey: widget.otherId,
+              size: 32,
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(alias),
-                  Text(username, style: theme.textTheme.bodySmall),
+                  Text(name, maxLines: 1, overflow: TextOverflow.ellipsis),
+                  if (alias != null)
+                    Text(
+                      username,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodySmall,
+                    ),
                 ],
               ),
+            ),
+          ],
+        ),
         actions: [
           // Einen Alias gibt es nur für bestätigte Buddys (fa_insert).
           if (friendship?.isAccepted ?? false)

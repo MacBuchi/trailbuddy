@@ -11805,5 +11805,309 @@
   "devHostNote": "Gezählt wird, was wirklich ans Netz geht, nicht was aus einem Speicher kommt. Auf Android zählt die Dev-App auch Karte und Wege, die die Kartenansicht selbst lädt.",
   "@devHostNote": {
     "description": "Seite „Entwicklung“: Erklärung unter dem Zähler."
+  },
+  "avatarEdit": "Avatar bearbeiten",
+  "@avatarEdit": {
+    "description": "Beschriftung des Profilknopfs und Titel des Avatar-Editors."
+  },
+  "avatarReset": "Zu Initialen zurück",
+  "@avatarReset": {
+    "description": "Knopf, der im Editor wieder Initialen als Entwurf einstellt."
+  },
+  "avatarShuffle": "Würfeln",
+  "@avatarShuffle": {
+    "description": "Knopf, der eine zufällige Kombination im Avatar-Editor erzeugt."
+  },
+  "avatarTemplates": "Vorlagen",
+  "@avatarTemplates": {
+    "description": "Überschrift über den fertigen MTB-Avatar-Vorlagen."
+  },
+  "avatarSaveError": "Avatar konnte nicht gespeichert werden.",
+  "@avatarSaveError": {
+    "description": "Meldung im Avatar-Editor vor der konkreten Ursache eines Schreibfehlers."
+  },
+  "avatarLoadError": "Profil konnte nicht geladen werden.",
+  "@avatarLoadError": {
+    "description": "Meldung, wenn das Profil für den Editor nicht geladen werden konnte."
+  },
+  "avatarSaved": "Avatar gespeichert.",
+  "@avatarSaved": {
+    "description": "Bestätigung nach dem Speichern einer Avatar-Änderung."
+  },
+  "avatarRetry": "Erneut versuchen",
+  "@avatarRetry": {
+    "description": "Knopf zum erneuten Laden des Profils im Avatar-Editor."
+  },
+  "highlightMtbAvatarTitle": "Dein MTB-Avatar",
+  "@highlightMtbAvatarTitle": {
+    "description": "Titel der Karte zum MTB-Avatar in Neuheiten und Entdecken."
+  },
+  "highlightMtbAvatarText": "Stell dir einen Avatar zusammen. Deine Buddys sehen ihn in ihrer Liste, im Chat und wenn du bei einer Gruppenfahrt live auf ihrer Karte bist.",
+  "@highlightMtbAvatarText": {
+    "description": "Beschreibung des MTB-Avatars und seiner Sichtbarkeit in Neuheiten."
+  },
+  "demoMtbAvatarOpenTitle": "Deinen Avatar öffnen",
+  "@demoMtbAvatarOpenTitle": {
+    "description": "Titel des ersten Schritts der Avatar-Vorführung im Profil."
+  },
+  "demoMtbAvatarOpenText": "Tippe im Profil auf „Avatar bearbeiten“.",
+  "@demoMtbAvatarOpenText": {
+    "description": "Anleitung zum Öffnen des Avatar-Editors in der Vorführung."
+  },
+  "demoMtbAvatarBuildTitle": "Hier entsteht dein Avatar",
+  "@demoMtbAvatarBuildTitle": {
+    "description": "Titel des Schritts im geöffneten Avatar-Editor."
+  },
+  "demoMtbAvatarBuildText": "Wähle eine Vorlage, würfle oder kombiniere die Einzelteile. Erst beim Speichern sehen deine Buddys den neuen Avatar.",
+  "@demoMtbAvatarBuildText": {
+    "description": "Erklärt Vorlagen, Würfeln und Speichern in der Avatar-Vorführung."
+  },
+  "avatarSkin": "Hautton",
+  "@avatarSkin": {
+    "description": "Abschnitt im Avatar-Editor: Hautton."
+  },
+  "avatarSkinPorcelain": "Porzellan",
+  "@avatarSkinPorcelain": {
+    "description": "Auswahl im Avatar-Editor unter Hautton."
+  },
+  "avatarSkinFair": "Hell",
+  "@avatarSkinFair": {
+    "description": "Auswahl im Avatar-Editor unter Hautton."
+  },
+  "avatarSkinWarm": "Warm",
+  "@avatarSkinWarm": {
+    "description": "Auswahl im Avatar-Editor unter Hautton."
+  },
+  "avatarSkinTan": "Bronze",
+  "@avatarSkinTan": {
+    "description": "Auswahl im Avatar-Editor unter Hautton."
+  },
+  "avatarSkinBrown": "Braun",
+  "@avatarSkinBrown": {
+    "description": "Auswahl im Avatar-Editor unter Hautton."
+  },
+  "avatarSkinDeep": "Dunkel",
+  "@avatarSkinDeep": {
+    "description": "Auswahl im Avatar-Editor unter Hautton."
+  },
+  "avatarHair": "Frisur",
+  "@avatarHair": {
+    "description": "Abschnitt im Avatar-Editor: Frisur."
+  },
+  "avatarHairBald": "Glatze",
+  "@avatarHairBald": {
+    "description": "Auswahl im Avatar-Editor unter Frisur."
+  },
+  "avatarHairBuzz": "Raspelkurz",
+  "@avatarHairBuzz": {
+    "description": "Auswahl im Avatar-Editor unter Frisur."
+  },
+  "avatarHairShort": "Kurz",
+  "@avatarHairShort": {
+    "description": "Auswahl im Avatar-Editor unter Frisur."
+  },
+  "avatarHairCurly": "Locken",
+  "@avatarHairCurly": {
+    "description": "Auswahl im Avatar-Editor unter Frisur."
+  },
+  "avatarHairLong": "Lang",
+  "@avatarHairLong": {
+    "description": "Auswahl im Avatar-Editor unter Frisur."
+  },
+  "avatarHairBraids": "Zöpfe",
+  "@avatarHairBraids": {
+    "description": "Auswahl im Avatar-Editor unter Frisur."
+  },
+  "avatarBeard": "Bart",
+  "@avatarBeard": {
+    "description": "Abschnitt im Avatar-Editor: Bart."
+  },
+  "avatarBeardNone": "Glatt rasiert",
+  "@avatarBeardNone": {
+    "description": "Auswahl im Avatar-Editor unter Bart."
+  },
+  "avatarBeardStubble": "Stoppeln",
+  "@avatarBeardStubble": {
+    "description": "Auswahl im Avatar-Editor unter Bart."
+  },
+  "avatarBeardMustache": "Schnurrbart",
+  "@avatarBeardMustache": {
+    "description": "Auswahl im Avatar-Editor unter Bart."
+  },
+  "avatarBeardFull": "Vollbart",
+  "@avatarBeardFull": {
+    "description": "Auswahl im Avatar-Editor unter Bart."
+  },
+  "avatarExpression": "Gesichtsausdruck",
+  "@avatarExpression": {
+    "description": "Abschnitt im Avatar-Editor: Gesichtsausdruck."
+  },
+  "avatarExpressionSmile": "Lächeln",
+  "@avatarExpressionSmile": {
+    "description": "Auswahl im Avatar-Editor unter Gesichtsausdruck."
+  },
+  "avatarExpressionGrin": "Grinsen",
+  "@avatarExpressionGrin": {
+    "description": "Auswahl im Avatar-Editor unter Gesichtsausdruck."
+  },
+  "avatarExpressionFocused": "Konzentriert",
+  "@avatarExpressionFocused": {
+    "description": "Auswahl im Avatar-Editor unter Gesichtsausdruck."
+  },
+  "avatarExpressionWink": "Zwinkern",
+  "@avatarExpressionWink": {
+    "description": "Auswahl im Avatar-Editor unter Gesichtsausdruck."
+  },
+  "avatarExpressionLaugh": "Lachen",
+  "@avatarExpressionLaugh": {
+    "description": "Auswahl im Avatar-Editor unter Gesichtsausdruck."
+  },
+  "avatarGlasses": "Brille",
+  "@avatarGlasses": {
+    "description": "Abschnitt im Avatar-Editor: Brille."
+  },
+  "avatarGlassesNone": "Ohne Brille",
+  "@avatarGlassesNone": {
+    "description": "Auswahl im Avatar-Editor unter Brille."
+  },
+  "avatarGlassesClear": "Klare Brille",
+  "@avatarGlassesClear": {
+    "description": "Auswahl im Avatar-Editor unter Brille."
+  },
+  "avatarGlassesShades": "Sonnenbrille",
+  "@avatarGlassesShades": {
+    "description": "Auswahl im Avatar-Editor unter Brille."
+  },
+  "avatarGlassesGoggles": "Goggles",
+  "@avatarGlassesGoggles": {
+    "description": "Auswahl im Avatar-Editor unter Brille."
+  },
+  "avatarHeadwear": "Kopfbedeckung",
+  "@avatarHeadwear": {
+    "description": "Abschnitt im Avatar-Editor: Kopfbedeckung."
+  },
+  "avatarHeadwearNone": "Ohne Kopfbedeckung",
+  "@avatarHeadwearNone": {
+    "description": "Auswahl im Avatar-Editor unter Kopfbedeckung."
+  },
+  "avatarHeadwearTrail": "Trailhelm",
+  "@avatarHeadwearTrail": {
+    "description": "Auswahl im Avatar-Editor unter Kopfbedeckung."
+  },
+  "avatarHeadwearFullface": "Fullface",
+  "@avatarHeadwearFullface": {
+    "description": "Auswahl im Avatar-Editor unter Kopfbedeckung."
+  },
+  "avatarHeadwearCap": "Cap",
+  "@avatarHeadwearCap": {
+    "description": "Auswahl im Avatar-Editor unter Kopfbedeckung."
+  },
+  "avatarHeadwearHeadband": "Stirnband",
+  "@avatarHeadwearHeadband": {
+    "description": "Auswahl im Avatar-Editor unter Kopfbedeckung."
+  },
+  "avatarBackground": "Hintergrund",
+  "@avatarBackground": {
+    "description": "Abschnitt im Avatar-Editor: Hintergrund."
+  },
+  "avatarBackgroundSand": "Sand",
+  "@avatarBackgroundSand": {
+    "description": "Auswahl im Avatar-Editor unter Hintergrund."
+  },
+  "avatarBackgroundSky": "Himmelblau",
+  "@avatarBackgroundSky": {
+    "description": "Auswahl im Avatar-Editor unter Hintergrund."
+  },
+  "avatarBackgroundRose": "Rosé",
+  "@avatarBackgroundRose": {
+    "description": "Auswahl im Avatar-Editor unter Hintergrund."
+  },
+  "avatarBackgroundLavender": "Lavendel",
+  "@avatarBackgroundLavender": {
+    "description": "Auswahl im Avatar-Editor unter Hintergrund."
+  },
+  "avatarBackgroundSlate": "Schiefer",
+  "@avatarBackgroundSlate": {
+    "description": "Auswahl im Avatar-Editor unter Hintergrund."
+  },
+  "avatarHairColor": "Haarfarbe",
+  "@avatarHairColor": {
+    "description": "Abschnitt im Avatar-Editor: Haarfarbe."
+  },
+  "avatarHairColorBlack": "Schwarz",
+  "@avatarHairColorBlack": {
+    "description": "Auswahl im Avatar-Editor unter Haarfarbe."
+  },
+  "avatarHairColorBrown": "Braun",
+  "@avatarHairColorBrown": {
+    "description": "Auswahl im Avatar-Editor unter Haarfarbe."
+  },
+  "avatarHairColorBlond": "Blond",
+  "@avatarHairColorBlond": {
+    "description": "Auswahl im Avatar-Editor unter Haarfarbe."
+  },
+  "avatarHairColorAuburn": "Rotbraun",
+  "@avatarHairColorAuburn": {
+    "description": "Auswahl im Avatar-Editor unter Haarfarbe."
+  },
+  "avatarHairColorGray": "Grau",
+  "@avatarHairColorGray": {
+    "description": "Auswahl im Avatar-Editor unter Haarfarbe."
+  },
+  "avatarGearColor": "Farbe der Kopfbedeckung",
+  "@avatarGearColor": {
+    "description": "Abschnitt im Avatar-Editor: Farbe der Kopfbedeckung."
+  },
+  "avatarGearColorCharcoal": "Anthrazit",
+  "@avatarGearColorCharcoal": {
+    "description": "Auswahl im Avatar-Editor unter Farbe der Kopfbedeckung."
+  },
+  "avatarGearColorBlue": "Blau",
+  "@avatarGearColorBlue": {
+    "description": "Auswahl im Avatar-Editor unter Farbe der Kopfbedeckung."
+  },
+  "avatarGearColorRed": "Rot",
+  "@avatarGearColorRed": {
+    "description": "Auswahl im Avatar-Editor unter Farbe der Kopfbedeckung."
+  },
+  "avatarGearColorWhite": "Weiß",
+  "@avatarGearColorWhite": {
+    "description": "Auswahl im Avatar-Editor unter Farbe der Kopfbedeckung."
+  },
+  "avatarGearColorOchre": "Ocker",
+  "@avatarGearColorOchre": {
+    "description": "Auswahl im Avatar-Editor unter Farbe der Kopfbedeckung."
+  },
+  "avatarPresetTrail": "Trailrunde",
+  "@avatarPresetTrail": {
+    "description": "Name einer fertigen MTB-Avatar-Vorlage."
+  },
+  "avatarPresetPark": "Bikepark",
+  "@avatarPresetPark": {
+    "description": "Name einer fertigen MTB-Avatar-Vorlage."
+  },
+  "avatarPresetSummit": "Gipfelrunde",
+  "@avatarPresetSummit": {
+    "description": "Name einer fertigen MTB-Avatar-Vorlage."
+  },
+  "avatarPresetDust": "Staubkurve",
+  "@avatarPresetDust": {
+    "description": "Name einer fertigen MTB-Avatar-Vorlage."
+  },
+  "avatarPresetGravel": "Schotterrunde",
+  "@avatarPresetGravel": {
+    "description": "Name einer fertigen MTB-Avatar-Vorlage."
+  },
+  "avatarPresetAfterWork": "Feierabendrunde",
+  "@avatarPresetAfterWork": {
+    "description": "Name einer fertigen MTB-Avatar-Vorlage."
+  },
+  "avatarPresetTour": "Tagestour",
+  "@avatarPresetTour": {
+    "description": "Name einer fertigen MTB-Avatar-Vorlage."
+  },
+  "avatarPresetRoots": "Wurzeltrail",
+  "@avatarPresetRoots": {
+    "description": "Name einer fertigen MTB-Avatar-Vorlage."
   }
 }

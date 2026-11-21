@@ -241,3 +241,14 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
   `grants_check.sql` „block_report", `schema_check.sh` Tabelle und drei
   RPCs. Beide Wege lokal mit `tool/schema_local_test.sh` im
   `postgis/postgis:16-3.4`-Container, Dumps gleich.
+- **Profilavatare** (Patch 036, #615): `profile_avatars` hat eine
+  Zeile je Profil und erlaubt nur die festen Optionen des V1-Katalogs.
+  Die eigene Zeile per Upsert speichern oder für den Buchstaben-Avatar
+  löschen. Bestätigte direkte Buddys dürfen lesen; offene Anfragen
+  dürfen weiterhin den Profilnamen lesen. Deshalb ist der Avatar eine
+  eigene Tabelle und wird mit `profile_avatars(config)` eingebettet.
+  Entfreunden und Blockieren entziehen den Lesezugriff über
+  `are_friends`, die Kontolöschung löscht die Zeile per Cascade.
+  Die alte Spalte `profiles.avatar` bleibt für bestehende Clients.
+  `matcher_check.sql` Block 37 prüft Sichtbarkeit, Schreibrechte und
+  Katalogwerte; `schema_check.sh` prüft die PostgREST-Embeds.

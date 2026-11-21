@@ -644,6 +644,12 @@ Nichts, was gelöst werden müsste. Nach dem Annehmen:
 - Overlap-Kanten zwischen zwei jetzt sichtbaren Trails werden als
   Vorschlag gezeigt: „Sind das dieselben? Beide Linien ansehen".
 
+Der freiwillige Profilavatar (#615) wird lokal aus einer gespeicherten
+Auswahl von Gesicht, Farben und Ausrüstung gezeichnet. Bestätigte direkte
+Buddys sehen ihn in ihrer Liste, im Chatkopf und im vorhandenen genauen
+Live-Marker einer Gruppenfahrt. Entfreunden und Blockieren entziehen den
+Lesezugriff. Ohne gespeicherte Auswahl erscheinen Initialen.
+
 ### 6.1 Duplikate zusammenführen (#107, Patch 019)
 
 Entscheidungen des Betreibers vom 2026-10-11 (Wortlaut in #107), auf

@@ -222,13 +222,15 @@ verdict() {
 
 # profiles: die Spalten aus ProfileRepository. anon hat keinen Grant.
 check_get_protected "profiles-Spalten" \
-  "/rest/v1/profiles?select=id,username,display_name,avatar,created_at&limit=1"
+  "/rest/v1/profiles?select=id,username,display_name,profile_avatars(config)&limit=1"
+check_get_protected "profile_avatars-Spalten" \
+  "/rest/v1/profile_avatars?select=profile_id,config&limit=1"
 
 # friendships: exakt die Query aus FriendRepository.fetchFriendships, mit
 # den beiden Embeds über den Constraint-NAMEN. Benennt jemand den
 # Fremdschlüssel um, fällt es HIER auf (PGRST200) und nicht im Feld.
 check_get_protected "friendships-Embed" \
-  "/rest/v1/friendships?select=id,status,requester_id,addressee_id,created_at,requester:profiles!friendships_requester_id_fkey(username,avatar),addressee:profiles!friendships_addressee_id_fkey(username,avatar)&limit=1"
+  "/rest/v1/friendships?select=id,status,requester_id,addressee_id,requester:profiles!friendships_requester_id_fkey(username,profile_avatars(config)),addressee:profiles!friendships_addressee_id_fkey(username,profile_avatars(config))&limit=1"
 
 # friend_aliases: die Spalten aus FriendRepository.aliasColumns.
 check_get_protected "friend_aliases-Spalten (Aliase)" \

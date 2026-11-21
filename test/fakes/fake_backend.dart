@@ -21,6 +21,7 @@ import 'package:trailbuddy/data/profile_repository.dart';
 import 'package:trailbuddy/data/push_repository.dart';
 import 'package:trailbuddy/models/buddy_message.dart';
 import 'package:trailbuddy/models/friendship.dart';
+import 'package:trailbuddy/models/avatar_config.dart';
 import 'package:trailbuddy/models/profile.dart';
 
 class FakeUser {
@@ -48,6 +49,7 @@ class FakeUser {
   // Nicht final: „Benutzername ändern" — gleiche Begründung.
   String username;
   int avatar;
+  AvatarConfig? avatarConfig;
 
   /// Bestandsnutzer sind alle bestätigt (Autoconfirm), deshalb Vorgabe true.
   bool emailConfirmed;
@@ -634,10 +636,13 @@ class FakeProfileRepository implements ProfileRepository {
 
   @override
   Future<Profile> fetchMyProfile() async =>
-      Profile(id: _me.id, username: _me.username, avatar: _me.avatar);
+      Profile(id: _me.id, username: _me.username, avatar: _me.avatarConfig);
 
   @override
-  Future<void> updateAvatar(int avatar) async => _me.avatar = avatar;
+  Future<void> updateAvatar(AvatarConfig? avatar) async {
+    backend.failIfOffline();
+    _me.avatarConfig = avatar;
+  }
 
   @override
   Future<void> updateUsername(String username) async {
@@ -695,8 +700,12 @@ class FakeFriendRepository implements FriendRepository {
             addresseeId: f.addresseeId,
             requesterUsername: backend.userById(f.requesterId).username,
             addresseeUsername: backend.userById(f.addresseeId).username,
-            requesterAvatar: backend.userById(f.requesterId).avatar,
-            addresseeAvatar: backend.userById(f.addresseeId).avatar,
+            requesterAvatar: f.status == 'accepted'
+                ? backend.userById(f.requesterId).avatarConfig
+                : null,
+            addresseeAvatar: f.status == 'accepted'
+                ? backend.userById(f.addresseeId).avatarConfig
+                : null,
           ),
     ];
   }

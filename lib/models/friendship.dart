@@ -1,3 +1,5 @@
+import 'avatar_config.dart';
+
 /// Eine Freundschafts-Beziehung aus Sicht des angemeldeten Nutzers.
 class FriendshipEntry {
   final String id;
@@ -6,8 +8,8 @@ class FriendshipEntry {
   final String addresseeId;
   final String? requesterUsername;
   final String? addresseeUsername;
-  final int requesterAvatar;
-  final int addresseeAvatar;
+  final AvatarConfig? requesterAvatar;
+  final AvatarConfig? addresseeAvatar;
 
   const FriendshipEntry({
     required this.id,
@@ -16,8 +18,8 @@ class FriendshipEntry {
     required this.addresseeId,
     this.requesterUsername,
     this.addresseeUsername,
-    this.requesterAvatar = 0,
-    this.addresseeAvatar = 0,
+    this.requesterAvatar,
+    this.addresseeAvatar,
   });
 
   bool get isAccepted => status == 'accepted';
@@ -29,8 +31,12 @@ class FriendshipEntry {
   String otherUsername(String uid) =>
       (requesterId == uid ? addresseeUsername : requesterUsername) ?? 'Buddy';
 
-  int otherAvatar(String uid) =>
-      requesterId == uid ? addresseeAvatar : requesterAvatar;
+  AvatarConfig? otherAvatar(String uid) {
+    if (!isAccepted) return null;
+    if (requesterId == uid) return addresseeAvatar;
+    if (addresseeId == uid) return requesterAvatar;
+    return null;
+  }
 
   /// Die id des jeweils anderen.
   String otherId(String uid) => requesterId == uid ? addresseeId : requesterId;
@@ -46,10 +52,8 @@ class FriendshipEntry {
         (json['requester'] as Map<String, dynamic>?)?['username'] as String?,
     addresseeUsername:
         (json['addressee'] as Map<String, dynamic>?)?['username'] as String?,
-    requesterAvatar:
-        (json['requester'] as Map<String, dynamic>?)?['avatar'] as int? ?? 0,
-    addresseeAvatar:
-        (json['addressee'] as Map<String, dynamic>?)?['avatar'] as int? ?? 0,
+    requesterAvatar: AvatarConfig.fromProfile(json['requester']),
+    addresseeAvatar: AvatarConfig.fromProfile(json['addressee']),
   );
 }
 
