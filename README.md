@@ -1,23 +1,52 @@
+<p><strong>Deutsch</strong> · <a href="README.en.md" lang="en">English</a></p>
+
 # TrailBuddy
 
-Plattform und App für Mountainbike-Trails, die man mit seinen Buddys
-teilt: Das persönliche Trail-Netz wächst mit den Leuten, mit denen man
-verbunden ist. Schwesterprojekt von
-[PilzBuddy](https://github.com/MacBuchi/pilzbuddy), gleicher Stack
-(Flutter für Android und Web, Supabase mit PostGIS).
+<img src="store/play_icon_512.png" alt="TrailBuddy-Logo" width="64">
 
-**Stand: Phase 1, das Grundgerüst.** Anmelden, Buddys finden, Trails aus
-GPX-Dateien beisteuern und auf der Karte sehen. Der Server gleicht jede
-beigesteuerte Linie still mit bekannten Trails ab; sichtbar ist nur, was
-man selbst oder ein direkter Buddy gefahren ist.
+TrailBuddy ist eine Mountainbike-App für dein persönliches Trail-Netz. Du teilst
+gefahrene Trails mit deinen Buddys, entdeckst ihre Beiträge und planst damit
+deine nächste Runde.
 
-- Konzept: [`docs/konzept-trails.md`](docs/konzept-trails.md) — Trails,
-  Duplikate, das Community-Tor, die Entscheidungen des Betreibers.
-- Messung der Abgleich-Schwellen:
-  [`docs/trail-abgleich-messung.md`](docs/trail-abgleich-messung.md).
-- Arbeitsregeln für Mitwirkende und Werkzeuge: [`CLAUDE.md`](CLAUDE.md).
+[**Web-App öffnen**](https://macbuchi.github.io/trailbuddy/) ·
+[**Android-App installieren**](https://macbuchi.github.io/trailbuddy/install.html) ·
+[**Garmin-Uhr-App**](#garmin)
 
-Noch nicht da: Aufzeichnen in der App (Phase 2), Offline-Karten,
-Nachrichten, Routing. Die App spricht mit einem Supabase-Projekt; CI
-prüft jede Schema-Änderung zuerst gegen einen lokalen Stack
-(`supabase/config.toml`) und erst dann gegen das Live-Projekt.
+<p>
+  <img src="docs/readme/android.webp" alt="Android-App mit farbigen Trails nach Schwierigkeit auf der Karte" width="211">
+  <img src="docs/readme/web.webp" alt="Web-App mit Schwierigkeit und Höhenprofil des Canadian Trail" width="540">
+</p>
+
+*Android und Web mit Demodaten.*
+
+## Android und Web im Vergleich
+
+| Funktion | Android | Web |
+| --- | --- | --- |
+| Trail-Karte, Suche und Filter | ✓ | ✓ |
+| Trails aus GPX-Dateien importieren | ✓ | ✓ |
+| Buddys und Nachrichten | ✓ | ✓ |
+| Runden und Routen planen | ✓ | ✓ |
+| Offline-Karten | Eigene Bereiche und ganze Regionen | Eigene Bereiche im Browser |
+| GPS-Fahrt aufzeichnen | ✓ | — |
+| Garmin-Uhr verbinden | ✓ | — |
+
+## Garmin
+
+<img src="garmin/shots/fenix5/deu/trail.png" alt="TrailBuddy auf der fēnix 5 mit Routenlinie und verbleibender Trail-Strecke" width="176">
+
+Die Connect-IQ-App zeigt die vom Android-Handy gesendete Route an und
+vibriert beim Verlassen der Route. Sie kann eine Fahrt auch ohne Handy
+aufzeichnen und sie später über Garmin Connect an TrailBuddy auf dem
+Android-Handy übertragen.
+
+Die Uhr-App wurde auf der fēnix 5 am Gerät geprüft. Die weiteren Build-Ziele
+stehen im [Garmin-Manifest](garmin/manifest.xml). Für die Einrichtung per USB
+siehe die [Bau- und Installationshinweise](garmin/CLAUDE.md#technik-notizen).
+
+## Mehr über TrailBuddy
+
+[Was ist neu?](CHANGELOG.md) ·
+[Roadmap](https://github.com/MacBuchi/trailbuddy/issues/520) ·
+[Trail-Konzept](docs/konzept-trails.md) ·
+[Für Mitwirkende](CLAUDE.md)
