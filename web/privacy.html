@@ -268,6 +268,15 @@
     start it reads there which app version is required at minimum.
     Supabase sees your IP address in the process.</p>
 
+  <h3>Encrypted database backups on GitHub</h3>
+  <p>To recover from data loss, the operator backs up the server database
+    weekly. The backup includes account data and trail contributions. It is
+    encrypted before being stored in a private GitHub repository. Only the
+    operator keeps the recovery key. Each successful run retains the
+    twelve most recent backups (about three months on the weekly schedule).
+    Deleted account data may remain in older backups until then. Rides
+    stay on the device.</p>
+
   <h3>Brevo (processor, sending account emails)</h3>
   <p>The <strong>confirmation email</strong> at sign-up, the code for
     resetting the password and the codes when changing the address are

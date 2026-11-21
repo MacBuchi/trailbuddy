@@ -262,6 +262,13 @@ jobs:
         run: bash tool/auth_reset_check.sh
       - name: Hinweis-Fotos end-to-end prüfen (Frischinstallation)
         run: bash tool/photo_access_check.sh
+      - name: Verschlüsseltes Backup wiederherstellen und Gegenprobe prüfen
+        run: |
+          if ! command -v age >/dev/null; then
+            sudo apt-get update -qq
+            sudo apt-get install -y -qq age
+          fi
+          bash tool/db_backup_test.sh
 
   # Spielt neue Patches dieses PRs in die Live-Datenbank ein (beim ersten
   # Lauf gegen das leere Projekt: schema.sql) und prüft danach die

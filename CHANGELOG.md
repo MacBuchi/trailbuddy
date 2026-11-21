@@ -2,6 +2,14 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Verschlüsselte Datenbank-Sicherungen
+
+*Version 0.196.1, 2026-11-21*
+
+Gespeicherte Konten und Trail-Beiträge können nun aus verschlüsselten
+Datenbank-Sicherungen wiederhergestellt werden. Die Datenschutzerklärung
+beschreibt den Ablauf und die Aufbewahrung.
+
 ## Sprünge direkt an der Garmin-Uhr bewerten
 
 *Version 0.196.0, 2026-11-21*

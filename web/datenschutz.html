@@ -276,6 +276,17 @@
     Anmeldung: Beim Start liest sie dort, welche App-Version mindestens
     nötig ist. Dabei sieht Supabase deine IP-Adresse.</p>
 
+  <h3>Verschlüsselte Datenbank-Sicherungen bei GitHub</h3>
+  <p>Zur Wiederherstellung nach einem Datenverlust sichert der Betreiber
+    die Server-Datenbank wöchentlich. Die Sicherung enthält unter anderem
+    Kontodaten und Trail-Beiträge. Sie wird vor dem Speichern verschlüsselt
+    und liegt in einem privaten GitHub-Repository. Den Schlüssel zur
+    Wiederherstellung verwahrt allein der Betreiber. Bei jedem erfolgreichen
+    Lauf werden nur die zwölf jüngsten Sicherungen aufbewahrt (im
+    wöchentlichen Betrieb etwa drei Monate). Daten eines gelöschten Kontos
+    können bis dahin in älteren Sicherungen enthalten sein. Fahrten bleiben
+    auf dem Gerät.</p>
+
   <h3>Brevo (Auftragsverarbeiter, Versand der Konto-Mails)</h3>
   <p>Die <strong>Bestätigungsmail</strong> bei der Registrierung, der Code
     zum Zurücksetzen des Passworts und die Codes beim Adresswechsel gehen
