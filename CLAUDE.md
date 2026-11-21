@@ -95,6 +95,32 @@ was öffentlich sein MUSS (Impressum, Datenschutzerklärung).
   Doku-PR. `docs/` ändert sich im selben PR wie der Code, der es
   umsetzt. Ein reiner Doku-PR ist die Ausnahme (Fehler in bestehender
   Doku, oder der Betreiber will es so).
+- **Arbeitsweise** (Betreiber, für jeden Agenten gleich):
+  - Jede neue Aufgabe beginnt auf einem frischen Branch von
+    `origin/main`, ohne Rückfrage.
+  - Zusammengehörige Fehler und Issues eines Bereichs kommen in EIN
+    Paket (ein PR, der höchste Typ entscheidet) — keine Ketten winziger
+    PRs. Geteilt wird nur, wenn dazwischen eine Entscheidung oder eine
+    Abnahme am Gerät nötig ist.
+  - **Merge:** PRs mit Versions-Bump merged der Betreiber (PR öffnen,
+    CI grün, melden, stoppen). PRs ohne Bump (docs, ci, tool, supabase)
+    darf der Agent nach grüner CI selbst squash-mergen.
+  - **Neue Dateien zuerst stagen** (`git add`), dann
+    `tool/private_info_check.py` und `tool/dart_format.sh`: beide sehen
+    nur, was git kennt; sonst fällt es erst in CI auf. In Tests nur
+    erfundene Koordinaten (einstellige Breite oder ≤ 3 Nachkommastellen).
+  - Nach jedem `git push` mit `git ls-remote` prüfen, dass er
+    angekommen ist, bevor gemergt wird (die Verbindung zu GitHub hängt
+    manchmal; `gh api` geht dann meist trotzdem).
+  - **Issue-Text per Datei ändern** (`gh issue view … > f`, bearbeiten,
+    PATCH): `gh` im Repo-Ordner ausführen und den PATCH nur mit
+    `test -s f && …` auslösen, nie mit `;` — ein leerer Stand hat am
+    2026-11-20 den Text von #520 geleert (Wiederherstellung über
+    `userContentEdits` der GraphQL-API).
+  - **Uhr-Prüfungen** (📱/💻) zuerst selbst mit Simulator und Prüfstand
+    (`tool/garmin_sim.sh`, `tool/garmin_bench.sh`, Skill `watch-bench`);
+    an den Betreiber geht nur, was die Werkzeuge nicht erreichen, gesammelt
+    am Ende der Roadmap #520, nicht je PR.
 - **Conventional Commits** für Commit- und PR-Titel:
   `<typ>(<bereich>): <was>`, Typen `feat`, `fix`, `perf`, `refactor`,
   `docs`, `test`, `ci`, `build`, `chore`; der Bereich ist optional
