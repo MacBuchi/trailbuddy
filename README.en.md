@@ -26,10 +26,64 @@ to plan your next loop.
 | Trail map, search, and filters | ✓ | ✓ |
 | Import trails from GPX files | ✓ | ✓ |
 | Buddies and messages | ✓ | ✓ |
+| Trail conditions and photo reports | ✓ | ✓ |
 | Plan loops and routes | ✓ | ✓ |
 | Offline maps | Custom areas and entire regions | Custom areas in the browser |
 | Record a GPS ride | ✓ | — |
+| Sensor detection for wheelies, jumps, and stoppies (experimental) | ✓ | — |
 | Connect a Garmin watch | ✓ | — |
+
+## What makes TrailBuddy different
+
+### Message your buddies
+
+Use the buddy chat to arrange a ride, agree on a meeting point, or ask
+where to start. Open the chat using the speech bubble next to the buddy’s name.
+
+<img src="docs/readme/chat.webp" alt="Buddy chat arranging a ride and a meeting point" width="211">
+
+### Share trail conditions and reports
+
+Rate a trail and add your take on its difficulty. If a tree is down after
+a storm or the trail has reopened, report it directly on the trail. Add a
+short note and a photo to show your buddies what to expect.
+
+<img src="docs/readme/report.webp" alt="Trail report with status options, a sample note, and a button to attach a photo" width="388">
+
+### Plan loops with MTB-specific routing
+
+Set a starting point, time, and climbing budget, then compare suggested
+loops by ride time, ascent, and difficulty. TrailBuddy builds routes around
+trails in your network. Descents are routed in the riding direction unless
+they are explicitly marked as two-way. Marked uphill trails and links can
+connect the other parts of the route.
+
+<img src="docs/readme/planner.webp" alt="Loop planner showing three trails on the map, a 12.5 km route, and alternatives on a time scale" width="228">
+
+### Save maps and routing data for offline use
+
+Draw the area you want to save on the map. Where available, TrailBuddy also
+downloads elevation, places, and path data. The saved paths let you plan
+within the area without a signal. Overlapping areas share tiles, and later downloads fetch
+only missing data. Android can also download entire map regions.
+
+<img src="docs/readme/offline.webp" alt="Offline download preview with storage size, tiles, places, elevation, and paths" width="228">
+
+## Android only
+
+### Record rides and detect jumps
+
+Record a GPS track with the screen off. After the ride, save sections as
+trails and share them with buddies. The optional **experimental sensor
+detection** under “About TrailBuddy” looks for wheelies, jumps, and stoppies
+during rides. Confirm or dismiss detected events in the live view.
+
+<p>
+  <img src="docs/readme/ride.webp" alt="Active GPS ride recording with a track on the Android map" width="211">
+  <img src="docs/readme/airtime.webp" alt="Live sensor view with a simulated wheelie and buttons to confirm or dismiss it" width="260">
+</p>
+
+*Ride recording and sensor view with simulated measurements.*
 
 ## Garmin
 
