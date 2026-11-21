@@ -371,9 +371,10 @@ class _Panel extends StatelessWidget {
     return Container(
       key: const ValueKey('map-legend-panel'),
       width: kMapLegendWidth,
-      decoration: const BoxDecoration(
-        color: AppColors.mapBackground,
+      decoration: BoxDecoration(
+        color: AppColors.mapBackground.withValues(alpha: 0.92),
         borderRadius: _radius,
+        border: Border.all(color: AppColors.light.line.withValues(alpha: 0.92)),
         boxShadow: _shadow,
       ),
       child: Column(
@@ -411,41 +412,52 @@ class _Panel extends StatelessWidget {
             ),
           ),
           Flexible(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(8, 0, 6, 10),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  for (var i = 0; i < samples.length; i++) ...[
-                    if (_titleAt(l, samples, i) case final title?)
-                      Padding(
-                        padding: EdgeInsets.only(top: i > 0 ? 8 : 0, bottom: 1),
-                        child: Text(title.toUpperCase(), style: heading),
-                      ),
-                    Padding(
-                      // Luft zwischen Gruppen — unter einer Überschrift
-                      // hat die schon die Überschrift.
-                      padding: EdgeInsets.only(
-                        top:
-                            i > 0 &&
-                                samples[i].group != samples[i - 1].group &&
-                                _titleAt(l, samples, i) == null
-                            ? 8
-                            : 2,
-                      ),
-                      child: Row(
-                        children: [
-                          CustomPaint(
-                            size: const Size(26, 12),
-                            painter: LegendLinePainter(samples[i]),
+            child: GestureDetector(
+              // Vertikale Züge gewinnt die ScrollView; ein Tipp zwischen
+              // den Proben schließt, ohne den Kopf doppelt auszulösen.
+              behavior: HitTestBehavior.opaque,
+              onTap: onClose,
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(8, 0, 6, 10),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    for (var i = 0; i < samples.length; i++) ...[
+                      if (_titleAt(l, samples, i) case final title?)
+                        Padding(
+                          padding: EdgeInsets.only(
+                            top: i > 0 ? 8 : 0,
+                            bottom: 1,
                           ),
-                          const SizedBox(width: 6),
-                          Expanded(child: Text(samples[i].label, style: label)),
-                        ],
+                          child: Text(title.toUpperCase(), style: heading),
+                        ),
+                      Padding(
+                        // Luft zwischen Gruppen — unter einer Überschrift
+                        // hat die schon die Überschrift.
+                        padding: EdgeInsets.only(
+                          top:
+                              i > 0 &&
+                                  samples[i].group != samples[i - 1].group &&
+                                  _titleAt(l, samples, i) == null
+                              ? 8
+                              : 2,
+                        ),
+                        child: Row(
+                          children: [
+                            CustomPaint(
+                              size: const Size(26, 12),
+                              painter: LegendLinePainter(samples[i]),
+                            ),
+                            const SizedBox(width: 6),
+                            Expanded(
+                              child: Text(samples[i].label, style: label),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
+                    ],
                   ],
-                ],
+                ),
               ),
             ),
           ),

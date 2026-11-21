@@ -61,10 +61,10 @@ void main() {
     expect(map.height, greaterThan(0), reason: 'die Karte ist gemessen');
     expect(
       map.bottom,
-      moreOrLessEquals(bar.top, epsilon: 0.5),
+      moreOrLessEquals(bar.bottom, epsilon: 0.5),
       reason:
-          'mit ausweichendem Scaffold endete sie eine Tastaturhöhe '
-          'über der Reiterleiste',
+          'die Karte reicht auch mit Tastatur hinter die durchscheinende '
+          'Reiterleiste',
     );
   });
 }

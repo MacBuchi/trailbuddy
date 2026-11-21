@@ -63,10 +63,12 @@ class MapRoundButton extends StatelessWidget {
           padding: EdgeInsets.zero,
           // 44 ist schon die Trefferfläche; Material polsterte sonst auf 48.
           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-          backgroundColor: p.surface,
+          // Die Karte bleibt unter den Bedienelementen sichtbar, ohne die
+          // Symbole auf einer unruhigen Karte zu verlieren (#621).
+          backgroundColor: p.surface.withValues(alpha: 0.88),
           foregroundColor: p.text,
           side: BorderSide(
-            color: active ? p.brandMark : p.line,
+            color: active ? p.brandMark : p.line.withValues(alpha: 0.92),
             width: active ? 2.5 : 1,
           ),
         ),
