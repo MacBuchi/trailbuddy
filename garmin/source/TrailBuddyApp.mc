@@ -640,7 +640,13 @@ class TrailBuddyApp extends Application.AppBase {
         c.handle({"t" => "b", "on" => 1, "jn" => 7, "ja" => 1200, "wn" => 4, "wl" => 123, "wa" => 38});
         var cueK = (_demoScene - 1) % scenes.size();
         if ((cueK == 1 || cueK == 2) && view.page() == 0) {
-            c.handle({"t" => "c", "k" => cueK == 1 ? "air" : "st", "v" => cueK == 1 ? 1200 : 800});
+            // #612: Der Flug in Szene 1 trägt eine Kennung — `trail` zeigt die
+            // Antwortfelder an HOCH und RUNTER. In Szene 2 „antwortet" der
+            // Fahrer darauf (`pageKey`), sonst hielte der Hinweis den
+            // nächsten 8 s zurück und stünde über „angekommen".
+            if (cueK == 2) { c.pageKey(false); }
+            c.handle({"t" => "c", "k" => cueK == 1 ? "air" : "st", "v" => cueK == 1 ? 1200 : 800,
+                "s" => cueK == 1 ? "1" : null});
         }
         // #519: drei Buddys — nah, weit (am Rand), alt (Ring). Die
         // Testroute liegt am Äquator um 0/0. Die Schilder von #525/#526

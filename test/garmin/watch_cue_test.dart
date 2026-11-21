@@ -9,6 +9,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:trailbuddy/features/garmin/watch_route.dart';
 import 'package:trailbuddy/features/rides/airtime_live.dart';
 import 'package:trailbuddy/features/rides/airtime_message.dart';
+import 'package:trailbuddy/features/rides/pocket_watch.dart'
+    show kPocketLandingG;
 import 'package:trailbuddy/features/rides/sensor_fusion.dart';
 import 'package:trailbuddy/features/rides/trail_values.dart' show AirtimeLog;
 import 'package:trailbuddy/features/rides/wheelie_notify.dart'
@@ -95,6 +97,59 @@ void main() {
         expect(watchCueOf(_jump(edge), now), isNotNull);
         expect(watchCueOf(_jump(edge - 1), now), isNull);
         expect(watchCueOf(_jump(now - 3000000, plausible: false), now), isNull);
+      },
+    );
+
+    test(
+      'in der Tasche (#612): nur Sprünge mit harter Landung, auch unplausibel',
+      () {
+        const now = 100000000;
+        JumpEvent jump({required double g, bool plausible = true}) => JumpEvent(
+          startUs: now - 3000000,
+          duration: const Duration(milliseconds: 900),
+          landingG: g,
+          upright: true,
+          plausible: plausible,
+        );
+        final hard = jump(g: kPocketLandingG);
+        expect(watchCueOf(hard, now, pocket: true), {
+          't': kWatchCue,
+          'k': 'air',
+          'v': 900,
+          's': '97000000',
+        });
+        expect(
+          watchCueOf(jump(g: kPocketLandingG - 0.1), now, pocket: true),
+          isNull,
+          reason: 'weiche Landung: das Bein, kein Sprung',
+        );
+        expect(
+          watchCueOf(jump(g: 4, plausible: false), now, pocket: true),
+          isNotNull,
+          reason: 'in der Tasche soll man ihn bewerten',
+        );
+        expect(
+          watchCueOf(jump(g: 4, plausible: false), now),
+          isNull,
+          reason: 'am Lenker bleibt ein unplausibler Sprung stumm',
+        );
+        for (final e in const [
+          WheelieEvent(
+            startUs: 97000000,
+            duration: Duration(seconds: 2),
+            lengthM: 9,
+            maxTiltDeg: 30,
+          ),
+          StoppieEvent(
+            startUs: 97000000,
+            duration: Duration(milliseconds: 700),
+            maxTiltDeg: 15,
+            decel: 2,
+            landingG: 5,
+          ),
+        ]) {
+          expect(watchCueOf(e, now, pocket: true), isNull);
+        }
       },
     );
 

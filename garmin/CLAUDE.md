@@ -186,6 +186,10 @@ Abbiegehinweise.
   Antworten am linken Rand neben den beiden Tasten.
   START/LAP bleiben für die Aufnahme, und eine Routenfrage geht vor.
   Alte Handys schicken `c` ohne `s` und zeigen wie bisher 3 s.
+  Der Vorführmodus gibt dem Flug in Szene 1 die Kennung (`trail.png`
+  zeigt die Felder) und „antwortet" in Szene 2 per `pageKey`: Ein
+  beantwortbarer Hinweis hält den nächsten Hinweis 8 s zurück und
+  stünde sonst über `abseits` und `angekommen`.
   Speicher (Kettenstand `CHAIN_BIG=800`, 2026-11-13): geladen 96,6 KB
   (vorher 95,8), nach dem Wechsel 97,4 KB (96,9), Spitze 102,1 KB von
   123,8 KB — +0,8 KB, der Wechsel gleich großer Routen geht weiter.
