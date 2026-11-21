@@ -2,6 +2,17 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## Planner and ride: easier to read
+
+*Version 0.195.1, 2026-11-21*
+
+- The switches under a loop ("Record", "Screen on", "Announcements")
+  now clearly show when they are on: a green fill.
+- The "other loops" strip is now just called that; the long title was
+  cut off on small phones.
+- During a ride the status ("Recording · Learning the mount") sits on a
+  dark pill and no longer runs into the street names on the map.
+
 ## Fixed limits per bike, also for distance
 
 *Version 0.195.0, 2026-11-21*

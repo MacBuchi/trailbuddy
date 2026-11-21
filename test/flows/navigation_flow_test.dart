@@ -341,6 +341,17 @@ void main() {
             .selected,
         isTrue,
       );
+      // An sieht anders aus als aus (📱 2026-11-21: das Theme nahm für
+      // „gewählt" dieselbe Fläche): Lime-Fläche statt `surface2`.
+      final recordChip = tester.widget<FilterChip>(
+        find.byKey(const ValueKey('nav-record')),
+      );
+      final chipTheme = Theme.of(
+        tester.element(find.byKey(const ValueKey('nav-record'))),
+      ).chipTheme;
+      expect(recordChip.selectedColor, isNotNull);
+      expect(recordChip.selectedColor, isNot(chipTheme.selectedColor));
+      expect(recordChip.selectedColor, isNot(chipTheme.backgroundColor));
       expect(
         tester
             .widget<FilterChip>(find.byKey(const ValueKey('nav-screen')))
@@ -1755,6 +1766,12 @@ void main() {
       await settle(tester);
       expect(service.starts, 1, reason: 'Aufzeichnen ist ab Werk an');
       expect(textIn('nav-ride-status'), contains('Aufnahme'));
+      // Auf eigener Fläche, nicht nur mit Schatten auf der Karte
+      // (📱 2026-11-21: lief in die Straßennamen).
+      final pill = tester.widget<DecoratedBox>(
+        find.byKey(const ValueKey('nav-ride-status')),
+      );
+      expect((pill.decoration as ShapeDecoration).color?.a, greaterThan(0.8));
       expect(
         find.text('Trail beginnt'),
         findsOneWidget,

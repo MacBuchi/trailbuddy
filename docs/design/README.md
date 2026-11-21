@@ -668,8 +668,10 @@ Schwierigkeit (E9) —, eine unbestätigte Meldung gedämpft mit „?"
   Leiste „andere Runden"** (`loop_state_strip.dart`) über die ganze
   Breite unter den Kacheln; die Kachel „Zeit" trägt nur die Zahl. Eine
   Karte wie die Kacheln (`surfaceContainerHighest`, Radius 12), Kopf
-  „ANDERE RUNDEN · HÖHE = TRAIL-ANTEIL" in Barlow Condensed `muted`,
-  rechts „Ziel 3 h ± 30". Die Fläche (46 dp) reicht von Zeit − 2 × bis
+  „ANDERE RUNDEN" in Barlow Condensed `muted` (bis 0.195.0 mit
+  „· HÖHE = TRAIL-ANTEIL" — auf dem Pixel XL neben Ziel und
+  „Vergleichen" bei „HÖHE =…" abgeschnitten; den Anteil nennt die Zeile
+  unter der Leiste), rechts „Ziel 3 h ± 30". Die Fläche (46 dp) reicht von Zeit − 2 × bis
   Zeit + 2 × Fenster (bis zum Vorschlag, wenn er darunter liegt): Fenster
   als Feld in `brandMark` 14 %, die Zeit als 2-dp-Strich in `text` 50 %,
   Grundlinie `line`, darunter halbe oder ganze Stunden in Mono. Je Stand
@@ -917,7 +919,9 @@ Route" als dunkle Pille mit Lime-Text. Das Start-Blatt (1e) bekommt den
 Untertitel „2 Trails · 18,6 km". **Seit 0.171.0 (#517) ist das Ergebnis
 des Planers selbst der Start**: vier Kacheln (Strecke, Bergauf, Trails
 bzw. Bergab, Zeit; Fläche `surfaceContainerHighest`, Radius 12, Zahl in
-Mono), Profil, die Schalter als kompakte `FilterChip`s, „Fahrt starten"
+Mono), Profil, die Schalter als kompakte `FilterChip`s ohne Haken —
+eingeschaltet mit Lime-Fläche (`brand` 40 %) und `accentText`-Rand, sonst
+sahen an und aus gleich aus (seit 0.195.1) —, „Fahrt starten"
 als volle Taste; Speichern und GPX als Textknöpfe darunter. Das
 Start-Blatt bleibt für „Meine Fahrten" mit denselben Chips.
 

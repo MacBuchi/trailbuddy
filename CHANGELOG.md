@@ -2,6 +2,19 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Planer und Fahrt: besser lesbar
+
+*Version 0.195.1, 2026-11-21*
+
+- Die Schalter unter einer Runde („Aufzeichnen", „Bildschirm an",
+  „Ansagen") zeigen jetzt deutlich, ob sie an sind: eingeschaltet mit
+  grüner Fläche.
+- Die Leiste „andere Runden" heißt nur noch so; der lange Titel wurde
+  auf kleinen Handys abgeschnitten.
+- Während der Fahrt steht der Stand („Aufnahme · Halterung lernt") auf
+  einer dunklen Fläche und läuft nicht mehr in die Straßennamen der
+  Karte.
+
 ## Feste Limits fürs Rad, auch für die Strecke
 
 *Version 0.195.0, 2026-11-21*

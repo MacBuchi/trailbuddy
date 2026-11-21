@@ -1941,7 +1941,7 @@
   "climbLimitDeclined": "Limit for the {bike} stays at {from} m",
   "distLimitDeclined": "Limit for the {bike} stays at {from} km",
   "bothLimitDeclined": "Limits for the {bike} stay at {climb} m and {km} km",
-  "loopStripTitle": "OTHER LOOPS · HEIGHT = TRAIL SHARE",
+  "loopStripTitle": "OTHER LOOPS",
   "loopStripTarget": "Target {time} ± {window}",
   "loopStripPick": "SUGGESTED",
   "loopStripShare": "{share} % trail",
