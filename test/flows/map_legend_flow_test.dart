@@ -184,7 +184,7 @@ void main() {
             tester.widget<Container>(panel).decoration! as BoxDecoration;
         expect(
           box.color,
-          AppColors.mapBackground,
+          AppColors.mapBackground.withValues(alpha: 0.92),
           reason: 'auch in der dunklen App der Landton',
         );
         expect(tester.takeException(), isNull, reason: 'kein Überlauf');
