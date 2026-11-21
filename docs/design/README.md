@@ -434,7 +434,9 @@ Werk aus.
   0.146 „Meldung" und „neuer Hinweis"; seit #433 ist „Meldung" der ganze
   Eintrag). 124 px, weil die Blase der
   Tour daneben passen muss (200 px auf einem 360-px-Telefon). Mit
-  offener Leiste ist sie weg; auf oder zu merkt sich das Gerät.
+  offener Leiste ist sie weg; auf oder zu merkt sich das Gerät. Die offene
+  Fläche ist leicht durchscheinend (`mapBackground` mit 92 % Deckkraft);
+  ein Tipp im Feld klappt sie zu, ein vertikaler Zug scrollt die Proben.
 - **Oben:** ein Satz, was der nächste Strich tut; verschwindet, sobald kein
   Werkzeug scharf ist.
 - **Unten links:** Maßstab + Quelle, rückt neben die linke Leiste.
@@ -445,7 +447,11 @@ Werk aus.
   sondern hinter dem eigenen Knopf „Kartenebenen" als Blatt; bis 0.74.x
   war er der erste Knopf der Leiste (3c). Dasselbe Muster später für die Fahrt (3d: Folgen, Hinweis
   hier; Foto ist #37).
-- **Reiterleiste:** Grund-Farbe, aktiver Reiter als Lime-Pill.
+- **Reiterleiste:** Grund-Farbe, aktiver Reiter als Lime-Pill. Nur auf der
+  Karte liegt sie über dem Kartenbild (`ground` mit 86 % Deckkraft); in den
+  anderen Reitern bleibt sie deckend. Die runden Kartenknöpfe zeigen die
+  Karte mit 88 % Flächendeckung hindurch. Die Aufnahmeaktion bleibt deckend
+  Lime bzw. Warnfarbe.
 
 ## 7. Schwierigkeit und Charakter (Turn 4)
 

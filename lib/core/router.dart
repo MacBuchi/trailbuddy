@@ -34,6 +34,7 @@ import '../features/trails/trail_import_screen.dart';
 import '../features/trails/trail_providers.dart' show mapFocusTrailProvider;
 import '../features/trails/trails_screen.dart';
 import '../l10n/l10n.dart';
+import 'app_colors.dart';
 import 'picture_in_picture.dart';
 import 'router_branches.dart';
 import 'widgets/keyboard_inset_below_bar.dart';
@@ -287,6 +288,9 @@ class AppShell extends ConsumerWidget {
           if (!didPop) navigationShell.goBranch(kMapBranchIndex);
         },
         child: Scaffold(
+          // Nur auf der Karte liegt die Reiterleiste über dem Kartenbild.
+          // Alle übrigen Reiter behalten ihren deckenden Grund (#621).
+          extendBody: onMap,
           // Die Tastatur ÜBERLAGERT, sie schiebt nicht (PilzBuddy #397).
           //
           // Ab Werk schrumpft ein Scaffold seinen Body um `viewInsets.bottom`.
@@ -326,6 +330,9 @@ class AppShell extends ConsumerWidget {
               : CoachAnchor(
                   id: NavCoach.bar,
                   child: NavigationBar(
+                    backgroundColor: onMap
+                        ? AppPalette.of(context).ground.withValues(alpha: 0.86)
+                        : null,
                     selectedIndex: navigationShell.currentIndex,
                     onDestinationSelected: (index) => navigationShell.goBranch(
                       index,

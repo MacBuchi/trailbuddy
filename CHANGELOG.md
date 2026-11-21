@@ -2,6 +2,14 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Karte & Bedienung
+
+*Version 0.198.0, 2026-11-21*
+
+Im Kartenreiter sind die Knöpfe und die Leiste unten jetzt leicht
+durchsichtig, damit mehr von der Karte sichtbar bleibt. Die offene Legende
+schließt sich auch bei einem Tipp auf ihre Proben; Wischen scrollt sie weiter.
+
 ## Dein MTB-Avatar
 
 *Version 0.197.0, 2026-11-21*

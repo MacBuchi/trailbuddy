@@ -2,6 +2,14 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## Map controls
+
+*Version 0.198.0, 2026-11-21*
+
+On the map tab, the buttons and bottom bar are now slightly translucent,
+leaving more of the map visible. Tap anywhere in the open legend to close it;
+swipe to keep scrolling through its samples.
+
 ## Your MTB avatar
 
 *Version 0.197.0, 2026-11-21*
