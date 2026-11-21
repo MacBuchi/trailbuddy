@@ -12,8 +12,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../../core/app_colors.dart';
+import '../../core/widgets/rider_avatar.dart';
 import '../../data/providers.dart';
 import '../../l10n/l10n.dart';
+import '../../models/avatar_config.dart';
 import '../../models/friendship.dart';
 import '../friends/buddy_alias.dart';
 import '../friends/friend_providers.dart';
@@ -35,6 +37,14 @@ final nearbyBuddyNameProvider = Provider<String Function(String buddyId)>((
         .firstOrNull;
     return f == null || uid == null ? '?' : names.of(id, f.otherUsername(uid));
   };
+});
+
+/// Avatar data travels with confirmed friendships, separate from Presence.
+final nearbyBuddyAvatarsProvider = Provider<Map<String, AvatarConfig>>((ref) {
+  final uid = ref.watch(currentUserIdProvider);
+  final friendships = ref.watch(friendshipsProvider).valueOrNull;
+  if (uid == null || friendships == null) return const {};
+  return {for (final f in friendships) f.otherId(uid): ?f.otherAvatar(uid)};
 });
 
 /// Was ein Tipp auf einen Buddy meldet.
@@ -79,8 +89,9 @@ List<MapViewPolygon> buddyCellPolygons(List<BuddyMapEntry> entries) {
 /// Die Scheiben, über allem außer der eigenen Position.
 List<MapViewMarker> buddyMarkers(
   List<BuddyMapEntry> entries,
-  String Function(String buddyId) nameOf,
-) => [
+  String Function(String buddyId) nameOf, {
+  Map<String, AvatarConfig> avatars = const {},
+}) => [
   for (final e in entries)
     MapViewMarker(
       key: ValueKey('buddy-${e.kind.name}-${e.buddyId}'),
@@ -91,6 +102,7 @@ List<MapViewMarker> buddyMarkers(
       child: BuddyDisc(
         initial: buddyInitial(nameOf(e.buddyId)),
         live: e.kind == BuddyMapKind.live,
+        avatar: avatars[e.buddyId],
         seenAgo: e.seenAgo,
       ),
     ),
@@ -105,11 +117,13 @@ class BuddyDisc extends StatelessWidget {
     super.key,
     required this.initial,
     required this.live,
+    this.avatar,
     this.seenAgo,
   });
 
   final String initial;
   final bool live;
+  final AvatarConfig? avatar;
   final Duration? seenAgo;
 
   static const size = 30.0;
@@ -140,15 +154,20 @@ class BuddyDisc extends StatelessWidget {
         ],
       ),
       alignment: Alignment.center,
-      child: Text(
-        initial,
-        style: TextStyle(
-          fontWeight: FontWeight.w800,
-          fontSize: 15,
-          height: 1,
-          color: live ? Colors.white : map.buddy,
+      child: switch (live ? avatar : null) {
+        final config? => ClipOval(
+          child: AvatarPortrait(config: config, size: size - 5),
         ),
-      ),
+        null => Text(
+          initial,
+          style: TextStyle(
+            fontWeight: FontWeight.w800,
+            fontSize: 15,
+            height: 1,
+            color: live ? Colors.white : map.buddy,
+          ),
+        ),
+      },
     );
     return Semantics(
       label: live

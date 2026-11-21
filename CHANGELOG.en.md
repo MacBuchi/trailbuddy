@@ -2,6 +2,16 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## Your MTB avatar
+
+*Version 0.197.0, 2026-11-21*
+
+Build your avatar in your profile with helmets, hairstyles, eyewear,
+colors and more. Start with a preset or randomize it, then make it your
+own. Confirmed buddies see your saved avatar in their list, in chat and
+on the map during a live group ride. You can switch back to initials in
+the editor at any time.
+
 ## Encrypted database backups
 
 *Version 0.196.1, 2026-11-21*

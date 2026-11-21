@@ -83,6 +83,16 @@ class FeatureHighlight {
 final kFeatureHighlights = <FeatureHighlight>[
   // ─── Highlights ──────────────────────────────────────────────────
   FeatureHighlight(
+    id: 'mtb-avatar',
+    since: '0.197.0',
+    kind: HighlightKind.highlight,
+    tab: HighlightTab.profile,
+    icon: Icons.face_retouching_natural_outlined,
+    title: (l) => l.highlightMtbAvatarTitle,
+    text: (l) => l.highlightMtbAvatarText,
+    target: '/profile/avatar',
+  ),
+  FeatureHighlight(
     id: 'watch-shelf',
     since: '0.189.0',
     kind: HighlightKind.highlight,

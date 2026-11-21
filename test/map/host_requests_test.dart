@@ -154,14 +154,7 @@ void main() {
           )),
         ],
       );
-      await openTab(tester, 'Profil');
-      await tester.scrollUntilVisible(
-        find.byKey(const ValueKey('profile-dev')),
-        200,
-      );
-      await tester.tap(find.byKey(const ValueKey('profile-dev')));
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 400));
+      await openProfilePage(tester, 'dev');
 
       String shown(String key) =>
           (tester.widget(find.byKey(ValueKey('dev-host-$key'))) as Text).data!;

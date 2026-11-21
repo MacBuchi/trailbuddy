@@ -2137,4 +2137,89 @@ begin
   delete from public.content_reports;
 end $$;
 
+\echo -- 37. Profilavatare (Patch 036, #615)
+do $$
+declare
+  ua uuid := '11111111-1111-4111-8111-111111111111';
+  ub uuid := '22222222-2222-4222-8222-222222222222';
+  ug uuid := '77777777-7777-4777-8777-777777777777';
+  disposable uuid := gen_random_uuid();
+  fid uuid;
+  avatar jsonb := '{"v":1,"skin":"warm","hair":"long","beard":"none","expression":"smile","glasses":"goggles","headwear":"trail","background":"sky","hairColor":"auburn","gearColor":"ochre"}';
+  changed jsonb := avatar || '{"expression":"grin","headwear":"fullface"}';
+  invalid jsonb;
+  avatar_of text := 'select count(*) from public.profile_avatars where profile_id = %L';
+  save_avatar text := 'insert into public.profile_avatars (profile_id, config) values (%L, %L)
+                       on conflict (profile_id) do update set profile_id = excluded.profile_id, config = excluded.config';
+begin
+  select id into strict fid from public.friendships
+   where (requester_id = ua and addressee_id = ub) or (requester_id = ub and addressee_id = ua);
+  perform tb_test.check(tb_test.count_as(ua, format(avatar_of, ua)) = 0, 'Bestandsprofil hat keinen gespeicherten Avatar');
+  perform tb_test.check(tb_test.state_of(ua, format(save_avatar, ub, avatar)) = '42501',
+                        'Anna legt keinen Avatar für Bernd an');
+  perform tb_test.exec_as(ua, format(save_avatar, ua, avatar));
+  perform tb_test.exec_as(ub, format(save_avatar, ub, avatar));
+  perform tb_test.exec_as(ua, format(save_avatar, ua, changed));
+  perform tb_test.check(tb_test.count_as(ua, format(avatar_of || ' and config = %L', ua, changed)) = 1,
+                        'Anna liest ihre eigene aktualisierte Konfiguration');
+  perform tb_test.check(tb_test.count_as(ua, format(avatar_of, ub)) = 1
+                        and tb_test.count_as(ub, format(avatar_of, ua)) = 1,
+                        'Bestätigte Buddys lesen die Avatare in beiden Richtungen');
+  perform tb_test.check(tb_test.count_as(ug, format(avatar_of, ua)) = 0, 'Gina liest Annas Avatar ohne Beziehung nicht');
+  perform tb_test.check(tb_test.count_as(ub, format(
+    'with changed as (update public.profile_avatars set config = %L where profile_id = %L returning 1)
+     select count(*) from changed', avatar, ua
+  )) = 0, 'Bernd ändert Annas Avatar nicht');
+  perform tb_test.check(tb_test.count_as(ub, format(
+    'with deleted as (delete from public.profile_avatars where profile_id = %L returning 1)
+     select count(*) from deleted', ua
+  )) = 0, 'Bernd löscht Annas Avatar nicht');
+
+  foreach invalid in array array[
+    avatar - 'headwear',
+    avatar || '{"text":"freier Text"}',
+    avatar || '{"v":"1"}',
+    avatar || '{"v":2}',
+    avatar || '{"glasses":null}',
+    avatar || '{"hairColor":["auburn"]}',
+    avatar || '{"gearColor":"#123456"}',
+    '[]'::jsonb,
+    '"smile"'::jsonb
+  ] loop
+    perform tb_test.check(tb_test.state_of(ua, format(save_avatar, ua, invalid)) = '23514',
+                          format('ungültige Konfiguration abgewiesen: %s', invalid));
+  end loop;
+  perform tb_test.check(tb_test.count_as(ua, format(avatar_of || ' and config = %L', ua, changed)) = 1,
+                        'eine abgewiesene Änderung überschreibt den gespeicherten Avatar nicht');
+
+  perform tb_test.exec_as(ua, format('delete from public.friendships where id = %L', fid));
+  perform tb_test.check(tb_test.count_as(ua, format(avatar_of, ub)) = 0
+                        and tb_test.count_as(ub, format(avatar_of, ua)) = 0,
+                        'nach dem Entfreunden liest keiner den Avatar des anderen');
+  perform tb_test.exec_as(ua, format('insert into public.friendships (id, requester_id, addressee_id) values (%L, %L, %L)', fid, ua, ub));
+  perform tb_test.check(tb_test.count_as(ub, format('select count(*) from public.profiles where id = %L', ua)) = 1
+                        and tb_test.count_as(ub, format(avatar_of, ua)) = 0
+                        and tb_test.count_as(ua, format(avatar_of, ub)) = 0,
+                        'bei offener Anfrage ist das Profil lesbar, der Avatar in beiden Richtungen gesperrt');
+  perform tb_test.exec_as(ub, format('update public.friendships set status = %L where id = %L', 'accepted', fid));
+  perform tb_test.check(tb_test.count_as(ub, format(avatar_of, ua)) = 1, 'nach Annahme ist der Avatar lesbar');
+  perform tb_test.exec_as(ub, format('select public.block_user(%L)', ua));
+  perform tb_test.check(tb_test.count_as(ua, format(avatar_of, ub)) = 0
+                        and tb_test.count_as(ub, format(avatar_of, ua)) = 0,
+                        'nach dem Blockieren liest keiner den Avatar des anderen');
+  perform tb_test.exec_as(ua, format('delete from public.profile_avatars where profile_id = %L', ua));
+  perform tb_test.check(tb_test.count_as(ua, format(avatar_of, ua)) = 0, 'Anna entfernt ihren eigenen Avatar');
+
+  insert into auth.users (id, email, raw_user_meta_data)
+    values (disposable, 'avatar-fixture@example.org', '{"username":"avatarfixture"}');
+  perform tb_test.exec_as(disposable, format(save_avatar, disposable, avatar));
+  perform tb_test.exec_as(disposable, 'select public.delete_own_account()');
+  perform tb_test.check(not exists (select 1 from public.profile_avatars where profile_id = disposable),
+                        'Kontolöschung entfernt die Konfiguration per Cascade');
+
+  delete from public.profile_avatars where profile_id = ub;
+  delete from public.user_blocks where blocker_id = ub and blocked_id = ua;
+  insert into public.friendships (id, requester_id, addressee_id, status) values (fid, ua, ub, 'accepted');
+end $$;
+
 \echo -- Alle Prüfungen bestanden.

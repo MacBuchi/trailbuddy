@@ -17,6 +17,7 @@ import '../../core/update_check.dart';
 import '../../core/widgets/form_notice.dart';
 import '../../core/widgets/info_button.dart';
 import '../../core/widgets/letter_avatar.dart';
+import '../../core/widgets/rider_avatar.dart';
 import '../../core/widgets/motion.dart';
 import '../../core/widgets/password_field.dart';
 import '../../data/auth_repository.dart' show SignInProvider;
@@ -26,6 +27,7 @@ import '../coach/coach.dart';
 import '../feedback/feedback_dialog.dart';
 import '../help/tab_tours.dart' show ProfileCoach;
 import '../highlights/highlight_sheet.dart' show unseenHighlightCountProvider;
+import '../../models/avatar_config.dart';
 import '../../models/friendship.dart' show BlockedUser;
 import '../friends/friend_providers.dart';
 import '../offline_areas/area_providers.dart' show storedAreasProvider;
@@ -58,14 +60,47 @@ import '../garmin/watch_shelf.dart' show watchShelfProvider;
 import '../garmin/watch_shelf_actions.dart' show watchShelfAvailableProvider;
 import '../map/host_requests.dart' show devToolsVisibleProvider;
 import 'account_dialogs.dart';
+import 'avatar_editor_screen.dart';
 import 'profile_providers.dart';
 import 'push_providers.dart';
 
-class ProfileScreen extends ConsumerWidget {
+class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends ConsumerState<ProfileScreen> {
+  late final VoidCallback _unregisterAvatarScene;
+
+  @override
+  void initState() {
+    super.initState();
+    _unregisterAvatarScene = ref.read(coachRegistryProvider).registerScene(
+      ProfileCoach.avatarEditor,
+      () async {
+        if (!mounted) return () {};
+        final router = GoRouter.of(context);
+        router.go(avatarEditorPath);
+        return () {
+          if (router.routerDelegate.currentConfiguration.uri.path ==
+              avatarEditorPath) {
+            router.go('/profile');
+          }
+        };
+      },
+    );
+  }
+
+  @override
+  void dispose() {
+    _unregisterAvatarScene();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final profileAsync = ref.watch(myProfileProvider);
     final profile = profileAsync.valueOrNull;
     final palette = AppPalette.of(context);
@@ -108,7 +143,10 @@ class ProfileScreen extends ConsumerWidget {
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
           children: [
             if (profile != null) ...[
-              _ProfileHeader(username: profile.username),
+              _ProfileHeader(
+                username: profile.username,
+                avatar: profile.avatar,
+              ),
               const SizedBox(height: 16),
               Divider(height: 1, color: palette.line),
               const SizedBox(height: 16),
@@ -296,9 +334,10 @@ class ProfileScreen extends ConsumerWidget {
 /// aus dem, was die App ohnehin geladen hat; eine fehlende Zahl fällt
 /// weg, statt als 0 dazustehen.
 class _ProfileHeader extends ConsumerWidget {
-  const _ProfileHeader({required this.username});
+  const _ProfileHeader({required this.username, required this.avatar});
 
   final String username;
+  final AvatarConfig? avatar;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -326,7 +365,7 @@ class _ProfileHeader extends ConsumerWidget {
     ];
     return Row(
       children: [
-        LetterAvatar(name: username, size: 64),
+        RiderAvatar(name: username, config: avatar, size: 64),
         const SizedBox(width: 16),
         Expanded(
           child: Column(
@@ -355,6 +394,15 @@ class _ProfileHeader extends ConsumerWidget {
                     color: palette.muted,
                   ),
                 ),
+              CoachAnchor(
+                id: ProfileCoach.avatarEdit,
+                child: TextButton.icon(
+                  style: TextButton.styleFrom(minimumSize: const Size(44, 44)),
+                  onPressed: () => context.push(avatarEditorPath),
+                  icon: const Icon(Icons.face_retouching_natural_outlined),
+                  label: Text(l.avatarEdit),
+                ),
+              ),
             ],
           ),
         ),

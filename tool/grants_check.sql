@@ -220,3 +220,29 @@ begin
   end if;
   raise notice 'grants_check ops_health: ok';
 end $$;
+
+-- Die Avatar-Konfiguration ist ausschließlich für authentifizierte
+-- Clients vorgesehen. Welche Zeilen sie lesen/schreiben, prüft die RLS.
+do $$
+declare
+  audience text;
+  avatars regclass := 'public.profile_avatars'::regclass;
+begin
+  foreach audience in array array['anon', 'service_role'] loop
+    if has_any_column_privilege(audience, avatars, 'SELECT, INSERT, UPDATE, REFERENCES')
+       or has_table_privilege(audience, avatars, 'DELETE, TRUNCATE, TRIGGER') then
+      raise exception '% hat Zugriff auf profile_avatars', audience;
+    end if;
+  end loop;
+  if not (has_table_privilege('authenticated', avatars, 'SELECT')
+          and has_table_privilege('authenticated', avatars, 'INSERT')
+          and has_table_privilege('authenticated', avatars, 'UPDATE')
+          and has_table_privilege('authenticated', avatars, 'DELETE'))
+     or has_table_privilege('authenticated', avatars, 'TRUNCATE, REFERENCES, TRIGGER') then
+    raise exception 'authenticated hat falsche Grants auf profile_avatars';
+  end if;
+  if not (select relrowsecurity from pg_class where oid = avatars) then
+    raise exception 'RLS fehlt auf profile_avatars';
+  end if;
+  raise notice 'grants_check profile_avatars: ok';
+end $$;

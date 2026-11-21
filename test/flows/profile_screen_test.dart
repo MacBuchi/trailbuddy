@@ -58,6 +58,7 @@ void main() {
         findsOneWidget,
         reason: 'Vorgabe Bio-Bike',
       );
+      await scrollTo(tester, find.byKey(const ValueKey('profile-navigation')));
       expect(
         value('navigation', 'Umplanen ab 100 m · Ende ab 500 m'),
         findsOneWidget,

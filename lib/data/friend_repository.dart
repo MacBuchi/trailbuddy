@@ -27,8 +27,8 @@ class FriendRepository {
         .from('friendships')
         .select(
           'id, status, requester_id, addressee_id, '
-          'requester:profiles!friendships_requester_id_fkey(username, avatar), '
-          'addressee:profiles!friendships_addressee_id_fkey(username, avatar)',
+          'requester:profiles!friendships_requester_id_fkey(username, profile_avatars(config)), '
+          'addressee:profiles!friendships_addressee_id_fkey(username, profile_avatars(config))',
         );
     return rows.map((r) => FriendshipEntry.fromJson(r)).toList();
   }

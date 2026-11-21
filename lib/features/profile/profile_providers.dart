@@ -4,6 +4,7 @@ import '../../core/errors.dart';
 import '../../core/read_after_write.dart';
 import '../../core/settings.dart';
 import '../../data/providers.dart';
+import '../../models/avatar_config.dart';
 import '../../models/profile.dart';
 import '../routing/route_profile.dart';
 
@@ -40,9 +41,9 @@ class MyProfileNotifier extends AsyncNotifier<Profile?>
     return ref.read(profileRepositoryProvider).fetchMyProfile();
   }
 
-  Future<void> updateAvatar(int avatar) async {
+  Future<bool> updateAvatar(AvatarConfig? avatar) async {
     await ref.read(profileRepositoryProvider).updateAvatar(avatar);
-    await reloadAfterWrite('Profil neu laden');
+    return reloadAfterWrite('Profil neu laden');
   }
 
   Future<void> updateUsername(String username) async {

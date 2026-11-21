@@ -631,6 +631,12 @@ Schwierigkeit (E9) —, eine unbestätigte Meldung gedämpft mit „?"
   (`sharedTrailCounts`). Die Avatarflächen (`AppColors.avatarFills`:
   Blau, Gelb, Pink, Lila, fest je Nutzer-id) tragen dunkle Schrift in
   beiden Modi; Lime bleibt dem eigenen Avatar, denn Lime heißt „mein".
+  Seit #615 steht bei bestätigten Buddys der gewählte MTB-Avatar in derselben
+  Form, auch im Chatkopf. Der Live-Marker einer Gruppenfahrt setzt das
+  Porträt in die vorhandene weiße Umrandung. Die grobe Homie-Zelle behält
+  den Umriss und die Initialen. Bei älteren Profilen oder fehlender gültiger
+  Auswahl erscheinen Initialen. „Avatar bearbeiten“ im Profil zeigt eine
+  feste Vorschau, MTB-Vorlagen, Würfeln, Einzeloptionen und Zurücksetzen.
 - **Profil (1l):** Kopf mit Avatar und drei Zahlen, darunter Zeilen mit
   Wert rechts (Benachrichtigungen, Erscheinungsbild …).
   Gebaut in 0.41.0 (`profile_screen.dart`): Die Zeilen sind Karten mit
