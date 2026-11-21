@@ -2,6 +2,22 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Sprünge an der Uhr beantworten
+
+*Version 0.196.0, 2026-11-21*
+
+- Meldet die Uhr einen Sprung, kannst du ihn jetzt gleich dort
+  beantworten: HOCH heißt „Stimmt", RUNTER „War keiner". Zwei kleine
+  Pfeile links neben den Tasten zeigen es, acht Sekunden lang. Wer nichts
+  drückt, schickt nichts. Das Handy schreibt die Antwort wie die Taste im
+  Hinweis auf dem Handy und nimmt den Hinweis dort weg.
+- Das gilt auch, wenn das Handy in der Tasche steckt: Die Uhr zeigt
+  dann Sprünge mit harter Landung (Wheelies und Stoppies gibt es dort
+  nicht). So lässt sich eine Fahrt auswerten, ohne das Handy
+  herauszuholen.
+- Die Uhr-App ist jetzt in Version 1.10.0 nötig; mit einer älteren
+  Uhr-App bleibt alles wie bisher.
+
 ## Planer und Fahrt: besser lesbar
 
 *Version 0.195.1, 2026-11-21*

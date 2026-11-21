@@ -159,7 +159,11 @@ dunkle Infofläche, „Was kommt als Nächstes?" statt „Wie weit noch?".
   (von selbst · nah · mittel · weit — 1, 1,5 und 4 m je Pixel) und
   „Route beenden" (die Aufzeichnung läuft weiter). **Bei einer Frage**
   heißt START ja und ZURÜCK nein (#513; bis 1.3.x lehnte auch START
-  ab).
+  ab). **Bei einem Sprung-Hinweis mit Kennung** (#612, seit 1.10.0) sind
+  es HOCH („Stimmt") und RUNTER („War keiner"), acht Sekunden lang, mit
+  einem Pfeil links an der Taste: START und ZURÜCK bleiben, was sie sind
+  (kein Zusammenstoß mit LAP). Ohne Druck geht nichts ans Handy; ohne
+  Hinweis blättern die Tasten wie sonst.
   Beim Abkommen kommt die Karte von selbst nach vorn. „Verwerfen" der
   Fahrt fragt noch einmal. Tippziele gibt es nicht; A13 heißt hier: große
   Schrift, kräftige Linien.

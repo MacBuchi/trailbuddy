@@ -53,6 +53,36 @@ void main() {
       );
     });
 
+    test('in der Tasche (#612) zählt „erkennt" auch ohne Halterung', () {
+      const now = 100000000;
+      final noMount = _tick(now - 1000000, mount: false);
+      expect(watchDetecting(noMount, now), isFalse);
+      expect(watchDetecting(noMount, now, pocket: true), isTrue);
+      expect(
+        watchDetecting(
+          _tick(now - kWatchDetectFresh.inMicroseconds - 1, mount: false),
+          now,
+          pocket: true,
+        ),
+        isFalse,
+        reason: 'auch dort müssen die Takte laufen',
+      );
+    });
+
+    test('Kennung (#612): Beginn in ms, passt in 32 Bit; Antwort der Uhr', () {
+      const startUs = 1763700000123456;
+      final id = watchCueId(startUs);
+      expect(id, '${1763700000123 % kWatchCueIdMod}');
+      expect(int.parse(id), lessThan(1 << 31));
+      expect(watchAnswerOf({'t': 'a', 's': id, 'y': 1}), (id: id, yes: true));
+      expect(watchAnswerOf({'t': 'a', 's': id, 'y': 0}), (id: id, yes: false));
+      expect(watchAnswerOf({'t': 'a', 's': id, 'y': 2}), isNull);
+      expect(watchAnswerOf({'t': 'a', 's': 5, 'y': 1}), isNull);
+      expect(watchAnswerOf({'t': 'a', 'y': 1}), isNull);
+      expect(watchAnswerOf({'t': 'c', 's': id, 'y': 1}), isNull);
+      expect(watchAnswerOf(null), isNull);
+    });
+
     test(
       'Hinweis: Flugzeit und Stoppie in ms, Wheelie in Metern; zu alt oder unplausibel nicht',
       () {
@@ -61,6 +91,7 @@ void main() {
           't': kWatchCue,
           'k': 'air',
           'v': 900,
+          's': watchCueId(now - 3000000),
         });
         expect(
           watchCueOf(
@@ -72,7 +103,7 @@ void main() {
             ),
             now,
           ),
-          {'t': kWatchCue, 'k': 'wh', 'v': 12},
+          {'t': kWatchCue, 'k': 'wh', 'v': 12, 's': '90000'},
         );
         expect(
           watchCueOf(
@@ -85,7 +116,7 @@ void main() {
             ),
             now,
           ),
-          {'t': kWatchCue, 'k': 'st', 'v': 700},
+          {'t': kWatchCue, 'k': 'st', 'v': 700, 's': '95000'},
         );
         // Das Ende zählt, nicht der Beginn: 8 s nach der Landung noch, danach nicht.
         final edge = now - kWatchCueMaxAge.inMicroseconds - 900000;
@@ -195,7 +226,12 @@ void main() {
           'c',
           'b',
         ], reason: 'der Hinweis zuerst');
-        expect(batch.first, {'t': 'c', 'k': 'air', 'v': 900});
+        expect(batch.first, {
+          't': 'c',
+          'k': 'air',
+          'v': 900,
+          's': watchCueId(phone.clockUs - 3000000),
+        });
         expect(batch.last['jn'], 1);
 
         phone.clockUs += 6000000;
@@ -243,5 +279,77 @@ void main() {
         phone.c.dispose();
       },
     );
+
+    testWidgets(
+      'Antwort der Uhr (#612): dieselbe Zeile wie im Banner, eine je Ereignis, '
+      'die spätere gilt',
+      (tester) async {
+        final answers = <({String actionId, int? startUs, int? id})>[];
+        phone = WatchPhone(
+          overrides: [
+            airtimeAnswerProvider.overrideWithValue(({
+              required String actionId,
+              required String file,
+              int? startUs,
+              int? notificationId,
+            }) async {
+              answers.add((
+                actionId: actionId,
+                startUs: startUs,
+                id: notificationId,
+              ));
+            }),
+          ],
+        )..bridge.autoStore = true;
+        await phone.open();
+        phone.navigate();
+        for (var i = 0; i < 200 && phone.sync.phase.name != 'stored'; i++) {
+          await tester.pump(const Duration(milliseconds: 100));
+        }
+        final startUs = phone.clockUs - 3000000;
+        live().accept(
+          encodeAirtimeLive(_file, [_tick(phone.clockUs - 1500000)]),
+        );
+        live().accept(encodeAirtimeEvent(_file, _jump(startUs)));
+        await tester.pump();
+        final cue = of('c').single;
+        expect(cue['s'], watchCueId(startUs));
+
+        phone.bridge.answer({'t': 'a', 's': cue['s']!, 'y': 1});
+        await tester.pump();
+        expect(answers.single.actionId, 'jump_yes');
+        expect(answers.single.startUs, startUs);
+        expect(answers.single.id, isNotNull, reason: 'das Banner geht weg');
+
+        // Eine zweite, andere Antwort: die spätere gewinnt wie beim Banner.
+        phone.bridge.answer({'t': 'a', 's': cue['s']!, 'y': 0});
+        await tester.pump();
+        expect(answers.last.actionId, 'jump_no');
+
+        // Ein Ereignis, das das Handy nicht kennt, schreibt nichts.
+        phone.bridge.answer({'t': 'a', 's': '7', 'y': 1});
+        await tester.pump();
+        expect(answers, hasLength(2));
+        phone.c.dispose();
+      },
+    );
+
+    testWidgets('in der Tasche kommt der Hinweis ohne Halterung (#612)', (
+      tester,
+    ) async {
+      await stored(tester);
+      live().accept(encodeAirtimePocket(_file, pocket: true, declared: true));
+      live().accept(
+        encodeAirtimeLive(_file, [
+          _tick(phone.clockUs - 1500000, mount: false),
+        ]),
+      );
+      await tester.pump();
+      expect(of('b').last['on'], 1);
+      live().accept(encodeAirtimeEvent(_file, _jump(phone.clockUs - 3000000)));
+      await tester.pump();
+      expect(of('c'), hasLength(1));
+      phone.c.dispose();
+    });
   });
 }

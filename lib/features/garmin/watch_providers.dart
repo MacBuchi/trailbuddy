@@ -639,6 +639,8 @@ class WatchSync extends Notifier<WatchSyncState> {
     }
     final hello = watchHelloOf(message);
     if (hello.hello) return _onHello(hello.id, hello.bad, hello.v, hello.ver);
+    final answer = watchAnswerOf(message);
+    if (answer != null) return _answerFromWatch(answer.id, answer.yes);
     // #501 (Konzept 2, was der Alarm auslöst): Weicht die Uhr ab, rechnet
     // das Handy die Linie ab ihrem Stand neu und schickt sie; die Uhr fragt
     // kurz, ob sie sie nimmt.
@@ -840,7 +842,11 @@ class WatchSync extends Notifier<WatchSyncState> {
     FusionLive? latest = live.ticks.isEmpty ? null : live.ticks.last;
     final now = live.now;
     if (now != null && (latest == null || now.tUs > latest.tUs)) latest = now;
-    return watchDetecting(latest, ref.read(airtimeClockProvider)());
+    return watchDetecting(
+      latest,
+      ref.read(airtimeClockProvider)(),
+      pocket: live.pocket,
+    );
   }
 
   /// Bestwerte samt `on` an die Uhr, wenn sie sich geändert haben — mit
@@ -900,6 +906,19 @@ class WatchSync extends Notifier<WatchSyncState> {
     final cue = watchCueOf(newest, now);
     if (cue != null) _cueAtUs = now;
     return cue;
+  }
+
+  /// Eine Antwort von der Uhr auf einen Sprung-Hinweis (#612): dieselbe
+  /// Zeile wie im Banner und in der Live-Ansicht (`AirtimeLiveNotifier.answer`,
+  /// dort geht auch das Banner weg). Ein Ereignis, das das Handy nicht
+  /// (mehr) kennt, bleibt unbeantwortet; die spätere Antwort gilt.
+  void _answerFromWatch(String id, bool yes) {
+    final live = ref.read(airtimeLiveProvider);
+    for (final e in [...live.pending, ...live.log.events]) {
+      if (watchCueId(e.startUs) != id) continue;
+      unawaited(ref.read(airtimeLiveProvider.notifier).answer(e, yes: yes));
+      return;
+    }
   }
 
   /// Hinweise der Ansagen an die Uhr (#525), wenn sie sich gemeldet hat.

@@ -47,6 +47,8 @@ ACTIONS = {
     "beenden": "quit",
     "Route beenden": "endRoute",
     "aus der Ablage": "shelf0",
+    "HOCH": "up",
+    "RUNTER": "down",
 }
 FIXES = re.compile(r"^fixe (\d+)-(\d+)$")
 

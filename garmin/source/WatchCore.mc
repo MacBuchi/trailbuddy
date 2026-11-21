@@ -105,6 +105,9 @@ class WatchCore {
     //! Konzept 2). Wer nichts tut, nimmt sie; START nimmt sie sofort,
     //! ZURÜCK lässt sie liegen (#513, Entscheidung E2 vom 2026-11-12).
     static const ASK_MS = 8000;
+    //! So lange lässt sich ein Sprung-Hinweis mit HOCH/RUNTER beantworten
+    //! (#612, Issue: ≈ 8 s).
+    static const CUE_ANSWER_MS = 8000;
     //! So lange wartet das Beenden auf der Uhr höchstens darauf, dass
     //! Garmin Connect „beendet" abnimmt, bevor die App zugeht.
     static const END_WAIT_MS = 5000;
@@ -516,6 +519,21 @@ class WatchCore {
         return true;
     }
 
+    //! HOCH/RUNTER (#612): Steht ein Sprung-Hinweis, ist HOCH „Stimmt" und
+    //! RUNTER „War keiner" — `{t: "a", s, y}` ans Handy, ohne Taste geht
+    //! nichts. Sonst blättern sie die Seiten. START und ZURÜCK bleiben, was
+    //! sie sind (kein Zusammenstoß mit LAP).
+    function pageKey(up as Boolean) as Void {
+        now = _host.now();
+        if (!ui.cueAnswerable()) {
+            if (up) { ui.prevPage(); } else { ui.nextPage(); }
+            return;
+        }
+        toPhone({"t" => "a", "s" => ui.cueTake(), "y" => up ? 1 : 0});
+        _host.vibrate(false);
+        ui.toast(str(up ? Rez.Strings.AskYes : Rez.Strings.AskNo));
+    }
+
     // --- Das Aktionsmenü (#513, langes HOCH) ---------------------------------
 
     //! Langes HOCH: das Aktionsmenü. Nicht, solange eine Frage steht (die
@@ -877,7 +895,7 @@ class WatchCore {
         var n = d["n"];
         var tr = "tr".equals(k);
         if (!tr && !"bn".equals(k)) {
-            ui.cue(k, d["v"]);
+            ui.cue(k, d["v"], d["s"]);
             return;
         }
         if (!(n instanceof String) || n.length() == 0) { return; }

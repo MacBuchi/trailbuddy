@@ -637,9 +637,33 @@ Map<String, Object>? watchBestsOf(AirtimeLog log, {bool on = false}) {
 }
 
 /// Ein Ereignis der Erkennung als kurzer Hinweis im Fußfeld der Uhr
-/// (#514): `{t: "c", k: "air"|"wh"|"st", v}` — Flugzeit und Stoppie in
-/// ms, Wheelie in Metern. Eine ältere Uhr übergeht die Art.
+/// (#514): `{t: "c", k: "air"|"wh"|"st", v, s}` — Flugzeit und Stoppie in
+/// ms, Wheelie in Metern. `s` (#612) ist die Kennung des Ereignisses, mit
+/// der die Uhr es beantwortet ([watchCueId], [watchAnswerOf]). Eine ältere
+/// Uhr übergeht Art und `s`.
 const kWatchCue = 'c';
+
+/// Die Antwort der Uhr auf einen Hinweis (#612): `{t: "a", s, y}` — `s`
+/// aus dem Hinweis, `y` 1 „Stimmt", 0 „War keiner". Ohne Tastendruck geht
+/// nichts.
+const kWatchAnswer = 'a';
+
+/// Die Kennung eines Ereignisses für die Uhr: der Beginn in ms, modulo
+/// [kWatchCueIdMod], als Text. Eine Zahl der Uhr ist 32 Bit, µs seit 1970
+/// passen nicht; ~11 Tage reichen, ein Hinweis lebt Sekunden. Als Text,
+/// weil die Uhr ihn nur zurückreicht (und Int/Long der Brücke egal sind).
+const kWatchCueIdMod = 1000000000;
+
+String watchCueId(int startUs) =>
+    ((startUs ~/ 1000) % kWatchCueIdMod).toString();
+
+/// Die Antwort aus einer Nachricht der Uhr, oder null bei einer anderen.
+({String id, bool yes})? watchAnswerOf(Object? message) {
+  if (message is! Map || message['t'] != kWatchAnswer) return null;
+  final s = message['s'], y = message['y'];
+  if (s is! String || s.isEmpty || y is! int || (y != 0 && y != 1)) return null;
+  return (id: s, yes: y == 1);
+}
 
 /// Die Buddys mit genauer Position an die Uhr (#519, `watch_buddies.dart`):
 /// `{t: "u", l: [[la, lo, Buchstabe, Alter s], …]}`.
@@ -662,9 +686,11 @@ const kWatchDetectFresh = Duration(seconds: 5);
 
 /// Erkennt das Handy gerade mit gelernter Halterung? [latest] ist der
 /// jüngste Takt (Unix-µs, die Achse der Sensoren), [nowUs] die Uhrzeit.
-bool watchDetecting(FusionLive? latest, int nowUs) =>
+/// In der Tasche ([pocket], #612) gibt es keine Halterung — dort heißt
+/// „erkennt", dass die Takte laufen; gezeigt werden nur Sprünge.
+bool watchDetecting(FusionLive? latest, int nowUs, {bool pocket = false}) =>
     latest != null &&
-    latest.mountReady &&
+    (latest.mountReady || pocket) &&
     nowUs - latest.tUs <= kWatchDetectFresh.inMicroseconds;
 
 /// Der Hinweis zu [e], oder null, wenn es zur Uhrzeit [nowUs] schon zu
@@ -672,14 +698,26 @@ bool watchDetecting(FusionLive? latest, int nowUs) =>
 Map<String, Object>? watchCueOf(FusionEvent e, int nowUs) {
   final endUs = e.startUs + e.duration.inMicroseconds;
   if (nowUs - endUs > kWatchCueMaxAge.inMicroseconds) return null;
+  final s = watchCueId(e.startUs);
   return switch (e) {
     JumpEvent(:final plausible) when !plausible => null,
-    JumpEvent() => {'t': kWatchCue, 'k': 'air', 'v': e.duration.inMilliseconds},
-    WheelieEvent() => {'t': kWatchCue, 'k': 'wh', 'v': e.lengthM.round()},
+    JumpEvent() => {
+      't': kWatchCue,
+      'k': 'air',
+      'v': e.duration.inMilliseconds,
+      's': s,
+    },
+    WheelieEvent() => {
+      't': kWatchCue,
+      'k': 'wh',
+      'v': e.lengthM.round(),
+      's': s,
+    },
     StoppieEvent() => {
       't': kWatchCue,
       'k': 'st',
       'v': e.duration.inMilliseconds,
+      's': s,
     },
   };
 }

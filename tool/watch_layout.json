@@ -69,6 +69,22 @@
    "v": 176,
    "note": "Einblendung auf einer Zahlenseite"
   },
+  "cue_up_x": {
+   "v": 42,
+   "note": "JA-Pfeil des Sprung-Hinweises links (HOCH)"
+  },
+  "cue_up_y": {
+   "v": 112,
+   "note": "Höhe des JA-Pfeils (Taste HOCH sitzt bei ≈ 120)"
+  },
+  "cue_dn_x": {
+   "v": 46,
+   "note": "NEIN-Pfeil des Sprung-Hinweises links unten (RUNTER)"
+  },
+  "cue_dn_y": {
+   "v": 148,
+   "note": "Höhe des NEIN-Pfeils (Taste RUNTER sitzt bei ≈ 200, dort läge die Infofläche)"
+  },
   "ask_bar_x": {
    "v": 40,
    "note": "Frist-Balken links"
@@ -186,6 +202,7 @@
   "route_broken": "small",
   "status": "xtiny",
   "toast": "small",
+  "cue_key": "xtiny",
   "ask": "xtiny",
   "ask_yes_big": "small",
   "ask_yes": "xtiny",

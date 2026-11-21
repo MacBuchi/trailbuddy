@@ -2,6 +2,21 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## Answer jumps on the watch
+
+*Version 0.196.0, 2026-11-21*
+
+- When the watch shows a jump, you can answer it right there: UP means
+  "That's right", DOWN means "Nothing there". Two small arrows beside the
+  buttons show it for eight seconds. If you press nothing, nothing is
+  sent. The phone writes the answer like the button in the phone's own
+  notification and removes that notification.
+- This also works with the phone in a pocket: the watch then shows jumps
+  with a hard landing (there are no wheelies or stoppies in a pocket). So
+  a ride can be labelled without taking the phone out.
+- You need watch app 1.10.0 for this; with an older watch app everything
+  stays as before.
+
 ## Planner and ride: easier to read
 
 *Version 0.195.1, 2026-11-21*

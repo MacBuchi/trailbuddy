@@ -31,8 +31,10 @@ function talk_sprung_hinweis(logger as Logger) as Boolean {
         {"von" => "handy", "msg" => {"t" => "r", "id" => "$a"}},
         {"von" => "uhr", "msg" => {"t" => "ok", "id" => "$a"}, "nach_ms" => 500, "dann" => ["route:$a", "erkennt_nicht"]},
         {"von" => "handy", "msg" => {"t" => "b", "on" => 1, "jn" => 0}, "gleich" => ["on", "jn"], "dann" => ["erkennt"]},
-        {"von" => "handy", "msg" => {"t" => "c", "k" => "air", "v" => 900}, "gleich" => ["k", "v"], "dann" => ["hinweis"]},
+        {"von" => "handy", "msg" => {"t" => "c", "k" => "air", "v" => 900, "s" => "$s"}, "gleich" => ["k", "v"], "dann" => ["hinweis"]},
         {"von" => "handy", "msg" => {"t" => "b", "on" => 1, "jn" => 1, "ja" => 900}, "gleich" => ["on", "jn", "ja"], "dann" => ["erkennt", "bestwerte"]},
+        {"von" => "uhr", "tu" => "up", "msg" => {"t" => "a", "s" => "$s", "y" => 1}, "gleich" => ["y"]},
+        {"von" => "uhr", "tu" => "down", "still" => true},
         {"von" => "handy", "msg" => {"t" => "b", "on" => 0, "jn" => 1}, "gleich" => ["on", "jn"], "dann" => ["erkennt_nicht"]}
     ] as Array<Dictionary>);
 }

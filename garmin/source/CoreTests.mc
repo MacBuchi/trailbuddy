@@ -716,6 +716,10 @@ function act(s as Dictionary) as Void {
         c.quit();
     } else if ("endRoute".equals(tu)) {
         c.actionChoice(:endRoute);
+    } else if ("up".equals(tu)) {
+        c.pageKey(true);
+    } else if ("down".equals(tu)) {
+        c.pageKey(false);
     } else if ("shelf0".equals(tu)) {
         c.shelfChoice(0);
     } else if ("fixes".equals(tu)) {
@@ -1172,6 +1176,60 @@ function coreCueYieldsToAsk(logger as Logger) as Boolean {
     Test.assert(c.ui.asking());
     c.handle({"t" => "c", "k" => "air", "v" => 900});
     Test.assert(c.ui.toastText() == null);
+    TestCore.done();
+    return true;
+}
+
+//! 612.1: Ein Hinweis mit Kennung steht 8 s und wird mit HOCH („Stimmt")
+//! oder RUNTER („War keiner") beantwortet — `{t: "a", s, y}` ans Handy,
+//! danach ist er weg. Ohne Kennung oder ohne Hinweis blättern die Tasten.
+(:test)
+function coreCueAnswerUp(logger as Logger) as Boolean {
+    var h = new FakeHost();
+    var c = TestCore.loaded(h);
+    c.handle({"t" => "c", "k" => "air", "v" => 900, "s" => "4711"});
+    Test.assert(c.ui.cueAnswerable());
+    var before = h.sent.size();
+    c.pageKey(true);
+    Test.assertEqual(h.sent.size(), before + 1);
+    var m = h.sent[before] as Dictionary;
+    Test.assert("a".equals(m["t"]) && "4711".equals(m["s"]) && m["y"] == 1);
+    Test.assert(!c.ui.cueAnswerable());
+    // Zweimal antworten gibt es nicht: die nächste Taste blättert.
+    c.pageKey(true);
+    Test.assertEqual(h.sent.size(), before + 1);
+    TestCore.done();
+    return true;
+}
+
+(:test)
+function coreCueAnswerDown(logger as Logger) as Boolean {
+    var h = new FakeHost();
+    var c = TestCore.loaded(h);
+    c.handle({"t" => "c", "k" => "st", "v" => 800, "s" => "12"});
+    var before = h.sent.size();
+    c.pageKey(false);
+    var m = h.sent[before] as Dictionary;
+    Test.assert("a".equals(m["t"]) && "12".equals(m["s"]) && m["y"] == 0);
+    TestCore.done();
+    return true;
+}
+
+//! 612.2: Ohne Tastendruck geht nichts; ein Hinweis ohne Kennung (altes
+//! Handy) und eine Frage lassen die Tasten blättern.
+(:test)
+function coreCueAnswerGuards(logger as Logger) as Boolean {
+    var h = new FakeHost();
+    var c = TestCore.loaded(h);
+    var before = h.sent.size();
+    c.handle({"t" => "c", "k" => "air", "v" => 900});
+    Test.assert(!c.ui.cueAnswerable());
+    c.pageKey(true);
+    Test.assertEqual(h.sent.size(), before);
+    // Eine Frage geht vor: Ein Hinweis mit Kennung verfällt, die Taste blättert.
+    TestCore.newLine(c, "neu");
+    c.handle({"t" => "c", "k" => "air", "v" => 900, "s" => "5"});
+    Test.assert(!c.ui.cueAnswerable());
     TestCore.done();
     return true;
 }

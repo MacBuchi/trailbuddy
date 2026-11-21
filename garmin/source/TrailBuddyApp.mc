@@ -638,7 +638,10 @@ class TrailBuddyApp extends Application.AppBase {
         c.handle({"t" => "b", "on" => 1, "jn" => 7, "ja" => 1200, "wn" => 4, "wl" => 123, "wa" => 38});
         var cueK = (_demoScene - 1) % scenes.size();
         if ((cueK == 1 || cueK == 2) && view.page() == 0) {
-            c.handle({"t" => "c", "k" => cueK == 1 ? "air" : "st", "v" => cueK == 1 ? 1200 : 800});
+            // #612: Der Flug in Szene 1 trägt eine Kennung — die Bilder zeigen
+            // die Pfeile an HOCH und RUNTER.
+            c.handle({"t" => "c", "k" => cueK == 1 ? "air" : "st", "v" => cueK == 1 ? 1200 : 800,
+                "s" => cueK == 1 ? "demo" : null});
         }
         // #519: drei Buddys — nah, weit (am Rand), alt (Ring). Die
         // Testroute liegt am Äquator um 0/0. Die Schilder von #525/#526
@@ -757,12 +760,12 @@ class NavDelegate extends WatchUi.BehaviorDelegate {
     }
 
     function onPreviousPage() as Boolean {
-        _view.prevPage();
+        watchCore().pageKey(true);
         return true;
     }
 
     function onNextPage() as Boolean {
-        _view.nextPage();
+        watchCore().pageKey(false);
         return true;
     }
 

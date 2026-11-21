@@ -128,6 +128,9 @@ class NavView extends WatchUi.View {
     //! Eine kurze Einblendung („Trail beginnt" …) bis [_toastUntil].
     hidden var _toast as String? = null;
     hidden var _toastUntil as Number = 0;
+    //! #612: Kennung des Hinweises, der sich mit HOCH/RUNTER beantworten
+    //! lässt, bis [_toastUntil]; null ohne.
+    hidden var _cueId as String? = null;
     //! Das Zeichen vor der Einblendung (#558, TbSym), -1: keins.
     hidden var _toastSym as Number = -1;
     //! Statt des Zeichens ein Schild (#525: Trail-Moment, -1 ohne Grad)
@@ -297,6 +300,7 @@ class NavView extends WatchUi.View {
 
     //! Eine kurze Einblendung für [TOAST_MS].
     function toast(text as String) as Void {
+        _cueId = null;
         _toast = text;
         _toastSym = -1;
         _toastGrade = -2;
@@ -308,7 +312,7 @@ class NavView extends WatchUi.View {
     //! #514: ein Ereignis der Erkennung vom Handy für 3 s — [k] "air"
     //! (Flugzeit), "wh" (Wheelie, [v] Meter) oder "st" (Stoppie), [v] in
     //! ms. Unbekanntes bleibt still.
-    function cue(k as Object?, v as Object?) as Void {
+    function cue(k as Object?, v as Object?, s as Object?) as Void {
         if (!(v instanceof Number)) { return; }
         // Zeichen und Zahl statt Wort (#558): Flugzeug, Wheelie, Stoppie.
         var air = "air".equals(k);
@@ -318,14 +322,33 @@ class NavView extends WatchUi.View {
         _toastSym = air ? /*S:plane*/10 : wh ? /*S:wheelie*/11 : /*S:stoppie*/12;
         _toastGrade = -2;
         _toastInitial = null;
-        _toastUntil = System.getTimer() + 3000;
+        // #612: Mit Kennung steht er so lange wie die Antwort gilt, bis
+        // HOCH (stimmt) oder RUNTER (war keiner) ihn beantwortet.
+        var id = s instanceof String && s.length() > 0 ? s : null;
+        _cueId = id;
+        _toastUntil = System.getTimer() + (id != null ? WatchCore.CUE_ANSWER_MS : 3000);
         WatchUi.requestUpdate();
+    }
+
+    //! #612: Steht ein Hinweis, den HOCH/RUNTER beantworten? Nicht während
+    //! einer Frage (die geht vor).
+    function cueAnswerable() as Boolean {
+        return _cueId != null && !asking() && System.getTimer() - _toastUntil < 0;
+    }
+
+    //! Die Kennung des Hinweises nehmen; er ist damit beantwortet und weg.
+    function cueTake() as String? {
+        var id = _cueId;
+        _cueId = null;
+        _toastUntil = 0;
+        return id;
     }
 
     //! #525: ein Moment der Ansagen vom Handy (Trail voraus, beginnt,
     //! geschafft) — Schild und Name für 4 s, an der Stelle der Frage.
     //! [initial] statt Schild: ein Buddy ist auch unterwegs (#526).
     function nameCue(name as String, g as Number, initial as String?) as Void {
+        _cueId = null;
         _toast = name;
         _toastSym = -1;
         _toastGrade = initial == null ? g : -2;
@@ -601,6 +624,7 @@ class NavView extends WatchUi.View {
             return;
         }
         var ty = y == STATUS_TOP_Y ? /*L:toast_y_map*/82 : /*L:toast_y_page*/176;
+        if (cueAnswerable()) { drawCueKeys(dc); }
         if (_toastGrade > -2 || _toastInitial != null) {
             // Auf „angekommen" läge das Schild über der Zusammenfassung —
             // „geschafft" kommt genau dann; vibriert hat es schon.
@@ -679,6 +703,30 @@ class NavView extends WatchUi.View {
         pill(dc, _askBig ? /*L:ask_yes_big_x*/156 : /*L:ask_yes_x*/198, /*L:ask_yes_y*/64, _askBig ? "START = " + yes : yes,
             _askBig ? /*F:ask_yes_big*/Graphics.FONT_SMALL : /*F:ask_yes*/Graphics.FONT_XTINY, TbColors.ROUTE, TbColors.TEXT);
         pill(dc, /*L:ask_no_x*/194, /*L:ask_no_y*/176, str(Rez.Strings.AskNo), /*F:ask_no*/Graphics.FONT_XTINY, TbColors.MUTED_DARK, TbColors.TEXT_ON_FIELD);
+    }
+
+    //! #612: HOCH = JA (Lime, Pfeil nach oben) links in Höhe der Taste,
+    //! RUNTER = NEIN (grau, Pfeil nach unten) darunter (fēnix 5: die Tasten
+    //! sitzen bei y ≈ 120 und 200; unten läge das Feld über der
+    //! Infofläche ab y 168, deshalb rückt es hoch, die Reihenfolge bleibt).
+    //! Pfeile gezeichnet, die Schrift hat keine.
+    hidden function drawCueKeys(dc as Dc) as Void {
+        for (var i = 0; i < 2; i++) {
+            var up = i == 0;
+            var y = up ? /*L:cue_up_y*/112 : /*L:cue_dn_y*/148;
+            var x = up ? /*L:cue_up_x*/42 : /*L:cue_dn_x*/46;
+            var text = str(up ? Rez.Strings.AskYes : Rez.Strings.AskNo);
+            var font = /*F:cue_key*/Graphics.FONT_XTINY;
+            var tw = dc.getTextWidthInPixels(text, font);
+            var left = x - (tw + 16) / 2 - 8;
+            dc.setColor(up ? TbColors.ROUTE : TbColors.MUTED_DARK, Graphics.COLOR_TRANSPARENT);
+            dc.fillRoundedRectangle(left, y - 12, tw + 16 + 16, 24, 12);
+            dc.setColor(up ? TbColors.TEXT : TbColors.TEXT_ON_FIELD, Graphics.COLOR_TRANSPARENT);
+            var ax = left + 15;
+            var d = up ? -1 : 1;
+            dc.fillPolygon([[ax - 6, y - 4 * d], [ax + 6, y - 4 * d], [ax, y + 5 * d]] as Array<[Numeric, Numeric]>);
+            dc.drawText(ax + 10, y, font, text, Graphics.TEXT_JUSTIFY_LEFT | Graphics.TEXT_JUSTIFY_VCENTER);
+        }
     }
 
     hidden function pill(dc as Dc, cx as Number, y as Number, text as String, font as Graphics.FontType,

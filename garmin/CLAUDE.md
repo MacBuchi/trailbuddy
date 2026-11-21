@@ -169,6 +169,24 @@ Abbiegehinweise.
   Dann `monkeydo`/`MonkeyDoDeux` und den Simulator beenden; eine
   Gegenprobe mit Dateikopie und `trap` zurückbauen, sonst bleibt die
   entschärfte Fassung liegen.
+- **Sprung-Hinweis beantworten** (#612, 1.10.0): Das Handy hängt dem
+  Hinweis `c` die Kennung `s` an (Text: Beginn in ms modulo 10⁹ — eine
+  `Number` der Uhr hat 32 Bit, µs seit 1970 passen nicht). Mit `s` steht
+  der Hinweis `CUE_ANSWER_MS` (8 s) statt 3 s, `NavView.drawCueKeys`
+  zeichnet links zwei Felder mit gezeichnetem Pfeil (Lime „JA" oben,
+  grau „NEIN" darunter; unten an der Taste läge die Infofläche ab y 168).
+  `WatchCore.pageKey` (HOCH/RUNTER) antwortet mit `{t: "a", s, y}` und
+  blättert sonst die Seiten; jede andere Einblendung (`toast`, `nameCue`)
+  und eine Frage nehmen die Antwortfläche weg (`cueAnswerable`).
+  `a` steht in `EventLog.OUT_T` (Stelle 13, Code 53). Die Kennung geht
+  als Text hin und zurück, damit das Gespräch (`watch_cases.json`) sie
+  als `$s` binden kann — `gleich` vergleicht die Schrift, nicht den Wert,
+  deshalb steht `s` dort nicht in `gleich`. Der Vorführmodus gibt dem
+  Flug in Szene 1 die Kennung `demo`: `trail.png` zeigt die Felder (die
+  Version 1.10.0 steht auch auf `uebersicht.png`). Tests: `coreCueAnswerUp`,
+  `coreCueAnswerDown`, `coreCueAnswerGuards`, Gespräch `sprung-hinweis`.
+  Gegenprobe 2026-11-21: `pageKey` ohne `toPhone` ⇒ drei Tests rot (Uhr
+  und Dart-Seite getrennt entschärft, beide rot).
 - **Bestwerte** (`RideStats.bests`, vierte Seite „Sprünge" in `NavView`,
   Zeile in der Zusammenfassung): nur im Speicher, bleiben über einen
   Routenwechsel. Die Seite gibt es erst, wenn welche kamen (`pages()`).

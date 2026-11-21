@@ -388,7 +388,17 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     den Kacheln aus und setzt die Stand-Zeile auf „Tasche: nur Sprünge".
     Die Angabe reist als `kRideDataPhonePocket` über die Brücke (nur mit
     Erkennung), gilt also ab der nächsten Fahrt.
-  Tests: `pocket_watch_test`, `sensor_log_test` (angegeben, erkannt).
+  - **Antworten an der Uhr** (#612, `watch_route.dart`, `watch_providers.dart`):
+    `watchDetecting(…, pocket:)` zählt in der Tasche auch ohne Halterung als
+    „erkennt" (die Takte müssen laufen), der Hinweis `c` trägt `s` =
+    `watchCueId(startUs)`. Die Antwort `{t: "a", s, y}` löst
+    `_answerFromWatch` über `pending` und Log auf und ruft
+    `AirtimeLiveNotifier.answer` — dieselbe Zeile wie Banner und
+    Live-Ansicht, das Banner geht weg, die spätere Antwort gilt. Ein
+    Ereignis, das das Handy nicht kennt, schreibt nichts. Die Uhr-Hinweise
+    gibt es nur mit einer Route auf der Uhr (`_bests`), wie bisher.
+  Tests: `pocket_watch_test`, `sensor_log_test` (angegeben, erkannt),
+  `watch_cue_test` (Antwort, Tasche).
   Gegenproben 2026-11-13: ohne Filter, mit geladener Halterung, ohne die
   Speichersperre, ohne den Ruhe-Filter — je rot.
 - **Die Live-Ansicht** (#36 Schritt 4c, seit 0.148.0,

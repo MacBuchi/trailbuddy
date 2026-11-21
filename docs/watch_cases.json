@@ -21,9 +21,9 @@
     "handy_aufbau": "nav (Navigation mit Uhr, Route nach Norden um 47,5/11,5), frei (keine Navigation, ein Trail bei 48/9), sprung (ein Sprung liegt vor, die Bestwerte gehen hin); die Fahrten der Uhr hört das Handy immer",
     "uhr_aufbau": "handy (startet mit verbundenem Handy, also mit dem Lader), geladen (ohne Handy gestartet, Testroute geladen, dann das Handy da), ohne_route (Store-Bau: freie Fahrt), bad:$x (die Route $x stürzte zweimal ab), fahrt (eine Fahrt wartet aufs Handy)",
     "handlungen_handy": "navigation (Navigation mit „Auf der Uhr zeigen“ starten, ein Fix auf der Route), beenden, erkennung an (ein Takt mit gelernter Halterung), sprung (ein Sprung von 0,9 s, 3 s her), takte aus (6 s ohne Takt; #514), ablegen (eine Route auf die Uhr legen, #515), entfernen (die erste der Ablage wegnehmen)",
-    "handlungen_uhr": "start, neustart, START, ZURÜCK, Weiter, Speichern, Verwerfen, Ja (Fahrt verwerfen), Behalten, beenden (Navigation beenden: Ja), Route beenden (Aktionsmenü, #513), aus der Ablage (die erste Route der Ablage starten, #515), fixe A-B (eigene Fixe nach Norden, 55 m je Fix, alle 5 s)",
+    "handlungen_uhr": "start, neustart, START, ZURÜCK, Weiter, Speichern, Verwerfen, Ja (Fahrt verwerfen), Behalten, beenden (Navigation beenden: Ja), Route beenden (Aktionsmenü, #513), aus der Ablage (die erste Route der Ablage starten, #515), HOCH und RUNTER (beantworten einen Sprung-Hinweis mit Kennung: Stimmt / War keiner, sonst blättern sie, #612), fixe A-B (eigene Fixe nach Norden, 55 m je Fix, alle 5 s)",
     "staende_handy": "idle, sendet, gefragt, gesendet, gespeichert, unbestaetigt, fehler, fehler:<Code> (WatchSync); nav_an, nav_aus; nimmt_auf, aus, marken:<n> (Aufzeichnung des Handys); ablage:<n>, ablage_wartet (WatchShelf, #515)",
-    "staende_uhr": "wartet (auf die Antwort aufs hallo), route_kommt, frei, fragt, route:$x, nimmt_auf, pause, zu, keine_fahrt, fahrt_wartet, bestwerte, erkennt (das Handy erkennt mit gelernter Halterung, `on`), erkennt_nicht, hinweis (ein Sprung/Wheelie steht 3 s, #514), ablage:<n> (so viele Routen in der Ablage, #515)"
+    "staende_uhr": "wartet (auf die Antwort aufs hallo), route_kommt, frei, fragt, route:$x, nimmt_auf, pause, zu, keine_fahrt, fahrt_wartet, bestwerte, erkennt (das Handy erkennt mit gelernter Halterung, `on`), erkennt_nicht, hinweis (ein Sprung/Wheelie steht 3 s, #514; mit Kennung 8 s, #612), ablage:<n> (so viele Routen in der Ablage, #515)"
   },
   "faelle": [
     {
@@ -678,8 +678,10 @@
         {"von": "handy", "msg": {"t": "r", "id": "$a"}},
         {"von": "uhr", "msg": {"t": "ok", "id": "$a"}, "nach_ms": 500, "dann": {"handy": "gespeichert", "uhr": ["route:$a", "erkennt_nicht"]}},
         {"von": "handy", "tu": "erkennung an", "msg": {"t": "b", "on": 1, "jn": 0}, "gleich": ["on", "jn"], "dann": {"uhr": "erkennt"}},
-        {"von": "handy", "tu": "sprung", "msg": {"t": "c", "k": "air", "v": 900}, "gleich": ["k", "v"], "dann": {"uhr": "hinweis"}},
+        {"von": "handy", "tu": "sprung", "msg": {"t": "c", "k": "air", "v": 900, "s": "$s"}, "gleich": ["k", "v"], "dann": {"uhr": "hinweis"}},
         {"von": "handy", "msg": {"t": "b", "on": 1, "jn": 1, "ja": 900}, "gleich": ["on", "jn", "ja"], "dann": {"uhr": ["erkennt", "bestwerte"]}},
+        {"von": "uhr", "tu": "HOCH", "msg": {"t": "a", "s": "$s", "y": 1}, "gleich": ["y"]},
+        {"von": "uhr", "tu": "RUNTER", "still": true},
         {"von": "handy", "tu": "takte aus", "msg": {"t": "b", "on": 0, "jn": 1}, "gleich": ["on", "jn"], "dann": {"uhr": "erkennt_nicht"}}
       ]
     },
