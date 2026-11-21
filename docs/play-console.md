@@ -97,6 +97,12 @@ auf den Server, wenn der Nutzer teilt — oben unter „Sonstige Aktionen"
 der Fahrten in der Cloud, Konzept 10.4 „verworfen für jetzt"), ändert diese
 Tabelle.
 
+**Datenbank-Sicherungen (#603).** Der Betreiber sichert die serverseitigen
+PostgreSQL-Daten für die Wiederherstellung. Die Dateien werden vor der Ablage
+in einem privaten GitHub-Repository verschlüsselt. Der private Schlüssel
+bleibt beim Betreiber. Beim Wochenlauf bleiben die letzten zwölf Sicherungen
+erhalten. Die App lädt für diesen Zweck keine Daten hoch.
+
 **GPX-Export ist keine Weitergabe der App** (#150): Der Nutzer tippt
 „Als GPX exportieren", das System-Teilen-Menü zeigt IHM die Empfänger, die
 App schickt selbst nichts ins Netz.

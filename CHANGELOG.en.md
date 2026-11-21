@@ -2,6 +2,14 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## Encrypted database backups
+
+*Version 0.196.1, 2026-11-21*
+
+Stored accounts and trail contributions can now be recovered from encrypted
+database backups. The privacy policy describes how backups are stored and
+retained.
+
 ## Answer jump cues on your Garmin watch
 
 *Version 0.196.0, 2026-11-21*
