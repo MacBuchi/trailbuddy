@@ -37,6 +37,8 @@ class WatchCore {
     var now as Number = 0;
     //! Die Bestwerte vom Handy (#36), bleiben über einen Routenwechsel.
     hidden var _bests as Dictionary? = null;
+    hidden var _sensorCue as Dictionary? = null;
+    hidden var _sensorCueUntil as Number = 0;
     //! Buddys mit genauer Position vom Handy (#519): `l` aus `u`, je
     //! [la, lo, Buchstabe, Alter in s], und wann es kam. Nur im Speicher.
     hidden var _buddies as Array? = null;
@@ -218,6 +220,7 @@ class WatchCore {
         stats.carryFrom(old);
         stats.bests = _bests;
         stats.counting = log.state() == RideLog.RECORDING;
+        _sensorCue = null;
         ui = _host.newView(self);
         if (free) { ui.setFree(); }
         ui.setRecord(log.state(), log.trailOpen());
@@ -227,7 +230,7 @@ class WatchCore {
     //! gewartet wird (Bild des Laders, Häppchen), langsam für eine Frist,
     //! sonst keiner. Ein Timer für alles — ältere Uhren haben nur wenige.
     hidden function pace() as Void {
-        var p = loading || wait != 0 ? 50 : (swapAt != 0 || exitAt != 0 || _calmAt != 0 ? 250 : 0);
+        var p = loading || wait != 0 ? 50 : (swapAt != 0 || exitAt != 0 || _calmAt != 0 || _sensorCue != null ? 250 : 0);
         if (p != _pace) {
             _pace = p;
             _host.pace(p);
@@ -248,6 +251,7 @@ class WatchCore {
     //! Der Takt: Fristen, Lader, Häppchen der Route.
     function tick() as Void {
         now = _host.now();
+        if (_sensorCue != null && now - _sensorCueUntil >= 0) { clearSensorCue(); }
         // Die Frist der Frage läuft sichtbar ab (#513).
         if (swapAt != 0 && ui.asking()) { WatchUi.requestUpdate(); }
         if (exitAt != 0 && now - exitAt >= 0) {
@@ -439,6 +443,7 @@ class WatchCore {
         now = _host.now();
         ev(8); // Taste START
         if (closing || answerAsk(true)) { return; }
+        clearSensorCue();
         var st = log.state();
         if (st == RideLog.RECORDING) {
             log.pause();
@@ -473,6 +478,7 @@ class WatchCore {
             return;
         }
         if (answerAsk(false)) { return; }
+        clearSensorCue();
         var st = log.state();
         if (st != RideLog.RECORDING) {
             _host.menu(st == RideLog.PAUSED ? :pause : :quit);
@@ -490,6 +496,31 @@ class WatchCore {
         } else {
             _host.menu(:trail);
         }
+    }
+
+    //! Kurzes HOCH/RUNTER blättert, solange keine Sensorfrage steht.
+    //! START und LAP bleiben auch bei einem Sensorhinweis frei.
+    function pageKey(up as Boolean) as Void {
+        now = _host.now();
+        var cue = _sensorCue;
+        if (cue != null) {
+            clearSensorCue();
+            if (!closing && !asking() && now - _sensorCueUntil < 0) {
+                if (_host.connected()) {
+                    toPhone({"t" => "ca", "k" => cue["k"], "s" => cue["s"], "y" => up ? 1 : 0});
+                    _host.vibrate(false);
+                }
+                return;
+            }
+        }
+        if (up) { ui.prevPage(); } else { ui.nextPage(); }
+    }
+
+    hidden function clearSensorCue() as Void {
+        if (_sensorCue == null) { return; }
+        _sensorCue = null;
+        ui.clearSensorCue();
+        pace();
     }
 
     //! Steht die Frage nach einer neuen Linie (#501)?
@@ -524,6 +555,7 @@ class WatchCore {
         now = _host.now();
         ev(10); // langes HOCH
         if (closing || wait != 0 || asking() || !route.isReady()) { return; }
+        clearSensorCue();
         _host.menu(:action);
     }
 
@@ -663,6 +695,7 @@ class WatchCore {
     //! [keep] false heißt „Verwerfen": Die offene Fahrt geht ganz weg.
     hidden function closeDown(tellPhone as Boolean, keep as Boolean) as Void {
         if (closing) { return; }
+        clearSensorCue();
         closing = true;
         loading = false;
         ev(69); // Stand: geht zu
@@ -843,15 +876,14 @@ class WatchCore {
                 closeDown(false, true);
             }
         } else if ("b".equals(t)) {
-            // Bestwerte samt `on` (#514): Das Handy erkennt mit gelernter
-            // Halterung — die Karte zeigt ihr Zeichen am Rand.
+            // Bestwerte samt `on`: Die Karte zeigt, ob das Handy erkennt.
             _bests = d;
             stats.bests = d;
             WatchUi.requestUpdate();
         } else if ("c".equals(t)) {
-            // Ein Sprung, Wheelie oder Stoppie vom Handy, 3 s an der Stelle
-            // der Frage (#514); eine Frage geht vor, der Hinweis verfällt.
-            if (!ui.asking()) { cue(d); }
+            // Die Routenfrage geht vor, ein sichtbarer Sensorhinweis bleibt
+            // bis zur Antwort oder Frist eindeutig derselbe.
+            if (!closing && !ui.asking() && _sensorCue == null) { cue(d); }
         } else if ("u".equals(t)) {
             // Buddys mit genauer Position (#519) — gezeichnet mit dem
             // nächsten eigenen Fix, im Rahmen der laufenden Ansicht.
@@ -877,7 +909,13 @@ class WatchCore {
         var n = d["n"];
         var tr = "tr".equals(k);
         if (!tr && !"bn".equals(k)) {
-            ui.cue(k, d["v"]);
+            if (wait != 0 || loading || (!free && route.failed)) { return; }
+            var answerable = d["s"] instanceof String;
+            if (ui.cue(k, d["v"], answerable) && answerable) {
+                _sensorCue = d;
+                _sensorCueUntil = now + 8000;
+                _host.vibrate(false);
+            }
             return;
         }
         if (!(n instanceof String) || n.length() == 0) { return; }
@@ -960,6 +998,7 @@ class WatchCore {
             // (#513: START lehnte bis 1.3.x ab), danach klein.
             var first = Application.Storage.getValue("askSeen") != true;
             if (first) { PhoneRoute.store("askSeen", true); }
+            clearSensorCue();
             ui.askRoute(ASK_MS, first);
             swapAt = now + ASK_MS;
         } else {

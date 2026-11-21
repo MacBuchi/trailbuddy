@@ -39,6 +39,8 @@ ACTIONS = {
     "neustart": "restart",
     "START": "startKey",
     "ZURÜCK": "back",
+    "HOCH": "up",
+    "RUNTER": "down",
     "Weiter": "resume",
     "Speichern": "save",
     "Verwerfen": "discard",

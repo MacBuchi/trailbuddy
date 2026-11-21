@@ -246,6 +246,17 @@ void main() {
             () => stateUntil((s) => s['rec'] == 1),
           );
 
+          // Über die echte Brücke: Zeitpunkt als Text hin und unverändert zurück.
+          await step('Sensorhinweis → ca', () async {
+            const start = '1700000000000000';
+            await send({'t': 'c', 'k': 'air', 'v': 900, 's': start});
+            await send({'t': '_k', 'k': 'down'});
+            final msg = await waitFor((m) => m['t'] == kWatchCueAnswer);
+            final answer = watchCueAnswerOf(msg);
+            return answer ==
+                (startUs: int.parse(start), kind: 'air', yes: false);
+          });
+
           // Fixe entlang der Linie, damit die Fahrt Punkte hat.
           final pts = _line(_rounds, kWatchMaxPoints);
           Map<String, Object> fixes(int from, int to) => {

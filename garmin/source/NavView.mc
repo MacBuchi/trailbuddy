@@ -130,6 +130,7 @@ class NavView extends WatchUi.View {
     hidden var _toastUntil as Number = 0;
     //! Das Zeichen vor der Einblendung (#558, TbSym), -1: keins.
     hidden var _toastSym as Number = -1;
+    hidden var _sensorAnswer as Boolean = false;
     //! Statt des Zeichens ein Schild (#525: Trail-Moment, -1 ohne Grad)
     //! oder die Scheibe eines Buddys (#526); -2 bzw. null: keins.
     hidden var _toastGrade as Number = -2;
@@ -305,20 +306,28 @@ class NavView extends WatchUi.View {
         WatchUi.requestUpdate();
     }
 
-    //! #514: ein Ereignis der Erkennung vom Handy für 3 s — [k] "air"
+    //! Ein Ereignis vom Handy, mit Antwort 8 s (#612), sonst 3 s (#514) — [k] "air"
     //! (Flugzeit), "wh" (Wheelie, [v] Meter) oder "st" (Stoppie), [v] in
     //! ms. Unbekanntes bleibt still.
-    function cue(k as Object?, v as Object?) as Void {
-        if (!(v instanceof Number)) { return; }
+    function cue(k as Object?, v as Object?, answerable as Boolean) as Boolean {
+        if (!(v instanceof Number)) { return false; }
         // Zeichen und Zahl statt Wort (#558): Flugzeug, Wheelie, Stoppie.
         var air = "air".equals(k);
         var wh = "wh".equals(k);
-        if (!air && !wh && !"st".equals(k)) { return; }
+        if (!air && !wh && !"st".equals(k)) { return false; }
         _toast = wh ? v + " m" : seconds(v);
         _toastSym = air ? /*S:plane*/10 : wh ? /*S:wheelie*/11 : /*S:stoppie*/12;
         _toastGrade = -2;
         _toastInitial = null;
-        _toastUntil = System.getTimer() + 3000;
+        _sensorAnswer = answerable;
+        _toastUntil = System.getTimer() + (answerable ? 8000 : 3000);
+        WatchUi.requestUpdate();
+        return true;
+    }
+
+    function clearSensorCue() as Void {
+        _sensorAnswer = false;
+        _toast = null;
         WatchUi.requestUpdate();
     }
 
@@ -480,7 +489,7 @@ class NavView extends WatchUi.View {
     //! links am Rand der Karte. Ohne `on` nichts: Die Uhr behauptet keine
     //! Erkennung, die nicht läuft.
     hidden function drawDetect(dc as Dc, w as Number) as Void {
-        if (_stats.best("on") != 1) { return; }
+        if (_sensorAnswer || _stats.best("on") != 1) { return; }
         var x = w / 2 - TbRing.MAP_R + 12;
         var y = w / 2;
         dc.setColor(TbColors.FIELD, Graphics.COLOR_TRANSPARENT);
@@ -623,6 +632,35 @@ class NavView extends WatchUi.View {
         TbSym.draw(dc, _toastSym, x, ty - 8, TbColors.TEXT_ON_FIELD);
         dc.setColor(TbColors.TEXT_ON_FIELD, Graphics.COLOR_TRANSPARENT);
         dc.drawText(x + sw + 5, ty, font, t, Graphics.TEXT_JUSTIFY_LEFT | Graphics.TEXT_JUSTIFY_VCENTER);
+        if (_sensorAnswer) {
+            drawSensorButton(dc, w, /*L:sensor_yes_y*/120, true);
+            drawSensorButton(dc, w, /*L:sensor_no_y*/198, false);
+        }
+    }
+
+    //! Antworten direkt neben UP und DOWN; Pfeile und Haken/Kreuz
+    //! werden gezeichnet, damit sie auch auf den MIP-Uhren vorhanden sind.
+    hidden function drawSensorButton(dc as Dc, w as Number, y as Number, yes as Boolean) as Void {
+        var c = w / 2;
+        var left = c - chordAround(c, c - 4, y + 9) / 2;
+        dc.setColor(yes ? TbColors.ROUTE : TbColors.MUTED_DARK, Graphics.COLOR_TRANSPARENT);
+        dc.fillRoundedRectangle(left, y - 9, 35, 19, 9);
+        dc.setColor(yes ? TbColors.TEXT : TbColors.TEXT_ON_FIELD, Graphics.COLOR_TRANSPARENT);
+        var x = left + 10;
+        var tip = yes ? y - 5 : y + 5;
+        var base = yes ? y - 1 : y + 1;
+        dc.setPenWidth(2);
+        dc.drawLine(x, 2 * y - tip, x, tip);
+        dc.drawLine(x, tip, x - 4, base);
+        dc.drawLine(x, tip, x + 4, base);
+        if (yes) {
+            dc.drawLine(left + 20, y, left + 23, y + 4);
+            dc.drawLine(left + 23, y + 4, left + 29, y - 4);
+        } else {
+            dc.drawLine(left + 20, y - 4, left + 28, y + 4);
+            dc.drawLine(left + 28, y - 4, left + 20, y + 4);
+        }
+        dc.setPenWidth(1);
     }
 
     //! Ein Buddy als Form (A13, #519): Scheibe mit Buchstaben, weiß

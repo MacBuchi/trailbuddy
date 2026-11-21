@@ -19,6 +19,7 @@ import 'dart:math' as math;
 
 import 'package:latlong2/latlong.dart';
 
+import '../rides/pocket_watch.dart' show pocketKeeps;
 import '../rides/sensor_fusion.dart'
     show FusionEvent, FusionLive, JumpEvent, StoppieEvent, WheelieEvent;
 import '../rides/trail_values.dart' show AirtimeLog;
@@ -641,6 +642,32 @@ Map<String, Object>? watchBestsOf(AirtimeLog log, {bool on = false}) {
 /// ms, Wheelie in Metern. Eine ältere Uhr übergeht die Art.
 const kWatchCue = 'c';
 
+/// Antwort auf einen Sensorhinweis, ab Uhr-App 1.10.0: `s` gibt den
+/// Ereignisbeginn als Dezimaltext unverändert zurück (Unix-µs > 32 Bit).
+const kWatchCueAnswer = 'ca';
+const kWatchCueAnswerFrom = '1.10.0';
+
+String watchSensorKind(FusionEvent event) => switch (event) {
+  JumpEvent() => 'air',
+  WheelieEvent() => 'wh',
+  StoppieEvent() => 'st',
+};
+
+({int startUs, String kind, bool yes})? watchCueAnswerOf(Object? msg) {
+  if (msg case {
+    't': kWatchCueAnswer,
+    's': final String start,
+    'k': final String kind,
+    'y': final int yes,
+  }) {
+    final startUs = int.tryParse(start);
+    if (startUs != null && startUs > 0 && (yes == 0 || yes == 1)) {
+      return (startUs: startUs, kind: kind, yes: yes == 1);
+    }
+  }
+  return null;
+}
+
 /// Die Buddys mit genauer Position an die Uhr (#519, `watch_buddies.dart`):
 /// `{t: "u", l: [[la, lo, Buchstabe, Alter s], …]}`.
 const kWatchBuddies = 'u';
@@ -660,27 +687,27 @@ const kWatchCueMaxAge = Duration(seconds: 8);
 /// Die Takte kommen je GPS-Punkt (1 s), die Lage jetzt alle 100 ms.
 const kWatchDetectFresh = Duration(seconds: 5);
 
-/// Erkennt das Handy gerade mit gelernter Halterung? [latest] ist der
+/// Erkennt das Handy gerade? [latest] ist der
 /// jüngste Takt (Unix-µs, die Achse der Sensoren), [nowUs] die Uhrzeit.
 bool watchDetecting(FusionLive? latest, int nowUs) =>
-    latest != null &&
-    latest.mountReady &&
-    nowUs - latest.tUs <= kWatchDetectFresh.inMicroseconds;
+    latest != null && nowUs - latest.tUs <= kWatchDetectFresh.inMicroseconds;
 
-/// Der Hinweis zu [e], oder null, wenn es zur Uhrzeit [nowUs] schon zu
-/// lange vorbei ist ([kWatchCueMaxAge]) oder ein Sprung unplausibel war.
-Map<String, Object>? watchCueOf(FusionEvent e, int nowUs) {
+/// Der Hinweis zu [e], oder null für ein zu altes Ereignis. In der
+/// Tasche liefert der Dienst ausschließlich Sprünge nach `pocketKeeps`;
+/// dort soll man auch einen als unplausibel eingestuften Sprung bewerten.
+Map<String, Object>? watchCueOf(
+  FusionEvent e,
+  int nowUs, {
+  bool pocket = false,
+}) {
   final endUs = e.startUs + e.duration.inMicroseconds;
   if (nowUs - endUs > kWatchCueMaxAge.inMicroseconds) return null;
-  return switch (e) {
-    JumpEvent(:final plausible) when !plausible => null,
-    JumpEvent() => {'t': kWatchCue, 'k': 'air', 'v': e.duration.inMilliseconds},
-    WheelieEvent() => {'t': kWatchCue, 'k': 'wh', 'v': e.lengthM.round()},
-    StoppieEvent() => {
-      't': kWatchCue,
-      'k': 'st',
-      'v': e.duration.inMilliseconds,
-    },
+  if (pocket ? !pocketKeeps(e) : e is JumpEvent && !e.plausible) return null;
+  return {
+    't': kWatchCue,
+    'k': watchSensorKind(e),
+    'v': e is WheelieEvent ? e.lengthM.round() : e.duration.inMilliseconds,
+    's': e.startUs.toString(),
   };
 }
 

@@ -54,7 +54,7 @@ class TrailBuddyApp extends Application.AppBase {
     function getInitialView() as [WatchUi.Views] or [WatchUi.Views, WatchUi.InputDelegates] {
         _shown = true;
         var v = _view as NavView;
-        return [v, new NavDelegate(v)];
+        return [v, new NavDelegate()];
     }
 
     // --- Der Wirt des Ablaufs ([WatchCore]) ---------------------------------
@@ -264,7 +264,7 @@ class TrailBuddyApp extends Application.AppBase {
     function newView(c as WatchCore) as NavView {
         var v = new NavView(c.route, c.stats, c.log);
         _view = v;
-        if (_shown) { WatchUi.switchToView(v, new NavDelegate(v), WatchUi.SLIDE_IMMEDIATE); }
+        if (_shown) { WatchUi.switchToView(v, new NavDelegate(), WatchUi.SLIDE_IMMEDIATE); }
         return v;
     }
 
@@ -433,6 +433,8 @@ class TrailBuddyApp extends Application.AppBase {
             c.startKey();
         } else if ("back".equals(k)) {
             c.backKey();
+        } else if ("up".equals(k) || "down".equals(k)) {
+            c.pageKey("up".equals(k));
         } else if ("resume".equals(k) || "save".equals(k) || "discard".equals(k)) {
             _benchMenu = "";
             c.pauseChoice("resume".equals(k) ? :resume : ("save".equals(k) ? :save : :discard));
@@ -749,20 +751,17 @@ function watchCore() as WatchCore {
 //! hoch/runter blättern die Seiten, langes HOCH (MENU) öffnet das
 //! Aktionsmenü.
 class NavDelegate extends WatchUi.BehaviorDelegate {
-    hidden var _view as NavView;
-
-    function initialize(view as NavView) {
+    function initialize() {
         BehaviorDelegate.initialize();
-        _view = view;
     }
 
     function onPreviousPage() as Boolean {
-        _view.prevPage();
+        watchCore().pageKey(true);
         return true;
     }
 
     function onNextPage() as Boolean {
-        _view.nextPage();
+        watchCore().pageKey(false);
         return true;
     }
 

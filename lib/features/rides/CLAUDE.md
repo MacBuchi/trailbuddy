@@ -430,7 +430,9 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     liegen** — sonst käme kein Widget-Test zur Ruhe, und ein Fenster, das
     immer zeichnet, kostete Akku. Der Flow-Test prüft
     `hasScheduledFrame` am Ende (Gegenprobe ohne das `stop`: rot).
-  - **Eine Antwort im Fenster ist dieselbe wie im Banner**
+  - **Das Live-Fenster und die Garmin-Uhr antworten wie das Banner**
+    (ab Uhr-App 1.10.0 schlägt `WatchSync` das Ereignis der laufenden Fahrt
+    nach Art und Beginn nach)
     (`answerAirtimeInApp`: `handleWheelieResponse`, dann das Banner mit
     seiner Kennung weg); antwortet man doch zweimal, nimmt das Werkzeug
     die letzte (Wörterbuch je Beginn). Offen bleiben höchstens fünf

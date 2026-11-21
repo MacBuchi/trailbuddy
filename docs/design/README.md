@@ -1048,6 +1048,10 @@ Wheelie (Winkel, Anzahl). Wörter bleiben, wo ein Zeichen nichts sagt:
 „Aufzeichnung läuft") 2,5 s („Trail beginnt",
 „Aufzeichnung läuft") 2,5 s als schwarzes Schild in `FONT_SMALL` bei y 82
 bzw. 176; die Menüs (Pause, Trail endet) sind `Menu2` der Uhr.
+**Seit 1.10.0 (#612)** erscheinen beim Sensorschild 8 s lang zwei
+Antworten am linken Rand: Pfeil nach oben mit Haken neben UP (Lime),
+Pfeil nach unten mit Kreuz neben DOWN (Dunkelgrau).
+Die Routenfrage hat Vorrang.
 **Seit 1.8.0 (#525, #526, #519)** dasselbe schwarze Schild als Hinweis
 für 4 s mit Schild als Form und Trailname (Ansage: Trail voraus, beginnt,
 geschafft) oder mit der Scheibe eines Buddys und „Max unterwegs" — Name

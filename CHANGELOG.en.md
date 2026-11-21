@@ -2,6 +2,14 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## Answer jump cues on your Garmin watch
+
+*Version 0.196.0, 2026-11-21*
+
+With watch app 1.10.0, press UP to confirm a detected jump or DOWN to
+reject it. You can do this with your phone in your pocket. The cue lasts
+eight seconds. START and LAP still control recording and trail marks.
+
 ## Planner and ride: easier to read
 
 *Version 0.195.1, 2026-11-21*

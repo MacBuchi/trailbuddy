@@ -37,6 +37,17 @@ function talk_sprung_hinweis(logger as Logger) as Boolean {
     ] as Array<Dictionary>);
 }
 
+//! Sprung in der Tasche ohne Route (#612): Die Uhr schickt den Ereignisbeginn mit der Antwort zurück
+(:test)
+function talk_sprung_antwort(logger as Logger) as Boolean {
+    return TestTalk.play("sprung-antwort", ["ohne_route", "handy"] as Array<String>, [
+        {"von" => "uhr", "tu" => "start", "msg" => {"t" => "hi", "v" => 2, "ver" => "1.10.0"}, "gleich" => ["v"], "nach_ms" => 8500, "dann" => ["frei"]},
+        {"von" => "handy", "msg" => {"t" => "b", "on" => 1, "jn" => 0}, "gleich" => ["on", "jn"], "dann" => ["erkennt"]},
+        {"von" => "handy", "msg" => {"t" => "c", "k" => "air", "v" => 900, "s" => "$sprung"}, "gleich" => ["k", "v"], "dann" => ["hinweis"]},
+        {"von" => "uhr", "tu" => "down", "msg" => {"t" => "ca", "k" => "air", "s" => "$sprung", "y" => 0}, "gleich" => ["k", "y"]}
+    ] as Array<Dictionary>);
+}
+
 //! Ansagen und Buddys an der Uhr (#525, #526, #519): ein Trail-Moment und „Max unterwegs“ als Hinweis, dann die Buddys mit genauer Position
 (:test)
 function talk_buddys_uhr(logger as Logger) as Boolean {

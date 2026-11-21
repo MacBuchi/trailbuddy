@@ -932,6 +932,7 @@ Der Vorschlag:
 | Aufnahme läuft | Pause (Weiter · Speichern · Verwerfen) | Trail beginnt / endet | Seite | **Aktionsmenü** |
 | Pause | Weiter | Pause-Menü | Seite | **Aktionsmenü** |
 | Frage offen | **ja** | nein | Frage bleibt | — |
+| Sensorhinweis (#612) | Aufnahme | LAP wie oben | HOCH stimmt · RUNTER war keiner | Aktionsmenü |
 | Menü oder Liste | wählen | eine Ebene zurück | blättern | — |
 
 - **Das Aktionsmenü** (ein `Menu2`): Zoom · Trails in der Nähe · Route
@@ -985,6 +986,22 @@ Der Vorschlag:
   solange ihr Prozess lebt — und die Verbindung zur Uhr hängt an
   derselben Engine (`MainActivity`). Ist die App weg, fehlt mit ihr auch
   die Brücke; das ist Messung 8.7 und #524, nicht hier.
+
+**Antwort an der Uhr (#612, 1.10.0):** Ein frischer Takt (bis 5 s alt)
+zeigt laufende Erkennung einschließlich Taschenfahrt. In der Tasche
+erreichen nur vom Sensorlogger zugelassene Sprünge die Uhr; auch ein als
+unplausibel eingestufter Sprung lässt sich dort bewerten. Die Uhr meldet
+sich mit `hi`, damit Hinweise auch in der freien Fahrt ohne Route folgen.
+`c` trägt zusätzlich den Beginn `s` als Dezimaltext (Unix-µs). Die Uhr
+zeigt den Hinweis für acht Sekunden und vibriert kurz. HOCH bestätigt,
+RUNTER verwirft; START und LAP behalten ihre Aufgaben. Die Routenfrage
+verdrängt den Hinweis. Ohne Tastendruck verfällt er. `{t: "ca", k, s, y}`
+gibt Art, Ereignisbeginn und 1/0 an das Handy zurück. Dieses nimmt nur das
+passende Ereignis der laufenden Aufzeichnung und benutzt denselben
+Schreibweg wie Live-Ansicht und Banner. Die letzte Antwort zählt, und
+die Rückmeldung bleibt in den lokalen Sensordateien (A3).
+Ein älteres Handy sendet kein `s`; dafür bleibt der 3-s-Hinweis ohne Antwort.
+Gespräch `sprung-antwort`, Fälle 612.1–612.3.
 
 Gebaut wird das erst auf dem Ablaufkern aus Abschnitt 12 (T1) — sonst
 ist jede dieser Regeln wieder nur am Gerät zu prüfen.
