@@ -92,7 +92,13 @@ Live-Ansicht kannst du erkannte Ereignisse bestätigen oder verwerfen.
 
 ## Garmin
 
-<img src="garmin/shots/fenix5/deu/trail.png" alt="TrailBuddy auf der fēnix 5 mit Routenlinie und verbleibender Trail-Strecke" width="176">
+<p>
+  <img src="garmin/shots/fenix5/deu/trail.png" alt="Route und verbleibende Trail-Strecke auf der fēnix 5" width="144">
+  <img src="garmin/shots/fenix5/deu/abseits.png" alt="Abseitswarnung mit Abstand zur Route" width="144">
+  <img src="garmin/shots/fenix5/deu/aufnahme.png" alt="Laufende Aufzeichnung auf der Garmin-Uhr" width="144">
+</p>
+
+[Alle Garmin-Ansichten auf Deutsch](garmin/shots/fenix5/deu).
 
 Die Connect-IQ-App zeigt die vom Android-Handy gesendete Route an und
 vibriert beim Verlassen der Route. Sie kann eine Fahrt auch ohne Handy
