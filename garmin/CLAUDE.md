@@ -180,6 +180,16 @@ Abbiegehinweise.
   keine Frage steht (`WatchCore.handle`). Text aus `AirShort`/
   `WheelieShort`, „Stoppie" als Literal. `c` steht in `EventLog.IN_T`
   (Stelle 9, Code 33) — Dart und Werkzeug lesen die Zeile mit.
+  **Seit #612 (1.10.0):** Mit `s` (Ereignisbeginn als Dezimaltext)
+  hat das Schild 8 s Zeit für HOCH = Stimmt und RUNTER = Nein. Frist
+  und Antworttyp `ca` liegen im Kern. Die Ansicht zeichnet Pfeile und
+  Antworten am linken Rand neben den beiden Tasten.
+  START/LAP bleiben für die Aufnahme, und eine Routenfrage geht vor.
+  Alte Handys schicken `c` ohne `s` und zeigen wie bisher 3 s.
+  Der Vorführmodus gibt dem Flug in Szene 1 die Kennung (`trail.png`
+  zeigt die Felder) und „antwortet" in Szene 2 per `pageKey`: Ein
+  beantwortbarer Hinweis hält den nächsten Hinweis 8 s zurück und
+  stünde sonst über `abseits` und `angekommen`.
   Speicher (Kettenstand `CHAIN_BIG=800`, 2026-11-13): geladen 96,6 KB
   (vorher 95,8), nach dem Wechsel 97,4 KB (96,9), Spitze 102,1 KB von
   123,8 KB — +0,8 KB, der Wechsel gleich großer Routen geht weiter.

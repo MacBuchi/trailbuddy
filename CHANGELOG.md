@@ -2,6 +2,15 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Sprünge direkt an der Garmin-Uhr bewerten
+
+*Version 0.196.0, 2026-11-21*
+
+Mit Uhr-App 1.10.0 kannst du einen erkannten Sprung direkt an der fēnix
+bewerten. HOCH bedeutet „Stimmt“, RUNTER „War keiner“. Das funktioniert
+auch, wenn das Handy in der Tasche steckt. Der Hinweis bleibt acht Sekunden
+stehen. START und LAP bedienen weiter die Aufnahme und Trail-Marken.
+
 ## Planer und Fahrt: besser lesbar
 
 *Version 0.195.1, 2026-11-21*

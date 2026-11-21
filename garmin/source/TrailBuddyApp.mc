@@ -54,7 +54,7 @@ class TrailBuddyApp extends Application.AppBase {
     function getInitialView() as [WatchUi.Views] or [WatchUi.Views, WatchUi.InputDelegates] {
         _shown = true;
         var v = _view as NavView;
-        return [v, new NavDelegate(v)];
+        return [v, new NavDelegate()];
     }
 
     // --- Der Wirt des Ablaufs ([WatchCore]) ---------------------------------
@@ -264,7 +264,7 @@ class TrailBuddyApp extends Application.AppBase {
     function newView(c as WatchCore) as NavView {
         var v = new NavView(c.route, c.stats, c.log);
         _view = v;
-        if (_shown) { WatchUi.switchToView(v, new NavDelegate(v), WatchUi.SLIDE_IMMEDIATE); }
+        if (_shown) { WatchUi.switchToView(v, new NavDelegate(), WatchUi.SLIDE_IMMEDIATE); }
         return v;
     }
 
@@ -433,6 +433,8 @@ class TrailBuddyApp extends Application.AppBase {
             c.startKey();
         } else if ("back".equals(k)) {
             c.backKey();
+        } else if ("up".equals(k) || "down".equals(k)) {
+            c.pageKey("up".equals(k));
         } else if ("resume".equals(k) || "save".equals(k) || "discard".equals(k)) {
             _benchMenu = "";
             c.pauseChoice("resume".equals(k) ? :resume : ("save".equals(k) ? :save : :discard));
@@ -638,7 +640,13 @@ class TrailBuddyApp extends Application.AppBase {
         c.handle({"t" => "b", "on" => 1, "jn" => 7, "ja" => 1200, "wn" => 4, "wl" => 123, "wa" => 38});
         var cueK = (_demoScene - 1) % scenes.size();
         if ((cueK == 1 || cueK == 2) && view.page() == 0) {
-            c.handle({"t" => "c", "k" => cueK == 1 ? "air" : "st", "v" => cueK == 1 ? 1200 : 800});
+            // #612: Der Flug in Szene 1 trägt eine Kennung — `trail` zeigt die
+            // Antwortfelder an HOCH und RUNTER. In Szene 2 „antwortet" der
+            // Fahrer darauf (`pageKey`), sonst hielte der Hinweis den
+            // nächsten 8 s zurück und stünde über „angekommen".
+            if (cueK == 2) { c.pageKey(false); }
+            c.handle({"t" => "c", "k" => cueK == 1 ? "air" : "st", "v" => cueK == 1 ? 1200 : 800,
+                "s" => cueK == 1 ? "1" : null});
         }
         // #519: drei Buddys — nah, weit (am Rand), alt (Ring). Die
         // Testroute liegt am Äquator um 0/0. Die Schilder von #525/#526
@@ -749,20 +757,17 @@ function watchCore() as WatchCore {
 //! hoch/runter blättern die Seiten, langes HOCH (MENU) öffnet das
 //! Aktionsmenü.
 class NavDelegate extends WatchUi.BehaviorDelegate {
-    hidden var _view as NavView;
-
-    function initialize(view as NavView) {
+    function initialize() {
         BehaviorDelegate.initialize();
-        _view = view;
     }
 
     function onPreviousPage() as Boolean {
-        _view.prevPage();
+        watchCore().pageKey(true);
         return true;
     }
 
     function onNextPage() as Boolean {
-        _view.nextPage();
+        watchCore().pageKey(false);
         return true;
     }
 

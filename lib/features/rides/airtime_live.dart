@@ -220,8 +220,9 @@ class AirtimeLiveNotifier extends Notifier<AirtimeLiveState> {
   /// „Stimmt" ([yes]) oder „War keiner" zum ältesten offenen Ereignis.
   Future<void> answer(FusionEvent event, {required bool yes}) async {
     final file = state.file;
+    final key = airtimeEventKey(event);
     state = state.copyWith(
-      pending: [...state.pending.where((e) => !identical(e, event))],
+      pending: [...state.pending.where((e) => airtimeEventKey(e) != key)],
       log: state.log.withAnswer(event, yes: yes),
     );
     if (file == null) return;

@@ -35,7 +35,7 @@ import 'package:trailbuddy/features/rides/ride_service.dart';
 import 'package:trailbuddy/features/rides/ride_track.dart';
 import 'package:trailbuddy/features/rides/road_index.dart' show RoadCoverage;
 import 'package:trailbuddy/features/rides/airtime_message.dart'
-    show encodeAirtimeEvent, encodeAirtimeLive;
+    show encodeAirtimeEvent, encodeAirtimeLive, encodeAirtimePocket;
 import 'package:trailbuddy/features/rides/sensor_fusion.dart'
     show FusionLive, FusionPhase, JumpEvent;
 import 'package:trailbuddy/features/rides/trail_values.dart' show AirtimeLog;
@@ -273,23 +273,36 @@ class WatchPhone {
 
   /// Die Erkennung meldet einen Takt mit gelernter Halterung, 1,5 s hinter
   /// der Uhr (#514).
-  void detect() => c
-      .read(airtimeLiveProvider.notifier)
-      .accept(
-        encodeAirtimeLive(kWatchPhoneSensorFile, [
-          FusionLive(
-            tUs: clockUs - 1500000,
-            pitchDeg: 2,
-            speedKmh: 15,
-            upKnown: true,
-            phase: FusionPhase.none,
-          ),
-        ]),
+  void detect({bool pocket = false}) {
+    final live = c.read(airtimeLiveProvider.notifier);
+    if (pocket) {
+      live.accept(
+        encodeAirtimePocket(
+          kWatchPhoneSensorFile,
+          pocket: true,
+          declared: true,
+        ),
       );
+    }
+    c
+        .read(airtimeLiveProvider.notifier)
+        .accept(
+          encodeAirtimeLive(kWatchPhoneSensorFile, [
+            FusionLive(
+              tUs: clockUs - 1500000,
+              pitchDeg: pocket ? double.nan : 2,
+              speedKmh: 15,
+              upKnown: !pocket,
+              phase: FusionPhase.none,
+            ),
+          ]),
+        );
+  }
 
   /// Ein Sprung von 0,9 s, vor 3 s — samt frischem Takt.
   void jump() {
-    detect();
+    final pocket = c.read(airtimeLiveProvider).pocket;
+    detect(pocket: pocket);
     c
         .read(airtimeLiveProvider.notifier)
         .accept(
@@ -298,9 +311,9 @@ class WatchPhone {
             JumpEvent(
               startUs: clockUs - 3000000,
               duration: const Duration(milliseconds: 900),
-              landingG: 2.4,
+              landingG: pocket ? 4.2 : 2.4,
               upright: true,
-              plausible: true,
+              plausible: !pocket,
             ),
           ),
         );

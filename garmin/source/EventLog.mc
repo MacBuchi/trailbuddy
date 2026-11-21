@@ -43,7 +43,7 @@ module EventLog {
     const SIZE = 120;
     //! Die Arten der Nachrichten, je drei Zeichen ab Stelle 0.
     const IN_T = " q  wq wk p  n  k  e  r  b  c  u  sd ";
-    const OUT_T = " hi x  ok g  d  e  rs re rp rr rt w  sh ";
+    const OUT_T = " hi x  ok g  d  e  rs re rp rr rt w  sh ca ";
 
     var _ring as Array = [];
     var _head as Number = 0;

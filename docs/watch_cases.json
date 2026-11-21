@@ -20,9 +20,9 @@
     "still": "Die Seite `von` sendet in `nach_ms` nichts.",
     "handy_aufbau": "nav (Navigation mit Uhr, Route nach Norden um 47,5/11,5), frei (keine Navigation, ein Trail bei 48/9), sprung (ein Sprung liegt vor, die Bestwerte gehen hin); die Fahrten der Uhr hört das Handy immer",
     "uhr_aufbau": "handy (startet mit verbundenem Handy, also mit dem Lader), geladen (ohne Handy gestartet, Testroute geladen, dann das Handy da), ohne_route (Store-Bau: freie Fahrt), bad:$x (die Route $x stürzte zweimal ab), fahrt (eine Fahrt wartet aufs Handy)",
-    "handlungen_handy": "navigation (Navigation mit „Auf der Uhr zeigen“ starten, ein Fix auf der Route), beenden, erkennung an (ein Takt mit gelernter Halterung), sprung (ein Sprung von 0,9 s, 3 s her), takte aus (6 s ohne Takt; #514), ablegen (eine Route auf die Uhr legen, #515), entfernen (die erste der Ablage wegnehmen)",
-    "handlungen_uhr": "start, neustart, START, ZURÜCK, Weiter, Speichern, Verwerfen, Ja (Fahrt verwerfen), Behalten, beenden (Navigation beenden: Ja), Route beenden (Aktionsmenü, #513), aus der Ablage (die erste Route der Ablage starten, #515), fixe A-B (eigene Fixe nach Norden, 55 m je Fix, alle 5 s)",
-    "staende_handy": "idle, sendet, gefragt, gesendet, gespeichert, unbestaetigt, fehler, fehler:<Code> (WatchSync); nav_an, nav_aus; nimmt_auf, aus, marken:<n> (Aufzeichnung des Handys); ablage:<n>, ablage_wartet (WatchShelf, #515)",
+    "handlungen_handy": "navigation (Navigation mit „Auf der Uhr zeigen“ starten, ein Fix auf der Route), beenden, erkennung an (ein Takt mit gelernter Halterung), taschenerkennung an (frischer Takt ohne Halterung in der Tasche), sprung (ein Sprung von 0,9 s, 3 s her), takte aus (6 s ohne Takt; #514), ablegen (eine Route auf die Uhr legen, #515), entfernen (die erste der Ablage wegnehmen)",
+    "handlungen_uhr": "start, neustart, START, ZURÜCK, HOCH, RUNTER, Weiter, Speichern, Verwerfen, Ja (Fahrt verwerfen), Behalten, beenden (Navigation beenden: Ja), Route beenden (Aktionsmenü, #513), aus der Ablage (die erste Route der Ablage starten, #515), fixe A-B (eigene Fixe nach Norden, 55 m je Fix, alle 5 s)",
+    "staende_handy": "idle, sendet, gefragt, gesendet, gespeichert, unbestaetigt, fehler, fehler:<Code> (WatchSync); nav_an, nav_aus; nimmt_auf, aus, marken:<n> (Aufzeichnung des Handys); ablage:<n>, ablage_wartet (WatchShelf, #515); sprung_verworfen (#612)",
     "staende_uhr": "wartet (auf die Antwort aufs hallo), route_kommt, frei, fragt, route:$x, nimmt_auf, pause, zu, keine_fahrt, fahrt_wartet, bestwerte, erkennt (das Handy erkennt mit gelernter Halterung, `on`), erkennt_nicht, hinweis (ein Sprung/Wheelie steht 3 s, #514), ablage:<n> (so viele Routen in der Ablage, #515)"
   },
   "faelle": [
@@ -554,6 +554,23 @@
       "handy": "ein Sprung: Hinweis und Bestwerte in einer Sendung"
     },
     {
+      "id": "612.1",
+      "erwartung": "HOCH bestätigt und RUNTER verwirft den Sensorhinweis innerhalb von 8 s. START und LAP behalten ihre Aufgaben, eine Routenfrage hat Vorrang. Ohne Antwort bleibt das Handy unberührt.",
+      "uhr": "coreAnswersSensorCue",
+      "kette": ["Sensorhinweis → ca"]
+    },
+    {
+      "id": "612.3",
+      "erwartung": "Nach 8 s oder einer Routenfrage ist der Hinweis fort; die Seitentasten melden keine Antwort.",
+      "uhr": "coreSensorCueExpires"
+    },
+    {
+      "id": "612.2",
+      "erwartung": "Ein Sprung aus der Taschenfahrt erreicht die Uhr auch ohne Route. Die Antwort benutzt den Beginn des Ereignisses und denselben Schreibweg wie das Banner.",
+      "uhr": "talk_sprung_antwort",
+      "handy": "Uhr und Live-Ansicht schreiben dieselbe Sprungantwort"
+    },
+    {
       "id": "525.1",
       "erwartung": "Ein Moment der Ansagen vom Handy (`c` mit `k` „tr“: Trail voraus, beginnt, geschafft) vibriert kurz und zeigt 4 s Schild und Name an der Stelle der Frage; ein Grad außerhalb S0–S3 heißt „ohne Grad“, ohne Namen bleibt es still.",
       "uhr": "coreTrailCueShield"
@@ -681,6 +698,18 @@
         {"von": "handy", "tu": "sprung", "msg": {"t": "c", "k": "air", "v": 900}, "gleich": ["k", "v"], "dann": {"uhr": "hinweis"}},
         {"von": "handy", "msg": {"t": "b", "on": 1, "jn": 1, "ja": 900}, "gleich": ["on", "jn", "ja"], "dann": {"uhr": ["erkennt", "bestwerte"]}},
         {"von": "handy", "tu": "takte aus", "msg": {"t": "b", "on": 0, "jn": 1}, "gleich": ["on", "jn"], "dann": {"uhr": "erkennt_nicht"}}
+      ]
+    },
+    {
+      "id": "sprung-antwort",
+      "titel": "Sprung in der Tasche ohne Route (#612): Die Uhr schickt den Ereignisbeginn mit der Antwort zurück",
+      "handy": [],
+      "uhr": ["ohne_route", "handy"],
+      "schritte": [
+        {"von": "uhr", "tu": "start", "msg": {"t": "hi", "v": 2, "ver": "1.10.0"}, "gleich": ["v"], "nach_ms": 8500, "dann": {"uhr": "frei"}},
+        {"von": "handy", "tu": "taschenerkennung an", "msg": {"t": "b", "on": 1, "jn": 0}, "gleich": ["on", "jn"], "dann": {"uhr": "erkennt"}},
+        {"von": "handy", "tu": "sprung", "msg": {"t": "c", "k": "air", "v": 900, "s": "$sprung"}, "gleich": ["k", "v"], "dann": {"uhr": "hinweis"}},
+        {"von": "uhr", "tu": "RUNTER", "msg": {"t": "ca", "k": "air", "s": "$sprung", "y": 0}, "gleich": ["k", "y"], "dann": {"handy": "sprung_verworfen"}}
       ]
     },
     {
@@ -1260,12 +1289,15 @@
           ]
         },
         {
-          "was": "Ein Sprung oder Wheelie erscheint an der Uhr für 3 s, ohne neue Seite",
+          "was": "Ein Sprung oder Wheelie erscheint an der Uhr ohne neue Seite und lässt sich direkt beantworten",
           "faelle": [
             "514.1",
             "514.2",
             "514.3",
-            "514.4"
+            "514.4",
+            "612.1",
+            "612.2",
+            "612.3"
           ]
         },
         {
@@ -1280,7 +1312,7 @@
             "517.2",
             "517.3"
           ],
-          "geraet": "eine beantwortete Fahrt in der Tasche (#491: Sprünge erst ab 3,5 g Landung)"
+          "geraet": "eine an der Uhr beantwortete Fahrt in der Tasche (#491: Sprünge erst ab 3,5 g Landung)"
         }
       ]
     },

@@ -23,6 +23,8 @@ import 'package:trailbuddy/features/nearby/buddy_map_layer.dart'
 import 'package:trailbuddy/features/nearby/nearby_core.dart' show BuddySighting;
 import 'package:trailbuddy/features/nearby/nearby_providers.dart'
     show buddySightingsProvider;
+import 'package:trailbuddy/features/rides/airtime_live.dart';
+import 'package:trailbuddy/features/rides/wheelie_notify.dart';
 import 'package:trailbuddy/features/rides/ride_providers.dart'
     show rideProvider;
 import 'package:trailbuddy/features/routing/nav_providers.dart'
@@ -152,6 +154,8 @@ class _PhoneSide {
   final WidgetTester tester;
   final Map<String, dynamic> talk;
   late final WatchPhone phone;
+  final answers =
+      <({String actionId, String file, int? startUs, int? notificationId})>[];
 
   /// Was `$name` heißt, sobald eine Seite es festgelegt hat.
   final vars = <String, Object>{};
@@ -167,6 +171,19 @@ class _PhoneSide {
       trails: setup.contains('frei') ? [freeTrail()] : const [],
       jumped: setup.contains('sprung'),
       overrides: [
+        airtimeAnswerProvider.overrideWithValue(({
+          required actionId,
+          required file,
+          startUs,
+          notificationId,
+        }) async {
+          answers.add((
+            actionId: actionId,
+            file: file,
+            startUs: startUs,
+            notificationId: notificationId,
+          ));
+        }),
         if (setup.contains('buddys'))
           nearbyBuddyNameProvider.overrideWithValue((_) => 'Max'),
       ],
@@ -207,6 +224,8 @@ class _PhoneSide {
           phone.endNavigation();
         case 'erkennung an':
           phone.detect();
+        case 'taschenerkennung an':
+          phone.detect(pocket: true);
         case 'sprung':
           phone.jump();
         case 'takte aus':
@@ -410,6 +429,19 @@ class _PhoneSide {
         (WatchSyncPhase.failed, st.substring(7)),
         reason: why,
       );
+    } else if (st == 'sprung_verworfen') {
+      final startUs = int.parse(vars['sprung']! as String);
+      expect(answers, [
+        (
+          actionId: kJumpNo,
+          file: kWatchPhoneSensorFile,
+          startUs: startUs,
+          notificationId: jumpNotificationId(startUs),
+        ),
+      ]);
+      final live = phone.c.read(airtimeLiveProvider);
+      expect(live.pending, isEmpty);
+      expect(live.log.kept, isEmpty);
     } else if (st == 'nav_an') {
       expect(nav, isNotNull, reason: why);
     } else if (st == 'nav_aus') {

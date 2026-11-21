@@ -69,6 +69,14 @@
    "v": 176,
    "note": "Einblendung auf einer Zahlenseite"
   },
+  "sensor_yes_y": {
+   "v": 120,
+   "note": "Pfeil nach oben und Haken neben UP links"
+  },
+  "sensor_no_y": {
+   "v": 152,
+   "note": "Pfeil nach unten und Kreuz links, über der Infofläche (ab y 168; DOWN sitzt bei ≈ 200)"
+  },
   "ask_bar_x": {
    "v": 40,
    "note": "Frist-Balken links"

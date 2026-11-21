@@ -702,6 +702,8 @@ function act(s as Dictionary) as Void {
         c.startKey();
     } else if ("back".equals(tu)) {
         c.backKey();
+    } else if ("up".equals(tu) || "down".equals(tu)) {
+        c.pageKey("up".equals(tu));
     } else if ("resume".equals(tu)) {
         c.pauseChoice(:resume);
     } else if ("save".equals(tu)) {
@@ -1159,6 +1161,65 @@ function coreCueShows(logger as Logger) as Boolean {
     c.handle({"t" => "c", "k" => "wh", "v" => 12});
     t = c.ui.toastText();
     Test.assert(t != null && (t as String).find("12 m") != null);
+    TestCore.done();
+    return true;
+}
+
+//! 612.1: Beide Antworten treffen genau ihren Hinweis und blättern nicht.
+(:test)
+function coreAnswersSensorCue(logger as Logger) as Boolean {
+    var h = new FakeHost();
+    var c = TestCore.loaded(h);
+    c.startKey();
+    c.handle({"t" => "c", "k" => "air", "v" => 900, "s" => "1700000000000000"});
+    c.pageKey(true);
+    var yes = h.last("ca") as Dictionary;
+    Test.assertEqual(yes["y"], 1);
+    Test.assertEqual(yes["s"], "1700000000000000");
+    Test.assertEqual(c.ui.page(), 0);
+    Test.assert(c.ui.toastText() == null);
+
+    c.handle({"t" => "c", "k" => "wh", "v" => 12, "s" => "1700000010000000"});
+    c.handle({"t" => "c", "k" => "tr", "n" => "Talweg"});
+    c.pageKey(false);
+    var no = h.last("ca") as Dictionary;
+    Test.assertEqual(no["y"], 0);
+    Test.assertEqual(no["k"], "wh");
+    Test.assertEqual(no["s"], "1700000010000000");
+    Test.assertEqual(c.ui.page(), 0);
+    Test.assertEqual(c.log.state(), RideLog.RECORDING);
+
+    c.handle({"t" => "c", "k" => "st", "v" => 700, "s" => "1700000020000000"});
+    c.backKey();
+    Test.assertEqual((h.last("ca") as Dictionary)["s"], "1700000010000000");
+    c.handle({"t" => "c", "k" => "st", "v" => 700, "s" => "1700000020000000"});
+    c.startKey();
+    Test.assertEqual(c.log.state(), RideLog.PAUSED);
+    Test.assertEqual((h.last("ca") as Dictionary)["s"], "1700000010000000");
+    TestCore.done();
+    return true;
+}
+
+//! 612.1: Nach 8 s wird wieder geblättert; eine Routenfrage bricht den Hinweis ab.
+(:test)
+function coreSensorCueExpires(logger as Logger) as Boolean {
+    var h = new FakeHost();
+    var c = TestCore.loaded(h);
+    var cue = {"t" => "c", "k" => "air", "v" => 900, "s" => "1700000000000000"};
+    c.handle(cue);
+    Test.assertEqual(h.paceMs, 250);
+    TestCore.run(c, h, 8000);
+    Test.assert(c.ui.toastText() == null);
+    c.pageKey(false);
+    Test.assertEqual(c.ui.page(), 1);
+    Test.assert(h.last("ca") == null);
+
+    c.handle(cue);
+    TestCore.newLine(c, "neu");
+    Test.assert(c.ui.asking());
+    c.backKey();
+    c.pageKey(false);
+    Test.assert(h.last("ca") == null);
     TestCore.done();
     return true;
 }
