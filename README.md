@@ -67,8 +67,8 @@ Uphill-Trails und Verbindungen kommen als Zubringer infrage.
 Öffne **Vergleichen** im Routenvorschlag. Das Diagramm stellt Fahrzeit und
 Trail-Anteil jeder Runde gegenüber. Der Ring am Punkt zeigt, wie viel vom
 eingestellten Höhenmeterlimit die Runde ausschöpft. Farbe und Form zeigen
-den höchsten S-Grad. Mit **Auch über dem Limit** siehst du weitere
-Vorschläge und wie viele Höhenmeter sie zusätzlich brauchen.
+den höchsten S-Grad. Blende auch Runden **über deinem Limit** ein, um zu
+sehen, wie viele Höhenmeter sie zusätzlich brauchen.
 
 <img src="docs/readme/compare.webp" alt="Vergleichsansicht mit Fahrzeit, Trail-Anteil, Höhenmeterlimit und höchstem S-Grad" width="540">
 

@@ -65,8 +65,7 @@ connect the other parts of the route.
 Open **Compare** in the suggested loop. The chart plots ride time against
 trail share. A ring around each point shows how much of your climbing
 limit the loop uses. Colour and shape show its hardest S grade.
-**Also above the limit** shows other loops and how much extra climbing
-they need.
+Show loops **above your limit** to see how much extra climbing they need.
 
 <img src="docs/readme/en/compare.webp" alt="Loop comparison chart showing ride time, trail share, climbing limit, and hardest S grade" width="540">
 
