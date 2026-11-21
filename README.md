@@ -62,6 +62,16 @@ Uphill-Trails und Verbindungen kommen als Zubringer infrage.
 
 <img src="docs/readme/planner.webp" alt="Rundenplaner mit drei Trails auf der Karte, 12,5 Kilometern Strecke und alternativen Runden auf der Zeitskala" width="228">
 
+#### Runden im Vergleich
+
+Öffne **Vergleichen** im Routenvorschlag. Das Diagramm stellt Fahrzeit und
+Trail-Anteil jeder Runde gegenüber. Der Ring am Punkt zeigt, wie viel vom
+eingestellten Höhenmeterlimit die Runde ausschöpft. Farbe und Form zeigen
+den höchsten S-Grad. Mit **Auch über dem Limit** siehst du weitere
+Vorschläge und wie viele Höhenmeter sie zusätzlich brauchen.
+
+<img src="docs/readme/compare.webp" alt="Vergleichsansicht mit Fahrzeit, Trail-Anteil, Höhenmeterlimit und höchstem S-Grad" width="540">
+
 ### Offline-Karte und Routing zusammen speichern
 
 Zeichne den gewünschten Bereich auf der Karte ein. Wo verfügbar, lädt

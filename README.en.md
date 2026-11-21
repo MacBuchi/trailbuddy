@@ -60,6 +60,16 @@ connect the other parts of the route.
 
 <img src="docs/readme/en/planner.webp" alt="Loop planner showing four trails, a 13.2 km route, and alternatives on a time scale" width="445">
 
+#### Loops compared
+
+Open **Compare** in the suggested loop. The chart plots ride time against
+trail share. A ring around each point shows how much of your climbing
+limit the loop uses. Colour and shape show its hardest S grade.
+**Also above the limit** shows other loops and how much extra climbing
+they need.
+
+<img src="docs/readme/en/compare.webp" alt="Loop comparison chart showing ride time, trail share, climbing limit, and hardest S grade" width="540">
+
 ### Save maps and routing data for offline use
 
 Draw the area you want to save on the map. Where available, TrailBuddy also
