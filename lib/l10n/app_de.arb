@@ -10491,9 +10491,9 @@
       }
     }
   },
-  "loopStripTitle": "ANDERE RUNDEN · HÖHE = TRAIL-ANTEIL",
+  "loopStripTitle": "ANDERE RUNDEN",
   "@loopStripTitle": {
-    "description": "Kopf der Leiste im Ergebnis einer Runde (#549, Konzept-Routing 12.10): jeder Stiel ein anderer Stand des Planers, seine Höhe der Trail-Anteil. In Großbuchstaben wie die übrigen Panel-Köpfe."
+    "description": "Kopf der Leiste im Ergebnis einer Runde (#549, Konzept-Routing 12.10): jeder Stiel ein anderer Stand des Planers, seine Höhe der Trail-Anteil. In Großbuchstaben wie die übrigen Panel-Köpfe. Kurz, weil Ziel und „Vergleichen“ in derselben Zeile stehen (auf dem Pixel XL war „· HÖHE = TRAIL-ANTEIL“ abgeschnitten); den Anteil nennt die Zeile unter der Leiste."
   },
   "loopStripTarget": "Ziel {time} ± {window}",
   "@loopStripTarget": {

@@ -172,6 +172,7 @@ class _NavStartOptionsState extends ConsumerState<NavStartOptions> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final palette = AppPalette.of(context);
     final l = context.l10n;
     final screen = ref.watch(screenAwakeProvider).supported;
     final watchAsk = ref.watch(watchStatusProvider);
@@ -201,6 +202,11 @@ class _NavStartOptionsState extends ConsumerState<NavStartOptions> {
       label: Text(label),
       selected: on,
       showCheckmark: false,
+      // Ohne Haken trägt die Fläche den Zustand: Das Theme nimmt für
+      // „gewählt" `surface2`, auf dem Pixel XL sahen an und aus gleich
+      // aus (#517, 📱 2026-11-21).
+      selectedColor: AppColors.brand.withValues(alpha: 0.4),
+      side: BorderSide(color: on ? palette.accentText : palette.line),
       onSelected: set,
       // Eingeklappt muss das Ergebnis bis „Fahrt starten" passen
       // (Pixel XL, `loop_planner_flow_test`).
@@ -750,19 +756,36 @@ class _RideStatusRow extends ConsumerWidget {
       child: Row(
         children: [
           Expanded(
-            key: const ValueKey('nav-ride-status'),
-            child: Text(
-              parts.join(' · '),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: _p.text,
-                shadows: const [
-                  Shadow(blurRadius: 6, color: Color(0xCC000000)),
-                ],
-              ),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              // Eine dunkle Pille wie „Trail beginnt": Mit nur einem
+              // Schatten lief die Zeile auf der hellen Karte in die
+              // Straßennamen (📱 Pixel XL, 2026-11-21).
+              child: parts.isEmpty
+                  ? const SizedBox.shrink()
+                  : DecoratedBox(
+                      key: const ValueKey('nav-ride-status'),
+                      decoration: ShapeDecoration(
+                        color: _p.ground.withValues(alpha: 0.9),
+                        shape: StadiumBorder(side: BorderSide(color: _p.line)),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
+                        child: Text(
+                          parts.join(' · '),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: _p.text,
+                          ),
+                        ),
+                      ),
+                    ),
             ),
           ),
           if (mark != null)
