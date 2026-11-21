@@ -20,7 +20,7 @@ permissions:
 jobs:
   backup:
     if: github.repository == 'MacBuchi/trailbuddy' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
       - name: Check setup
@@ -38,17 +38,24 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Install PostgreSQL client and age
+      - name: Read the live PostgreSQL major version
+        id: postgres
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
         run: |
-          set -euo pipefail
-          sudo install -d /usr/share/postgresql-common/pgdg
-          curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc \
-            | sudo tee /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc >/dev/null
-          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" \
-            | sudo tee /etc/apt/sources.list.d/trailbuddy-pgdg.list >/dev/null
+          : "${SUPABASE_DB_URL:?Configure SUPABASE_DB_URL}"
+          version=$(psql --dbname="$SUPABASE_DB_URL" -XAtwqc 'show server_version_num')
+          [[ $version =~ ^[0-9]{6}$ ]]
+          echo "major=$((version / 10000))" >> "$GITHUB_OUTPUT"
+
+      # GitHub's Ubuntu 24.04 image already configures the PostgreSQL apt repo.
+      - name: Install the matching PostgreSQL client and age
+        env:
+          PG_MAJOR: ${{ steps.postgres.outputs.major }}
+        run: |
           sudo apt-get update -qq
-          sudo apt-get install -y -qq postgresql-client-17 age
-          echo "/usr/lib/postgresql/17/bin" >> "$GITHUB_PATH"
+          sudo apt-get install -y -qq "postgresql-client-$PG_MAJOR" age
+          echo "/usr/lib/postgresql/$PG_MAJOR/bin" >> "$GITHUB_PATH"
 
       - name: Dump, validate and encrypt without uploading
         if: inputs.dry_run

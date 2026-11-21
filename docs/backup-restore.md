@@ -34,10 +34,9 @@ Vault-Secrets, Cron-Jobs und Edge Functions. Fahrten liegen auf dem Gerät.
    Actions-Secret `BACKUP_REPO_TOKEN` im TrailBuddy-Repo hinterlegen.
    `SUPABASE_DB_URL` ist die vorhandene Session-Pooler-URI.
 4. **Database Backup** auf `main` mit `dry_run=true` manuell starten.
-   Die Zusammenfassung muss PostgreSQL 17 und die erfolgreiche
-   Verschlüsselung melden. Wenn das Live-Projekt auf eine andere
-   PostgreSQL-Hauptversion wechselt, den Client im Workflow entsprechend
-   anpassen und den Trockenlauf wiederholen.
+   Die Zusammenfassung nennt die PostgreSQL-Hauptversion und bestätigt die
+   Verschlüsselung. Der Workflow installiert den passenden Client anhand
+   der gemeldeten Server-Version.
 5. Mit `dry_run=false` erneut starten. Das private Release und das
    verschlüsselte Asset prüfen. Danach einmal die folgende Restore-Probe
    durchführen und Datum und Ergebnis in #603 festhalten.
@@ -87,7 +86,8 @@ local_sql -d trailbuddy_restore --single-transaction \
 
 Konten, Profile und Beiträge gegen den erwarteten Sicherungsstand prüfen.
 Zusätzlich die Datenbankrechte prüfen. `authenticated` darf z. B. die
-Tabelle `public.trails` nicht direkt lesen.
+Tabelle `public.trails` nicht direkt lesen. Nach der Probe die isolierte
+Datenbank und die temporären Dateien löschen.
 
 ## Wiederanlauf eines verwalteten Supabase-Projekts
 

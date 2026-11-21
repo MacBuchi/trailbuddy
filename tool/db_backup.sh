@@ -47,8 +47,8 @@ if $upload; then
   releases=$(managed_releases)
 fi
 
-# The workflow pins the client major. Query the server before writing any dump
-# so an upgrade fails visibly, even on a client that supports older servers.
+# Check the installed client before writing a dump. The workflow selects
+# the matching major at startup. A server upgrade mid-run fails visibly.
 server_version=$("${PSQL:-psql}" --dbname="$SUPABASE_DB_URL" -XAtwqc 'show server_version_num')
 [[ $server_version =~ ^[0-9]{6}$ ]] || fail "Cannot determine the PostgreSQL server version"
 server_major=$((server_version / 10000))
