@@ -27,6 +27,8 @@ import '../features/offline_areas/areas_screen.dart';
 import '../features/rides/airtime_providers.dart' show AirtimeSyncTrigger;
 import '../features/rides/rides_screen.dart';
 import '../features/routing/nav_providers.dart' show navigationProvider;
+import '../features/routing/loop_planner_controller.dart';
+import '../features/routing/map_panel.dart';
 import '../features/trails/still_valid_screen.dart';
 import '../features/trails/merge_proposal_card.dart';
 import '../features/trails/outbox_trigger.dart';
@@ -54,7 +56,48 @@ class _AuthRefresh extends ChangeNotifier {
   }
 }
 
+final _mapPopupOpenProvider = StateProvider<bool>((ref) => false);
+
+class _MapPopupObserver extends NavigatorObserver {
+  _MapPopupObserver(this.changed);
+  final void Function(bool) changed;
+  final Set<Route<dynamic>> _popups = {};
+
+  void _publish() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      changed(_popups.isNotEmpty);
+    });
+  }
+
+  @override
+  void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    if (route is PopupRoute) {
+      _popups.add(route);
+      _publish();
+    }
+  }
+
+  @override
+  void didPop(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    if (_popups.remove(route)) _publish();
+  }
+
+  @override
+  void didRemove(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    if (_popups.remove(route)) _publish();
+  }
+
+  @override
+  void didReplace({Route<dynamic>? newRoute, Route<dynamic>? oldRoute}) {
+    final removed = _popups.remove(oldRoute);
+    if (newRoute is PopupRoute) _popups.add(newRoute);
+    if (removed || newRoute is PopupRoute) _publish();
+  }
+}
+
 final routerProvider = Provider<GoRouter>((ref) {
+  var disposed = false;
+  ref.onDispose(() => disposed = true);
   final authRepository = ref.watch(authRepositoryProvider);
   // `passwordRecovery` bewusst nicht durchlassen: Ein eingelöster
   // Reset-Code erzeugt eine gültige Sitzung, BEVOR das neue Passwort
@@ -115,6 +158,12 @@ final routerProvider = Provider<GoRouter>((ref) {
             AppShell(navigationShell: navigationShell),
         branches: [
           StatefulShellBranch(
+            observers: [
+              _MapPopupObserver((open) {
+                if (disposed) return;
+                ref.read(_mapPopupOpenProvider.notifier).state = open;
+              }),
+            ],
             routes: [
               GoRoute(
                 path: '/',
@@ -279,6 +328,10 @@ class AppShell extends ConsumerWidget {
     // Navigator des Reiters VOR diesem hier; was dort noch zu schließen
     // ist, kommt also nie bis hierher.
     final onMap = navigationShell.currentIndex == kMapBranchIndex;
+    final reserveBar =
+        ref.watch(_mapPopupOpenProvider) ||
+        ref.watch(loopPlannerProvider.select((s) => s.open)) ||
+        ref.watch(mapPanelInsetProvider) > 0;
     // Die Namenswahl nach einer Anmeldung über einen Anbieter (#422) liegt
     // vor der GANZEN Hülle: keine Reiterleiste, keine Karte, keine Tour.
     return UsernameGate(
@@ -289,8 +342,12 @@ class AppShell extends ConsumerWidget {
         },
         child: Scaffold(
           // Nur auf der Karte liegt die Reiterleiste über dem Kartenbild.
-          // Alle übrigen Reiter behalten ihren deckenden Grund (#621).
-          extendBody: onMap,
+          // Mit Blättern oder Planer endet der Reiter über der Leiste: Sein
+          // Navigator und die Blätter dürfen nicht unter ihr bedienbar sein.
+          // extendBody bleibt konstant: Umschalten baut Flutters zusätzliche
+          // Layout-Hülle um und hängt den Navigator samt Semantikbaum um.
+          // Der Builder unten reserviert stattdessen den Platz der Leiste.
+          extendBody: true,
           // Die Tastatur ÜBERLAGERT, sie schiebt nicht (PilzBuddy #397).
           //
           // Ab Werk schrumpft ein Scaffold seinen Body um `viewInsets.bottom`.
@@ -315,7 +372,25 @@ class AppShell extends ConsumerWidget {
           // — der Browser startet nach dem Neuladen auf dem Reiter der URL.
           body: OutboxTrigger(
             child: AirtimeSyncTrigger(
-              child: KeyboardInsetBelowBar(child: navigationShell),
+              child: Builder(
+                builder: (context) {
+                  final media = MediaQuery.of(context);
+                  final bottom = !onMap || reserveBar
+                      ? media.padding.bottom
+                      : 0.0;
+                  return Padding(
+                    padding: EdgeInsets.only(bottom: bottom),
+                    child: MediaQuery(
+                      data: media.copyWith(
+                        padding: media.padding.copyWith(
+                          bottom: media.padding.bottom - bottom,
+                        ),
+                      ),
+                      child: KeyboardInsetBelowBar(child: navigationShell),
+                    ),
+                  );
+                },
+              ),
             ),
           ),
           // Im Bild-im-Bild (#232, 9.6) ist die App nur noch Karte: keine

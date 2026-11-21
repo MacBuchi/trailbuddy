@@ -163,15 +163,19 @@ void main() {
   testWidgets(
     '„Auf der Karte" (#222): nur, was im Ausschnitt liegt — die Karte meldet ihn',
     (tester) async {
-      await open(tester);
+      await pumpApp(tester, backend, trails: trails);
+      await settle(tester, frames: 20);
+      // Den tatsächlich sichtbaren Ausschnitt merken. Nach dem Reiterwechsel
+      // wird die versteckte Karte ohne die überlagernde Leiste neu bemessen.
+      final visibleBounds = tester
+          .state<FakeMapViewState>(find.byType(FakeMapView))
+          .camera
+          .bounds;
+      await openTab(tester, 'Trails');
+      await settle(tester, frames: 20);
       final container = ProviderScope.containerOf(
         tester.element(find.byType(TrailsScreen)),
       );
-      final camera = tester
-          .state<FakeMapViewState>(
-            find.byType(FakeMapView, skipOffstage: false),
-          )
-          .camera;
       expect(
         container.read(mapVisibleBoundsProvider),
         isNotNull,
@@ -179,7 +183,7 @@ void main() {
       );
       expect(
         container.read(mapVisibleBoundsProvider)!.north,
-        camera.bounds.north,
+        visibleBounds.north,
       );
 
       // Ein Ausschnitt um den Roßkopf (48.0) — Hexentanz (48.1) und Alter

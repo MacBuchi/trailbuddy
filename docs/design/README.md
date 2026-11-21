@@ -449,7 +449,9 @@ Werk aus.
   hier; Foto ist #37).
 - **Reiterleiste:** Grund-Farbe, aktiver Reiter als Lime-Pill. Nur auf der
   Karte liegt sie über dem Kartenbild (`ground` mit 86 % Deckkraft); in den
-  anderen Reitern bleibt sie deckend. Die runden Kartenknöpfe zeigen die
+  anderen Reitern bleibt sie deckend. Bei geöffnetem Blatt oder Planer endet
+  der Kartenreiter oberhalb der Leiste, damit keine Bedienelemente unter ihr
+  liegen. Die runden Kartenknöpfe zeigen die
   Karte mit 88 % Flächendeckung hindurch. Die Aufnahmeaktion bleibt deckend
   Lime bzw. Warnfarbe.
 
