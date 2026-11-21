@@ -62,6 +62,16 @@ Uphill-Trails und Verbindungen kommen als Zubringer infrage.
 
 <img src="docs/readme/planner.webp" alt="Rundenplaner mit drei Trails auf der Karte, 12,5 Kilometern Strecke und alternativen Runden auf der Zeitskala" width="228">
 
+#### Runden im Vergleich
+
+Öffne **Vergleichen** im Routenvorschlag. Das Diagramm stellt Fahrzeit und
+Trail-Anteil jeder Runde gegenüber. Der Ring am Punkt zeigt, wie viel vom
+eingestellten Höhenmeterlimit die Runde ausschöpft. Farbe und Form zeigen
+den höchsten S-Grad. Blende auch Runden **über deinem Limit** ein, um zu
+sehen, wie viele Höhenmeter sie zusätzlich brauchen.
+
+<img src="docs/readme/compare.webp" alt="Vergleichsansicht mit Fahrzeit, Trail-Anteil, Höhenmeterlimit und höchstem S-Grad" width="540">
+
 ### Offline-Karte und Routing zusammen speichern
 
 Zeichne den gewünschten Bereich auf der Karte ein. Wo verfügbar, lädt
@@ -92,7 +102,13 @@ Live-Ansicht kannst du erkannte Ereignisse bestätigen oder verwerfen.
 
 ## Garmin
 
-<img src="garmin/shots/fenix5/deu/trail.png" alt="TrailBuddy auf der fēnix 5 mit Routenlinie und verbleibender Trail-Strecke" width="176">
+<p>
+  <img src="garmin/shots/fenix5/deu/trail.png" alt="Route und verbleibende Trail-Strecke auf der fēnix 5" width="144">
+  <img src="garmin/shots/fenix5/deu/abseits.png" alt="Abseitswarnung mit Abstand zur Route" width="144">
+  <img src="garmin/shots/fenix5/deu/aufnahme.png" alt="Laufende Aufzeichnung auf der Garmin-Uhr" width="144">
+</p>
+
+[Alle Garmin-Ansichten auf Deutsch](garmin/shots/fenix5/deu).
 
 Die Connect-IQ-App zeigt die vom Android-Handy gesendete Route an und
 vibriert beim Verlassen der Route. Sie kann eine Fahrt auch ohne Handy

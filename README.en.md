@@ -13,8 +13,8 @@ to plan your next loop.
 [**Garmin watch app**](#garmin)
 
 <p>
-  <img src="docs/readme/android.webp" alt="Android app showing map trails colored by difficulty" width="211">
-  <img src="docs/readme/web.webp" alt="Web app showing the Canadian Trail difficulty rating and elevation profile" width="540">
+  <img src="docs/readme/en/android.webp" alt="Android app showing map trails colored by difficulty" width="211">
+  <img src="docs/readme/en/web.webp" alt="Web app showing a trail difficulty rating and elevation profile" width="540">
 </p>
 
 *Android and web with demo data.*
@@ -40,7 +40,7 @@ to plan your next loop.
 Use the buddy chat to arrange a ride, agree on a meeting point, or ask
 where to start. Open the chat using the speech bubble next to the buddy’s name.
 
-<img src="docs/readme/chat.webp" alt="Buddy chat arranging a ride and a meeting point" width="211">
+<img src="docs/readme/en/chat.webp" alt="Buddy chat arranging a ride and a meeting point" width="610">
 
 ### Share trail conditions and reports
 
@@ -48,7 +48,7 @@ Rate a trail and add your take on its difficulty. If a tree is down after
 a storm or the trail has reopened, report it directly on the trail. Add a
 short note and a photo to show your buddies what to expect.
 
-<img src="docs/readme/report.webp" alt="Trail report with status options, a sample note, and a button to attach a photo" width="388">
+<img src="docs/readme/en/report.webp" alt="Trail report with status options, a sample note, and a button to attach a photo" width="388">
 
 ### Plan loops with MTB-specific routing
 
@@ -58,7 +58,16 @@ trails in your network. Descents are routed in the riding direction unless
 they are explicitly marked as two-way. Marked uphill trails and links can
 connect the other parts of the route.
 
-<img src="docs/readme/planner.webp" alt="Loop planner showing three trails on the map, a 12.5 km route, and alternatives on a time scale" width="228">
+<img src="docs/readme/en/planner.webp" alt="Loop planner showing four trails, a 13.2 km route, and alternatives on a time scale" width="445">
+
+#### Loops compared
+
+Open **Compare** in the suggested loop. The chart plots ride time against
+trail share. A ring around each point shows how much of your climbing
+limit the loop uses. Colour and shape show its hardest S grade.
+Show loops **above your limit** to see how much extra climbing they need.
+
+<img src="docs/readme/en/compare.webp" alt="Loop comparison chart showing ride time, trail share, climbing limit, and hardest S grade" width="540">
 
 ### Save maps and routing data for offline use
 
@@ -67,7 +76,7 @@ downloads elevation, places, and path data. The saved paths let you plan
 within the area without a signal. Overlapping areas share tiles, and later downloads fetch
 only missing data. Android can also download entire map regions.
 
-<img src="docs/readme/offline.webp" alt="Offline download preview with storage size, tiles, places, elevation, and paths" width="228">
+<img src="docs/readme/en/offline.webp" alt="Offline download preview with storage size, tiles, places, elevation, and paths" width="228">
 
 ## Android only
 
@@ -79,15 +88,21 @@ detection** under “About TrailBuddy” looks for wheelies, jumps, and stoppies
 during rides. Confirm or dismiss detected events in the live view.
 
 <p>
-  <img src="docs/readme/ride.webp" alt="Active GPS ride recording with a track on the Android map" width="211">
-  <img src="docs/readme/airtime.webp" alt="Live sensor view with a simulated wheelie and buttons to confirm or dismiss it" width="260">
+  <img src="docs/readme/en/ride.webp" alt="Active GPS ride recording with a track on the Android map" width="211">
+  <img src="docs/readme/en/airtime.webp" alt="Live sensor view with a simulated wheelie and buttons to confirm or dismiss it" width="260">
 </p>
 
 *Ride recording and sensor view with simulated measurements.*
 
 ## Garmin
 
-<img src="garmin/shots/fenix5/eng/trail.png" alt="TrailBuddy on a fēnix 5 showing the route and remaining trail distance" width="176">
+<p>
+  <img src="garmin/shots/fenix5/eng/trail.png" alt="Route and remaining trail distance on the fēnix 5" width="144">
+  <img src="garmin/shots/fenix5/eng/abseits.png" alt="Off-route warning showing distance to the route" width="144">
+  <img src="garmin/shots/fenix5/eng/aufnahme.png" alt="Active ride recording on the Garmin watch" width="144">
+</p>
+
+[All Garmin screens in English](garmin/shots/fenix5/eng).
 
 The Connect IQ app displays a route sent from your Android phone and vibrates
 when you leave the route. It can record a ride on its own and later transfer
