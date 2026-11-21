@@ -74,8 +74,8 @@
    "note": "Pfeil nach oben und Haken neben UP links"
   },
   "sensor_no_y": {
-   "v": 198,
-   "note": "Pfeil nach unten und Kreuz neben DOWN links"
+   "v": 152,
+   "note": "Pfeil nach unten und Kreuz links, über der Infofläche (ab y 168; DOWN sitzt bei ≈ 200)"
   },
   "ask_bar_x": {
    "v": 40,

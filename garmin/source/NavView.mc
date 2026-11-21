@@ -634,7 +634,7 @@ class NavView extends WatchUi.View {
         dc.drawText(x + sw + 5, ty, font, t, Graphics.TEXT_JUSTIFY_LEFT | Graphics.TEXT_JUSTIFY_VCENTER);
         if (_sensorAnswer) {
             drawSensorButton(dc, w, /*L:sensor_yes_y*/120, true);
-            drawSensorButton(dc, w, /*L:sensor_no_y*/198, false);
+            drawSensorButton(dc, w, /*L:sensor_no_y*/152, false);
         }
     }
 
