@@ -471,7 +471,9 @@ class WatchShelf extends Notifier<WatchShelfState> {
       _heard = true;
       _ver = hello.ver;
       _trace('hi');
-      if (watchKnowsShelf(_ver)) _confirm(watchShelfOf(message)!.entries);
+      if (watchKnowsShelf(_ver)) {
+        _confirm(watchShelfOf(message)!.entries, hello: true);
+      }
       _flush();
       return;
     }
@@ -508,12 +510,16 @@ class WatchShelf extends Notifier<WatchShelfState> {
     }
   }
 
-  void _confirm(List<WatchShelfEntry> entries) {
+  void _confirm(List<WatchShelfEntry> entries, {bool hello = false}) {
     final stored = entries.map((entry) => entry.id).toSet();
     bool confirmed(WatchShelfJob job) => job.isPut == stored.contains(job.id);
     final sending = _sending;
     final done = sending != null && confirmed(sending);
-    if (done) {
+    // Garmin may report SUCCESS with the watch app closed. Once all parts
+    // have been sent, an empty hello from the newly opened watch can retry.
+    // A hello during the send itself must not enqueue another batch.
+    final retry = hello && sending != null && _ackTimer?.isActive == true;
+    if (done || retry) {
       _ackTimer?.cancel();
       _sending = null;
     }
@@ -529,7 +535,7 @@ class WatchShelf extends Notifier<WatchShelfState> {
       state.copyWith(
         entries: entries,
         jobs: jobs,
-        sendingId: done ? () => null : null,
+        sendingId: done || retry ? () => null : null,
         failed: updated ? () => null : null,
         failure: updated ? () => null : null,
       ),

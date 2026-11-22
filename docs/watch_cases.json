@@ -667,9 +667,14 @@
     },
     {
       "id": "637.1",
-      "erwartung": "Unklarer Öffnungsstatus: Das Handy fragt die Uhr ab. Wiederholtes Hallo dupliziert den laufenden Versand nicht. Meldet die Uhr die Route bereits in ihrer Ablage, zählt sie auch ohne separates sh als gespeichert.",
+      "erwartung": "Unklarer Öffnungsstatus: Das Handy fragt die Uhr ab. Hallo während des Sendens dupliziert den laufenden Versand nicht. Meldet die Uhr die Route bereits in ihrer Ablage, zählt sie auch ohne separates sh als gespeichert.",
       "handy": "637.1 handy: unklarer Öffnungsstatus, erneutes Hallo und verlorenes sh",
       "kette": ["Kurze Route in die Ablage → sh", "Ablage wieder leer"]
+    },
+    {
+      "id": "637.2",
+      "erwartung": "Meldet das SDK Erfolg bei geschlossener Uhr-App, löst deren Hallo nach dem Öffnen den ausstehenden Versand erneut aus.",
+      "handy": "637.2 handy: Hallo nach Versand an geschlossene Uhr versucht erneut"
     }
   ],
   "gespraeche": [
@@ -1076,7 +1081,8 @@
             "515.2",
             "515.4",
             "515.5",
-            "637.1"
+            "637.1",
+            "637.2"
           ]
         },
         {
