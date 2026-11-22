@@ -1,14 +1,38 @@
 /// The wire keys and values are stable catalog IDs shared with the database.
 enum AvatarPart {
   skin(['porcelain', 'fair', 'warm', 'tan', 'brown', 'deep']),
-  hair(['bald', 'buzz', 'short', 'curly', 'long', 'braids']),
-  beard(['none', 'stubble', 'mustache', 'full']),
+  hair([
+    'bald',
+    'buzz',
+    'short',
+    'curly',
+    'long',
+    'braids',
+    'sidePart',
+    'undercut',
+    'fringe',
+    'bun',
+    'ponytail',
+    'mohawk',
+  ]),
+  beard([
+    'none',
+    'stubble',
+    'mustache',
+    'full',
+    'goatee',
+    'handlebar',
+    'shortBoxed',
+    'long',
+    'chinstrap',
+  ]),
   expression(['smile', 'grin', 'focused', 'wink', 'laugh']),
   glasses(['none', 'clear', 'shades', 'goggles']),
   headwear(['none', 'trail', 'fullface', 'cap', 'headband']),
   background(['sand', 'sky', 'rose', 'lavender', 'slate']),
   hairColor(['black', 'brown', 'blond', 'auburn', 'gray']),
-  gearColor(['charcoal', 'blue', 'red', 'white', 'ochre']);
+  gearColor(['charcoal', 'blue', 'red', 'white', 'ochre']),
+  goggleTint(['clear', 'smoke', 'mirrored']);
 
   const AvatarPart(this.options);
 
@@ -19,6 +43,7 @@ class AvatarConfig {
   const AvatarConfig._(this._parts);
 
   final Map<AvatarPart, String> _parts;
+  static const defaultGoggleTint = 'mirrored';
 
   static const standard = AvatarConfig._({
     AvatarPart.skin: 'warm',
@@ -30,6 +55,7 @@ class AvatarConfig {
     AvatarPart.background: 'sky',
     AvatarPart.hairColor: 'brown',
     AvatarPart.gearColor: 'charcoal',
+    AvatarPart.goggleTint: defaultGoggleTint,
   });
 
   String operator [](AvatarPart part) => _parts[part]!;
@@ -41,30 +67,41 @@ class AvatarConfig {
     return AvatarConfig._(Map.unmodifiable({..._parts, part: option}));
   }
 
-  static AvatarConfig random(int Function(int) nextInt) => AvatarConfig._(
-    Map.unmodifiable({
+  static AvatarConfig random(int Function(int) nextInt) {
+    final parts = {
       for (final part in AvatarPart.values)
-        part: part.options[nextInt(part.options.length)],
-    }),
-  );
+        if (part != AvatarPart.goggleTint)
+          part: part.options[nextInt(part.options.length)],
+    };
+    final tints = AvatarPart.goggleTint.options;
+    parts[AvatarPart.goggleTint] = parts[AvatarPart.glasses] == 'goggles'
+        ? tints[nextInt(tints.length)]
+        : defaultGoggleTint;
+    return AvatarConfig._(Map.unmodifiable(parts));
+  }
 
   Map<String, Object> toJson() => {
     'v': 1,
-    for (final part in AvatarPart.values) part.name: this[part],
+    for (final part in AvatarPart.values)
+      if (part != AvatarPart.goggleTint || this[part] != defaultGoggleTint)
+        part.name: this[part],
   };
 
   static AvatarConfig? tryParse(Object? raw) {
-    if (raw is! Map ||
-        raw['v'] != 1 ||
-        raw.length != AvatarPart.values.length + 1) {
-      return null;
-    }
+    if (raw is! Map || raw['v'] != 1) return null;
     final parts = <AvatarPart, String>{};
+    var knownKeys = 1;
     for (final part in AvatarPart.values) {
+      if (part == AvatarPart.goggleTint && !raw.containsKey(part.name)) {
+        parts[part] = defaultGoggleTint;
+        continue;
+      }
       final option = raw[part.name];
       if (option is! String || !part.options.contains(option)) return null;
       parts[part] = option;
+      knownKeys++;
     }
+    if (raw.length != knownKeys) return null;
     return AvatarConfig._(Map.unmodifiable(parts));
   }
 

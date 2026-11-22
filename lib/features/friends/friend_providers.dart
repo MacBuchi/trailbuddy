@@ -10,11 +10,59 @@ import 'message_providers.dart';
 
 class FriendshipsNotifier extends AsyncNotifier<List<FriendshipEntry>>
     with ReadAfterWrite<List<FriendshipEntry>> {
+  final _revalidations = <String, Object>{};
+
   @override
   Future<List<FriendshipEntry>> build() {
-    ref.watch(currentUserIdProvider);
-    if (ref.read(currentUserIdProvider) == null) return Future.value([]);
+    ref.onDispose(_revalidations.clear);
+    if (ref.watch(currentUserIdProvider) == null) return Future.value([]);
     return ref.read(friendRepositoryProvider).fetchFriendships();
+  }
+
+  /// A cold chat already gets its relationship from the initial list load.
+  Future<void> revalidateWith(String otherId) async {
+    final uid = ref.read(currentUserIdProvider);
+    if (uid == null || state.isLoading || !state.hasValue) return;
+    final request = Object();
+    _revalidations[otherId] = request;
+    try {
+      final fresh = await ref
+          .read(friendRepositoryProvider)
+          .fetchFriendshipWith(otherId);
+      if (_revalidations[otherId] != request ||
+          ref.read(currentUserIdProvider) != uid ||
+          state.isLoading) {
+        return;
+      }
+      final entries = state.valueOrNull ?? const <FriendshipEntry>[];
+      final index = entries.indexWhere(
+        (entry) => entry.otherId(uid) == otherId,
+      );
+      if (index == -1 && fresh == null) return;
+      final updated = [...entries];
+      if (index == -1) {
+        updated.add(fresh!);
+      } else if (fresh == null) {
+        updated.removeAt(index);
+      } else {
+        updated[index] = fresh;
+      }
+      state = AsyncData(updated);
+    } catch (_) {
+      // A failed check leaves the last known relationship available offline.
+    } finally {
+      if (_revalidations[otherId] == request) _revalidations.remove(otherId);
+    }
+  }
+
+  void _forget(String uid, String otherId) {
+    _revalidations.remove(otherId);
+    final entries = state.valueOrNull;
+    if (entries == null) return;
+    state = AsyncData([
+      for (final entry in entries)
+        if (entry.otherId(uid) != otherId) entry,
+    ]);
   }
 
   Future<void> sendRequest(String addresseeId) async {
@@ -57,7 +105,14 @@ class FriendshipsNotifier extends AsyncNotifier<List<FriendshipEntry>>
   }
 
   Future<void> remove(String friendshipId) async {
+    final uid = ref.read(currentUserIdProvider);
+    final otherId = state.valueOrNull
+        ?.where((entry) => entry.id == friendshipId)
+        .firstOrNull
+        ?.otherId(uid ?? '');
     await ref.read(friendRepositoryProvider).remove(friendshipId);
+    if (uid != ref.read(currentUserIdProvider)) return;
+    if (uid != null && otherId != null) _forget(uid, otherId);
     await reloadAfterWrite('Freundschaften neu laden');
     // Ablehnen, zurückziehen, entfernen: Die Datenbank löscht Alias und
     // Nachrichten beider Seiten (Trigger) — die Listen müssen es
@@ -88,11 +143,13 @@ class BlocksNotifier extends AsyncNotifier<List<BlockedUser>>
   /// davon leben, kommen neu, auch die Trails: Was nur über ihn sichtbar
   /// war, ist weg.
   Future<void> block(String otherId) async {
+    final uid = ref.read(currentUserIdProvider);
     await ref.read(friendRepositoryProvider).block(otherId);
+    if (uid != ref.read(currentUserIdProvider)) return;
+    final friendships = ref.read(friendshipsProvider.notifier);
+    if (uid != null) friendships._forget(uid, otherId);
     await reloadAfterWrite('Blockierte neu laden');
-    await ref
-        .read(friendshipsProvider.notifier)
-        .reloadAfterWrite('Freundschaften neu laden');
+    await friendships.reloadAfterWrite('Freundschaften neu laden');
     ref.invalidate(buddyAliasesProvider);
     ref.invalidate(messagesProvider);
     await ref

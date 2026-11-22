@@ -2147,6 +2147,7 @@ declare
   fid uuid;
   avatar jsonb := '{"v":1,"skin":"warm","hair":"long","beard":"none","expression":"smile","glasses":"goggles","headwear":"trail","background":"sky","hairColor":"auburn","gearColor":"ochre"}';
   changed jsonb := avatar || '{"expression":"grin","headwear":"fullface"}';
+  option jsonb;
   invalid jsonb;
   avatar_of text := 'select count(*) from public.profile_avatars where profile_id = %L';
   save_avatar text := 'insert into public.profile_avatars (profile_id, config) values (%L, %L)
@@ -2175,11 +2176,34 @@ begin
      select count(*) from deleted', ua
   )) = 0, 'Bernd löscht Annas Avatar nicht');
 
+  foreach option in array array[
+    '{"hair":"sidePart","beard":"goatee"}'::jsonb,
+    '{"hair":"undercut","beard":"handlebar"}'::jsonb,
+    '{"hair":"fringe","beard":"shortBoxed"}'::jsonb,
+    '{"hair":"bun","beard":"long"}'::jsonb,
+    '{"hair":"ponytail","beard":"chinstrap"}'::jsonb,
+    '{"hair":"mohawk"}'::jsonb,
+    '{"goggleTint":"clear"}'::jsonb,
+    '{"goggleTint":"smoke"}'::jsonb,
+    '{"goggleTint":"mirrored"}'::jsonb
+  ] loop
+    perform tb_test.exec_as(ua, format(save_avatar, ua, avatar || option));
+    perform tb_test.check(
+      tb_test.count_as(ub, format(avatar_of || ' and config = %L', ua, avatar || option)) = 1,
+      format('Neue Avatar-Option ist speicherbar und für Buddys lesbar: %s', option)
+    );
+  end loop;
+  perform tb_test.exec_as(ua, format(save_avatar, ua, changed));
+
   foreach invalid in array array[
     avatar - 'headwear',
     avatar || '{"text":"freier Text"}',
     avatar || '{"v":"1"}',
     avatar || '{"v":2}',
+    avatar || '{"hair":"unbekannt"}',
+    avatar || '{"beard":"unbekannt"}',
+    avatar || '{"goggleTint":"unbekannt"}',
+    avatar || '{"goggleTint":null}',
     avatar || '{"glasses":null}',
     avatar || '{"hairColor":["auburn"]}',
     avatar || '{"gearColor":"#123456"}',

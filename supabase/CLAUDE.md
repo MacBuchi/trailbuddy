@@ -252,3 +252,7 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
   Die alte Spalte `profiles.avatar` bleibt für bestehende Clients.
   `matcher_check.sql` Block 37 prüft Sichtbarkeit, Schreibrechte und
   Katalogwerte; `schema_check.sh` prüft die PostgREST-Embeds.
+  Patch 037 ergänzt die Frisuren und Bartoptionen additiv. Ein alter
+  Client, der einen neuen Wert noch nicht kennt, zeigt Initialen.
+  Patch 038 erlaubt `goggleTint` optional. Ohne Feld bleibt die Scheibe
+  verspiegelt. Der Client lässt den Standard beim Speichern weg.

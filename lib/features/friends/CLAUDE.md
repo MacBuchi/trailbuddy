@@ -47,6 +47,11 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     Kein Ausgangskorb: Ohne Netz scheitert das Senden sichtbar und der
     Text bleibt im Feld; eine Nachricht, die Tage später ankommt, wäre
     schlimmer.
+  - **Ein warmer Verlauf prüft nur sein Buddy-Paar** (#630). Der Kopf
+    nutzt sofort den Stand der Freundschaftsliste. Der Paarabruf prüft
+    beide Richtungen und aktualisiert den Eintrag. Fehlt das Paar, fällt
+    es aus der Liste. Beim Kaltstart liefert der Erstabruf die Beziehung.
+    Kontowechsel, Entfernen und Blockieren verwerfen laufende Paarabrufe.
   - **Konzept 12 bleibt offen:** Eine Nachricht gehört zu genau einer
     Buddy-Beziehung, der Server rechnet nichts über Nutzer hinweg. Nicht
     Ende-zu-Ende-verschlüsselt — so in `web/datenschutz.html` und

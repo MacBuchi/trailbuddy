@@ -764,6 +764,16 @@ final kFeatureHighlights = <FeatureHighlight>[
   ),
   // ─── Tipps ───────────────────────────────────────────────────────
   FeatureHighlight(
+    id: 'avatar-styles',
+    since: '0.200.0',
+    kind: HighlightKind.tip,
+    tab: HighlightTab.profile,
+    icon: Icons.face_retouching_natural_outlined,
+    title: (l) => l.highlightAvatarStylesTitle,
+    text: (l) => l.highlightAvatarStylesText,
+    target: '/profile/avatar',
+  ),
+  FeatureHighlight(
     id: 'merge-proposals',
     since: '0.110.0',
     kind: HighlightKind.tip,

@@ -11911,6 +11911,18 @@
   "@avatarHair": {
     "description": "Abschnitt im Avatar-Editor: Frisur."
   },
+  "highlightAvatarStylesTitle": "Frisur und Bart auswählen",
+  "@highlightAvatarStylesTitle": {
+    "description": "Text zum Entdecken-Tipp für Frisuren und Bärte im Avatar-Editor."
+  },
+  "highlightAvatarStylesText": "Wähle aus zwölf Frisuren und neun Bartoptionen. Die kleinen Vorschauen zeigen jede Form ohne Helm und Brille.",
+  "@highlightAvatarStylesText": {
+    "description": "Text zum Entdecken-Tipp für Frisuren und Bärte im Avatar-Editor."
+  },
+  "demoAvatarStylesText": "Wähle eine Vorlage oder würfle. Unter Frisur und Bart kannst du danach einzelne Formen ausprobieren.",
+  "@demoAvatarStylesText": {
+    "description": "Text zum Entdecken-Tipp für Frisuren und Bärte im Avatar-Editor."
+  },
   "avatarHairBald": "Glatze",
   "@avatarHairBald": {
     "description": "Auswahl im Avatar-Editor unter Frisur."
@@ -11935,6 +11947,30 @@
   "@avatarHairBraids": {
     "description": "Auswahl im Avatar-Editor unter Frisur."
   },
+  "avatarHairSidePart": "Seitenscheitel",
+  "@avatarHairSidePart": {
+    "description": "Frisur im MTB-Avatar-Editor."
+  },
+  "avatarHairUndercut": "Undercut",
+  "@avatarHairUndercut": {
+    "description": "Frisur im MTB-Avatar-Editor."
+  },
+  "avatarHairFringe": "Pony",
+  "@avatarHairFringe": {
+    "description": "Frisur im MTB-Avatar-Editor."
+  },
+  "avatarHairBun": "Dutt",
+  "@avatarHairBun": {
+    "description": "Frisur im MTB-Avatar-Editor."
+  },
+  "avatarHairPonytail": "Pferdeschwanz",
+  "@avatarHairPonytail": {
+    "description": "Frisur im MTB-Avatar-Editor."
+  },
+  "avatarHairMohawk": "Irokesenschnitt",
+  "@avatarHairMohawk": {
+    "description": "Frisur im MTB-Avatar-Editor."
+  },
   "avatarBeard": "Bart",
   "@avatarBeard": {
     "description": "Abschnitt im Avatar-Editor: Bart."
@@ -11954,6 +11990,26 @@
   "avatarBeardFull": "Vollbart",
   "@avatarBeardFull": {
     "description": "Auswahl im Avatar-Editor unter Bart."
+  },
+  "avatarBeardGoatee": "Spitzbart",
+  "@avatarBeardGoatee": {
+    "description": "Bartform im MTB-Avatar-Editor."
+  },
+  "avatarBeardHandlebar": "Gezwirbelter Schnurrbart",
+  "@avatarBeardHandlebar": {
+    "description": "Bartform im MTB-Avatar-Editor."
+  },
+  "avatarBeardShortBoxed": "Konturierter Kurzbart",
+  "@avatarBeardShortBoxed": {
+    "description": "Bartform im MTB-Avatar-Editor."
+  },
+  "avatarBeardLong": "Langer Vollbart",
+  "@avatarBeardLong": {
+    "description": "Bartform im MTB-Avatar-Editor."
+  },
+  "avatarBeardChinstrap": "Kinnriemenbart",
+  "@avatarBeardChinstrap": {
+    "description": "Bartform im MTB-Avatar-Editor."
   },
   "avatarExpression": "Gesichtsausdruck",
   "@avatarExpression": {
@@ -11998,6 +12054,22 @@
   "avatarGlassesGoggles": "Goggles",
   "@avatarGlassesGoggles": {
     "description": "Auswahl im Avatar-Editor unter Brille."
+  },
+  "avatarGoggleTint": "Goggles-Glas",
+  "@avatarGoggleTint": {
+    "description": "Auswahl der Glastransparenz bei Goggles im Avatar-Editor."
+  },
+  "avatarGoggleTintClear": "Klar",
+  "@avatarGoggleTintClear": {
+    "description": "Auswahl der Glastransparenz bei Goggles im Avatar-Editor."
+  },
+  "avatarGoggleTintSmoke": "Leicht getönt",
+  "@avatarGoggleTintSmoke": {
+    "description": "Auswahl der Glastransparenz bei Goggles im Avatar-Editor."
+  },
+  "avatarGoggleTintMirrored": "Verspiegelt",
+  "@avatarGoggleTintMirrored": {
+    "description": "Auswahl der Glastransparenz bei Goggles im Avatar-Editor."
   },
   "avatarHeadwear": "Kopfbedeckung",
   "@avatarHeadwear": {

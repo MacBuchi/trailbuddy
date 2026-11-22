@@ -72,6 +72,10 @@ class FakeFriendshipRow {
 class FakeBackend {
   final users = <FakeUser>[];
   final friendships = <FakeFriendshipRow>[];
+  int friendshipListReads = 0;
+  final friendshipPairReads = <String>[];
+  Future<void>? friendshipPairReadGate;
+  int messageListReads = 0;
 
   /// Aliase: (Besitzer, Buddy) → Alias. Die Policies (nur der Besitzer,
   /// nur für bestätigte Buddys) und das Löschen beim Entfernen stehen im
@@ -689,25 +693,41 @@ class FakeFriendRepository implements FriendRepository {
 
   @override
   Future<List<FriendshipEntry>> fetchFriendships() async {
+    backend.friendshipListReads++;
     backend.failIfOffline();
     return [
       for (final f in backend.friendships)
-        if (f.requesterId == _uid || f.addresseeId == _uid)
-          FriendshipEntry(
-            id: f.id,
-            status: f.status,
-            requesterId: f.requesterId,
-            addresseeId: f.addresseeId,
-            requesterUsername: backend.userById(f.requesterId).username,
-            addresseeUsername: backend.userById(f.addresseeId).username,
-            requesterAvatar: f.status == 'accepted'
-                ? backend.userById(f.requesterId).avatarConfig
-                : null,
-            addresseeAvatar: f.status == 'accepted'
-                ? backend.userById(f.addresseeId).avatarConfig
-                : null,
-          ),
+        if (f.requesterId == _uid || f.addresseeId == _uid) _entry(f),
     ];
+  }
+
+  @override
+  Future<FriendshipEntry?> fetchFriendshipWith(String otherId) async {
+    backend.friendshipPairReads.add(otherId);
+    backend.failIfOffline();
+    final row = backend.friendships.where((f) {
+      return (f.requesterId == _uid && f.addresseeId == otherId) ||
+          (f.requesterId == otherId && f.addresseeId == _uid);
+    }).firstOrNull;
+    final entry = row == null ? null : _entry(row);
+    await backend.friendshipPairReadGate;
+    return entry;
+  }
+
+  FriendshipEntry _entry(FakeFriendshipRow row) {
+    final requester = backend.userById(row.requesterId);
+    final addressee = backend.userById(row.addresseeId);
+    final accepted = row.status == 'accepted';
+    return FriendshipEntry(
+      id: row.id,
+      status: row.status,
+      requesterId: row.requesterId,
+      addresseeId: row.addresseeId,
+      requesterUsername: requester.username,
+      addresseeUsername: addressee.username,
+      requesterAvatar: accepted ? requester.avatarConfig : null,
+      addresseeAvatar: accepted ? addressee.avatarConfig : null,
+    );
   }
 
   @override
@@ -933,6 +953,7 @@ class FakeMessageRepository implements MessageRepository {
 
   @override
   Future<List<BuddyMessage>> fetchAll() async {
+    backend.messageListReads++;
     backend.failIfOffline();
     final now = DateTime.now();
     return [
