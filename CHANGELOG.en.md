@@ -2,6 +2,14 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## Trail hotspots on the map
+
+*Version 0.199.0, 2026-11-22*
+
+When you zoom out, the map groups nearby trails into rings. The count
+and colors show how many trails there are and their difficulty. Tap a
+ring to zoom in.
+
 ## Map controls
 
 *Version 0.198.0, 2026-11-21*

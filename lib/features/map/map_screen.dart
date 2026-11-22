@@ -99,6 +99,7 @@ import 'poi.dart';
 import 'line_smoothing.dart';
 import 'poi_layer.dart';
 import 'trail_badges.dart';
+import 'trail_hotspots.dart';
 import 'trail_quick_card.dart';
 import 'position_provider.dart';
 import 'poi_source.dart';
@@ -133,6 +134,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
 
   static const _dachCenter = LatLng(48.8, 10.5);
   static const _initialZoom = 6.0;
+  final _trailHotspots = TrailHotspotCache();
 
   final _controller = MapViewController(
     initialCenter: _dachCenter,
@@ -334,6 +336,18 @@ class _MapScreenState extends ConsumerState<MapScreen> {
             if (!wasOpen && mounted) {
               ref.read(loopPlannerProvider.notifier).close();
             }
+          };
+        }),
+      )
+      ..add(
+        coach.registerScene(MapCoach.hotspots, () async {
+          final trail = _coachTrail;
+          if (trail == null) return () {};
+          final center = _controller.center;
+          final zoom = _controller.zoom;
+          _controller.move(trail.start, kTrailDetailZoom - 0.5);
+          return () {
+            if (mounted) _controller.move(center, zoom);
           };
         }),
       )
@@ -944,6 +958,13 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       return;
     }
     switch (hit) {
+      case final TrailHotspot hotspot:
+        _controller.move(
+          hotspot.center,
+          (tap.camera.zoom.floor() + 2)
+              .clamp(0, kTrailDetailZoom + 0.1)
+              .toDouble(),
+        );
       // Ein Tipp auf die Verbindung eines Ergebnisses: ein Zwischenpunkt
       // (#234), solange sein Ergebnis die Punkte annimmt.
       case final RouteLegHit h:
@@ -1926,6 +1947,23 @@ class _MapScreenState extends ConsumerState<MapScreen> {
 
     // Was der Ausschnitt braucht — und was davon fehlt, wird nachgeladen.
     final camera = _camera;
+    final trailZoom = camera?.zoom ?? _initialZoom;
+    final clusterTrails =
+        trailZoom < kTrailDetailZoom &&
+        !loop.open &&
+        nav == null &&
+        selected == null;
+    final detailTrails = clusterTrails
+        ? shownTrails.where((trail) => trail.pending)
+        : shownTrails;
+    final hotspots = clusterTrails
+        ? _trailHotspots.markers(shownTrails, trailZoom)
+        : const <MapViewMarker>[];
+    final coachHotspot = camera == null
+        ? null
+        : hotspots
+              .where((marker) => camera.bounds.contains(marker.point))
+              .firstOrNull;
     final cells = poiCellsFor(camera, groups);
     final officialView = officialViewFor(camera, official, enabled: officialOn);
     _scheduleLoads(cells: cells, groups: groups, officialView: officialView);
@@ -2048,7 +2086,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
         // Die Route der Navigation unter dem Netz: Trails auf ihr behalten
         // ihre Farbe (Konzept-Routing 9.2).
         if (nav != null) ...navRouteLines(nav),
-        for (final t in shownTrails)
+        for (final t in detailTrails)
           MapViewPolyline(
             // Geglättet für das Bild (`line_smoothing.dart`) — gerechnet
             // wird überall sonst mit den Originalpunkten.
@@ -2087,9 +2125,21 @@ class _MapScreenState extends ConsumerState<MapScreen> {
         // Anfang, Richtung und Ende (#96) und das Schild am Trailanfang
         // (Design 4c) — über den Orten, weil sie zum Netz gehören; das
         // Schild zuoberst, es ist das Antippbare.
-        ...trailEndMarkers(shownTrails, camera, coachTrailId: _coachTrail?.id),
+        for (final hotspot in hotspots)
+          if (identical(hotspot, coachHotspot))
+            MapViewMarker(
+              key: hotspot.key,
+              point: hotspot.point,
+              width: hotspot.width,
+              height: hotspot.height,
+              hitValue: hotspot.hitValue,
+              child: CoachAnchor(id: MapCoach.hotspots, child: hotspot.child),
+            )
+          else
+            hotspot,
+        ...trailEndMarkers(detailTrails, camera, coachTrailId: _coachTrail?.id),
         ...trailBadgeMarkers(
-          shownTrails,
+          detailTrails,
           camera,
           coachTrailId: _coachTrail?.id,
         ),

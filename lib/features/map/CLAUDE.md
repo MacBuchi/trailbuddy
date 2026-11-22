@@ -777,3 +777,15 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
   Protomaps-Stils über `addLayer` an, die Reihenfolge stimmt, und der
   Zähler bleibt im Bereich bei 0 (Zahlen in `docs/konzept-traffic.md`
   H3).
+- **Trail-Hotspots (#620)**: Unter Zoom 12 der gemeinsamen 256er-Skala
+  ersetzt die Übersicht die Trail-Linien durch Ringe. Ein festes
+  Web-Mercator-Raster mit 64 dp pro ganzzahliger Zoomstufe zählt jeden
+  durchgelassenen Trail am gerichteten Start genau einmal. Der
+  Ring steht in der Zellenmitte, sein Tipp zoomt zum Start eines Trails
+  in der Zelle. Cache-Schlüssel sind die ganzzahlige Zoomstufe und die
+  gefilterte Trail-Liste. Bei Kamerabewegung innerhalb der Stufe bleiben
+  die Marker gleich. Der Planer, die Navigation und die Trail-Auswahl
+  behalten die Linien, ebenso wartende Aufzeichnungen aus dem Ausgangskorb.
+  Beide Engines verwenden dieselben Marker und dieselbe Trefferprüfung.
+  flutter_map meldet Sprünge von `MapController` als `MapEventMove`;
+  sie melden ebenfalls Stillstand, damit ein Tipp sofort neu gruppiert.

@@ -188,6 +188,10 @@ Karte steht, ist aus sichtbaren Beiträgen gerechnet:**
 - **Linie** = die Aufzeichnung mit der höchsten Qualität unter den
   sichtbaren. Wer allein ist, sieht seine eigene; wer Buddys hat, sieht
   vielleicht deren bessere. Kein Mittelwert (siehe 4.5).
+- **Hotspot** = in der Übersicht die Anzahl und Verteilung der
+  Schwierigkeitsgrade der sichtbaren, gefilterten Trails in einer
+  Kartenzelle. Die App berechnet den Ring auf dem Gerät und zeigt beim
+  Hineinzoomen wieder die Linien.
 - **Länge** = aus dieser Linie. **Höhenmeter, mittleres Gefälle,
   steilstes Stück und Profil** = aus den Höhen der besten sichtbaren
   Aufzeichnung, die welche HAT (eine je Punkt, Patch 002) — nicht

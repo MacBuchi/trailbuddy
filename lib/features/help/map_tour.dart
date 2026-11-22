@@ -46,6 +46,7 @@ abstract final class MapCoach {
 
   /// Die Lupe (#576), oben in [buttons]: öffnet das Suchfeld.
   static const search = 'map.search';
+  static const hotspots = 'map.hotspots';
 
   /// Offline-Karten: öffnet die Leiste [rail].
   static const offline = 'map.offline';
