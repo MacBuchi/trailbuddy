@@ -30,6 +30,9 @@ Abbiegehinweise.
 - **Diagnose der Ablage**: Im Geräte-Testbuild langes HOCH → Diagnose.
   `r` heißt Stück angenommen, `sh` heißt die Uhr hat gespeichert,
   `x` nennt den Ablehnungsgrund. Die Stücknummer ist einsbasiert.
+  Die Anzeige ist eine kleine `View`: Ein zweites `Menu2` neben einer
+  geladenen 1.000-Punkte-Route stürzte im fēnix-5-Simulator mit
+  `Out Of Memory Error` ab.
   Im Store-Bau werden die `diag`-Implementierungen ausgeschlossen.
 - **Unit-Tests in CI** (#512, T6): `watch-tests.yml` fährt
   `tool/garmin_sim.sh up <uhr>` + `unit` für jede Uhr des Manifests im

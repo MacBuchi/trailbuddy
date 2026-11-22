@@ -1,6 +1,7 @@
 import Toybox.Application;
 import Toybox.Attention;
 import Toybox.Communications;
+import Toybox.Graphics;
 import Toybox.Lang;
 import Toybox.Math;
 import Toybox.Position;
@@ -141,10 +142,6 @@ class TrailBuddyApp extends Application.AppBase {
     //! Aktionsmenü (langes HOCH, #513), `:zoom` die Zoomstufen.
     (:nobench)
     function menu(kind as Symbol) as Void {
-        if (kind == :diagnosis) {
-            showDiagnosis();
-            return;
-        }
         if (kind == :action) {
             actionMenu();
             return;
@@ -210,16 +207,12 @@ class TrailBuddyApp extends Application.AppBase {
     hidden function addDiagnosis(m as WatchUi.Menu2) as Void {}
 
     (:diag)
-    hidden function showDiagnosis() as Void {
-        var m = new WatchUi.Menu2({:title => str(Rez.Strings.Diagnosis)});
-        m.addItem(new WatchUi.MenuItem("v" + TbVersion.VERSION, "BT: " + (connected() ? "+" : "−"), 0, null));
-        m.addItem(new WatchUi.MenuItem(str(Rez.Strings.DiagnosisPart), core.shelfDiagPart, 1, null));
-        m.addItem(new WatchUi.MenuItem(str(Rez.Strings.Shelf), PhoneRoute.shelf().size() + " · " + core.shelfDiagResult, 2, null));
-        WatchUi.switchToView(m, new MenuDelegate(:diagnosis), WatchUi.SLIDE_IMMEDIATE);
+    function showDiagnosis() as Void {
+        WatchUi.switchToView(new ShelfDiagnosisView(), new ShelfDiagnosisDelegate(), WatchUi.SLIDE_IMMEDIATE);
     }
 
     (:nodiag)
-    hidden function showDiagnosis() as Void {}
+    function showDiagnosis() as Void {}
 
     //! Von selbst · 135 m · 203 m · 540 m; die jetzige Wahl hat den Fokus.
     (:nobench)
@@ -775,6 +768,39 @@ function watchCore() as WatchCore {
     return (Application.getApp() as TrailBuddyApp).core;
 }
 
+//! Ein zweites Menu2 neben der laufenden Karte sprengte den Speicher der
+//! fēnix 5. Die Diagnose zeichnet deshalb nur vier Zeilen.
+(:diag)
+class ShelfDiagnosisView extends WatchUi.View {
+    function initialize() { View.initialize(); }
+
+    function onUpdate(dc as Graphics.Dc) as Void {
+        var app = Application.getApp() as TrailBuddyApp;
+        var cx = dc.getWidth() / 2;
+        var cy = dc.getHeight() / 2;
+        var font = Graphics.FONT_XTINY;
+        var justify = Graphics.TEXT_JUSTIFY_CENTER;
+        dc.setColor(TbColors.TEXT_ON_FIELD, TbColors.FIELD);
+        dc.clear();
+        dc.setColor(TbColors.ROUTE, TbColors.FIELD);
+        dc.drawText(cx, cy - 50, Graphics.FONT_SMALL, WatchUi.loadResource(Rez.Strings.Diagnosis) as String, justify);
+        dc.setColor(TbColors.TEXT_ON_FIELD, TbColors.FIELD);
+        dc.drawText(cx, cy - 20, font, "v" + TbVersion.VERSION + " · BT " + (app.connected() ? "+" : "-"), justify);
+        dc.drawText(cx, cy + 2, font, (WatchUi.loadResource(Rez.Strings.DiagnosisPart) as String) + ": " + app.core.shelfDiagPart, justify);
+        dc.drawText(cx, cy + 24, font, PhoneRoute.shelf().size() + " · " + app.core.shelfDiagResult, justify);
+    }
+}
+
+(:diag)
+class ShelfDiagnosisDelegate extends WatchUi.BehaviorDelegate {
+    function initialize() { BehaviorDelegate.initialize(); }
+
+    function onBack() as Boolean {
+        WatchUi.popView(WatchUi.SLIDE_IMMEDIATE);
+        return true;
+    }
+}
+
 //! Die Tasten wie bei Garmin (Betreiber 2026-11-07, Konzept-Garmin 1),
 //! eine Taste eine Bedeutung (#513, E2): START beginnt die Aufzeichnung
 //! bzw. hält sie an (Menü) und heißt bei einer Frage ja, ZURÜCK ist LAP
@@ -831,10 +857,9 @@ class MenuDelegate extends WatchUi.Menu2InputDelegate {
     function onSelect(item as WatchUi.MenuItem) as Void {
         var id = item.getId();
         if (_kind == :action && id == :diagnosis) {
-            (Application.getApp() as TrailBuddyApp).menu(:diagnosis);
+            (Application.getApp() as TrailBuddyApp).showDiagnosis();
             return;
         }
-        if (_kind == :diagnosis) { return; }
         if (id != :discard && id != :zoom && id != :shelf) { WatchUi.popView(WatchUi.SLIDE_IMMEDIATE); }
         var c = watchCore();
         if (_kind == :pause) {
