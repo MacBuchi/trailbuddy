@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:trailbuddy/core/widgets/rider_avatar.dart';
@@ -13,6 +15,13 @@ void main() {
   testWidgets('all avatar options at live marker, chat and editor sizes', (
     tester,
   ) async {
+    final comparator = goldenFileComparator;
+    if (comparator is LocalFileComparator) {
+      goldenFileComparator = _PortraitComparator(
+        comparator.basedir.resolve('avatar_portraits_test.dart'),
+      );
+      addTearDown(() => goldenFileComparator = comparator);
+    }
     tester.view.devicePixelRatio = 1;
     tester.view.physicalSize = const Size(1000, 800);
     addTearDown(tester.view.reset);
@@ -114,4 +123,25 @@ void main() {
       matchesGoldenFile('goldens/avatar_portraits.png'),
     );
   });
+}
+
+class _PortraitComparator extends LocalFileComparator {
+  _PortraitComparator(super.testFile);
+
+  // The Linux renderer differed from macOS in 56 of 470,016 pixels (0.012%).
+  static const _rasterTolerance = 0.0002;
+
+  @override
+  Future<bool> compare(Uint8List imageBytes, Uri golden) async {
+    final result = await GoldenFileComparator.compareLists(
+      imageBytes,
+      await getGoldenBytes(golden),
+    );
+    try {
+      if (result.passed || result.diffPercent <= _rasterTolerance) return true;
+      throw FlutterError(await generateFailureOutput(result, golden, basedir));
+    } finally {
+      result.dispose();
+    }
+  }
 }
