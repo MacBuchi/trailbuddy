@@ -2,6 +2,12 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Routen an Kreuzungen
+
+*Version 0.202.0, 2026-11-22*
+
+Im Planer liegt die erste Durchfahrt oben. Unterwegs leuchtet der nächste Weg kräftig grün und verblasst über 500 Meter. Bereits gefahrene Stücke treten zurück.
+
 ## GPX-Routen, Trail-Hotspots und Garmin-Ablage
 
 *Version 0.201.0, 2026-11-22*

@@ -19,6 +19,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:pmtiles/pmtiles.dart';
+import 'package:trailbuddy/core/app_colors.dart';
 import 'package:trailbuddy/core/picture_in_picture.dart';
 import 'package:trailbuddy/core/screen_awake.dart';
 import 'package:trailbuddy/features/garmin/garmin_bridge.dart'
@@ -383,7 +384,8 @@ void main() {
       // Die Route liegt unter dem Netz in der Farbe des Ergebnisses.
       expect(routeBand(tester), isNotEmpty);
       expect(
-        routeBand(tester).every((l) => l.opacity == kRouteFollowOpacity),
+        routeBand(tester).first.opacity == kRouteFollowOpacity &&
+            routeBand(tester).last.opacity == 0.35,
         isTrue,
       );
 
@@ -392,7 +394,11 @@ void main() {
       expect(textIn('nav-remaining'), contains('758 m'));
       expect(textIn('nav-dist'), contains('758'));
       expect(
-        fakeMapLayers(tester).polylines.where((l) => l.width == 4),
+        fakeMapLayers(tester).polylines.where(
+          (l) =>
+              l.width == 3 &&
+              l.color == AppColors.routeEdge.withValues(alpha: 0.25),
+        ),
         hasLength(1),
       );
       // Der GPS-Kurs gilt in Fahrt.

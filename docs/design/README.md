@@ -156,19 +156,14 @@ gestrichelt (12/8) und blass.
 **Die geplante Route ist ein Band, „B+"** (#295, Betreiber 2026-10-11,
 nach sechs Skizzen): Lime 12 px mit einem Rand in Moos (1,5 px je
 Seite), beide ZUSAMMEN durchsichtig — 55 % in der Vorschau (Runde,
-„Zum Trailkopf", „Route hierher"), 80 % in der Folgeansicht (70 % am
-Gerät in der Sonne prüfen). Der Rand scheint nicht durch das Band
-(MapLibre: `line-gap-width`; flutter_map: eine Fläche in `Opacity`).
-Das Band liegt UNTER dem Netz, Trails auf der Route behalten ihre
-Stufenfarbe (Abschnitt 7) und zeigen das Band an ihren Seiten. Was die
-Route zweimal fährt, wird zweimal gezeichnet und liegt dichter (≈ 80 %
-bzw. ≈ 96 %). Statische Pfeile „›" in Moos dunkel alle 90 px, auf
-doppelten Stücken 4 px rechts der Fahrtrichtung, damit Hin und Zurück
-nebeneinander stehen; sie verdrängen keine Schilder und Namen.
-Bewegte Pfeile höchstens in der Vorschau und nur nach einer Messung am
-Gerät, nie in der Folgeansicht. Wanderweg steht als gestrichelte
-Mittellinie in Moos im Band. Der gefahrene Teil in der Folgeansicht ist
-eine dünne Linie in Moos (35 %). **Warum Lime, obwohl die Marke sonst
+„Zum Trailkopf", „Route hierher"), in der Folgeansicht am aktuellen Stand 90 %, über 500 Routenmeter auf
+35 % verblassend. An Kreuzungen läuft die früheste noch kommende Spur
+mit ihrem Rand durch. In der Vorschau zählt die Reihenfolge ab Start.
+Ein gemeinsamer Hin- und Rückweg trägt ein Band und versetzte Richtungspfeile.
+Leicht gerundete Übergänge verbinden die Abschnitte. Das Band liegt unter
+den Schwierigkeitsfarben des Trail-Netzes. Wanderwege tragen eine gestrichelte
+Mittellinie. Gefahrene Route und laufende GPS-Spur treten auf 3 px bei 25 %
+zurück. **Warum Lime, obwohl die Marke sonst
 keine Bedeutungsfarbe der Karte ist** (Abschnitt 12, Ring): Lime heißt
 „mein" (eigener Avatar, eigene Spur), und eine geplante Route ist meine.
 Lime mit schwarzer Kontur (Skizze A) sah aus wie ein ausgewählter Trail,

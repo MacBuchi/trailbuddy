@@ -1321,16 +1321,12 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
 - **Das Band der Route** (#295, seit 0.117.0, `route_band.dart` pur;
   Design 2 „B+"): Runde, „Zum Trailkopf" und Folgeansicht zeichnen über
   `routeBandLines`. Drei Dinge, die man wissen muss:
-  - **Doppelt wird an den PUNKTEN erkannt** (`repeatedSegments`,
-    `doubledSegments`: dasselbe Segment in beliebiger Richtung, auf
-    10 cm gerastert), nicht am Graphen — dieselbe Kante bringt dieselben
-    Punkte mit, und eine Route aus „Meine Fahrten" kennt keinen Graphen
-    mehr. Gezeichnet wird jede Stelle einmal (`pass` 0), die
-    Wiederholungen noch einmal (`pass` 1); in der Folgeansicht nur der
-    Rest, also dicht nur, was noch zweimal kommt.
-  - **Tippziele sind eigene Linien der Breite 0** (zuoberst), Wanderweg
-    eine gestrichelte Mittellinie in Moos: Das Band selbst ist nach
-    Wiederholung geschnitten, nicht nach Abschnitten.
+  - Die Anzeigegeometrie rundet Ecken auf höchstens drei Metern und behält die
+    ursprünglichen Routenmeter. Kreuzungen und gemeinsame Teilstücke werden
+    je Route einmal gesucht. Die nächste Durchfahrt bestimmt die Aussparung
+    im späteren Ast. Beide Karten lesen dieselben sichtbaren Linien.
+  - Vorschau 55 %, Navigation 90 % bis 35 % über 500 Routenmeter. Tippziele
+    und Wanderweg-Striche folgen der sichtbaren Geometrie.
   - **Tests lesen die Route über `test/fakes/route_lines.dart`**
     (`routeBand`, `routeWhole` aus den Pfeil-Linien, `routeHits`): Die
     Auswahl im Planer ist ebenso 12 px breit und Lime, aber deckend —

@@ -421,13 +421,14 @@ class _MapLibreMapViewState extends ConsumerState<MapLibreMapView>
     final features = [
       for (final line in group)
         ml.Feature(
+          properties: line.buttEnds ? {'opacity': line.opacity} : null,
           // `build` nimmt eine flache Kette lon,lat,lon,lat…
           geometry: ml.LineString.build([
             for (final p in line.points) ...[p.longitude, p.latitude],
           ]),
         ),
     ];
-    if (style.opacity < 1 || style.width <= 0) {
+    if (style.buttEnds || style.opacity < 1 || style.width <= 0) {
       return _fadedGroupLayers(style, features);
     }
     final width = math.max(1, style.width.round());
@@ -470,6 +471,7 @@ class _MapLibreMapViewState extends ConsumerState<MapLibreMapView>
         width: style.borderWidth,
         gapWidth: style.width,
         opacity: style.opacity,
+        buttEnds: style.buttEnds,
         dashArray: style.borderDash == null
             ? null
             : dashArrayFor(style.borderDash!, style.borderWidth),
@@ -480,6 +482,7 @@ class _MapLibreMapViewState extends ConsumerState<MapLibreMapView>
         color: style.color,
         width: style.width,
         opacity: style.opacity,
+        buttEnds: style.buttEnds,
         dashArray: style.dash == null
             ? null
             : dashArrayFor(style.dash!, style.width),
@@ -831,7 +834,7 @@ class MapLibreLineCache {
   /// Was eine Liniengruppe ausmacht: dieselben Punktlisten, dieselben
   /// Namen, in derselben Reihenfolge.
   static List<Object?> signatureOf(List<MapViewPolyline> group) => [
-    for (final l in group) ...[l.points, l.label],
+    for (final l in group) ...[l.points, l.label, if (l.buttEnds) l.opacity],
   ];
 
   /// Vergisst, was dieser Aufbau nicht mehr braucht — sonst hielte der
@@ -891,6 +894,7 @@ class FadedLineLayer extends ml.Layer<ml.Feature<ml.LineString>> {
     required this.width,
     required this.opacity,
     this.gapWidth = 0,
+    this.buttEnds = false,
     this.dashArray,
   }) : super(list: features);
 
@@ -898,21 +902,22 @@ class FadedLineLayer extends ml.Layer<ml.Feature<ml.LineString>> {
   final double width;
   final double opacity;
   final double gapWidth;
+  final bool buttEnds;
   final List<int>? dashArray;
 
   @override
   Map<String, Object> getPaint() => {
     'line-color': _hex(color),
-    'line-opacity': opacity,
+    'line-opacity': buttEnds ? const ['get', 'opacity'] : opacity,
     'line-width': width,
     if (gapWidth > 0) 'line-gap-width': gapWidth,
     'line-dasharray': ?dashArray,
   };
 
   @override
-  Map<String, Object> getLayout() => const {
+  Map<String, Object> getLayout() => {
     'line-join': 'round',
-    'line-cap': 'round',
+    'line-cap': buttEnds ? 'butt' : 'round',
   };
 
   @override

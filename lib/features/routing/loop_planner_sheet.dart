@@ -1715,7 +1715,7 @@ List<MapViewPolyline> loopSelectionLines(
 /// Trail-Linien behalten ihre Farbe, das Band an ihren Seiten sagt
 /// „dabei". Wanderweg-Verbindungen gestrichelt in der Mitte; ein Tipp auf
 /// eine Verbindung setzt einen Zwischenpunkt (#234).
-List<MapViewPolyline> loopPreviewLines(LoopPlan plan) {
+List<MapViewPolyline> loopPreviewLines(LoopPlan plan, {double zoom = 16}) {
   if (plan.outcome != LoopOutcome.ok) return const [];
   final legs = legLinesOf([
     for (final s in plan.sections)
@@ -1724,14 +1724,14 @@ List<MapViewPolyline> loopPreviewLines(LoopPlan plan) {
   return routeBandLines(
     plan.points,
     opacity: kRoutePreviewOpacity,
+    zoom: zoom,
     pieces: [
       for (final s in plan.sections)
-        if (!s.isTrail)
-          (
-            points: s.points,
-            hiking: s.hiking,
-            hitValue: s.leg == null ? null : RouteLegHit(s.leg!, legs[s.leg]!),
-          ),
+        (
+          points: s.points,
+          hiking: !s.isTrail && s.hiking,
+          hitValue: s.leg == null ? null : RouteLegHit(s.leg!, legs[s.leg]!),
+        ),
     ],
   );
 }

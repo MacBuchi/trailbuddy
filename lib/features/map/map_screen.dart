@@ -2084,9 +2084,14 @@ class _MapScreenState extends ConsumerState<MapScreen> {
         // Im Planer: die gewählten Trails leuchten — liegt eine Runde auf
         // der Karte, zeigt sie, was dabei ist.
         if (loop.open && loopPlan == null) ...loopSelectionLines(trails, loop),
-        if (loopPlan != null) ...loopPreviewLines(loopPlan),
+        if (loopPlan != null)
+          ...loopPreviewLines(loopPlan, zoom: camera?.zoom ?? 16),
         if (_importedRoute case final route?)
-          ...routeBandLines(route.points, opacity: kRoutePreviewOpacity),
+          ...routeBandLines(
+            route.points,
+            zoom: camera?.zoom ?? 16,
+            opacity: kRoutePreviewOpacity,
+          ),
         // Der ausgewählte Trail leuchtet (#178) — unter dem Netz, die
         // Linie selbst behält ihre Farbe. Deckendes Lime mit dunkler
         // Kontur (#195): Jeder Trail trägt schon einen weißen Saum, und
@@ -2114,10 +2119,11 @@ class _MapScreenState extends ConsumerState<MapScreen> {
             borderColor: AppColors.onBrand.withValues(alpha: 0.7),
             borderWidth: kSelectionGlowBorder,
           ),
-        if (ride != null && ride.points.length >= 2) _ridePolyline(ride.points),
+        if (ride != null && ride.points.length >= 2)
+          _ridePolyline(ride.points, navigating: nav != null),
         // Die Route der Navigation unter dem Netz: Trails auf ihr behalten
         // ihre Farbe (Konzept-Routing 9.2).
-        if (nav != null) ...navRouteLines(nav),
+        if (nav != null) ...navRouteLines(nav, zoom: camera?.zoom ?? 16),
         for (final t in detailTrails)
           MapViewPolyline(
             // Geglättet für das Bild (`line_smoothing.dart`) — gerechnet
@@ -3087,11 +3093,14 @@ String formatCachedAt(DateTime at) {
 }
 
 /// Die Fahrt: Kulisse ohne Kennung — ein Tipp gilt weiter dem Trail.
-MapViewPolyline _ridePolyline(List<RidePoint> points) => MapViewPolyline(
+MapViewPolyline _ridePolyline(
+  List<RidePoint> points, {
+  bool navigating = false,
+}) => MapViewPolyline(
   points: [for (final p in thinnedRide(points)) LatLng(p.lat, p.lng)],
-  color: AppColors.mapLines.ride.withValues(alpha: 0.75),
-  width: 4,
-  borderColor: AppColors.mapLines.halo,
+  color: AppColors.mapLines.ride.withValues(alpha: navigating ? 0.25 : 0.75),
+  width: navigating ? 3 : 4,
+  borderColor: navigating ? null : AppColors.mapLines.halo,
   borderWidth: AppColors.mapLines.haloBorderWidth,
 );
 

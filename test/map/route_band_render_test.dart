@@ -2,13 +2,19 @@
 // MapLibre legt den Rand NEBEN die Linie (`line-gap-width`), beide mit
 // derselben Deckkraft, die Pfeile als Symbole darüber; flutter_map
 // gruppiert in Läufe, die je als eine Fläche verblassen. Ohne Pixel.
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
-import 'package:flutter_map/flutter_map.dart' show PolylineLayer;
+import 'package:flutter/rendering.dart';
+import 'package:flutter_map/flutter_map.dart'
+    show FlutterMap, MapOptions, PolylineLayer;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:trailbuddy/features/map/map_view/flutter_map_view.dart';
 import 'package:trailbuddy/features/map/map_view/map_view.dart';
 import 'package:trailbuddy/features/map/map_view/maplibre_map_view.dart';
+
+import 'package:trailbuddy/features/map/map_view/route_ribbon_layer.dart';
 
 import '../fakes/fake_backend.dart';
 import '../fakes/test_app.dart';
@@ -38,6 +44,101 @@ const _trail = MapViewPolyline(
 );
 
 void main() {
+  testWidgets('web ribbon fades across a join without a transverse edge', (
+    tester,
+  ) async {
+    const center = LatLng(1, 1);
+    const viewport = Size(240, 160);
+    const key = ValueKey('ribbon');
+    final lines = [
+      for (final (from, to, start, end) in [
+        (0.999, 1.0, 0.9, 0.625),
+        (1.0, 1.001, 0.625, 0.35),
+      ])
+        MapViewPolyline(
+          points: [LatLng(1, from), LatLng(1, to)],
+          color: Colors.green,
+          borderColor: Colors.black,
+          borderWidth: 2,
+          width: 12,
+          buttEnds: true,
+          opacity: start,
+          endOpacity: end,
+        ),
+    ];
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Center(
+          child: SizedBox.fromSize(
+            size: viewport,
+            child: RepaintBoundary(
+              key: key,
+              child: FlutterMap(
+                options: const MapOptions(
+                  initialCenter: center,
+                  initialZoom: 17,
+                  backgroundColor: Colors.white,
+                ),
+                children: [RouteRibbonLayer(lines)],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.runAsync(() async {
+      final boundary = tester.renderObject<RenderRepaintBoundary>(
+        find.byKey(key),
+      );
+      final image = await boundary.toImage();
+      try {
+        final data = (await image.toByteData(
+          format: ui.ImageByteFormat.rawRgba,
+        ))!;
+        int channel(int x, int y, int color) =>
+            data.getUint8((image.width * y + x) * 4 + color);
+        // In the green centre the red channel increases as white shows
+        // through. A seam or transverse border creates a spike or a dip.
+        expect(channel(65, 80, 0), lessThan(channel(175, 80, 0) - 30));
+        for (var x = 115; x < 125; x++) {
+          expect(
+            (channel(x, 80, 0) - channel(x + 1, 80, 0)).abs(),
+            lessThan(4),
+          );
+          expect(channel(x, 80, 1) - channel(x, 80, 0), greaterThan(35));
+        }
+      } finally {
+        image.dispose();
+      }
+    });
+  });
+
+  test('MapLibre packs fade stops into one source per band and edge', () {
+    final lines = [
+      for (final alpha in [0.9, 0.6, 0.35])
+        MapViewPolyline(
+          points: _pts,
+          color: _band.color,
+          width: 12,
+          borderWidth: 1.5,
+          borderColor: _band.borderColor,
+          opacity: alpha,
+          buttEnds: true,
+        ),
+    ];
+    final layers = mapLibrePolylineLayers(
+      lines,
+      null,
+    ).whereType<FadedLineLayer>();
+    expect(layers, hasLength(2));
+    for (final l in layers) {
+      expect(l.getPaint()['line-opacity'], ['get', 'opacity']);
+      expect(l.getLayout()['line-cap'], 'butt');
+      expect(l.list.map((f) => f.properties['opacity']), [0.9, 0.6, 0.35]);
+    }
+  });
+
   test(
     'MapLibre: Rand neben der Linie, gleiche Deckkraft, keine deckende Ebene darunter',
     () {

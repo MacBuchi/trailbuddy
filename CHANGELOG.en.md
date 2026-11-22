@@ -2,6 +2,12 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## Routes at crossings
+
+*Version 0.202.0, 2026-11-22*
+
+The planner shows the first pass on top. During navigation the upcoming path starts bright green and fades over 500 metres. Completed sections recede into the background.
+
 ## GPX routes, trail hotspots, and Garmin route storage
 
 *Version 0.201.0, 2026-11-22*
