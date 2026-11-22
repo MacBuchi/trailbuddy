@@ -698,8 +698,8 @@ Map<String, HighlightDemo> highlightDemos(AppLocalizations l) => {
         unless: const [MapCoach.empty],
       ),
       CoachStep(
-        title: l.demoOpenTrailFirstTitle,
-        text: l.demoOpenTrailFirstText,
+        title: l.demoNoTrailYetTitle,
+        text: l.demoNoTrailYetText,
         lit: const [MapCoach.empty],
         requires: const [MapCoach.empty],
       ),

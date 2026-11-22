@@ -5,9 +5,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart' show PolylineLayer, StrokePattern;
 import 'package:flutter_test/flutter_test.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:trailbuddy/core/app_colors.dart';
 import 'package:trailbuddy/features/map/line_smoothing.dart';
 import 'package:trailbuddy/features/map/map_view/map_view.dart';
+import 'package:trailbuddy/features/map/trail_hotspots.dart';
 import 'package:trailbuddy/models/trail.dart';
 
 import '../fakes/fake_backend.dart';
@@ -170,8 +172,21 @@ void main() {
       await pumpApp(tester, backend, trails: trails, useRealMap: true);
       await settle(tester, frames: 20);
       final map = tester.widget<MapView>(find.byType(MapView)).controller;
-      map.move(map.center, 14);
+      map.move(const LatLng(48.2, 9), 11.5);
       await settle(tester, frames: 20);
+      final hotspot = tester
+          .widget<MapView>(find.byType(MapView))
+          .layers
+          .markers
+          .singleWhere(
+            (marker) => switch (marker.hitValue) {
+              TrailHotspot(:final counts) => counts[4] == 1,
+              _ => false,
+            },
+          );
+      await tester.tapAt(tester.getCenter(find.byKey(hotspot.key!)));
+      await settle(tester, frames: 20);
+      expect(map.zoom, greaterThanOrEqualTo(kTrailDetailZoom));
       final polylines = [
         for (final layer in tester.widgetList<PolylineLayer>(
           find.byType(PolylineLayer),
