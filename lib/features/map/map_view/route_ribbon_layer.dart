@@ -96,7 +96,9 @@ class _RibbonPainter extends CustomPainter {
         ..strokeWidth = width + 4
         ..strokeCap = StrokeCap.round
         ..blendMode = BlendMode.src;
-      for (final (points, start, end) in segments) {
+      // At the cut end of an underpass the mask extends into the upper
+      // stroke. Its earlier visit owns those pixels as well.
+      for (final (points, start, end) in segments.reversed) {
         final lengths = [
           for (var i = 1; i < points.length; i++)
             (points[i] - points[i - 1]).distance,
@@ -109,8 +111,9 @@ class _RibbonPainter extends CustomPainter {
           final from = ui.lerpDouble(start, end, walked / total)!;
           walked += lengths[i];
           if (lengths[i] == 0 ||
-              !Rect.fromPoints(a, b).inflate(width).overlaps(bounds))
+              !Rect.fromPoints(a, b).inflate(width).overlaps(bounds)) {
             continue;
+          }
           final to = ui.lerpDouble(start, end, walked / total)!;
           mask.shader = from == to
               ? null
