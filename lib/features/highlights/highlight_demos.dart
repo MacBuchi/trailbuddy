@@ -686,6 +686,25 @@ Map<String, HighlightDemo> highlightDemos(AppLocalizations l) => {
       ),
     ]),
   ),
+  'trail-hotspots': HighlightDemo(
+    route: '/',
+    script: _demo('trail-hotspots', [
+      CoachStep(
+        title: l.highlightTrailHotspotsTitle,
+        text: l.highlightTrailHotspotsText,
+        scene: MapCoach.hotspots,
+        lit: const [MapCoach.hotspots],
+        gesture: CoachGesture.tap,
+        unless: const [MapCoach.empty],
+      ),
+      CoachStep(
+        title: l.demoOpenTrailFirstTitle,
+        text: l.demoOpenTrailFirstText,
+        lit: const [MapCoach.empty],
+        requires: const [MapCoach.empty],
+      ),
+    ]),
+  ),
   // Die Suche auf der Karte (#576): die Lupe oben in der Knopfspalte.
   'map-search': HighlightDemo(
     route: '/',

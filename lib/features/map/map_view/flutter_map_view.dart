@@ -202,11 +202,14 @@ class _FlutterMapViewState extends ConsumerState<FlutterMapView>
         onMapEvent: (event) {
           // „Zum Stehen gekommen": Gesten- und Animationsenden, nicht
           // jede Bewegung. Das Mausrad hat kein Ende-Ereignis, sein
-          // Einzelschritt IST der Stillstand.
+          // Einzelschritt IST der Stillstand. Ein Kamerasprung aus der
+          // App (Einpassen, Hotspot-Tipp) meldet ebenfalls kein Ende.
           if (event is MapEventMoveEnd ||
               event is MapEventFlingAnimationEnd ||
               event is MapEventDoubleTapZoomEnd ||
-              event is MapEventScrollWheelZoom) {
+              event is MapEventScrollWheelZoom ||
+              (event is MapEventMove &&
+                  event.source == MapEventSource.mapController)) {
             _reportIdle(event.camera);
           }
         },

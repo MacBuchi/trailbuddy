@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:trailbuddy/features/map/map_screen.dart';
+import 'package:trailbuddy/features/map/trail_hotspots.dart';
 import 'package:trailbuddy/features/trails/trail_providers.dart';
 import 'package:trailbuddy/models/trail.dart';
 
@@ -48,6 +49,77 @@ void main() {
   };
 
   Finder banner() => find.byKey(const ValueKey('map-filter-banner'));
+
+  testWidgets('Hotspots zählen nur sichtbare gefilterte Trails', (
+    tester,
+  ) async {
+    final stranger = backend.addUser(username: 'stranger');
+    trails.seedTrail(stranger.id, name: 'Versteckt', grade: 2);
+    await pumpApp(tester, backend, trails: trails);
+    await settle(tester, frames: 20);
+
+    final map = fakeMap(tester);
+    map.move(map.center, 8);
+    await settle(tester);
+    final overview = fakeMapLayers(
+      tester,
+    ).markers.where((marker) => marker.hitValue is TrailHotspot).single;
+    expect((overview.hitValue as TrailHotspot).counts, [0, 1, 0, 0, 1, 0, 1]);
+    expect(drawn(tester), isEmpty);
+
+    map.move(map.center, 8.5);
+    await settle(tester);
+    expect(
+      fakeMapLayers(tester).markers
+          .where((marker) => marker.hitValue is TrailHotspot)
+          .single
+          .hitValue,
+      same(overview.hitValue),
+    );
+
+    map.move(map.center, 11.5);
+    await settle(tester);
+    expect(
+      fakeMapLayers(
+        tester,
+      ).markers.where((marker) => marker.hitValue is TrailHotspot),
+      hasLength(2),
+    );
+    map.move(map.center, 8);
+    await settle(tester);
+
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(MapScreen)),
+    );
+    container.read(trailListFilterProvider.notifier).state = container
+        .read(trailListFilterProvider)
+        .copyWith(maxGrade: 2);
+    await settle(tester);
+
+    final filtered = fakeMapLayers(
+      tester,
+    ).markers.where((marker) => marker.hitValue is TrailHotspot).single;
+    expect((filtered.hitValue as TrailHotspot).count, 1);
+    await tapMapAt(tester, filtered.point);
+    await settle(tester);
+    expect(map.zoom, 10);
+
+    map.move(map.center, 11.5);
+    await settle(tester);
+    final closer = fakeMapLayers(
+      tester,
+    ).markers.where((marker) => marker.hitValue is TrailHotspot).single;
+    await tapMapAt(tester, closer.point);
+    await settle(tester);
+    expect(map.zoom, greaterThanOrEqualTo(kTrailDetailZoom));
+    expect(
+      fakeMapLayers(
+        tester,
+      ).markers.where((marker) => marker.hitValue is TrailHotspot),
+      isEmpty,
+    );
+    expect(drawn(tester), {'Roßkopf Süd'});
+  });
 
   testWidgets(
     'in der Liste gesetzt, auf der Karte gezeichnet, gemeldet und dort zurückgesetzt',

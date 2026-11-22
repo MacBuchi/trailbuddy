@@ -1,5 +1,22 @@
 {
   "@@locale": "de",
+  "trailHotspotCount": "{count, plural, one{Ein Trail} other{{count} Trails}}",
+  "@trailHotspotCount": {
+    "description": "Accessible label for a map hotspot",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "highlightTrailHotspotsTitle": "Trail-Hotspots",
+  "@highlightTrailHotspotsTitle": {
+    "description": "Titel des Neuheiten-Eintrags und der Vorführung für Trail-Gruppen auf der Karte."
+  },
+  "highlightTrailHotspotsText": "Auf der Übersichtskarte zeigt jeder Ring die Anzahl und Schwierigkeit der Trails. Tippe auf einen Ring, um hineinzuzoomen.",
+  "@highlightTrailHotspotsText": {
+    "description": "Erklärt die Ringsegmente, Anzahl und Zoom-Aktion der Trail-Hotspots."
+  },
   "previewRibbon": "Entwicklungsstand — nicht freigegeben",
   "@previewRibbon": {
     "description": "Streifen über der Web-Vorschau (preview.yml): Dieser Stand ist automatisch deployt und nicht freigegeben."

@@ -2,6 +2,14 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Trail-Hotspots auf der Karte
+
+*Version 0.199.0, 2026-11-22*
+
+Beim Herauszoomen fasst die Karte nahe Trails in Ringen zusammen.
+Zahl und Farben zeigen, wie viele Trails es sind und welche
+Schwierigkeiten vorkommen. Ein Tipp auf den Ring zoomt hinein.
+
 ## Karte & Bedienung
 
 *Version 0.198.0, 2026-11-21*

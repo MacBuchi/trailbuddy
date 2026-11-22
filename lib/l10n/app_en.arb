@@ -1,5 +1,16 @@
 {
   "@@locale": "en",
+  "trailHotspotCount": "{count, plural, one{One trail} other{{count} trails}}",
+  "@trailHotspotCount": {
+    "description": "Accessible label for a map hotspot",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "highlightTrailHotspotsTitle": "Trail hotspots",
+  "highlightTrailHotspotsText": "On the overview map, each ring shows the number and difficulty of the trails. Tap a ring to zoom in.",
   "previewRibbon": "Development build — not released",
   "commonCancel": "Cancel",
   "commonUndo": "Undo",

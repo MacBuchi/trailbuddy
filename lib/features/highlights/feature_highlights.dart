@@ -133,6 +133,16 @@ final kFeatureHighlights = <FeatureHighlight>[
     target: '/profile/navigation',
   ),
   FeatureHighlight(
+    id: 'trail-hotspots',
+    since: '0.199.0',
+    kind: HighlightKind.highlight,
+    tab: HighlightTab.map,
+    icon: Icons.donut_large,
+    title: (l) => l.highlightTrailHotspotsTitle,
+    text: (l) => l.highlightTrailHotspotsText,
+    target: '/',
+  ),
+  FeatureHighlight(
     id: 'map-search',
     since: '0.191.0',
     kind: HighlightKind.highlight,

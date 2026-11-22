@@ -167,6 +167,11 @@ void main() {
     expect(await run(tester, 'trail-notes'), ['Erst einen Trail holen']);
   });
 
+  testWidgets('Hotspot-Demo ohne Trails zeigt den Leerzustand', (tester) async {
+    await pumpApp(tester, world(trail: false), trails: trails);
+    expect(await run(tester, 'trail-hotspots'), ['Erst einen Trail holen']);
+  });
+
   testWidgets('ohne Buddy: das Suchfeld statt des Stifts', (tester) async {
     await pumpApp(tester, world(buddy: false), trails: trails);
     expect(await run(tester, 'buddy-alias'), ['Erst einen Buddy finden']);

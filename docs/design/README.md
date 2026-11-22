@@ -455,6 +455,13 @@ Werk aus.
   Karte mit 88 % Flächendeckung hindurch. Die Aufnahmeaktion bleibt deckend
   Lime bzw. Warnfarbe.
 
+**Trail-Hotspots (#620).** Unter Zoom 12 bündelt die Übersicht die
+gefilterten Trails in 48-dp-Ringen mit der Anzahl in der Mitte.
+Die Segmente folgen S0 bis S5 und „ohne Einschätzung“ in der
+Kartenpalette. S3 ist durchgezogen, S4 gestrichelt und S5 gepunktet.
+Ein Tipp zoomt hinein. Ab Zoom 12 stehen wieder die
+einzelnen Linien auf der Karte, ab Zoom 14 wie gewohnt die Schilder.
+
 ## 7. Schwierigkeit und Charakter (Turn 4)
 
 **S-Grad als Form** — im Entwurf farblos, schwarzes Schild mit weißer

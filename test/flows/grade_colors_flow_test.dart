@@ -73,6 +73,9 @@ void main() {
     (tester) async {
       await pumpApp(tester, backend, trails: trails);
       await settle(tester, frames: 20);
+      final map = tester.widget<MapView>(find.byType(MapView)).controller;
+      map.move(map.center, 14);
+      await settle(tester, frames: 20);
       const g = AppColors.mapGrades;
 
       expect(lineOf(tester, 'Mein Blauer').color, g.s1);
@@ -165,6 +168,9 @@ void main() {
     'flutter_map: der gestrichelte Saum ist eine eigene Linie unter der Linie',
     (tester) async {
       await pumpApp(tester, backend, trails: trails, useRealMap: true);
+      await settle(tester, frames: 20);
+      final map = tester.widget<MapView>(find.byType(MapView)).controller;
+      map.move(map.center, 14);
       await settle(tester, frames: 20);
       final polylines = [
         for (final layer in tester.widgetList<PolylineLayer>(
