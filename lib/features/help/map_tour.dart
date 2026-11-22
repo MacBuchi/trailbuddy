@@ -68,6 +68,7 @@ abstract final class MapCoach {
   /// Das Einstiegsblatt des Planers (#516, Konzept-Routing 12.3) — Anker
   /// UND Szene: Sie öffnet den Planer mit dem Blatt.
   static const loopEntry = 'map.loopEntry';
+  static const gpxRoute = 'map.gpxRoute';
 
   /// Der Kopf des Planers (#516): Start, Ziel, Budget und „Anpassen".
   static const loopHead = 'map.loopHead';

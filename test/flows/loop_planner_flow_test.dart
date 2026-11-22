@@ -15,6 +15,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:pmtiles/pmtiles.dart';
 import 'package:trailbuddy/core/gpx_share.dart';
+import 'package:trailbuddy/core/app_colors.dart';
+import 'package:trailbuddy/features/trails/gpx_files.dart';
+import 'package:trailbuddy/features/trails/trail_import_screen.dart';
 import 'package:trailbuddy/features/offline_areas/area_plan.dart';
 import 'package:trailbuddy/features/offline_areas/area_providers.dart'
     show areaHeightReaderProvider;
@@ -34,6 +37,7 @@ import 'package:trailbuddy/features/routing/loop_plan_runner.dart';
 import 'package:trailbuddy/features/routing/route_profile.dart'
     show RiderProfile;
 import 'package:trailbuddy/features/routing/loop_planner_controller.dart';
+import 'package:trailbuddy/features/routing/nav_providers.dart';
 import 'package:trailbuddy/features/routing/loop_edit_bars.dart'
     show kLoopNoteDuration;
 import 'package:trailbuddy/features/routing/loop_planner.dart'
@@ -3563,6 +3567,49 @@ void main() {
   );
 
   group('Einstieg (#516 Schritt 2, Konzept-Routing 12.3)', () {
+    testWidgets('GPX-Route aus dem Planer wird angezeigt und navigiert', (
+      tester,
+    ) async {
+      await pumpApp(
+        tester,
+        backend,
+        position: fakePosition(1, 1),
+        extraOverrides: [
+          gpxPickerProvider.overrideWithValue(
+            () async => [
+              PickedFile.text('runde.gpx', '''
+<gpx>
+  <trk><name>Runde aus GPX</name><trkseg>
+    <trkpt lat="1" lon="1"/><trkpt lat="1.005" lon="1.005"/>
+  </trkseg></trk>
+</gpx>'''),
+            ],
+          ),
+        ],
+      );
+      await settle(tester, frames: 20);
+      await tester.tap(find.byKey(const ValueKey('loop-button')));
+      await settle(tester, frames: 10);
+      await tester.tap(find.byKey(const ValueKey('loop-import-gpx')));
+      await settle(tester, frames: 20);
+      expect(find.text('Runde aus GPX'), findsOneWidget);
+      expect(find.byKey(const ValueKey('gpx-route-navigate')), findsOneWidget);
+      expect(
+        fakeMapLayers(tester).polylines.any(
+          (line) =>
+              line.color == AppColors.routeBand &&
+              line.points.first == const LatLng(1, 1),
+        ),
+        isTrue,
+      );
+      await tester.tap(find.byKey(const ValueKey('gpx-route-navigate')));
+      await settle(tester, frames: 20);
+      final nav = ProviderScope.containerOf(
+        tester.element(find.byType(MaterialApp)),
+      ).read(navigationProvider);
+      expect(nav?.route.points, const [LatLng(1, 1), LatLng(1.005, 1.005)]);
+    });
+
     LoopSession session(WidgetTester tester) => ProviderScope.containerOf(
       tester.element(find.byType(MaterialApp)),
     ).read(loopPlannerProvider);

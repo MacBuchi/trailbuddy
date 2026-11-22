@@ -2,6 +2,14 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## GPX routes, trail hotspots, and Garmin route storage
+
+*Version 0.201.0, 2026-11-22*
+
+- “Route from GPX” in the planner opens a track on the map. Start navigation or put the route on your Garmin watch from there.
+- Trail hotspots have a lime center. Black trails share one segment.
+- In “Routes on the watch,” you can check for the watch again if it hasn't confirmed the transfer. Hold UP in the Garmin test build to find transfer diagnostics.
+
 ## MTB avatars and buddy chat
 
 *Version 0.200.0, 2026-11-22*

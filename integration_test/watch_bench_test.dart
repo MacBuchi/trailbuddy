@@ -30,6 +30,7 @@ import 'package:trailbuddy/features/garmin/garmin_bridge_io.dart';
 import 'package:trailbuddy/features/garmin/watch_events.dart';
 import 'package:trailbuddy/features/garmin/watch_ride.dart';
 import 'package:trailbuddy/features/garmin/watch_route.dart';
+import 'package:trailbuddy/features/garmin/watch_shelf.dart';
 import 'package:trailbuddy/features/routing/nav_sections.dart';
 import 'package:trailbuddy/features/trails/trail_elevation.dart';
 
@@ -198,6 +199,29 @@ void main() {
           return null;
         });
         debugPrint('BENCH hallo v=${hello['v']} ver=${hello['ver']}');
+
+        if (_bigOnly == 0) {
+          final r = watchRouteOf(_line(42, 20), NavSections.none)!;
+          final entry = WatchShelfEntry(
+            id: r.id,
+            name: 'Test route',
+            lengthM: 500,
+            climbM: 0,
+          );
+          await step('Kurze Route in die Ablage → sh', () async {
+            final sent = await bridge.send(watchShelfParts(r, entry));
+            if (!sent.ok) return false;
+            final ack = await waitFor((m) => m['id'] == r.id);
+            return ack != null &&
+                (watchShelfOf(ack)?.entries.any((e) => e.id == r.id) ?? false);
+          });
+          await step('Ablage wieder leer', () async {
+            final sent = await bridge.send([watchShelfDropOf(r.id)]);
+            if (!sent.ok) return false;
+            final ack = await waitFor((m) => m['t'] == kWatchShelf);
+            return ack != null && watchShelfOf(ack)!.entries.isEmpty;
+          });
+        }
 
         if (_breakOk) await send({'t': '_x', 'drop': 'ok'});
 

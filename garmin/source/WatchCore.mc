@@ -960,6 +960,7 @@ class WatchCore {
         if (rid != null && !shelf) { CrashGuard.risk(rid); }
         var id = PhoneRoute.take(d);
         var err = PhoneRoute.lastError;
+        if (shelf) { shelfDiagnostic(d, err, id != null); }
         if (err != null) {
             if (rid != null) {
                 var x = {"t" => "x", "id" => rid, "c" => err} as Dictionary;
@@ -1005,6 +1006,22 @@ class WatchCore {
             swapAt = now + 1;
         }
     }
+
+    (:diag)
+    var shelfDiagPart as String = "—";
+    (:diag)
+    var shelfDiagResult as String = "—";
+
+    (:diag)
+    hidden function shelfDiagnostic(d as Dictionary, err as String?, stored as Boolean) as Void {
+        var p = d["p"];
+        var n = d["n"];
+        shelfDiagPart = p instanceof Number && n instanceof Number ? (p + 1) + "/" + n : "—";
+        shelfDiagResult = err != null ? "x: " + err : (stored ? "sh" : "r");
+    }
+
+    (:nodiag)
+    hidden function shelfDiagnostic(d as Dictionary, err as String?, stored as Boolean) as Void {}
 
     //! Die Ablage ans Handy (`sh`), mit [id], wenn gerade eine ankam.
     hidden function sendShelf(id as String?) as Void {

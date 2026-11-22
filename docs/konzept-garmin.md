@@ -654,9 +654,16 @@ sagt (E3: „3 Routen oder 4000 Punkte", bei 700 Punkten je Route dasselbe).
   die Uhr-App nicht, und Garmin Connect meldet SUCCESS auch für eine
   geschlossene. Was hin oder weg soll, liegt deshalb in
   `rides/watch_shelf.json` (Backup-Ausschluss wie die Fahrten — eine Route
-  beginnt an der Haustür) und geht beim nächsten „hallo"; erst die
-  Antwort `sh` nimmt den Auftrag. Das Profil zeigt unter „Routen auf der
-  Uhr", was dort liegt und was noch kommt.
+  beginnt an der Haustür) und geht beim nächsten „hallo“. Die Uhr bestätigt
+  die Ablage mit `sh` oder durch ihre Ablageliste im nächsten „hallo“.
+  Das Profil zeigt unter „Routen auf der Uhr“, was dort liegt und was
+  noch kommt. Bei ausbleibender Bestätigung bleibt der Auftrag erhalten
+  und lässt sich über „Uhr erneut abfragen“ wieder aufnehmen.
+- **Diagnose im Uhr-Testbuild** (langes HOCH → Diagnose): App-Version,
+  Handy-Verbindung, Nummer des zuletzt empfangenen Ablagestücks und
+  Ergebnis (`r` teilweise, `sh` gespeichert, `x` Fehlercode).
+  Diese Werte liegen im Arbeitsspeicher und enthalten keine Routen- oder
+  Positionsdaten. Der Store-Bau schließt die Diagnose aus.
 - **Speicher** (Kettenstand 2026-11-18, Bench-Bau, 700 Punkte): mit
   Aufnahme 97,9 KB (vorher 94,8), Spitze 104,5 von 123,8 KB, der Wechsel
   gleich großer Routen geht. Die Ablage selbst liegt in

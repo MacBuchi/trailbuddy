@@ -11356,6 +11356,30 @@
     "description": "Vorführung Gruppenfahrt: Text des Schritts an der Buddy-Zeile."
   },
   "watchShelfPut": "Auf die Uhr legen",
+  "routeImportGpx": "Route aus GPX",
+  "@routeImportGpx": {
+    "description": "Knopf im Einstieg des Routenplaners und Titel der Spurauswahl."
+  },
+  "routeImportNoTrack": "In der Datei ist keine nutzbare Route oder Spur.",
+  "@routeImportNoTrack": {
+    "description": "Fehler beim Lesen einer GPX-Route ohne nutzbare Geometrie."
+  },
+  "watchShelfDiagnosis": "Übertragungsdiagnose",
+  "@watchShelfDiagnosis": {
+    "description": "Titel für den Diagnosezustand im Entwicklerbau der Handy-App."
+  },
+  "watchShelfWaitingForReply": "Die Uhr hat die Übertragung noch nicht bestätigt. Öffne TrailBuddy auf der Uhr und prüfe die Verbindung.",
+  "@watchShelfWaitingForReply": {
+    "description": "Versand oder Speicherbestätigung blieb aus. Der Auftrag wartet weiter."
+  },
+  "watchShelfCheckConnection": "Uhr erneut abfragen",
+  "@watchShelfCheckConnection": {
+    "description": "Knopf zum erneuten Abfragen der Garmin-Uhr bei wartenden Aufträgen."
+  },
+  "highlightGpxRouteText": "Wähle im Planer eine GPX-Datei und prüfe ihre Linie auf der Karte. Von dort kannst du die Navigation starten oder die Route auf deine Garmin-Uhr legen.",
+  "@highlightGpxRouteText": {
+    "description": "Neuheit und Vorführung zum GPX-Routenimport."
+  },
   "@watchShelfPut": {
     "description": "Knopf (#515): eine Route in die Ablage der Garmin-Uhr legen, ohne die Navigation zu starten."
   },

@@ -124,6 +124,19 @@ HighlightDemo _avatarDemo(String id, AppLocalizations l, String buildText) =>
 /// sie Schritte der Touren übernehmen, und die bauen ihre Texte aus
 /// [AppLocalizations] (#209).
 Map<String, HighlightDemo> highlightDemos(AppLocalizations l) => {
+  'gpx-route': HighlightDemo(
+    route: '/',
+    script: _demo('gpx-route', [
+      CoachStep(
+        title: l.routeImportGpx,
+        text: l.highlightGpxRouteText,
+        scene: MapCoach.loopEntry,
+        lit: const [MapCoach.loopEntry],
+        ring: const [MapCoach.gpxRoute],
+        requires: const [MapCoach.loop],
+      ),
+    ]),
+  ),
   'avatar-styles': _avatarDemo('avatar-styles', l, l.demoAvatarStylesText),
   // ─── Highlights ────────────────────────────────────────────────
   'mtb-avatar': _avatarDemo('mtb-avatar', l, l.demoMtbAvatarBuildText),

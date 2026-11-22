@@ -83,6 +83,16 @@ class FeatureHighlight {
 final kFeatureHighlights = <FeatureHighlight>[
   // ─── Highlights ──────────────────────────────────────────────────
   FeatureHighlight(
+    id: 'gpx-route',
+    since: '0.201.0',
+    kind: HighlightKind.highlight,
+    tab: HighlightTab.map,
+    icon: Icons.file_open_outlined,
+    title: (l) => l.routeImportGpx,
+    text: (l) => l.highlightGpxRouteText,
+    target: '/',
+  ),
+  FeatureHighlight(
     id: 'mtb-avatar',
     since: '0.197.0',
     kind: HighlightKind.highlight,

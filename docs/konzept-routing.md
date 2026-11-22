@@ -1976,6 +1976,12 @@ Zeit    [ − ]  etwa 3 h  [ + ]      Ziel    ( ) Mein Standort
   „Start" bekommt dann eine dritte Wahl „Gemerkt"; Konzept in
   `konzept-startpunkte.md` (Betreiber 2026-11-16).
 
+- **Route aus GPX** öffnet eine Spur oder Route aus einer Datei als
+  Vorschau auf der Karte (A3, A5, A8, A9). Enthält der Import mehrere
+  Linien, wählt man eine davon. Navigation und Garmin-Ablage verwenden
+  die gewählte Linie in ihrer Originalrichtung. Der Import bleibt bis zur
+  gewählten Aktion im Arbeitsspeicher.
+
 ### 12.4 Die vorgeschlagene Runde
 
 *Betreiber, 2026-11-13: „Ja, der Planer darf selbst die Trails wählen.

@@ -169,7 +169,12 @@ class WatchShelfJob {
 
 /// Warum ein Auftrag nicht ankam: kein Platz, die Uhr konnte ihn nicht
 /// nehmen (Speicher, Absturz, Form), die Uhr-App ist zu alt.
-enum WatchShelfFailure { full, refused, outdated }
+enum WatchShelfFailure { full, refused, outdated, unconfirmed }
+
+final watchShelfTraceProvider =
+    StateProvider<({DateTime at, String? version, String event})?>(
+      (ref) => null,
+    );
 
 class WatchShelfState {
   const WatchShelfState({
@@ -345,6 +350,7 @@ class WatchShelf extends Notifier<WatchShelfState> {
   String? _ver;
   bool _heard = false;
   Timer? _ackTimer;
+  WatchShelfJob? _sending;
 
   /// Die Ablage aus der Datei; alles andere wartet darauf.
   late Future<void> _loaded;
@@ -420,8 +426,10 @@ class WatchShelf extends Notifier<WatchShelfState> {
       _flush();
       return WatchShelfPut.sending;
     }
-    final open = await ref.read(garminBridgeProvider).open();
-    if (open == WatchOpen.notInstalled) {
+    final bridge = ref.read(garminBridgeProvider);
+    final open = await bridge.open();
+    if (!_heard) _trace('open: ${open.name}');
+    if (open == WatchOpen.notInstalled && !kGarminTethered && !_heard) {
       _set(
         state.copyWith(
           jobs: [
@@ -432,9 +440,10 @@ class WatchShelf extends Notifier<WatchShelfState> {
       );
       return WatchShelfPut.notInstalled;
     }
-    // Sie läuft schon, aber ihr „hallo" kam vor diesem Lauf der App: fragen.
-    if (open == WatchOpen.running && !_heard) {
-      unawaited(ref.read(garminBridgeProvider).send([watchQuery]));
+    // Bei unklarem Status kann die Uhr-App bereits laufen und ihr „hallo"
+    // vor diesem Lauf geschickt haben (auch bei per USB geladener App).
+    if (open != WatchOpen.prompted && !_heard) {
+      unawaited(checkConnection());
     }
     return _heard ? WatchShelfPut.sending : WatchShelfPut.waiting;
   }
@@ -461,57 +470,35 @@ class WatchShelf extends Notifier<WatchShelfState> {
     if (hello.hello) {
       _heard = true;
       _ver = hello.ver;
-      _ackTimer?.cancel();
-      _set(
-        state.copyWith(
-          entries: watchShelfOf(message)!.entries,
-          sendingId: () => null,
-        ),
-      );
+      _trace('hi');
+      if (watchKnowsShelf(_ver)) {
+        _confirm(watchShelfOf(message)!.entries, hello: true);
+      }
       _flush();
       return;
     }
     final shelf = watchShelfOf(message);
     if (shelf != null) {
       _heard = true;
-      final sending = state.sendingId;
-      var jobs = state.jobs;
-      // Die Antwort auf den laufenden Auftrag: hingelegt (mit Kennung) oder
-      // weggenommen (die Kennung fehlt in der Liste).
-      final done =
-          sending != null &&
-          (shelf.id == sending ||
-              !shelf.entries.any((e) => e.id == sending) &&
-                  state.removing.contains(sending));
-      if (done) {
-        _ackTimer?.cancel();
-        jobs = [
-          for (final j in jobs)
-            if (j.id != sending) j,
-        ];
-      }
-      _set(
-        state.copyWith(
-          entries: shelf.entries,
-          jobs: jobs,
-          sendingId: done ? () => null : null,
-        ),
-      );
-      if (done) _flush();
+      _trace('sh');
+      _confirm(shelf.entries);
+      _flush();
       return;
     }
     final error = watchErrorOf(message);
-    if (error != null && error.id == state.sendingId) {
+    final sending = _sending;
+    if (error != null && sending != null && error.id == sending.id) {
       _ackTimer?.cancel();
-      final job = state.jobs.firstWhere((j) => j.id == error.id);
+      _sending = null;
+      _trace('x: ${error.code}');
       _set(
         state.copyWith(
           jobs: [
             for (final j in state.jobs)
-              if (j.id != error.id) j,
+              if (!identical(j, sending)) j,
           ],
           sendingId: () => null,
-          failed: () => job.entry?.name,
+          failed: () => sending.entry?.name,
           failure: () => switch (error.code) {
             kWatchErrFull => WatchShelfFailure.full,
             kWatchErrVersion => WatchShelfFailure.outdated,
@@ -521,6 +508,38 @@ class WatchShelf extends Notifier<WatchShelfState> {
       );
       _flush();
     }
+  }
+
+  void _confirm(List<WatchShelfEntry> entries, {bool hello = false}) {
+    final stored = entries.map((entry) => entry.id).toSet();
+    bool confirmed(WatchShelfJob job) => job.isPut == stored.contains(job.id);
+    final sending = _sending;
+    final done = sending != null && confirmed(sending);
+    // Garmin may report SUCCESS with the watch app closed. Once all parts
+    // have been sent, an empty hello from the newly opened watch can retry.
+    // A hello during the send itself must not enqueue another batch.
+    final retry = hello && sending != null && _ackTimer?.isActive == true;
+    if (done || retry) {
+      _ackTimer?.cancel();
+      _sending = null;
+    }
+    final jobs = [
+      for (final job in state.jobs)
+        // A removal queued during a transfer must wait for that transfer.
+        if (!confirmed(job) ||
+            (!done && job.id == sending?.id && !identical(job, sending)))
+          job,
+    ];
+    final updated = done || jobs.length < state.jobs.length;
+    _set(
+      state.copyWith(
+        entries: entries,
+        jobs: jobs,
+        sendingId: done || retry ? () => null : null,
+        failed: updated ? () => null : null,
+        failure: updated ? () => null : null,
+      ),
+    );
   }
 
   /// Den nächsten Auftrag hinüber, einen zur Zeit — nur, solange die Uhr-App
@@ -539,32 +558,69 @@ class WatchShelf extends Notifier<WatchShelfState> {
       return;
     }
     final job = state.jobs.first;
-    _set(state.copyWith(sendingId: () => job.id));
+    _sending = job;
+    _set(
+      state.copyWith(
+        sendingId: () => job.id,
+        failed: () => null,
+        failure: () => null,
+      ),
+    );
     unawaited(_send(job));
   }
 
+  void _trace(String event) {
+    ref.read(watchShelfTraceProvider.notifier).state = (
+      at: DateTime.now(),
+      version: _ver,
+      event: event,
+    );
+  }
+
+  Future<void> checkConnection() async {
+    final bridge = ref.read(garminBridgeProvider);
+    await bridge.listen();
+    _trace('q');
+    final result = await bridge.send([watchQuery]);
+    if (!result.ok && !_heard) _trace('q: ${result.status}');
+  }
+
   Future<void> _send(WatchShelfJob job) async {
+    _trace('send');
     try {
       final result = await ref
           .read(garminBridgeProvider)
           .send(job.parts ?? [watchShelfDropOf(job.id)]);
-      if (!result.ok) return _giveUp(job.id);
+      if (!identical(_sending, job)) return;
+      _trace('${result.status} · ${result.sent}/${job.parts?.length ?? 1}');
+      if (!result.ok) return _giveUp(job);
     } catch (e, s) {
       logError('Ablage an die Uhr', e, s);
-      return _giveUp(job.id);
+      _giveUp(job);
+      return;
     }
     // Ist die Antwort schon da, ist der Auftrag schon weg.
-    if (state.sendingId != job.id) return;
+    if (!identical(_sending, job)) return;
     _ackTimer?.cancel();
-    _ackTimer = Timer(kWatchShelfAckWait, () => _giveUp(job.id));
+    _ackTimer = Timer(kWatchShelfAckWait, () {
+      _trace('sh timeout');
+      _giveUp(job);
+    });
   }
 
   /// Keine Antwort (die Uhr-App ging zu) oder Senden ging nicht: Der
   /// Auftrag bleibt, bis die Uhr sich wieder meldet.
-  void _giveUp(String id) {
-    if (state.sendingId != id) return;
+  void _giveUp(WatchShelfJob job) {
+    if (!identical(_sending, job)) return;
+    _sending = null;
     _heard = false;
-    _set(state.copyWith(sendingId: () => null));
+    _set(
+      state.copyWith(
+        sendingId: () => null,
+        failed: () => job.entry?.name,
+        failure: () => WatchShelfFailure.unconfirmed,
+      ),
+    );
   }
 }
 

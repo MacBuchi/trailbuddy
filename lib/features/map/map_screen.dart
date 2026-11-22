@@ -47,6 +47,8 @@ import '../routing/loop_planner_providers.dart';
 import '../routing/loop_planner_sheet.dart';
 import '../routing/loop_tool_rail.dart';
 import '../routing/map_panel.dart';
+import '../routing/route_gpx_import.dart';
+import '../routing/route_band.dart';
 import '../routing/nav_notice.dart'
     show kNavMessageLeft, kNavMessageOpen, kNavMessageStop;
 import '../routing/nav_providers.dart';
@@ -135,6 +137,8 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   static const _dachCenter = LatLng(48.8, 10.5);
   static const _initialZoom = 6.0;
   final _trailHotspots = TrailHotspotCache();
+  NavRequest? _importedRoute;
+  bool _pickingRouteFile = false;
 
   final _controller = MapViewController(
     initialCenter: _dachCenter,
@@ -819,6 +823,32 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       return;
     }
     await _showLoopResult();
+  }
+
+  Future<void> _importGpxRoute() async {
+    if (_pickingRouteFile) return;
+    _pickingRouteFile = true;
+    final NavRequest? route;
+    try {
+      route = await pickGpxRoute(context, ref);
+    } finally {
+      _pickingRouteFile = false;
+    }
+    if (!mounted || route == null || !ref.read(loopPlannerProvider).entry) {
+      return;
+    }
+    final scaffold = _scaffoldKey.currentState;
+    if (scaffold == null) return;
+    _closeLoopPlanner(undo: false);
+    setState(() => _importedRoute = route);
+    final closed = showGpxRoutePanel(scaffold, route);
+    try {
+      await closed;
+    } finally {
+      if (mounted && identical(_importedRoute, route)) {
+        setState(() => _importedRoute = null);
+      }
+    }
   }
 
   /// Das Ergebnis-Blatt, bis es zu ist. Kam der Planer über einen
@@ -2055,6 +2085,8 @@ class _MapScreenState extends ConsumerState<MapScreen> {
         // der Karte, zeigt sie, was dabei ist.
         if (loop.open && loopPlan == null) ...loopSelectionLines(trails, loop),
         if (loopPlan != null) ...loopPreviewLines(loopPlan),
+        if (_importedRoute case final route?)
+          ...routeBandLines(route.points, opacity: kRoutePreviewOpacity),
         // Der ausgewählte Trail leuchtet (#178) — unter dem Netz, die
         // Linie selbst behält ihre Farbe. Deckendes Lime mit dunkler
         // Kontur (#195): Jeder Trail trägt schon einen weißen Saum, und
@@ -2631,6 +2663,7 @@ class _MapScreenState extends ConsumerState<MapScreen> {
                       child: LoopEntrySheet(
                         onCompute: () => unawaited(_computeLoop()),
                         onSuggest: () => unawaited(_suggestLoop()),
+                        onImportRoute: () => unawaited(_importGpxRoute()),
                         onClose: _closeLoopPlanner,
                       ),
                     ),
