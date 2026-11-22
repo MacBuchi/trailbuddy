@@ -1,4 +1,10 @@
 {
+  "routeImportGpx": "Route from GPX",
+  "highlightGpxRouteText": "Choose a GPX file in the planner and review its line on the map. From there, start navigation or put the route on your Garmin watch.",
+  "routeImportNoTrack": "There is no usable route or track in the file.",
+  "watchShelfDiagnosis": "Transfer diagnostics",
+  "watchShelfWaitingForReply": "The watch has not confirmed the transfer yet. Open TrailBuddy on the watch and check the connection.",
+  "watchShelfCheckConnection": "Check watch again",
   "@@locale": "en",
   "trailHotspotCount": "{count, plural, one{One trail} other{{count} trails}}",
   "@trailHotspotCount": {

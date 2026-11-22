@@ -457,8 +457,9 @@ Werk aus.
 
 **Trail-Hotspots (#620).** Unter Zoom 12 bündelt die Übersicht die
 gefilterten Trails in 48-dp-Ringen mit der Anzahl in der Mitte.
-Die Segmente folgen S0 bis S5 und „ohne Einschätzung“ in der
-Kartenpalette. S3 ist durchgezogen, S4 gestrichelt und S5 gepunktet.
+Die Anzahl steht in Mono auf Lime, der Außenrand in Moos mit weißem Saum.
+Die Segmente folgen der Kartenpalette: S0, S1, S2, S3–S5 gemeinsam in
+Schwarz und „ohne Einschätzung“.
 Ein Tipp zoomt hinein. Ab Zoom 12 stehen wieder die
 einzelnen Linien auf der Karte, ab Zoom 14 wie gewohnt die Schilder.
 

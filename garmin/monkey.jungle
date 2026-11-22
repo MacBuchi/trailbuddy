@@ -4,4 +4,4 @@ project.manifest = manifest.xml
 # der stumme Sendeweg nur in Bauten für den Simulator (--test, --demo, --run).
 # Die Ereignisse des Kettenstands (bench) nur in --bench (#527).
 # Das Skript ersetzt die Zeile für diese Fälle in seiner Kopie.
-base.excludeAnnotations = demo;store;sim;bench
+base.excludeAnnotations = demo;store;sim;bench;nodiag

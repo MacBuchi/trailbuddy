@@ -664,6 +664,12 @@
       "id": "515.7",
       "erwartung": "Startet man aus der Ablage, während eine Route vom Handy läuft, hört das Handy `e` für die alte; abseits ohne Handy sagt die Infofläche „ohne Handy“ statt einer Umplanung.",
       "uhr": "shelfEndsPhoneRoute"
+    },
+    {
+      "id": "637.1",
+      "erwartung": "Unklarer Öffnungsstatus: Das Handy fragt die Uhr ab. Wiederholtes Hallo dupliziert den laufenden Versand nicht. Meldet die Uhr die Route bereits in ihrer Ablage, zählt sie auch ohne separates sh als gespeichert.",
+      "handy": "637.1 handy: unklarer Öffnungsstatus, erneutes Hallo und verlorenes sh",
+      "kette": ["Kurze Route in die Ablage → sh", "Ablage wieder leer"]
     }
   ],
   "gespraeche": [
@@ -1069,7 +1075,8 @@
             "515.1",
             "515.2",
             "515.4",
-            "515.5"
+            "515.5",
+            "637.1"
           ]
         },
         {

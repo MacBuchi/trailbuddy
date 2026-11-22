@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../../core/app_colors.dart';
+import '../../core/app_theme.dart';
 import '../../l10n/l10n.dart';
 import '../../models/trail.dart';
 import 'map_view/map_hit_test.dart' show kMercatorMaxLat;
@@ -18,9 +19,15 @@ class TrailHotspot {
   const TrailHotspot(this.center, this.counts, this.count);
 
   final LatLng center;
-  // S0 to S5, followed by trails without a grade.
+  // S0 to S5, followed by trails without a grade. The ring combines S3–S5.
   final List<int> counts;
   final int count;
+
+  List<int> get ringCounts => [
+    ...counts.take(3),
+    counts[3] + counts[4] + counts[5],
+    counts[6],
+  ];
 }
 
 /// A world-anchored grid in 256-pixel Web Mercator zoom levels. Camera
@@ -92,12 +99,11 @@ class _HotspotBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const palette = AppColors.light;
     return Semantics(
       label: context.l10n.trailHotspotCount(hotspot.count),
       excludeSemantics: true,
       child: CustomPaint(
-        painter: _Ring(hotspot, palette.surface),
+        painter: _Ring(hotspot),
         child: Center(
           child: SizedBox(
             width: 32,
@@ -105,9 +111,11 @@ class _HotspotBadge extends StatelessWidget {
               fit: BoxFit.scaleDown,
               child: Text(
                 '${hotspot.count}',
-                style: TextStyle(
-                  color: palette.text,
-                  fontWeight: FontWeight.bold,
+                style: AppFonts.numbers(
+                  const TextStyle(
+                    color: AppColors.onBrand,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ),
@@ -119,50 +127,39 @@ class _HotspotBadge extends StatelessWidget {
 }
 
 class _Ring extends CustomPainter {
-  const _Ring(this.hotspot, this.surface);
+  const _Ring(this.hotspot);
 
   final TrailHotspot hotspot;
-  final Color surface;
 
   @override
   void paint(Canvas canvas, Size size) {
     final center = size.center(Offset.zero);
     final radius = size.shortestSide / 2;
-    canvas.drawCircle(center, radius, Paint()..color = surface);
-    final arc = Rect.fromCircle(center: center, radius: radius - 4);
-    final paint = Paint()
+    final paint = Paint()..color = AppColors.light.surface;
+    canvas.drawCircle(center, radius, paint);
+    paint.color = AppColors.light.brandMark;
+    canvas.drawCircle(center, radius - 1.5, paint);
+    paint.color = AppColors.light.surface;
+    canvas.drawCircle(center, radius - 3, paint);
+    paint.color = AppColors.brand;
+    canvas.drawCircle(center, radius - 9, paint);
+    final arc = Rect.fromCircle(center: center, radius: radius - 5.5);
+    paint
       ..style = PaintingStyle.stroke
       ..strokeWidth = 5;
-    final segmented = hotspot.counts.where((count) => count > 0).length > 1;
+    final counts = hotspot.ringCounts;
+    final segmented = counts.where((count) => count > 0).length > 1;
     var angle = -math.pi / 2;
-    for (var i = 0; i < hotspot.counts.length; i++) {
-      final sweep = 2 * math.pi * hotspot.counts[i] / hotspot.count;
+    for (var i = 0; i < counts.length; i++) {
+      final sweep = 2 * math.pi * counts[i] / hotspot.count;
       if (sweep == 0) continue;
-      paint.color = AppColors.mapGrades.of(i == 6 ? null : i);
+      paint.color = AppColors.mapGrades.of(i == 4 ? null : i);
       final gap = segmented ? math.min(0.05, sweep / 3) : 0.0;
-      final start = angle + gap / 2;
-      final length = sweep - gap;
-      // S3–S5 share one color on the map. Keep their segments distinct
-      // even when only one of the three grades is present.
-      final dash = switch (i) {
-        4 => 0.22,
-        5 => 0.08,
-        _ => length,
-      };
-      for (var offset = 0.0; offset < length; offset += dash + 0.1) {
-        canvas.drawArc(
-          arc,
-          start + offset,
-          math.min(dash, length - offset),
-          false,
-          paint,
-        );
-      }
+      canvas.drawArc(arc, angle + gap / 2, sweep - gap, false, paint);
       angle += sweep;
     }
   }
 
   @override
-  bool shouldRepaint(_Ring oldDelegate) =>
-      hotspot != oldDelegate.hotspot || surface != oldDelegate.surface;
+  bool shouldRepaint(_Ring oldDelegate) => hotspot != oldDelegate.hotspot;
 }

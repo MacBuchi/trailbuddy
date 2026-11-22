@@ -54,6 +54,7 @@ class LoopEntrySheet extends ConsumerStatefulWidget {
     super.key,
     required this.onCompute,
     required this.onSuggest,
+    required this.onImportRoute,
     required this.onClose,
   });
 
@@ -64,6 +65,7 @@ class LoopEntrySheet extends ConsumerStatefulWidget {
   /// „Runde vorschlagen" (#516 Schritt 4): das Ergebnis-Blatt mit dem
   /// Vorschlag.
   final VoidCallback onSuggest;
+  final VoidCallback onImportRoute;
   final VoidCallback onClose;
 
   @override
@@ -380,10 +382,24 @@ class _LoopEntrySheetState extends ConsumerState<LoopEntrySheet> {
               ),
               Align(
                 alignment: Alignment.center,
-                child: TextButton(
-                  key: const ValueKey('loop-entry-self'),
-                  onPressed: _n.leaveEntry,
-                  child: Text(l.loopEntrySelf),
+                child: Wrap(
+                  alignment: WrapAlignment.center,
+                  children: [
+                    TextButton(
+                      key: const ValueKey('loop-entry-self'),
+                      onPressed: _n.leaveEntry,
+                      child: Text(l.loopEntrySelf),
+                    ),
+                    CoachAnchor(
+                      id: MapCoach.gpxRoute,
+                      child: TextButton.icon(
+                        key: const ValueKey('loop-import-gpx'),
+                        onPressed: _locating ? null : widget.onImportRoute,
+                        icon: const Icon(Icons.file_open_outlined),
+                        label: Text(l.routeImportGpx),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],

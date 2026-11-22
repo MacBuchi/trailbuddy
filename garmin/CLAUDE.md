@@ -27,6 +27,10 @@ Abbiegehinweise.
   Testroute; `--store --run` zeigt diesen Zweig im Simulator). Auf die
   Uhr: die `.prg` per USB nach `GARMIN/APPS/`. CI („Analyze & Test")
   prüft `tool/garmin_route.py --self-test` und die Syntax der Skripte.
+- **Diagnose der Ablage**: Im Geräte-Testbuild langes HOCH → Diagnose.
+  `r` heißt Stück angenommen, `sh` heißt die Uhr hat gespeichert,
+  `x` nennt den Ablehnungsgrund. Die Stücknummer ist einsbasiert.
+  Im Store-Bau werden die `diag`-Implementierungen ausgeschlossen.
 - **Unit-Tests in CI** (#512, T6): `watch-tests.yml` fährt
   `tool/garmin_sim.sh up <uhr>` + `unit` für jede Uhr des Manifests im
   Container (Bild des Dritten aus `tool/garmin_sim.Dockerfile`,

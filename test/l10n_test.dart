@@ -1005,7 +1005,9 @@ void main() {
         findsOneWidget,
         reason: 'Gruppe nach Reiter, aus tabMap',
       );
-      expect(find.text('Minimise'), findsOneWidget);
+      final minimise = find.text('Minimise');
+      await scrollTo(tester, minimise);
+      expect(minimise, findsOneWidget);
       expect(find.text('Try it'), findsWidgets);
       expect(find.text('Show me'), findsWidgets);
       expect(find.text('Entdecken'), findsNothing);

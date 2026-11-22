@@ -1,5 +1,7 @@
 <strings>
     <string id="AppName">TrailBuddy</string>
+    <string id="Diagnosis">Diagnostics</string>
+    <string id="DiagnosisPart">Route part</string>
     <string id="Loading">Loading route</string>
     <string id="RouteComing">Route coming</string>
     <string id="BuddyOut">is riding</string>

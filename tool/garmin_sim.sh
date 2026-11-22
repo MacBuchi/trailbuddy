@@ -357,7 +357,7 @@ in_unit() {
 # Uhrzeit, bei „frage" läuft die Frist als Balken. „weitab" ist Szene 4 (1200 m neben der Linie): Nach
 # „angekommen" bleibt die Zusammenfassung stehen, die eingepasste
 # Übersicht zeigt der Vorführmodus deshalb nicht.
-SCENES="~lader uebersicht anfahrt trail abseits angekommen weitab ~frage zahlen ~berg spruenge aktion zoom beenden aufnahme pause verwerfen frei"
+SCENES="~lader uebersicht anfahrt trail abseits angekommen weitab ~frage zahlen ~berg spruenge aktion zoom diagnose beenden aufnahme pause verwerfen frei"
 
 in_shots() {
   local lang="$1" dev out ring k found=-1 tseen t loader=-1 i n
@@ -419,6 +419,10 @@ in_shots() {
   in_press up; sleep 0.3; in_press up; sleep 0.3; in_press up; sleep 0.5
   in_press up --long; sleep 1.5; shot aktion
   in_press start; sleep 1.5; shot zoom
+  in_press back; sleep 1
+  in_press up --long; sleep 1
+  in_press down; sleep 0.5; in_press down; sleep 0.5
+  in_press start; sleep 1.5; shot diagnose
   in_press back; sleep 1
   in_press back; sleep 1.5; shot beenden
   in_press back; sleep 0.5

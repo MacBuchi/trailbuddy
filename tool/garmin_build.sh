@@ -144,6 +144,7 @@ excl="demo;bench"
 if [ "$mode" = demo ]; then excl="nodemo;bench"; prg="$OUT/trailbuddy-demo.prg"; fi
 if [ "$mode" = bench ]; then excl="demo;nobench"; prg="$OUT/trailbuddy-bench.prg"; fi
 if [ "$demoRoute" = 1 ]; then excl="$excl;store"; else excl="$excl;testroute"; fi
+if [ "$store" = 1 ]; then excl="$excl;diag"; else excl="$excl;nodiag"; fi
 if [ "$mode" = build ] || [ "$mode" = bench ]; then excl="$excl;sim"; else excl="$excl;nosim"; fi
 echo "base.excludeAnnotations = $excl" >> "$OUT/src/monkey.jungle"
 

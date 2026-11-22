@@ -2,6 +2,14 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## GPX-Routen, Trail-Hotspots und Garmin-Ablage
+
+*Version 0.201.0, 2026-11-22*
+
+- Im Planer öffnet „Route aus GPX“ eine Spur auf der Karte. Von dort kannst du die Navigation starten oder die Route auf die Garmin-Uhr legen.
+- Die Trail-Hotspots haben eine Lime-Mitte. Schwarze Trails zählen zusammen als ein Segment.
+- Unter „Routen auf der Uhr“ kannst du bei fehlender Bestätigung erneut nach der Uhr fragen. Der Garmin-Testbuild zeigt die Übertragungsdiagnose im Menü unter langem HOCH.
+
 ## MTB-Avatar und Buddy-Chat
 
 *Version 0.200.0, 2026-11-22*

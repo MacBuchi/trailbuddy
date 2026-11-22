@@ -19,6 +19,11 @@ import '../fakes/test_app.dart';
 import '../fakes/l10n_de.dart';
 
 void main() {
+  test('Hotspot fasst S3 bis S5 in einem schwarzen Segment zusammen', () {
+    const hotspot = TrailHotspot(LatLng(1, 1), [1, 0, 2, 3, 1, 2, 1], 10);
+    expect(hotspot.ringCounts, [1, 0, 2, 6, 1]);
+  });
+
   late FakeBackend backend;
   late FakeTrailRepository trails;
 

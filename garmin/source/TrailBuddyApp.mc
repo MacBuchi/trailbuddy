@@ -141,6 +141,10 @@ class TrailBuddyApp extends Application.AppBase {
     //! Aktionsmenü (langes HOCH, #513), `:zoom` die Zoomstufen.
     (:nobench)
     function menu(kind as Symbol) as Void {
+        if (kind == :diagnosis) {
+            showDiagnosis();
+            return;
+        }
         if (kind == :action) {
             actionMenu();
             return;
@@ -193,8 +197,29 @@ class TrailBuddyApp extends Application.AppBase {
                 m.addItem(new WatchUi.MenuItem(str(Rez.Strings.EndRoute), null, :endRoute, null));
             }
         }
+        addDiagnosis(m);
         WatchUi.pushView(m, new MenuDelegate(:action), WatchUi.SLIDE_IMMEDIATE);
     }
+
+    (:diag)
+    hidden function addDiagnosis(m as WatchUi.Menu2) as Void {
+        m.addItem(new WatchUi.MenuItem(str(Rez.Strings.Diagnosis), null, :diagnosis, null));
+    }
+
+    (:nodiag)
+    hidden function addDiagnosis(m as WatchUi.Menu2) as Void {}
+
+    (:diag)
+    hidden function showDiagnosis() as Void {
+        var m = new WatchUi.Menu2({:title => str(Rez.Strings.Diagnosis)});
+        m.addItem(new WatchUi.MenuItem("v" + TbVersion.VERSION, "BT: " + (connected() ? "+" : "−"), 0, null));
+        m.addItem(new WatchUi.MenuItem(str(Rez.Strings.DiagnosisPart), core.shelfDiagPart, 1, null));
+        m.addItem(new WatchUi.MenuItem(str(Rez.Strings.Shelf), PhoneRoute.shelf().size() + " · " + core.shelfDiagResult, 2, null));
+        WatchUi.switchToView(m, new MenuDelegate(:diagnosis), WatchUi.SLIDE_IMMEDIATE);
+    }
+
+    (:nodiag)
+    hidden function showDiagnosis() as Void {}
 
     //! Von selbst · 135 m · 203 m · 540 m; die jetzige Wahl hat den Fokus.
     (:nobench)
@@ -805,6 +830,11 @@ class MenuDelegate extends WatchUi.Menu2InputDelegate {
 
     function onSelect(item as WatchUi.MenuItem) as Void {
         var id = item.getId();
+        if (_kind == :action && id == :diagnosis) {
+            (Application.getApp() as TrailBuddyApp).menu(:diagnosis);
+            return;
+        }
+        if (_kind == :diagnosis) { return; }
         if (id != :discard && id != :zoom && id != :shelf) { WatchUi.popView(WatchUi.SLIDE_IMMEDIATE); }
         var c = watchCore();
         if (_kind == :pause) {

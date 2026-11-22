@@ -787,5 +787,7 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
   die Marker gleich. Der Planer, die Navigation und die Trail-Auswahl
   behalten die Linien, ebenso wartende Aufzeichnungen aus dem Ausgangskorb.
   Beide Engines verwenden dieselben Marker und dieselbe Trefferprüfung.
+  Die Anzahl steht auf Lime. Der Ring fasst S3 bis S5 in einem Segment
+  zusammen, die Detailkarte behält den gestrichelten Saum für S4/S5.
   flutter_map meldet Sprünge von `MapController` als `MapEventMove`;
   sie melden ebenfalls Stillstand, damit ein Tipp sofort neu gruppiert.

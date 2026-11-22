@@ -9,6 +9,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../../core/errors.dart';
+import '../../core/app_distribution.dart';
 import '../../core/geo.dart' show formatMeters;
 import '../../core/settings.dart';
 import '../../l10n/l10n.dart';
@@ -78,6 +79,7 @@ Future<void> putOnWatch(
         return const <WatchBranch>[];
       });
   final heights = await heightsSoon;
+  if (!context.mounted) return;
   final route = watchRouteOf(
     points,
     sections,
@@ -151,6 +153,9 @@ class WatchShelfScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l = context.l10n;
     final s = ref.watch(watchShelfProvider);
+    final trace = AppDistribution.isDevBuild
+        ? ref.watch(watchShelfTraceProvider)
+        : null;
     final pending = {for (final e in s.pending) e.id};
     final shown = s.shown;
     return Scaffold(
@@ -161,7 +166,29 @@ class WatchShelfScreen extends ConsumerWidget {
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
             child: Text(l.watchShelfIntro(kWatchShelfMax)),
           ),
-          if (s.failed != null && s.failure != null)
+          if (AppDistribution.isDevBuild)
+            ListTile(
+              title: Text(l.watchShelfDiagnosis),
+              subtitle: Text(
+                trace == null
+                    ? '—'
+                    : '${MaterialLocalizations.of(context).formatTimeOfDay(TimeOfDay.fromDateTime(trace.at))} · ${trace.version ?? '—'} · ${trace.event}',
+              ),
+            ),
+          if (s.jobs.isNotEmpty)
+            ListTile(
+              leading: const Icon(Icons.sync),
+              title: Text(l.watchShelfCheckConnection),
+              onTap: ref.read(watchShelfProvider.notifier).checkConnection,
+            ),
+          if (s.failure == WatchShelfFailure.unconfirmed)
+            ListTile(
+              leading: const Icon(Icons.info_outline),
+              title: Text(l.watchShelfWaitingForReply),
+            ),
+          if (s.failed != null &&
+              s.failure != null &&
+              s.failure != WatchShelfFailure.unconfirmed)
             ListTile(
               key: const ValueKey('watch-shelf-failed'),
               leading: const Icon(Icons.error_outline),
@@ -171,6 +198,7 @@ class WatchShelfScreen extends ConsumerWidget {
                   s.failed!,
                 ),
                 WatchShelfFailure.outdated => l.watchShelfFailedOutdated,
+                WatchShelfFailure.unconfirmed => l.watchShelfWaitingForReply,
               }),
             ),
           if (shown.isEmpty)

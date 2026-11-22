@@ -223,6 +223,7 @@ void main() {
         final c = container();
         final r = _route(0.0005);
         await c.read(watchShelfProvider.notifier).put(_entry(r, 'A'), r);
+        await pumpEventQueue();
         expect(bridge.queries, 1);
         expect(shelfSent(), isEmpty);
         bridge.answer(_hello());
@@ -242,6 +243,33 @@ void main() {
         expect(shelfSent(), isEmpty);
         expect(c.read(watchShelfProvider).failure, WatchShelfFailure.outdated);
         expect(c.read(watchShelfProvider).jobs, hasLength(1));
+      },
+    );
+
+    test(
+      '637.1 handy: unklarer Öffnungsstatus, erneutes Hallo und verlorenes sh',
+      () async {
+        bridge.openResult = WatchOpen.unknown;
+        final c = container();
+        final r = _route(0.0005);
+        final entry = _entry(r, 'A');
+        await c.read(watchShelfProvider.notifier).put(entry, r);
+        await pumpEventQueue();
+        expect(bridge.queries, 1);
+
+        bridge.answer(_hello(ver: '1.10.0'));
+        await pumpEventQueue();
+        final sent = shelfSent().length;
+        expect(sent, r.parts().length);
+        bridge.answer(_hello(ver: '1.10.0'));
+        await pumpEventQueue();
+        expect(shelfSent(), hasLength(sent));
+
+        bridge.answer(_hello(ver: '1.10.0', sh: [entry]));
+        await pumpEventQueue();
+        expect(c.read(watchShelfProvider).jobs, isEmpty);
+        expect(c.read(watchShelfProvider).entries.single.id, r.id);
+        expect(shelfSent(), hasLength(sent));
       },
     );
 
@@ -320,6 +348,28 @@ void main() {
         expect(shelfSent(), isEmpty);
       },
     );
+
+    test('Entfernen beim Senden wartet trotz Hallo bis zum Ablegen', () async {
+      final c = container();
+      final shelf = c.read(watchShelfProvider.notifier);
+      final r = _route(0.0005);
+      final entry = _entry(r, 'A');
+      bridge.answer(_hello());
+      await pumpEventQueue();
+      await shelf.put(entry, r);
+      await pumpEventQueue();
+      await shelf.remove(r.id);
+      bridge.answer(_hello());
+      await pumpEventQueue();
+      expect(c.read(watchShelfProvider).removing, {r.id});
+      expect(shelfSent().last['t'], kWatchRoutePart);
+      bridge.answer(_shelf([entry], id: r.id));
+      await pumpEventQueue();
+      expect(shelfSent().last, watchShelfDropOf(r.id));
+      bridge.answer(_shelf(const []));
+      await pumpEventQueue();
+      expect(c.read(watchShelfProvider).jobs, isEmpty);
+    });
   });
 
   group('in der App', () {
