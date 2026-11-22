@@ -15,6 +15,7 @@ import '../finite_camera_constraint.dart';
 import '../online_map.dart';
 import '../way_layer.dart';
 import 'line_labels.dart';
+import 'route_ribbon_layer.dart';
 import 'map_view.dart';
 import '../../../l10n/l10n.dart';
 
@@ -352,7 +353,9 @@ class _FlutterMapViewState extends ConsumerState<FlutterMapView>
         // `Opacity` — Rand und Linie erst deckend, dann zusammen
         // durchsichtig; Pfeile direkt darüber, unter dem, was folgt.
         for (final run in polylineRuns(layers.polylines)) ...[
-          if (run.any((l) => l.width > 0))
+          if (run.first.buttEnds)
+            RouteRibbonLayer(run)
+          else if (run.any((l) => l.width > 0))
             if (run.first.opacity < 1)
               Opacity(opacity: run.first.opacity, child: _polylineLayer(run))
             else
@@ -409,7 +412,12 @@ List<List<MapViewPolyline>> polylineRuns(List<MapViewPolyline> lines) {
   final runs = <List<MapViewPolyline>>[];
   for (final line in lines) {
     final last = runs.isEmpty ? null : runs.last;
+    if (last != null && line.buttEnds && last.last.buttEnds) {
+      last.add(line);
+      continue;
+    }
     if (last == null ||
+        last.last.buttEnds != line.buttEnds ||
         last.last.opacity != line.opacity ||
         last.last.pass != line.pass ||
         last.last.arrows != null) {

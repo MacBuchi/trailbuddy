@@ -9,7 +9,7 @@ import 'package:trailbuddy/features/routing/route_band.dart';
 
 import 'fake_map_view.dart';
 
-/// Alle Zeichnungen des Bands; `pass == 1` sind die doppelten Stücke.
+/// Alle sichtbaren Zeichnungen des Bands in Fahrreihenfolge.
 /// Durchsichtig: Die Auswahl im Planer ist ebenso breit und Lime, aber
 /// deckend.
 Iterable<MapViewPolyline> routeBand(WidgetTester tester) => fakeMapLayers(

@@ -63,23 +63,22 @@ const _p = AppColors.dark;
 /// Radius der Karten, wie im Entwurf.
 const _kCardRadius = 14.0;
 
-/// Die Route auf der Karte: der gefahrene Teil dünn und blass, der Rest
-/// als Band (#295) in der Deckkraft der Folgeansicht — doppelt dicht nur,
-/// was noch ZWEIMAL kommt —, davor gestrichelt das Stück „Zurück zur
-/// Route". Liegt unter dem Netz — Trails auf der Route behalten ihre
-/// Farbe (Design 7).
-List<MapViewPolyline> navRouteLines(NavSession session) {
+/// Die nächste Durchfahrt liegt vorn. Die ersten 500 Routenmeter
+/// verblassen, dahinter bleibt das Band sichtbar. Rückführung und
+/// Schwierigkeitsfarben im Netz stehen darüber.
+List<MapViewPolyline> navRouteLines(
+  NavSession session, {
+  double zoom = kNavZoom,
+}) {
   final c = AppColors.mapLines.ride;
   final along = session.state?.alongM ?? 0;
-  final (done, rest) = session.route.splitAt(along);
   return [
-    if (done.length >= 2)
-      MapViewPolyline(
-        points: done,
-        color: AppColors.routeEdge.withValues(alpha: 0.35),
-        width: 4,
-      ),
-    ...routeBandLines(rest, opacity: kRouteFollowOpacity),
+    ...routeBandLines(
+      session.route.points,
+      alongM: along,
+      zoom: zoom,
+      opacity: kRouteFollowOpacity,
+    ),
     if (session.rejoinLine case final back? when back.length >= 2)
       MapViewPolyline(
         points: back,

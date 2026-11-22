@@ -233,6 +233,8 @@ class MapViewPolyline {
     this.label,
     this.opacity = 1,
     this.pass = 0,
+    this.buttEnds = false,
+    this.endOpacity,
     this.arrows,
   });
 
@@ -272,19 +274,18 @@ class MapViewPolyline {
   /// ins Leere gehen.
   final double hitSlop;
 
-  /// Deckkraft der Linie SAMT Rand (#295): Beide werden erst deckend
-  /// übereinander gelegt und dann zusammen durchsichtig — der Rand
-  /// scheint nicht durch die Linie. Ob sich Linien GLEICHEN Stils an
-  /// einer Überlappung mischen, hängt an der Engine (flutter_map: nein,
-  /// eine Gruppe ist eine Fläche); `route_band.dart` legt deshalb keine
-  /// Stelle zweimal in denselben Stil, das Doppelte bekommt einen eigenen.
+  /// Deckkraft des Strichs einschließlich beider Längsränder.
   final double opacity;
 
-  /// Eine weitere Zeichnung im selben Stil: Linien mit anderem [pass]
-  /// liegen in einer eigenen Ebene (MapLibre) bzw. Fläche (flutter_map)
-  /// und mischen sich mit der ersten — so wird ein doppelt befahrenes
-  /// Stück der Route dichter (#295).
+  /// Trennt Zeichnungen gleicher Farbe, etwa stabile Geometrieblöcke.
   final int pass;
+
+  /// Offener Querschnitt eines Routenbands. Benachbarte Ausschnitte
+  /// schließen mit durchlaufenden Längsrändern aneinander an.
+  final bool buttEnds;
+
+  /// Deckkraft am Ende eines Farbübergangs.
+  final double? endOpacity;
 
   /// Pfeile entlang der Linie in ihrer Richtung; null = keine.
   final LineArrows? arrows;
@@ -293,7 +294,7 @@ class MapViewPolyline {
   String get styleKey =>
       '${color.toARGB32()}|$width|${dash?.join(',') ?? ''}|'
       '${borderColor?.toARGB32() ?? ''}|$borderWidth|${borderDash?.join(',') ?? ''}|'
-      '$opacity|$pass|${arrows?.styleKey ?? ''}';
+      '${buttEnds ? "feature-opacity" : opacity}|$pass|$buttEnds|${arrows?.styleKey ?? ''}';
 }
 
 /// Das Zeichen der Pfeile — in den Glyphen der App (MapLibre) und in der

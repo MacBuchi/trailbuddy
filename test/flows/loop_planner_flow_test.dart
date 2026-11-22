@@ -659,9 +659,11 @@ void main() {
         findsOneWidget,
       );
       expect(
-        routeBand(tester).where((l) => l.pass == 1),
+        fakeMapLayers(
+          tester,
+        ).polylines.where((l) => (l.arrows?.offset ?? 0) > 0),
         isNotEmpty,
-        reason: 'Hexentanz zweimal: das Stück liegt dichter',
+        reason: 'Hexentanz zweimal: versetzte Richtungspfeile',
       );
       expect(connectionLines(tester), isNotEmpty);
       expect(picked(tester), isEmpty, reason: 'die Runde zeigt, was dabei ist');
@@ -1034,12 +1036,12 @@ void main() {
 
       // Ein Tipp auf die Verbindung zwischen Start und Trail. Hin- und
       // Rückweg liegen hier auf demselben Forstweg (zwei Abfahrten, drei
-      // Teilstücke): Die oberste Linie gewinnt — der Rückweg, Teilstück 2.
+      // Teilstücke): Die oberste Linie gewinnt — die Hinfahrt, Teilstück 0.
       final mid = LatLng((_fromLat + 48.0) / 2, _lon);
       await tapMapAt(tester, mid);
       await settle(tester);
-      expect(viaMarks().single.key, const ValueKey('via-2-0'));
-      const handle = ValueKey('via-handle-2-0');
+      expect(viaMarks().single.key, const ValueKey('via-0-0'));
+      const handle = ValueKey('via-handle-0-0');
       final session = ProviderScope.containerOf(
         tester.element(find.byType(MaterialApp)),
       ).read(loopPlannerProvider);

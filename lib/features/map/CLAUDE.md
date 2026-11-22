@@ -196,10 +196,11 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     neuer `pass`, nach Pfeilen) und legt einen durchsichtigen Lauf als
     EINE Fläche in `Opacity`. Ob sich Linien gleichen Stils an einer
     Überlappung mischen, ist je Engine anders (flutter_map: nie, eine
-    Fläche) — wer eine Stelle dichter will, gibt ihr einen eigenen
-    `pass`. Pfeile: MapLibre „›" als Symbol entlang der Linie
-    (`LineArrowLayer`, nicht aufrecht, `text-ignore-placement`; „→"
-    fehlt in den Glyphen 8192–8447), flutter_map malt einen Winkel je
+    Fläche). Das Routenband hat offene Schnittenden: MapLibre nimmt die
+    Deckkraft je Feature und zeichnet Rand und Band einer Gruppe zusammen.
+    flutter_map malt jede zusammenhängende Durchfahrt mit runden Ecken
+    und wendet den Verlauf auf Rand und Füllung gemeinsam an.
+    Pfeile: MapLibre „›“ entlang der Linie, flutter_map Winkel alle
     90 px (`lineArrowPlaces`). Breite 0 heißt kein Strich (Pfeil-Linien,
     Tippziele). Durchsichtiges Band mit Rand: `route_band_render_test`.
   - **Die Onlinekarte ist EIN Archiv auf dem eigenen Host** (#31
