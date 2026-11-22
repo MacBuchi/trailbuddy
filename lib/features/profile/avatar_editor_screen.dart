@@ -70,6 +70,38 @@ class _EditorState extends ConsumerState<_Editor> {
     _error = null;
   });
 
+  Widget? _optionPreview(
+    AvatarConfig draft,
+    AvatarPart part,
+    String option,
+    Color outline,
+  ) {
+    if (part == AvatarPart.hair ||
+        part == AvatarPart.beard ||
+        part == AvatarPart.goggleTint) {
+      final portrait = part == AvatarPart.goggleTint
+          ? draft.withPart(part, option)
+          : draft
+                .withPart(AvatarPart.headwear, 'none')
+                .withPart(AvatarPart.glasses, 'none')
+                .withPart(part, option);
+      return ClipOval(child: AvatarPortrait(config: portrait, size: 22));
+    }
+    final color = avatarSwatch(part, option);
+    if (color == null) return null;
+    return ExcludeSemantics(
+      child: Container(
+        width: 18,
+        height: 18,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: color,
+          border: Border.all(color: outline),
+        ),
+      ),
+    );
+  }
+
   void _close() {
     if (context.canPop()) {
       context.pop();
@@ -111,7 +143,7 @@ class _EditorState extends ConsumerState<_Editor> {
     final l = context.l10n;
     final theme = Theme.of(context);
     final palette = AppPalette.of(context);
-    final choices = _draft ?? AvatarConfig.standard;
+    final choices = _draft;
     final presets = _presets(l);
     return PopScope(
       canPop: !_saving,
@@ -179,67 +211,63 @@ class _EditorState extends ConsumerState<_Editor> {
                             ),
                         ],
                       ),
-                      for (final part in [
-                        AvatarPart.headwear,
-                        AvatarPart.gearColor,
-                        AvatarPart.skin,
-                        AvatarPart.hair,
-                        AvatarPart.hairColor,
-                        AvatarPart.beard,
-                        AvatarPart.glasses,
-                        AvatarPart.expression,
-                        AvatarPart.background,
-                      ]) ...[
-                        const SizedBox(height: 16),
-                        Text(
-                          avatarPartLabel(l, part),
-                          style: theme.textTheme.titleMedium,
-                        ),
-                        const SizedBox(height: 4),
-                        Wrap(
-                          spacing: 8,
-                          children: [
-                            for (final option in part.options)
-                              ChoiceChip(
-                                key: ValueKey('avatar-${part.name}-$option'),
-                                avatar: switch (avatarSwatch(part, option)) {
-                                  final color? => ExcludeSemantics(
-                                    child: Container(
-                                      width: 18,
-                                      height: 18,
-                                      decoration: BoxDecoration(
-                                        shape: BoxShape.circle,
-                                        color: color,
-                                        border: Border.all(
-                                          color: palette.muted,
-                                        ),
-                                      ),
-                                    ),
+                      if (choices != null) ...[
+                        for (final part in [
+                          AvatarPart.headwear,
+                          if (choices[AvatarPart.headwear] != 'none')
+                            AvatarPart.gearColor,
+                          AvatarPart.skin,
+                          AvatarPart.hair,
+                          AvatarPart.hairColor,
+                          AvatarPart.beard,
+                          AvatarPart.glasses,
+                          if (choices[AvatarPart.glasses] == 'goggles')
+                            AvatarPart.goggleTint,
+                          AvatarPart.expression,
+                          AvatarPart.background,
+                        ]) ...[
+                          const SizedBox(height: 16),
+                          Text(
+                            avatarPartLabel(l, part),
+                            style: theme.textTheme.titleMedium,
+                          ),
+                          const SizedBox(height: 4),
+                          Wrap(
+                            spacing: 8,
+                            children: [
+                              for (final option in part.options)
+                                ChoiceChip(
+                                  key: ValueKey('avatar-${part.name}-$option'),
+                                  avatar: _optionPreview(
+                                    choices,
+                                    part,
+                                    option,
+                                    palette.muted,
                                   ),
-                                  null => null,
-                                },
-                                label: Text(avatarOptionLabel(l, part, option)),
-                                selected: choices[part] == option,
-                                onSelected: _saving
-                                    ? null
-                                    : (_) =>
-                                          _set(choices.withPart(part, option)),
-                                materialTapTargetSize:
-                                    MaterialTapTargetSize.padded,
-                              ),
-                          ],
+                                  label: Text(
+                                    avatarOptionLabel(l, part, option),
+                                  ),
+                                  selected: choices[part] == option,
+                                  onSelected: _saving
+                                      ? null
+                                      : (_) => _set(
+                                          choices.withPart(part, option),
+                                        ),
+                                  materialTapTargetSize:
+                                      MaterialTapTargetSize.padded,
+                                ),
+                            ],
+                          ),
+                        ],
+                        const SizedBox(height: 12),
+                        Align(
+                          alignment: AlignmentDirectional.centerStart,
+                          child: TextButton(
+                            onPressed: _saving ? null : () => _set(null),
+                            child: Text(l.avatarReset),
+                          ),
                         ),
                       ],
-                      const SizedBox(height: 12),
-                      Align(
-                        alignment: AlignmentDirectional.centerStart,
-                        child: TextButton(
-                          onPressed: _saving || _draft == null
-                              ? null
-                              : () => _set(null),
-                          child: Text(l.avatarReset),
-                        ),
-                      ),
                     ],
                   ),
                 ),

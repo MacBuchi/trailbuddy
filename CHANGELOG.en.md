@@ -2,6 +2,18 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## MTB avatars and buddy chat
+
+*Version 0.200.0, 2026-11-22*
+
+Refined faces, hairstyles, beards, eyewear, and helmets give MTB avatars
+more expression, even in small chat and map portraits. Choose from twelve
+hairstyles and nine facial hair options with previews. Clear glasses
+leave the eyes visible and sport glasses have a tinted shield. Choose
+clear, lightly tinted, or mirrored lenses for your goggles. The editor shows individual options once
+you start a portrait. If your buddy list is already loaded, opening a
+chat checks only your relationship with that buddy.
+
 ## Trail hotspots on the map
 
 *Version 0.199.0, 2026-11-22*

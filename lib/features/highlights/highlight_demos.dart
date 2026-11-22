@@ -100,29 +100,33 @@ CoachStep _profileRow(String id, String title, String text) => CoachStep(
   scrollIn: ProfileCoach.list,
 );
 
+HighlightDemo _avatarDemo(String id, AppLocalizations l, String buildText) =>
+    HighlightDemo(
+      route: '/profile',
+      script: _demo(id, [
+        CoachStep(
+          title: l.demoMtbAvatarOpenTitle,
+          text: l.demoMtbAvatarOpenText,
+          lit: const [ProfileCoach.avatarEdit],
+          scrollIn: ProfileCoach.list,
+          gesture: CoachGesture.tap,
+        ),
+        CoachStep(
+          title: l.demoMtbAvatarBuildTitle,
+          text: buildText,
+          scene: ProfileCoach.avatarEditor,
+          lit: const [ProfileCoach.avatarPreview],
+        ),
+      ]),
+    );
+
 /// Die Vorführungen je Kennung in `kFeatureHighlights`. Eine Funktion, weil
 /// sie Schritte der Touren übernehmen, und die bauen ihre Texte aus
 /// [AppLocalizations] (#209).
 Map<String, HighlightDemo> highlightDemos(AppLocalizations l) => {
+  'avatar-styles': _avatarDemo('avatar-styles', l, l.demoAvatarStylesText),
   // ─── Highlights ────────────────────────────────────────────────
-  'mtb-avatar': HighlightDemo(
-    route: '/profile',
-    script: _demo('mtb-avatar', [
-      CoachStep(
-        title: l.demoMtbAvatarOpenTitle,
-        text: l.demoMtbAvatarOpenText,
-        lit: const [ProfileCoach.avatarEdit],
-        scrollIn: ProfileCoach.list,
-        gesture: CoachGesture.tap,
-      ),
-      CoachStep(
-        title: l.demoMtbAvatarBuildTitle,
-        text: l.demoMtbAvatarBuildText,
-        scene: ProfileCoach.avatarEditor,
-        lit: const [ProfileCoach.avatarPreview],
-      ),
-    ]),
-  ),
+  'mtb-avatar': _avatarDemo('mtb-avatar', l, l.demoMtbAvatarBuildText),
   'whole-region': HighlightDemo(
     route: '/profile',
     script: _demo('whole-region', [

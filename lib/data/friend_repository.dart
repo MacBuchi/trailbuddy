@@ -22,15 +22,28 @@ class FriendRepository {
         .toList();
   }
 
+  static const _friendshipColumns =
+      'id, status, requester_id, addressee_id, '
+      'requester:profiles!friendships_requester_id_fkey(username, profile_avatars(config)), '
+      'addressee:profiles!friendships_addressee_id_fkey(username, profile_avatars(config))';
+
   Future<List<FriendshipEntry>> fetchFriendships() async {
-    final rows = await _client
-        .from('friendships')
-        .select(
-          'id, status, requester_id, addressee_id, '
-          'requester:profiles!friendships_requester_id_fkey(username, profile_avatars(config)), '
-          'addressee:profiles!friendships_addressee_id_fkey(username, profile_avatars(config))',
-        );
+    final rows = await _client.from('friendships').select(_friendshipColumns);
     return rows.map((r) => FriendshipEntry.fromJson(r)).toList();
+  }
+
+  Future<FriendshipEntry?> fetchFriendshipWith(String otherId) async {
+    final uid = _uid;
+    if (otherId == uid || otherId.isEmpty) return null;
+    // The schema requires distinct endpoints and a unique unordered pair.
+    final pair = [uid, otherId];
+    final row = await _client
+        .from('friendships')
+        .select(_friendshipColumns)
+        .inFilter('requester_id', pair)
+        .inFilter('addressee_id', pair)
+        .maybeSingle();
+    return row == null ? null : FriendshipEntry.fromJson(row);
   }
 
   Future<void> sendRequest(String addresseeId) async {

@@ -650,8 +650,16 @@ Schwierigkeit (E9) —, eine unbestätigte Meldung gedämpft mit „?"
   Form, auch im Chatkopf. Der Live-Marker einer Gruppenfahrt setzt das
   Porträt in die vorhandene weiße Umrandung. Die grobe Homie-Zelle behält
   den Umriss und die Initialen. Bei älteren Profilen oder fehlender gültiger
-  Auswahl erscheinen Initialen. „Avatar bearbeiten“ im Profil zeigt eine
-  feste Vorschau, MTB-Vorlagen, Würfeln, Einzeloptionen und Zurücksetzen.
+  Auswahl erscheinen Initialen. Bis 32 dp zeichnet das Porträt kräftigere
+  Konturen und weniger kleine Details. Die klare Brille hat zwei
+  durchsichtige Gläser mit kurzem Steg, die Sportbrille eine getönte
+  Scheibe mit Bügeln, die Goggles ein breites Band und ein klares, leicht
+  getöntes oder verspiegeltes Glas. „Avatar bearbeiten“ im Profil zeigt
+  eine feste Vorschau, MTB-Vorlagen und Würfeln. Einzeloptionen und
+  Zurücksetzen erscheinen, sobald ein Porträt im Entwurf steht. Die zwölf
+  Frisuren und neun Bartoptionen zeigen eine kleine Vorschau ohne Helm
+  und Brille. Die Farbe
+  der Kopfbedeckung wird angezeigt, solange eine Kopfbedeckung gewählt ist.
 - **Profil (1l):** Kopf mit Avatar und drei Zahlen, darunter Zeilen mit
   Wert rechts (Benachrichtigungen, Erscheinungsbild …).
   Gebaut in 0.41.0 (`profile_screen.dart`): Die Zeilen sind Karten mit

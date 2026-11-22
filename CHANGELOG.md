@@ -2,6 +2,20 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## MTB-Avatar und Buddy-Chat
+
+*Version 0.200.0, 2026-11-22*
+
+Überarbeitete Gesichter, Frisuren, Bärte, Brillen und Helme geben den
+MTB-Avataren mehr Ausdruck. Wähle jetzt aus zwölf Frisuren und neun
+Bartoptionen mit kleinen Vorschauen. Auch im Chat und auf der Karte bleiben
+ihre Formen erkennbar. Die klare Brille lässt die Augen frei, die
+Sportbrille hat eine getönte Scheibe. Das Glas der Goggles kannst du
+klar, leicht getönt oder verspiegelt wählen.
+Im Editor erscheinen die Einzeloptionen, sobald du ein Porträt begonnen
+hast. Beim Öffnen eines Chats prüft die App nur noch die Beziehung zu
+diesem Buddy, wenn deine Buddyliste schon geladen ist.
+
 ## Trail-Hotspots auf der Karte
 
 *Version 0.199.0, 2026-11-22*

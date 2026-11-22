@@ -11,6 +11,8 @@
 // im Feld. Kein Ausgangskorb für Nachrichten: Eine Nachricht, die Tage
 // später ankommt, wäre schlimmer als eine, die sagt, dass sie nicht
 // ankam.
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -62,12 +64,17 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
   @override
   void initState() {
     super.initState();
+    final hasFriendships = ref.read(friendshipsProvider).hasValue;
     // Frisch holen beim Öffnen — es gibt keine Live-Verbindung, und wer
     // den Verlauf öffnet, will den neuesten Stand. Danach gelesen
     // markieren.
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
-      ref.invalidate(friendshipsProvider);
+      if (hasFriendships) {
+        unawaited(
+          ref.read(friendshipsProvider.notifier).revalidateWith(widget.otherId),
+        );
+      }
       ref.invalidate(messagesProvider);
       await _markRead();
     });
@@ -110,8 +117,12 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
       _controller.clear();
     } on MessageRejectedException {
       messenger.showSnackBar(SnackBar(content: Text(l.messagesRejected)));
-      // Die Anfrage ist womöglich weg — die Liste soll es zeigen.
-      ref.invalidate(friendshipsProvider);
+      // Die Anfrage ist womöglich weg — den betroffenen Eintrag nachprüfen.
+      if (mounted) {
+        unawaited(
+          ref.read(friendshipsProvider.notifier).revalidateWith(widget.otherId),
+        );
+      }
     } catch (e, s) {
       logError('Nachricht senden', e, s);
       messenger.showSnackBar(

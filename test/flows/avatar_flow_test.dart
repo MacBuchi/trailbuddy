@@ -1,12 +1,19 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' show AuthChangeEvent;
 import 'package:trailbuddy/core/widgets/letter_avatar.dart';
 import 'package:trailbuddy/core/widgets/rider_avatar.dart';
 import 'package:trailbuddy/features/friends/conversation_screen.dart';
+import 'package:trailbuddy/features/friends/friend_providers.dart';
 import 'package:trailbuddy/features/friends/friends_screen.dart'
     show messageButtonKey;
 import 'package:trailbuddy/features/profile/avatar_editor_screen.dart';
 import 'package:trailbuddy/models/avatar_config.dart';
+import 'package:trailbuddy/models/buddy_message.dart';
 import 'package:trailbuddy/models/friendship.dart';
 
 import '../fakes/fake_backend.dart';
@@ -25,11 +32,18 @@ void main() {
       }
     }
     expect(AvatarConfig.fromProfile({'avatar': 0}), isNull);
+    expect(bikePark.toJson(), isNot(contains('goggleTint')));
+    expect(
+      AvatarConfig.tryParse(bikePark.toJson())?[AvatarPart.goggleTint],
+      'mirrored',
+    );
     for (final invalid in [
       {...bikePark.toJson(), 'v': 2},
       {...bikePark.toJson(), 'hair': 'unknown'},
       {...bikePark.toJson(), 'skin': 42},
       {...bikePark.toJson(), 'extra': 'outside the catalog'},
+      {...bikePark.toJson(), 'goggleTint': 'unknown'},
+      {...bikePark.toJson(), 'goggleTint': null},
       bikePark.toJson()..remove('headwear'),
     ]) {
       expect(AvatarConfig.tryParse(invalid), isNull);
@@ -53,6 +67,9 @@ void main() {
   testWidgets('draft, retry, save, cancel, and reset in the profile', (
     tester,
   ) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(850, 950);
+    addTearDown(tester.view.reset);
     final backend = FakeBackend();
     final me = backend.addUser(username: 'rider');
     backend.signInAs(me.id);
@@ -66,9 +83,22 @@ void main() {
 
     final preview = find.byKey(const ValueKey('avatar-preview'));
     AvatarConfig? draft() => tester.widget<RiderAvatar>(preview).config;
+    final headwear = find.byKey(const ValueKey('avatar-headwear-trail'));
+    final color = find.byKey(const ValueKey('avatar-gearColor-blue'));
 
     await tapText('Avatar bearbeiten');
     expect(draft(), isNull);
+    expect(headwear, findsNothing);
+    expect(
+      tester
+          .widget<FilledButton>(find.widgetWithText(FilledButton, 'Speichern'))
+          .onPressed,
+      isNull,
+    );
+    await tapText('Abbrechen');
+    expect(me.avatarConfig, isNull);
+
+    await tapText('Avatar bearbeiten');
     await tapText('Bikepark');
     expect(draft()?[AvatarPart.headwear], 'fullface');
     expect(me.avatarConfig, isNull);
@@ -100,21 +130,66 @@ void main() {
     await tester.tap(reset);
     await settle(tester);
     expect(draft(), isNull);
+    expect(headwear, findsNothing);
     expect(me.avatarConfig, selected);
     await tapText('Speichern');
     expect(find.byType(AvatarEditorScreen), findsNothing);
     expect(me.avatarConfig, isNull);
     expect(find.byType(LetterAvatar), findsOneWidget);
+
+    await tapText('Avatar bearbeiten');
+    await tapText('Feierabendrunde');
+    expect(draft()?[AvatarPart.headwear], 'none');
+    expect(color, findsNothing);
+    Future<void> tapOption(String key) async {
+      final option = find.byKey(ValueKey('avatar-$key'));
+      await tester.tap(option.hitTestable());
+      await settle(tester);
+    }
+
+    await tapOption('headwear-trail');
+    await tapOption('gearColor-blue');
+    await tapOption('headwear-none');
+    expect(color, findsNothing);
+    await tapOption('headwear-trail');
+    await tester.scrollUntilVisible(color, 120);
+    expect(tester.widget<ChoiceChip>(color).selected, isTrue);
+
+    for (final (part, value) in [
+      (AvatarPart.hair, 'bun'),
+      (AvatarPart.beard, 'goatee'),
+      (AvatarPart.glasses, 'goggles'),
+      (AvatarPart.goggleTint, 'clear'),
+    ]) {
+      final style = find.byKey(ValueKey('avatar-${part.name}-$value'));
+      await tester.scrollUntilVisible(style.hitTestable(), 120);
+      if (part != AvatarPart.glasses) {
+        expect(
+          find.descendant(of: style, matching: find.byType(AvatarPortrait)),
+          findsOneWidget,
+        );
+      }
+      await tester.tap(style.hitTestable());
+      await settle(tester);
+      expect(draft()?[part], value);
+    }
+    final customized = draft();
+    await tapText('Speichern');
+    expect(me.avatarConfig, customized);
+    await tapText('Avatar bearbeiten');
+    expect(draft(), customized);
   });
 
   testWidgets(
-    'only confirmed buddies show the selected portrait in list and chat',
+    'warm chats refresh only their relationship and still fetch and read messages',
     (tester) async {
       final backend = FakeBackend();
       final me = backend.addUser(username: 'rider');
       final buddy = backend.addUser(username: 'ava')..avatarConfig = bikePark;
       final pending = backend.addUser(username: 'ben')..avatarConfig = bikePark;
-      backend.addFriendship(me.id, buddy.id);
+      final relationship = backend.addFriendship(buddy.id, me.id);
+      final second = backend.addUser(username: 'cam');
+      backend.addFriendship(me.id, second.id);
       backend.addFriendship(me.id, pending.id, status: 'pending');
       backend.signInAs(me.id);
       await pumpApp(tester, backend);
@@ -122,12 +197,110 @@ void main() {
 
       expect(find.byType(AvatarPortrait), findsOneWidget);
       final openChat = find.byKey(messageButtonKey(buddy.id));
-      await tester.ensureVisible(openChat);
-      await settle(tester);
-      await tester.tap(openChat);
-      await settle(tester);
+      Future<void> enterChat() async {
+        await tester.ensureVisible(openChat);
+        await settle(tester);
+        await tester.tap(openChat);
+        await settle(tester);
+      }
+
+      final initialFriendshipReads = backend.friendshipListReads;
+      final initialMessageReads = backend.messageListReads;
+      final now = DateTime.now();
+      backend.messages.add(
+        BuddyMessage(
+          id: 'new-message',
+          senderId: buddy.id,
+          recipientId: me.id,
+          body: 'Nachricht nach dem Laden',
+          createdAt: now,
+          expiresAt: now.add(const Duration(days: 1)),
+        ),
+      );
+
+      await enterChat();
       expect(find.byType(ConversationScreen), findsOneWidget);
       expect(find.byType(AvatarPortrait), findsOneWidget);
+      expect(find.text('Nachricht nach dem Laden'), findsOneWidget);
+      expect(backend.markReadCalls, 1);
+      expect(backend.messages.single.readAt, isNotNull);
+      expect(backend.messageListReads, greaterThan(initialMessageReads));
+
+      void backToList() => GoRouter.of(
+        tester.element(find.byType(ConversationScreen)),
+      ).go('/friends');
+      backToList();
+      await settle(tester);
+      final firstEntryMessageReads = backend.messageListReads;
+      await enterChat();
+      expect(backend.friendshipListReads, initialFriendshipReads);
+      expect(backend.friendshipPairReads, [buddy.id, buddy.id]);
+      expect(backend.messageListReads, greaterThan(firstEntryMessageReads));
+      expect(backend.markReadCalls, 1);
+
+      // The other person ends the friendship while this list is still warm.
+      backToList();
+      await settle(tester);
+      await FakeFriendRepository(backend).remove(relationship);
+      await enterChat();
+      expect(find.byType(AvatarPortrait), findsNothing);
+      expect(
+        tester.widget<TextField>(find.byKey(kMessageFieldKey)).enabled,
+        isFalse,
+      );
+      expect(backend.friendshipListReads, initialFriendshipReads);
     },
   );
+
+  test('cold friendship lookup uses only the initial list', () async {
+    final backend = FakeBackend();
+    final me = backend.addUser(username: 'rider');
+    final buddy = backend.addUser(username: 'ava')..avatarConfig = bikePark;
+    backend.addFriendship(me.id, buddy.id);
+    backend.signInAs(me.id);
+    addTearDown(backend.dispose);
+    final container = ProviderContainer(overrides: overridesFor(backend));
+    addTearDown(container.dispose);
+
+    await container.read(friendshipsProvider.notifier).revalidateWith(buddy.id);
+    final entries = await container.read(friendshipsProvider.future);
+    expect(entries.single.otherUsername(me.id), buddy.username);
+    expect(entries.single.otherAvatar(me.id), bikePark);
+    expect(backend.friendshipListReads, 1);
+    expect(backend.friendshipPairReads, isEmpty);
+  });
+
+  for (final action in ['remove', 'block', 'switch account']) {
+    test('a pending lookup cannot restore an avatar after $action', () async {
+      final backend = FakeBackend();
+      final me = backend.addUser(username: 'rider');
+      final buddy = backend.addUser(username: 'ava')..avatarConfig = bikePark;
+      final other = backend.addUser(username: 'cam');
+      final relationship = backend.addFriendship(me.id, buddy.id);
+      backend.signInAs(me.id);
+      addTearDown(backend.dispose);
+      final container = ProviderContainer(overrides: overridesFor(backend));
+      addTearDown(container.dispose);
+      final notifier = container.read(friendshipsProvider.notifier);
+      await container.read(friendshipsProvider.future);
+
+      final gate = Completer<void>();
+      backend.friendshipPairReadGate = gate.future;
+      final stale = notifier.revalidateWith(buddy.id);
+      expect(backend.friendshipPairReads, [buddy.id]);
+      switch (action) {
+        case 'remove':
+          await notifier.remove(relationship);
+        case 'block':
+          await container.read(blocksProvider.notifier).block(buddy.id);
+        case 'switch account':
+          backend.setCurrentUser(other, AuthChangeEvent.signedIn);
+          await Future<void>.delayed(Duration.zero);
+          await container.read(friendshipsProvider.future);
+      }
+      gate.complete();
+      await stale;
+      expect(container.read(friendshipsProvider).valueOrNull, isEmpty);
+    });
+  }
 }

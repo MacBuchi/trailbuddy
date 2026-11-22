@@ -39,7 +39,10 @@ class AvatarPortrait extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => ExcludeSemantics(
-    child: CustomPaint(size: Size.square(size), painter: _Portrait(config)),
+    child: CustomPaint(
+      size: Size.square(size),
+      painter: _Portrait(config, compact: size <= 32),
+    ),
   );
 }
 
@@ -80,12 +83,14 @@ Color? avatarSwatch(AvatarPart part, String option) => _palettes[part]?[option];
 
 const _ink = Color(0xFF292328);
 const _jersey = Color(0xFF33434A);
+const _jerseyLight = Color(0xFF51666D);
 const _strap = Color(0xFF493C3A);
 
 class _Portrait extends CustomPainter {
-  const _Portrait(this.config);
+  const _Portrait(this.config, {required this.compact});
 
   final AvatarConfig config;
+  final bool compact;
 
   Color _color(AvatarPart part) => avatarSwatch(part, config[part])!;
 
@@ -100,72 +105,201 @@ class _Portrait extends CustomPainter {
 
     const bounds = Rect.fromLTWH(0, 0, 100, 100);
     canvas.clipRect(bounds);
-    canvas.drawRect(bounds, Paint()..color = _color(AvatarPart.background));
+    final background = _color(AvatarPart.background);
+    canvas.drawRect(bounds, Paint()..color = background);
+    if (!compact) {
+      _oval(canvas, 50, 48, 82, 83, _lighten(background, 0.22));
+    }
     _hairBehind(canvas, hair);
-    _shape(
-      canvas,
-      Path()
-        ..moveTo(5, 102)
-        ..quadraticBezierTo(11, 80, 41, 79)
-        ..lineTo(59, 79)
-        ..quadraticBezierTo(89, 80, 95, 102),
-      _jersey,
-    );
-    _oval(canvas, 50, 81, 23, 21, skin);
-    _oval(canvas, 23, 54, 12, 19, skin);
-    _oval(canvas, 77, 54, 12, 19, skin);
-    _shape(
-      canvas,
-      Path()
-        ..moveTo(26, 37)
-        ..quadraticBezierTo(27, 23, 50, 23)
-        ..quadraticBezierTo(73, 23, 74, 37)
-        ..lineTo(75, 57)
-        ..cubicTo(74, 74, 63, 85, 50, 86)
-        ..cubicTo(37, 85, 26, 74, 25, 57),
-      skin,
-    );
+    _body(canvas, skin);
+    _head(canvas, skin);
     _hair(canvas, hair);
-    _beard(canvas, hair);
-    _face(canvas);
+    _beard(canvas, hair, skin);
+    _face(canvas, skin);
     _glasses(canvas);
     _headwear(canvas, wear, gear);
     canvas.restore();
   }
 
+  void _body(Canvas c, Color skin) {
+    _shape(
+      c,
+      Path()
+        ..moveTo(1, 104)
+        ..cubicTo(7, 89, 20, 83, 38, 81)
+        ..quadraticBezierTo(50, 78, 62, 81)
+        ..cubicTo(82, 83, 94, 91, 99, 104),
+      _jersey,
+    );
+    if (!compact) {
+      _shape(
+        c,
+        Path()
+          ..moveTo(2, 102)
+          ..quadraticBezierTo(10, 87, 29, 83)
+          ..quadraticBezierTo(23, 92, 25, 102),
+        _jerseyLight,
+      );
+      _shape(
+        c,
+        Path()
+          ..moveTo(98, 102)
+          ..quadraticBezierTo(90, 87, 71, 83)
+          ..quadraticBezierTo(77, 92, 75, 102),
+        _jerseyLight,
+      );
+    }
+    _shape(
+      c,
+      Path()
+        ..moveTo(35, 82)
+        ..quadraticBezierTo(50, 78, 65, 82)
+        ..quadraticBezierTo(63, 94, 50, 94)
+        ..quadraticBezierTo(37, 94, 35, 82),
+      _ink,
+    );
+    _shape(
+      c,
+      Path()
+        ..moveTo(39, 76)
+        ..quadraticBezierTo(50, 73, 61, 76)
+        ..lineTo(61, 84)
+        ..quadraticBezierTo(58, 90, 50, 90)
+        ..quadraticBezierTo(42, 90, 39, 84),
+      _shade(skin, 0.23),
+    );
+  }
+
+  void _head(Canvas c, Color skin) {
+    final shadow = _shade(skin, 0.24);
+    for (final x in [24.0, 76.0]) {
+      _oval(c, x, 55, 13, 17, skin);
+      if (!compact) _oval(c, x, 55, 5, 9, shadow);
+    }
+    _shape(
+      c,
+      Path()
+        ..moveTo(26, 39)
+        ..cubicTo(26, 26, 36, 21, 50, 21)
+        ..cubicTo(64, 21, 74, 26, 74, 39)
+        ..quadraticBezierTo(76, 51, 74, 61)
+        ..cubicTo(73, 73, 61, 84, 50, 85)
+        ..cubicTo(39, 84, 27, 73, 26, 61)
+        ..quadraticBezierTo(24, 50, 26, 39),
+      skin,
+    );
+    if (!compact) {
+      final cheek = Color.lerp(skin, const Color(0xFFD67970), 0.28)!;
+      _oval(c, 34, 62, 9, 4, cheek);
+      _oval(c, 66, 62, 9, 4, cheek);
+    }
+  }
+
   void _hairBehind(Canvas c, Color hair) {
     switch (config[AvatarPart.hair]) {
       case 'long':
-        _oval(c, 50, 52, 68, 75, hair);
+        _shape(
+          c,
+          Path()
+            ..moveTo(50, 17)
+            ..cubicTo(76, 15, 86, 34, 84, 56)
+            ..quadraticBezierTo(84, 73, 93, 83)
+            ..quadraticBezierTo(78, 94, 63, 82)
+            ..lineTo(39, 83)
+            ..quadraticBezierTo(20, 95, 7, 84)
+            ..quadraticBezierTo(17, 74, 16, 55)
+            ..cubicTo(14, 30, 27, 18, 50, 17),
+          hair,
+        );
       case 'braids':
-        for (final x in [23.0, 77.0]) {
-          for (final y in [59.0, 69.0, 79.0]) {
-            _oval(c, x, y, 10, 14, hair);
+        for (final side in [-1.0, 1.0]) {
+          final x = 50 + side * 26;
+          for (var section = 0; section < 3; section++) {
+            _oval(
+              c,
+              x + side * section * 1.5,
+              60 + section * 10.0,
+              compact ? 14.0 - section : 13.0 - section,
+              15,
+              section.isEven ? hair : _lighten(hair, 0.15),
+            );
           }
-          _line(c, Offset(x - 4, 80), Offset(x + 4, 80), _jersey, 2);
+          final end = x + side * 3;
+          _line(
+            c,
+            Offset(end - 4, 83),
+            Offset(end + 4, 83),
+            const Color(0xFFBD8768),
+            compact ? 2.8 : 2,
+          );
         }
+      case 'bun':
+        _oval(c, 66, 15, 23, 21, _shade(hair, 0.2));
+        if (!compact) {
+          _curve(
+            c,
+            const Offset(61, 12),
+            const Offset(69, 8),
+            const Offset(73, 15),
+            _lighten(hair, 0.28),
+            2,
+          );
+        }
+      case 'ponytail':
+        _shape(
+          c,
+          Path()
+            ..moveTo(72, 32)
+            ..cubicTo(95, 36, 92, 54, 89, 65)
+            ..quadraticBezierTo(86, 78, 94, 86)
+            ..cubicTo(77, 86, 77, 73, 78, 65)
+            ..quadraticBezierTo(80, 45, 68, 43),
+          hair,
+        );
+        _line(c, const Offset(75, 38), const Offset(80, 43), _jerseyLight, 3.8);
     }
   }
 
   void _hair(Canvas c, Color hair) {
     switch (config[AvatarPart.hair]) {
       case 'buzz':
-        _oval(c, 50, 32, 51, 25, hair);
+        _shape(
+          c,
+          Path()
+            ..moveTo(24, 43)
+            ..quadraticBezierTo(22, 18, 49, 18)
+            ..quadraticBezierTo(77, 18, 76, 43)
+            ..quadraticBezierTo(68, 34, 66, 29)
+            ..quadraticBezierTo(48, 35, 34, 29)
+            ..quadraticBezierTo(30, 39, 24, 43),
+          hair,
+        );
       case 'short':
         _shape(
           c,
           Path()
-            ..moveTo(24, 47)
-            ..quadraticBezierTo(18, 22, 39, 19)
-            ..quadraticBezierTo(64, 12, 77, 29)
-            ..lineTo(77, 47)
-            ..lineTo(68, 35)
-            ..quadraticBezierTo(50, 44, 39, 32)
-            ..lineTo(28, 49),
+            ..moveTo(24, 48)
+            ..cubicTo(14, 26, 34, 14, 55, 15)
+            ..quadraticBezierTo(75, 14, 80, 31)
+            ..quadraticBezierTo(81, 43, 74, 49)
+            ..quadraticBezierTo(74, 37, 66, 32)
+            ..quadraticBezierTo(52, 43, 37, 33)
+            ..quadraticBezierTo(33, 43, 24, 48),
           hair,
         );
+        if (!compact) {
+          _curve(
+            c,
+            const Offset(30, 30),
+            const Offset(45, 19),
+            const Offset(65, 22),
+            _lighten(hair, 0.23),
+            2.5,
+          );
+        }
       case 'curly':
         for (final (x, y) in [
+          (25.0, 40.0),
           (29.0, 34.0),
           (36.0, 26.0),
           (47.0, 23.0),
@@ -173,7 +307,17 @@ class _Portrait extends CustomPainter {
           (69.0, 29.0),
           (75.0, 37.0),
         ]) {
-          _oval(c, x, y, 22, 21, hair);
+          _oval(c, x, y, 20, y > 35 ? 19 : 23, hair);
+          if (!compact && y < 35) {
+            _curve(
+              c,
+              Offset(x - 4, y - 3),
+              Offset(x, y - 8),
+              Offset(x + 4, y - 4),
+              _lighten(hair, 0.25),
+              2,
+            );
+          }
         }
       case 'long':
       case 'braids':
@@ -183,63 +327,287 @@ class _Portrait extends CustomPainter {
             ..moveTo(23, 48)
             ..quadraticBezierTo(15, 17, 49, 17)
             ..quadraticBezierTo(80, 15, 79, 45)
-            ..quadraticBezierTo(63, 39, 57, 26)
-            ..quadraticBezierTo(43, 46, 23, 48),
+            ..quadraticBezierTo(66, 42, 56, 27)
+            ..quadraticBezierTo(44, 46, 23, 48),
+          hair,
+        );
+        if (!compact && config[AvatarPart.hair] == 'long') {
+          final highlight = _lighten(hair, 0.22);
+          _curve(
+            c,
+            const Offset(21, 48),
+            const Offset(18, 70),
+            const Offset(25, 80),
+            highlight,
+            2.8,
+          );
+          _curve(
+            c,
+            const Offset(80, 48),
+            const Offset(80, 69),
+            const Offset(86, 83),
+            highlight,
+            2.8,
+          );
+        }
+      case 'sidePart':
+        _shape(
+          c,
+          Path()
+            ..moveTo(23, 46)
+            ..cubicTo(17, 26, 28, 16, 43, 16)
+            ..quadraticBezierTo(55, 12, 61, 21)
+            ..quadraticBezierTo(81, 18, 80, 46)
+            ..quadraticBezierTo(68, 39, 62, 26)
+            ..quadraticBezierTo(49, 38, 32, 34)
+            ..quadraticBezierTo(30, 42, 23, 46),
+          hair,
+        );
+        if (!compact) {
+          _curve(
+            c,
+            const Offset(29, 28),
+            const Offset(46, 31),
+            const Offset(57, 23),
+            _lighten(hair, 0.25),
+            2.4,
+          );
+        }
+      case 'undercut':
+        _shape(
+          c,
+          Path()
+            ..moveTo(25, 46)
+            ..cubicTo(18, 27, 29, 18, 51, 17)
+            ..quadraticBezierTo(71, 17, 78, 29)
+            ..lineTo(77, 45)
+            ..lineTo(69, 38)
+            ..lineTo(31, 38),
+          hair.withValues(alpha: 0.55),
+        );
+        _shape(
+          c,
+          Path()
+            ..moveTo(26, 36)
+            ..cubicTo(23, 25, 39, 21, 46, 15)
+            ..quadraticBezierTo(58, 8, 66, 17)
+            ..quadraticBezierTo(72, 19, 77, 29)
+            ..quadraticBezierTo(58, 38, 26, 36),
+          hair,
+        );
+      case 'fringe':
+        _shape(
+          c,
+          Path()
+            ..moveTo(23, 44)
+            ..cubicTo(20, 22, 36, 15, 51, 16)
+            ..quadraticBezierTo(77, 15, 79, 41)
+            ..quadraticBezierTo(68, 38, 62, 45)
+            ..quadraticBezierTo(54, 39, 46, 46)
+            ..quadraticBezierTo(42, 42, 38, 44)
+            ..quadraticBezierTo(31, 39, 23, 44),
+          hair,
+        );
+      case 'bun':
+      case 'ponytail':
+        _shape(
+          c,
+          Path()
+            ..moveTo(23, 47)
+            ..cubicTo(18, 28, 34, 16, 48, 16)
+            ..cubicTo(66, 13, 83, 26, 78, 46)
+            ..quadraticBezierTo(70, 43, 69, 36)
+            ..quadraticBezierTo(60, 34, 55, 26)
+            ..quadraticBezierTo(44, 36, 32, 36)
+            ..quadraticBezierTo(29, 44, 23, 47),
+          hair,
+        );
+        if (!compact) {
+          _curve(
+            c,
+            const Offset(30, 29),
+            const Offset(40, 20),
+            const Offset(52, 20),
+            _lighten(hair, 0.24),
+            2.2,
+          );
+        }
+      case 'mohawk':
+        _shape(
+          c,
+          Path()
+            ..moveTo(36, 40)
+            ..quadraticBezierTo(32, 23, 44, 15)
+            ..lineTo(43, 8)
+            ..quadraticBezierTo(51, 12, 55, 5)
+            ..lineTo(57, 13)
+            ..quadraticBezierTo(72, 21, 63, 38)
+            ..quadraticBezierTo(52, 31, 36, 40),
           hair,
         );
     }
   }
 
-  void _beard(Canvas c, Color hair) {
-    switch (config[AvatarPart.beard]) {
+  void _beard(Canvas c, Color hair, Color skin) {
+    final style = config[AvatarPart.beard];
+    switch (style) {
       case 'stubble':
-        _shape(c, _jaw(), hair.withValues(alpha: 0.28));
+        _shape(
+          c,
+          Path()
+            ..moveTo(27, 61)
+            ..cubicTo(31, 74, 43, 77, 50, 77)
+            ..cubicTo(58, 77, 69, 74, 73, 61)
+            ..cubicTo(70, 76, 58, 85, 50, 85)
+            ..cubicTo(42, 85, 30, 76, 27, 61),
+          Color.lerp(skin, _shade(hair, 0.42), compact ? 0.48 : 0.36)!,
+        );
       case 'mustache':
-        _oval(c, 45, 64, 12, 6, hair);
-        _oval(c, 55, 64, 12, 6, hair);
+        _mustache(c, hair);
+      case 'handlebar':
+        _mustache(c, hair);
+        for (final side in [-1.0, 1.0]) {
+          final curl = Path()
+            ..moveTo(50 + side * 9, 66)
+            ..quadraticBezierTo(50 + side * 21, 68, 50 + side * 21, 61)
+            ..quadraticBezierTo(50 + side * 21, 57, 50 + side * 17, 58)
+            ..quadraticBezierTo(50 + side * 15, 59, 50 + side * 17, 61);
+          c.drawPath(curl, _stroke(hair, compact ? 4.5 : 3.6));
+        }
+      case 'goatee':
+        _shape(
+          c,
+          Path()
+            ..moveTo(41, 74)
+            ..quadraticBezierTo(46, 77, 50, 74)
+            ..quadraticBezierTo(54, 77, 59, 74)
+            ..quadraticBezierTo(58, 83, 50, 89)
+            ..quadraticBezierTo(42, 83, 41, 74),
+          hair,
+        );
+      case 'chinstrap':
+        final strap = Path()
+          ..moveTo(27, 61)
+          ..cubicTo(29, 71, 40, 83, 50, 83)
+          ..cubicTo(60, 83, 71, 71, 73, 61);
+        c.drawPath(strap, _stroke(hair, compact ? 5.5 : 4.5));
       case 'full':
-        _shape(c, _jaw()..quadraticBezierTo(50, 83, 27, 61), hair);
+      case 'shortBoxed':
+      case 'long':
+        final outline = Path()
+          ..moveTo(25, 55)
+          ..quadraticBezierTo(30, 66, 37, 68)
+          ..quadraticBezierTo(42, 62, 50, 63)
+          ..quadraticBezierTo(58, 62, 63, 68)
+          ..quadraticBezierTo(70, 66, 75, 55);
+        switch (style) {
+          case 'shortBoxed':
+            outline
+              ..quadraticBezierTo(73, 75, 63, 83)
+              ..quadraticBezierTo(50, 86, 37, 83)
+              ..quadraticBezierTo(27, 75, 25, 55);
+          case 'long':
+            outline
+              ..cubicTo(76, 79, 67, 91, 50, 97)
+              ..cubicTo(33, 91, 24, 79, 25, 55);
+          default:
+            outline
+              ..cubicTo(77, 75, 64, 89, 50, 91)
+              ..cubicTo(36, 89, 23, 75, 25, 55);
+        }
+        _shape(c, outline, hair);
+        _shape(
+          c,
+          Path()
+            ..moveTo(41, 67)
+            ..quadraticBezierTo(50, 65, 59, 67)
+            ..quadraticBezierTo(62, 71, 58, 75)
+            ..quadraticBezierTo(50, 78, 42, 75)
+            ..quadraticBezierTo(38, 71, 41, 67),
+          skin,
+        );
+        if (!compact) {
+          _curve(
+            c,
+            const Offset(30, 68),
+            const Offset(32, 80),
+            const Offset(43, 84),
+            _lighten(hair, 0.22),
+            2,
+          );
+        }
     }
   }
 
-  Path _jaw() => Path()
-    ..moveTo(27, 61)
-    ..quadraticBezierTo(29, 84, 50, 87)
-    ..quadraticBezierTo(71, 84, 73, 61)
-    ..quadraticBezierTo(62, 78, 50, 77)
-    ..quadraticBezierTo(38, 78, 27, 61);
+  void _mustache(Canvas c, Color hair) {
+    _shape(
+      c,
+      Path()
+        ..moveTo(34, 61)
+        ..quadraticBezierTo(38, 66, 43, 62)
+        ..quadraticBezierTo(47, 59, 50, 62)
+        ..quadraticBezierTo(53, 59, 57, 62)
+        ..quadraticBezierTo(62, 66, 66, 61)
+        ..quadraticBezierTo(64, 71, 56, 67)
+        ..quadraticBezierTo(51, 65, 50, 65)
+        ..quadraticBezierTo(49, 65, 44, 67)
+        ..quadraticBezierTo(36, 71, 34, 61),
+      hair,
+    );
+  }
 
-  void _face(Canvas c) {
+  void _face(Canvas c, Color skin) {
     final expression = config[AvatarPart.expression];
+    final focused = expression == 'focused';
     for (final x in [39.0, 61.0]) {
-      _line(
-        c,
-        Offset(x - 4, 45),
-        Offset(x + 4, expression == 'focused' ? 47 : 44),
-        _ink,
-        2,
-      );
-      if ((expression == 'wink' && x == 61) || expression == 'laugh') {
+      final winks = expression == 'wink' && x == 61;
+      if (!compact) {
+        final tilt = focused ? (x < 50 ? 2.5 : -2.5) : 0.0;
+        final brow = winks ? 43.0 : 45.0;
         _curve(
           c,
-          Offset(x - 4, 53),
-          Offset(x, 47),
-          Offset(x + 4, 53),
-          _ink,
-          2.5,
+          Offset(x - 5, brow - tilt),
+          Offset(x, brow - (focused ? 1 : 4)),
+          Offset(x + 5, brow + tilt),
+          _shade(_color(AvatarPart.hairColor), 0.25),
+          2.2,
         );
+      }
+      if (winks || expression == 'laugh') {
+        _curve(
+          c,
+          Offset(x - 5, winks ? 52 : 54),
+          Offset(x, winks ? 55 : 46),
+          Offset(x + 5, winks ? 51 : 54),
+          _ink,
+          compact ? 3.5 : 2.5,
+        );
+      } else if (compact) {
+        _oval(c, x, 52, 6.5, focused ? 5 : 8, _ink);
       } else {
-        _oval(c, x, 52, 5, 7, _ink);
+        _openEye(c, x, narrowed: focused || expression == 'grin');
       }
     }
-    _curve(
-      c,
-      const Offset(47, 59),
-      const Offset(50, 62),
-      const Offset(53, 59),
-      const Color(0xFF864A42),
-      1.8,
-    );
+    if (!compact) {
+      _shape(
+        c,
+        Path()
+          ..moveTo(50, 51)
+          ..quadraticBezierTo(50, 55, 53, 57)
+          ..quadraticBezierTo(57, 60, 51, 62)
+          ..quadraticBezierTo(48, 62, 46, 60)
+          ..quadraticBezierTo(50, 59, 50, 55),
+        _shade(skin, 0.19),
+      );
+      _curve(
+        c,
+        const Offset(47, 60),
+        const Offset(50, 63),
+        const Offset(54, 60),
+        _shade(skin, 0.37),
+        1.8,
+      );
+    }
     final mouth = Path()..moveTo(40, 68);
     switch (expression) {
       case 'grin':
@@ -247,19 +615,42 @@ class _Portrait extends CustomPainter {
           ..quadraticBezierTo(50, 71, 60, 66)
           ..quadraticBezierTo(55, 80, 40, 68);
         _shape(c, mouth, _ink);
+        if (!compact) {
+          _shape(
+            c,
+            Path()
+              ..moveTo(44, 69)
+              ..quadraticBezierTo(51, 70, 56, 68.5)
+              ..quadraticBezierTo(54, 73, 50, 73)
+              ..quadraticBezierTo(47, 73, 44, 69),
+            const Color(0xFFFFEDE0),
+          );
+        }
+      case 'laugh':
+        mouth
+          ..quadraticBezierTo(50, 71, 60, 68)
+          ..quadraticBezierTo(58, 77, 50, 77)
+          ..quadraticBezierTo(42, 77, 40, 68);
+        _shape(c, mouth, _ink);
+        if (!compact) _oval(c, 50, 74, 7, 3, const Color(0xFFDF7D7D));
+      case 'focused':
         _curve(
           c,
-          const Offset(43, 69),
-          const Offset(50, 72),
-          const Offset(57, 68),
-          Colors.white,
-          2,
+          const Offset(44, 71),
+          const Offset(50, 68),
+          const Offset(56, 70),
+          _ink,
+          compact ? 3.6 : 2.4,
         );
-      case 'laugh':
-        _oval(c, 50, 71, 15, 11, _ink);
-        _oval(c, 50, 74, 7, 3, const Color(0xFFDF7D7D));
-      case 'focused':
-        _line(c, const Offset(45, 71), const Offset(56, 70), _ink, 2.4);
+      case 'wink':
+        _curve(
+          c,
+          const Offset(43, 70),
+          const Offset(52, 76),
+          const Offset(59, 66),
+          _ink,
+          compact ? 3.5 : 2.5,
+        );
       default:
         _curve(
           c,
@@ -267,52 +658,141 @@ class _Portrait extends CustomPainter {
           const Offset(51, 79),
           const Offset(59, 67),
           _ink,
-          2.5,
+          compact ? 3.5 : 2.5,
         );
     }
+  }
+
+  void _openEye(Canvas c, double x, {required bool narrowed}) {
+    final lid = narrowed ? 48.5 : 46.5;
+    _shape(
+      c,
+      Path()
+        ..moveTo(x - 5.5, 52)
+        ..quadraticBezierTo(x, lid, x + 5.5, 52)
+        ..quadraticBezierTo(x, 57, x - 5.5, 52),
+      const Color(0xFFFFEEE0),
+    );
+    _oval(c, x + 0.6, 51.8, 5.5, narrowed ? 5 : 6.5, _ink);
+    _oval(c, x - 0.4, 50.6, 1.6, 1.6, const Color(0xFFFFEEE0));
+    _curve(
+      c,
+      Offset(x - 5.5, 52),
+      Offset(x, lid),
+      Offset(x + 5.5, 52),
+      _ink,
+      1.6,
+    );
   }
 
   void _glasses(Canvas c) {
     switch (config[AvatarPart.glasses]) {
       case 'clear':
+        _clearGlasses(c);
       case 'shades':
-        final dark = config[AvatarPart.glasses] == 'shades';
-        _line(c, const Offset(26, 50), const Offset(74, 50), _ink, 2);
-        for (final x in [39.0, 61.0]) {
-          final frame = RRect.fromRectAndRadius(
-            Rect.fromCenter(center: Offset(x, 52), width: 19, height: 14),
-            const Radius.circular(5),
-          );
-          if (dark) c.drawRRect(frame, Paint()..color = _ink);
-          c.drawRRect(
-            frame,
-            Paint()
-              ..color = _ink
-              ..style = PaintingStyle.stroke
-              ..strokeWidth = 2,
-          );
-          if (dark) {
-            _line(c, Offset(x - 5, 50), Offset(x + 2, 49), Colors.white54, 1.5);
-          }
-        }
+        _sportGlasses(c);
       case 'goggles':
-        final frame = RRect.fromRectAndRadius(
-          const Rect.fromLTRB(28, 44, 72, 59),
-          const Radius.circular(6),
-        );
-        c.drawRRect(frame, Paint()..color = _ink);
-        c.drawRRect(
-          frame.deflate(2.5),
-          Paint()..color = const Color(0xFF82BCCC),
-        );
-        _line(
-          c,
-          const Offset(35, 49),
-          const Offset(61, 48),
-          Colors.white70,
-          1.8,
-        );
+        _goggles(c);
     }
+  }
+
+  void _clearGlasses(Canvas c) {
+    final frameWidth = compact ? 3.2 : 2.3;
+    _curve(
+      c,
+      const Offset(47.5, 50),
+      const Offset(50, 47),
+      const Offset(52.5, 50),
+      _ink,
+      frameWidth,
+    );
+    for (final side in [-1.0, 1.0]) {
+      final center = 50 + side * 12;
+      _line(
+        c,
+        Offset(50 + side * 28, 48),
+        Offset(center + side * 9, 50),
+        _ink,
+        frameWidth,
+      );
+      final frame = RRect.fromRectAndRadius(
+        Rect.fromCenter(center: Offset(center, 52), width: 19, height: 15),
+        const Radius.circular(5.5),
+      );
+      c.drawRRect(frame, Paint()..color = const Color(0x26D7ECF4));
+      c.drawRRect(frame, _stroke(_ink, frameWidth));
+    }
+  }
+
+  void _sportGlasses(Canvas c) {
+    final frameWidth = compact ? 3.2 : 2.3;
+    _line(c, const Offset(22, 49), const Offset(29, 46), _ink, frameWidth);
+    _line(c, const Offset(71, 46), const Offset(78, 49), _ink, frameWidth);
+    final shield = Path()
+      ..moveTo(27, 47)
+      ..quadraticBezierTo(36, 41, 50, 43)
+      ..quadraticBezierTo(64, 41, 73, 47)
+      ..lineTo(71, 55)
+      ..lineTo(58, 59)
+      ..lineTo(52, 53)
+      ..quadraticBezierTo(50, 51, 48, 53)
+      ..lineTo(42, 59)
+      ..lineTo(29, 55)
+      ..close();
+    final mirror = const LinearGradient(
+      colors: [Color(0xFFD79D54), Color(0xFFA84640), Color(0xFF623445)],
+    );
+    c.drawPath(
+      shield,
+      Paint()..shader = mirror.createShader(shield.getBounds()),
+    );
+    c.drawPath(
+      shield,
+      _stroke(_ink, frameWidth)..strokeJoin = StrokeJoin.round,
+    );
+  }
+
+  void _goggles(Canvas c) {
+    for (final left in [16.0, 74.0]) {
+      c.drawRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromLTWH(left, 45, 10, 11),
+          const Radius.circular(3),
+        ),
+        Paint()..color = _strap,
+      );
+    }
+    final shield = Path()
+      ..moveTo(23, 47)
+      ..quadraticBezierTo(24, 40, 37, 40)
+      ..quadraticBezierTo(50, 38, 63, 40)
+      ..quadraticBezierTo(76, 40, 77, 47)
+      ..lineTo(75, 55)
+      ..quadraticBezierTo(74, 59, 69, 60)
+      ..lineTo(61, 63)
+      ..quadraticBezierTo(58, 64, 55, 60)
+      ..lineTo(52, 55)
+      ..quadraticBezierTo(50, 51, 48, 55)
+      ..lineTo(45, 60)
+      ..quadraticBezierTo(42, 64, 39, 63)
+      ..lineTo(31, 60)
+      ..quadraticBezierTo(26, 59, 25, 55)
+      ..close();
+    final lens = switch (config[AvatarPart.goggleTint]) {
+      'clear' => Paint()..color = const Color(0x29D7ECF4),
+      'smoke' => Paint()..color = const Color(0x80416378),
+      _ =>
+        Paint()
+          ..shader = const LinearGradient(
+            colors: [Color(0xFF6872E0), Color(0xFF51D8DD), Color(0xFF3156A4)],
+            stops: [0.05, 0.45, 1],
+          ).createShader(shield.getBounds()),
+    };
+    c.drawPath(shield, lens);
+    c.drawPath(
+      shield,
+      _stroke(_ink, compact ? 4.6 : 3.7)..strokeJoin = StrokeJoin.round,
+    );
   }
 
   void _headwear(Canvas c, String wear, Color gear) {
@@ -320,90 +800,140 @@ class _Portrait extends CustomPainter {
       case 'trail':
       case 'fullface':
         if (wear == 'fullface') {
+          final chin = Path()
+            ..moveTo(14, 37)
+            ..quadraticBezierTo(23, 35, 24, 47)
+            ..quadraticBezierTo(25, 59, 37, 68)
+            ..quadraticBezierTo(50, 74, 63, 68)
+            ..quadraticBezierTo(75, 59, 76, 47)
+            ..quadraticBezierTo(77, 35, 86, 37)
+            ..quadraticBezierTo(87, 60, 81, 73)
+            ..cubicTo(74, 84, 60, 88, 50, 89)
+            ..cubicTo(40, 88, 26, 84, 19, 73)
+            ..quadraticBezierTo(13, 60, 14, 37);
+          _shape(c, chin, gear);
           _shape(
             c,
             Path()
-              ..moveTo(15, 40)
-              ..lineTo(21, 63)
-              ..lineTo(38, 76)
-              ..lineTo(62, 76)
-              ..lineTo(79, 63)
-              ..lineTo(85, 40)
-              ..lineTo(81, 71)
-              ..quadraticBezierTo(75, 85, 50, 87)
-              ..quadraticBezierTo(25, 85, 19, 71),
-            gear,
+              ..moveTo(32, 75)
+              ..quadraticBezierTo(50, 79, 68, 75)
+              ..quadraticBezierTo(63, 82, 50, 83)
+              ..quadraticBezierTo(37, 82, 32, 75),
+            _shade(gear, 0.72),
           );
-          _line(c, const Offset(42, 81), const Offset(58, 81), _ink, 2);
         } else {
           _curve(
             c,
-            const Offset(23, 35),
-            const Offset(25, 62),
+            const Offset(22, 39),
+            const Offset(23, 63),
             const Offset(39, 77),
             _strap,
-            2.6,
+            compact ? 3.8 : 2.6,
           );
         }
         _shape(
           c,
           Path()
-            ..moveTo(13, 44)
-            ..cubicTo(10, 20, 26, 9, 48, 9)
-            ..cubicTo(70, 9, 82, 15, 85, 33)
-            ..lineTo(92, 38)
-            ..quadraticBezierTo(77, 41, 64, 37)
-            ..lineTo(34, 38)
-            ..quadraticBezierTo(23, 47, 13, 44),
+            ..moveTo(13, 43)
+            ..cubicTo(10, 24, 23, 11, 43, 9)
+            ..cubicTo(64, 6, 82, 16, 85, 32)
+            ..lineTo(92, 35)
+            ..quadraticBezierTo(94, 38, 89, 40)
+            ..quadraticBezierTo(77, 42, 66, 37)
+            ..quadraticBezierTo(46, 34, 32, 39)
+            ..quadraticBezierTo(21, 47, 13, 43),
           gear,
         );
-        for (final x in [32.0, 47.0, 62.0]) {
-          _line(c, Offset(x, 21), Offset(x - 6, 28), _ink, 3.3);
-        }
         _curve(
           c,
-          const Offset(21, 32),
-          const Offset(27, 18),
-          const Offset(39, 16),
-          Colors.white54,
-          2,
+          const Offset(66, 36),
+          const Offset(80, 42),
+          const Offset(89, 38),
+          _shade(gear, 0.7),
+          compact ? 4.2 : 3,
         );
+        for (final x in [37.0, 58.0]) {
+          _curve(
+            c,
+            Offset(x, 20),
+            Offset(x - 4, 21),
+            Offset(x - 8, 27),
+            _shade(gear, 0.82),
+            compact ? 4.8 : 4,
+          );
+        }
+        if (!compact) {
+          _curve(
+            c,
+            const Offset(20, 30),
+            const Offset(24, 20),
+            const Offset(33, 17),
+            _lighten(gear, 0.52),
+            2.6,
+          );
+        }
       case 'cap':
         _shape(
           c,
           Path()
             ..moveTo(23, 36)
-            ..quadraticBezierTo(20, 15, 47, 13)
-            ..quadraticBezierTo(72, 13, 77, 32)
-            ..lineTo(90, 37)
-            ..quadraticBezierTo(84, 43, 57, 38)
-            ..lineTo(38, 36)
-            ..quadraticBezierTo(27, 40, 23, 36),
+            ..cubicTo(20, 23, 31, 15, 47, 15)
+            ..quadraticBezierTo(70, 13, 76, 32)
+            ..quadraticBezierTo(89, 33, 92, 39)
+            ..quadraticBezierTo(81, 46, 60, 39)
+            ..quadraticBezierTo(37, 34, 26, 38)
+            ..quadraticBezierTo(23, 38, 23, 36),
           gear,
         );
         _curve(
           c,
-          const Offset(48, 14),
-          const Offset(60, 19),
-          const Offset(60, 34),
-          Colors.white54,
-          1.8,
+          const Offset(59, 37),
+          const Offset(81, 44),
+          const Offset(89, 39),
+          _shade(gear, 0.65),
+          compact ? 4.5 : 3,
         );
+        if (!compact) {
+          _curve(
+            c,
+            const Offset(48, 17),
+            const Offset(57, 21),
+            const Offset(59, 33),
+            _lighten(gear, 0.46),
+            2,
+          );
+        }
       case 'headband':
         _shape(
           c,
           Path()
             ..moveTo(23, 34)
             ..quadraticBezierTo(50, 29, 77, 34)
-            ..lineTo(77, 42)
-            ..quadraticBezierTo(50, 36, 23, 42),
+            ..quadraticBezierTo(80, 38, 77, 43)
+            ..quadraticBezierTo(50, 37, 23, 43)
+            ..quadraticBezierTo(20, 38, 23, 34),
           gear,
         );
+        if (!compact) {
+          _curve(
+            c,
+            const Offset(26, 39),
+            const Offset(50, 34),
+            const Offset(74, 39),
+            _lighten(gear, 0.44),
+            1.8,
+          );
+        }
     }
   }
 
   void _shape(Canvas c, Path path, Color color) =>
       c.drawPath(path..close(), Paint()..color = color);
+
+  Color _lighten(Color color, double amount) =>
+      Color.lerp(color, const Color(0xFFFFEEE0), amount)!;
+
+  Color _shade(Color color, double amount) => Color.lerp(color, _ink, amount)!;
 
   void _oval(Canvas c, double x, double y, double w, double h, Color color) =>
       c.drawOval(
@@ -435,5 +965,6 @@ class _Portrait extends CustomPainter {
   );
 
   @override
-  bool shouldRepaint(_Portrait oldDelegate) => oldDelegate.config != config;
+  bool shouldRepaint(_Portrait oldDelegate) =>
+      oldDelegate.config != config || oldDelegate.compact != compact;
 }
