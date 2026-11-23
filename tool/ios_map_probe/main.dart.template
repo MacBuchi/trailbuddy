@@ -1,0 +1,40 @@
+// Temporary simulator app used by tool/ios_map_bench.sh. No network sources.
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:maplibre/maplibre.dart';
+import 'package:path_provider/path_provider.dart';
+
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  const mode = String.fromEnvironment('BENCH_MODE', defaultValue: 'vector_tile');
+  final data = await rootBundle.load('assets/$mode.mbtiles');
+  final directory = await getApplicationDocumentsDirectory();
+  final file = File('${directory.path}/$mode.mbtiles');
+  await file.writeAsBytes(data.buffer.asUint8List(), flush: true);
+  final vector = mode.startsWith('vector_');
+  final style = jsonEncode({
+    'version': 8,
+    'sources': {
+      'offline': {
+        'type': vector ? 'vector' : 'raster',
+        'url': 'mbtiles://${file.path}',
+        if (!vector) 'tileSize': 256,
+      },
+    },
+    'layers': [
+      {'id': 'background', 'type': 'background', 'paint': {'background-color': '#0055ff'}},
+      if (vector)
+        {'id': 'tiles', 'type': 'fill', 'source': 'offline', 'source-layer': 'test', 'paint': {'fill-color': '#dc2332'}}
+      else
+        {'id': 'tiles', 'type': 'raster', 'source': 'offline'},
+    ],
+  });
+  runApp(MaterialApp(home: Scaffold(body: MapLibreMap(options: MapOptions(
+    initStyle: style,
+    initCenter: Geographic(lon: 0, lat: 0),
+    initZoom: 0,
+  )))));
+}
