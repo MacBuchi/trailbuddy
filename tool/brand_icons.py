@@ -38,6 +38,9 @@ Geschrieben werden:
   sonst nimmt librsvg auf macOS still eine Systemschrift).
 - `web/icons/Icon-{192,512}.png`, `Icon-maskable-{192,512}.png`,
   `web/favicon.png`, `web/favicon.svg`.
+- `ios/Runner/Assets.xcassets/AppIcon.appiconset/` — das Symbol auf
+  dem iPhone (#644): EINE Größe, 1024 px, randlos wie im Play Store —
+  iOS rundet die Ecken selbst und rechnet die kleinen Größen daraus.
 - `garmin/resources/drawables/launcher_icon.png` — das Symbol der
   Uhr-App (40 px, `launcherIcon` der fēnix 5), runde Lime-Scheibe.
 - `garmin/resources/logo/logo.json` — das Logo für den Lader der Uhr
@@ -59,6 +62,23 @@ import tempfile
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 RES = os.path.join("android", "app", "src", "main", "res")
 GEOMETRY_JSON = os.path.join("tool", "brand", "logo_c3.json")
+IOS_ICONS = os.path.join("ios", "Runner", "Assets.xcassets", "AppIcon.appiconset")
+# Seit Xcode 14 reicht eine Größe; Xcode rechnet die übrigen beim Bauen.
+IOS_ICON_CONTENTS = """{
+  "images" : [
+    {
+      "filename" : "Icon-App-1024x1024.png",
+      "idiom" : "universal",
+      "platform" : "ios",
+      "size" : "1024x1024"
+    }
+  ],
+  "info" : {
+    "author" : "tool/brand_icons.py",
+    "version" : 1
+  }
+}
+"""
 DART_GEOMETRY = os.path.join("lib", "core", "widgets", "trailbuddy_logo_geometry.dart")
 
 BRAND = "#B6F04A"
@@ -305,6 +325,7 @@ def text_files():
         os.path.join(RES, "drawable", "ic_splash.xml"): splash_xml(),
         os.path.join(RES, "mipmap-anydpi-v26", "ic_launcher.xml"): ADAPTIVE_XML,
         os.path.join("web", "favicon.svg"): favicon_svg(),
+        os.path.join(IOS_ICONS, "Contents.json"): IOS_ICON_CONTENTS,
     }
 
 
@@ -384,6 +405,9 @@ def png_targets():
     t[os.path.join("store", "play_icon_512.png")] = \
         symbol_svg(512, LEGACY_SCALE, BRAND, 0)
     t[os.path.join("store", "feature_graphic.png")] = feature_graphic_svg()
+    # iPhone (#644): randlos wie im Play Store, iOS legt die Maske selbst an.
+    t[os.path.join(IOS_ICONS, "Icon-App-1024x1024.png")] = \
+        symbol_svg(1024, LEGACY_SCALE, BRAND, 0)
     # Die PNG ist der Rückfall für Browser ohne SVG-Favicon: eine Farbe.
     t["web/favicon.png"] = symbol_svg(32, 1.0, None, 0, color=MOSS, size="S")
     # Die Uhr (docs/konzept-garmin.md): 40 px, die Liste der Apps ist rund

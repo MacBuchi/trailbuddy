@@ -41,6 +41,9 @@ analyzer:
     # Die Handoff-Dateien des Logos (docs/design/trailbuddy-logo) liegen
     # als Vorlage im Repo, nicht als Code; gebaut wird aus tool/brand/.
     - docs/**
+    # Trägt `flutter pub get` selbst ein (#644: das SPM-Gerüst unter
+    # ios/Flutter/ephemeral); fehlt die Zeile, kommt sie bei jedem wieder.
+    - ios/**
 
 linter:
   rules:

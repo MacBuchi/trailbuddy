@@ -22,6 +22,7 @@ import 'package:flutter/services.dart' show PlatformException;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'errors.dart';
+import 'platform_support.dart';
 import 'push_config.dart';
 import 'push_web_bridge.dart';
 
@@ -73,6 +74,12 @@ const webServiceWorkerPath = 'push/firebase-messaging-sw.js';
 /// sonst denselben Satz — und die Berechtigungs-Erklärung ist im
 /// Funkloch schlicht falsch: Sie schickt jemanden in die
 /// Android-Einstellungen, wo alles in Ordnung ist.
+/// Gibt es Push auf dieser Plattform? Web und Android. Auf dem iPhone
+/// noch nicht (#644): ohne APNs-Schlüssel und `GoogleService-Info.plist`
+/// kein Token, und `push_devices` kennt die Plattform nicht. Der Schalter
+/// im Profil sagt dann „nicht eingerichtet" (`unavailable`).
+bool get pushPlatformSupported => kIsWeb || isAndroidApp;
+
 typedef PushTokenResult = ({String? token, bool denied, bool unavailable});
 
 /// Das FCM-Token dieses Geräts.
@@ -83,7 +90,7 @@ typedef PushTokenResult = ({String? token, bool denied, bool unavailable});
 /// `google-services.json`). Alles andere (kein Netz, keine
 /// Play-Dienste, Zeitüberschreitung) liefert beides `false`.
 Future<PushTokenResult> requestPushToken() async {
-  if (kIsWeb && !pushWebConfigured) {
+  if (!pushPlatformSupported || (kIsWeb && !pushWebConfigured)) {
     return (token: null, denied: false, unavailable: true);
   }
   try {
@@ -144,8 +151,11 @@ final pushTokenProvider = Provider<Future<PushTokenResult> Function()>(
 /// Worker reicht den Tipp selbst an ein offenes Fenster weiter
 /// ([pushBridgeMessageOf]); ist keines offen, öffnet er die App gleich
 /// am Ziel.
-Stream<RemoteMessage> pushTaps() =>
-    kIsWeb ? _bridged('tap') : FirebaseMessaging.onMessageOpenedApp;
+Stream<RemoteMessage> pushTaps() => kIsWeb
+    ? _bridged('tap')
+    : pushPlatformSupported
+    ? FirebaseMessaging.onMessageOpenedApp
+    : const Stream.empty();
 
 /// Dieselbe Naht für das Antippen.
 final pushTapListenerProvider = Provider<Stream<RemoteMessage> Function()>(
@@ -175,7 +185,7 @@ final pushInitialMessageProvider = Provider<Future<RemoteMessage?> Function()>(
 /// Android ist die Standard-App längst nativ gestartet, `_ensureFirebase`
 /// lädt dort nichts nach.
 Future<RemoteMessage?> initialPushMessage() async {
-  if (kIsWeb) return null;
+  if (kIsWeb || !pushPlatformSupported) return null;
   try {
     await _ensureFirebase();
   } catch (_) {
@@ -197,8 +207,11 @@ Future<RemoteMessage?> initialPushMessage() async {
 ///
 /// **Im Web kommt sie vom eigenen Worker** — und nur, wenn ein Fenster
 /// DIESER App im Fokus ist; sonst zeigt der Browser sie an.
-Stream<RemoteMessage> pushMessages() =>
-    kIsWeb ? _bridged('message') : FirebaseMessaging.onMessage;
+Stream<RemoteMessage> pushMessages() => kIsWeb
+    ? _bridged('message')
+    : pushPlatformSupported
+    ? FirebaseMessaging.onMessage
+    : const Stream.empty();
 
 /// Die Kennung, mit der der Worker seine Nachrichten markiert — dieselbe
 /// Zeichenkette wie `BRIDGE` in `web/push/firebase-messaging-sw.js`

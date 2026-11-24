@@ -20,6 +20,7 @@ import 'package:flutter/services.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../core/platform_support.dart';
 import '../../l10n/l10n.dart';
 import '../../models/trail.dart';
 
@@ -100,7 +101,9 @@ Future<NavigationOutcome> openInNavigationApp({
   String? label,
   Future<bool> Function(Uri)? launch,
 }) async {
-  if (!kIsWeb) {
+  // `geo:` kennt nur Android; auf dem iPhone (#644) bleibt bis zu einem
+  // geprüften Weg in Apple Karten die Zwischenablage.
+  if (isAndroidApp) {
     final open = launch ?? _launchExternally;
     try {
       if (await open(geoUriFor(lat: lat, lng: lng, label: label))) {
