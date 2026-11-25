@@ -4,7 +4,7 @@ publish_to: 'none'
 
 # Beide Teile erhöhen (z. B. 0.1.0+1 → 0.1.1+2). Ein Bump auf main taggt und
 # baut ein Prerelease (release.yml); ohne Bump kein Release (Version Guard).
-version: 0.203.0+308
+version: 0.203.1+309
 
 environment:
   sdk: ^3.11.0
@@ -99,6 +99,12 @@ dependencies:
   # wird, die Engine aber weiterläuft. `test/dependency_floor_test.dart`
   # wacht über die Untergrenze.
   geolocator_android: ^5.2.1
+  # Direkt festgeschrieben, nicht nur über `maplibre_ios` (#644): Bis 9.6.3
+  # schlägt die Debug-Prüfung `_isValid` im arm64-iOS-Simulator fehl
+  # (dart-lang/native#3786), sobald MapLibre seine Platform View anlegt —
+  # die Karte bleibt nach der Anmeldung leer. 9.6.4 behebt es.
+  # `test/dependency_floor_test.dart` wacht über die Untergrenze.
+  objective_c: ^9.6.4
   # Fahrt aufzeichnen (#28): Foreground-Service vom Typ `location`, die
   # Messung läuft in dessen eigenem Isolate (überlebt das Wegwischen der
   # App). Kein Web — nur über bedingten Import in

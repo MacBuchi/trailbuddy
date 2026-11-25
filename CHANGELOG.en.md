@@ -2,6 +2,12 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## The map on the iPhone simulator
+
+*Version 0.203.1, 2026-11-25*
+
+On the iPhone simulator, no map appeared after signing in. The cause was a false alarm in a helper library; the new version fixes it. Nothing changes on Android or the web.
+
 ## First steps towards the iPhone
 
 *Version 0.203.0, 2026-11-24*

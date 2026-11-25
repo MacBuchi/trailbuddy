@@ -1,5 +1,5 @@
 /// Untergrenzen für Pakete, deren ältere Fassungen die App einfrieren
-/// können (#586). Ein Rückfall wäre still: Alles kompiliert, jede Suite
+/// (#586) oder die Karte auf iOS verhindern (#644) können. Ein Rückfall wäre still: Alles kompiliert, jede Suite
 /// bleibt grün, und der Fehler zeigt sich erst als ANR auf einem Gerät,
 /// dessen Standortdienst hängt.
 library;
@@ -15,6 +15,10 @@ const _floors = {
   // Emulator, Verklemmung in system_server). 5.2.1 nur mit
   // `useMSLAltitude`, das die App nicht nutzt.
   'geolocator_android': [5, 2, 1],
+  // Bis 9.6.3 schlägt die Debug-Prüfung `_isValid` im arm64-iOS-Simulator
+  // fehl, wenn `maplibre_ios` seine Platform View anlegt (#644,
+  // dart-lang/native#3786): nach der Anmeldung keine Karte.
+  'objective_c': [9, 6, 4],
 };
 
 List<int> _parse(String v) =>
