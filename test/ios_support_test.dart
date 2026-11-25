@@ -12,6 +12,7 @@ import 'package:trailbuddy/core/backup_exclusions.dart';
 import 'package:trailbuddy/core/platform_support.dart';
 import 'package:trailbuddy/core/update_check.dart';
 import 'package:trailbuddy/data/apk_installer.dart';
+import 'package:trailbuddy/features/map/host_requests.dart';
 import 'package:trailbuddy/core/push_messaging.dart';
 import 'package:trailbuddy/features/offline_areas/area_providers.dart';
 import 'package:trailbuddy/features/rides/ride_providers.dart';
@@ -329,5 +330,144 @@ void main() {
         contains('unawaited(excludeFromCloudBackup());'),
       );
     });
+  });
+
+  group('Anfragezähler auf iOS (#644)', () {
+    test('main() hängt ihn ein, bevor eine Karte lädt — nur im Debug', () {
+      final main = File('lib/main.dart').readAsStringSync();
+      final install = main.indexOf('await installNativeHostCounter();');
+      expect(install, greaterThan(0));
+      expect(install, lessThan(main.indexOf('runApp(')));
+      final dart = File(
+        'lib/features/map/host_requests.dart',
+      ).readAsStringSync();
+      expect(dart, contains('enabled ?? (kDebugMode && hasIosChannels)'));
+    });
+
+    test('ohne Freigabe fragt niemand den Kanal', () async {
+      var asked = false;
+      final messenger =
+          TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+      messenger.setMockMethodCallHandler(kHostRequestsChannel, (call) async {
+        asked = true;
+        return true;
+      });
+      addTearDown(
+        () => messenger.setMockMethodCallHandler(kHostRequestsChannel, null),
+      );
+      expect(await installNativeHostCounter(enabled: false), isFalse);
+      expect(asked, isFalse);
+      expect(await installNativeHostCounter(enabled: true), isTrue);
+      expect(asked, isTrue);
+    });
+
+    test('die Swift-Seite spricht denselben Kanal wie Kotlin', () {
+      final swift = File(
+        'ios/Runner/HostRequestCounter.swift',
+      ).readAsStringSync();
+      expect(swift, contains('"${kHostRequestsChannel.name}"'));
+      for (final m in ['"counts"', '"reset"', '"install"', '"installed"']) {
+        expect(swift, contains('case $m'), reason: m);
+      }
+      expect(swift, contains('"MLNNetworkConfiguration"'));
+      expect(
+        File('ios/Runner/AppDelegate.swift').readAsStringSync(),
+        contains('HostRequestCounter.register'),
+      );
+      expect(
+        File('ios/Runner.xcodeproj/project.pbxproj').readAsStringSync(),
+        contains('HostRequestCounter.swift in Sources'),
+      );
+    });
+
+    test('„Entwicklung" im Profil auch im iOS-Debug-Build', () {
+      debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+      final c = ProviderContainer();
+      addTearDown(c.dispose);
+      // flutter test läuft im Debug-Modus.
+      expect(c.read(devToolsVisibleProvider), kDebugMode);
+    });
+  });
+
+  group('Datenschutz-Manifest und Texte (#644)', () {
+    final privacy = File('ios/Runner/PrivacyInfo.xcprivacy').readAsStringSync();
+
+    test('kein Tracking, Datenarten wie im Play Store', () {
+      expect(
+        RegExp(r'<key>NSPrivacyTracking</key>\s*<false/>').hasMatch(privacy),
+        isTrue,
+      );
+      final types = RegExp(
+        r'<string>NSPrivacyCollectedDataType(?!Purpose)(\w+)</string>',
+      ).allMatches(privacy).map((m) => m[1]).toSet();
+      expect(types, {
+        'PreciseLocation',
+        'CoarseLocation',
+        'EmailAddress',
+        'Name',
+        'UserID',
+        'OtherUserContent',
+        'PhotosorVideos',
+        'EmailsOrTextMessages',
+        'CrashData',
+      });
+      // Gerätekennung erst mit Push auf iOS.
+      debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+      expect(pushPlatformSupported, isFalse);
+      expect(privacy, isNot(contains('DeviceID')));
+      expect(
+        File('ios/Runner.xcodeproj/project.pbxproj').readAsStringSync(),
+        contains('PrivacyInfo.xcprivacy in Resources'),
+      );
+    });
+
+    test('Berechtigungstexte auf Deutsch und Englisch, gleiche Schlüssel', () {
+      Set<String> keys(String lang) =>
+          RegExp(r'^"(\w+)" = "[^"]{20,}";$', multiLine: true)
+              .allMatches(
+                File(
+                  'ios/Runner/$lang.lproj/InfoPlist.strings',
+                ).readAsStringSync(),
+              )
+              .map((m) => m[1]!)
+              .toSet();
+      final plist = File('ios/Runner/Info.plist').readAsStringSync();
+      final asked = RegExp(
+        r'<key>(NS\w+UsageDescription)</key>',
+      ).allMatches(plist).map((m) => m[1]!).toSet();
+      expect(keys('de'), asked);
+      expect(keys('en'), asked);
+      expect(
+        File('ios/Runner.xcodeproj/project.pbxproj').readAsStringSync(),
+        contains('InfoPlist.strings in Resources'),
+      );
+    });
+  });
+
+  test('Startfenster: der Grund der App wie auf Android, ohne Bild', () {
+    String ground(String values) =>
+        RegExp(r'<color name="ground">#(\w{6})</color>')
+            .firstMatch(
+              File(
+                'android/app/src/main/res/$values/colors.xml',
+              ).readAsStringSync(),
+            )![1]!
+            .toUpperCase();
+    final set = File(
+      'ios/Runner/Assets.xcassets/LaunchBackground.colorset/Contents.json',
+    ).readAsStringSync();
+    String hex(String json) => RegExp(
+      r'"red"\s*:\s*"0x(\w\w)",\s*"green"\s*:\s*"0x(\w\w)",\s*"blue"\s*:\s*"0x(\w\w)"',
+    ).allMatches(json).map((m) => '${m[1]}${m[2]}${m[3]}'.toUpperCase()).join(',');
+    expect(hex(set), '${ground('values')},${ground('values-night')}');
+    expect(RegExp(r'"value"\s*:\s*"dark"').hasMatch(set), isTrue);
+    final board = File(
+      'ios/Runner/Base.lproj/LaunchScreen.storyboard',
+    ).readAsStringSync();
+    expect(
+      board,
+      contains('<color key="backgroundColor" name="LaunchBackground"/>'),
+    );
+    expect(board, isNot(contains('<imageView')));
   });
 }

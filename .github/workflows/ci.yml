@@ -170,10 +170,13 @@ jobs:
           retention-days: 14
 
   # Das iPhone (#644): baut die ganze App für den Simulator — Swift Package
-  # Manager, alle Plugins, ohne Signatur und ohne Secrets. Ein Kompilier-
-  # Check, kein Beweis, dass sie dort läuft (ios/CLAUDE.md). Apple Silicon,
-  # weil MapLibre und die Native-Assets kein x64-Simulator-Archiv bringen
-  # müssen. Öffentliches Repo: die macOS-Minuten kosten nichts.
+  # Manager, alle Plugins, ohne Signatur und ohne Secrets — und STARTET sie
+  # dort (integration_test/ios_start_smoke_test.dart): Anmeldung erreicht,
+  # die eigenen Kanäle antworten, Fahrten und Zwischenspeicher sind von der
+  # iCloud-Sicherung ausgenommen. Bis zur Karte geht nur der Test mit dem
+  # Testkonto, nicht hier (ios/CLAUDE.md). Apple Silicon, weil MapLibre und
+  # die Native-Assets kein x64-Simulator-Archiv bringen müssen.
+  # Öffentliches Repo: die macOS-Minuten kosten nichts.
   build-ios:
     name: Build iOS (Simulator)
     runs-on: macos-latest
@@ -189,6 +192,23 @@ jobs:
       - run: flutter pub get
       - run: xcodebuild -version
       - run: flutter build ios --simulator --debug
+      - name: Start im Simulator (ohne Zugangsdaten)
+        run: |
+          # Das jüngste verfügbare iPhone; der Runner bringt mehrere mit.
+          UDID=$(xcrun simctl list devices available -j | python3 -c '
+          import json, sys
+          d = json.load(sys.stdin)["devices"]
+          for runtime in sorted(d, reverse=True):
+              if "iOS" not in runtime:
+                  continue
+              phones = [x for x in d[runtime] if x["name"].startswith("iPhone")]
+              if phones:
+                  print(phones[0]["udid"]); break
+          ')
+          test -n "$UDID" || { echo "kein iPhone-Simulator"; exit 1; }
+          xcrun simctl boot "$UDID"
+          xcrun simctl bootstatus "$UDID" -b
+          flutter test integration_test/ios_start_smoke_test.dart -d "$UDID"
 
   # Probelauf gegen einen lokalen Supabase-Stack (supabase/config.toml): beide
   # Wege, die es in der Wirklichkeit gibt — Bestand (Basis-Schema, dann nur
