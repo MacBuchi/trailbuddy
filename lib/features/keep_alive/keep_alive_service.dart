@@ -1,9 +1,9 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 
 import '../../core/errors.dart';
 import '../rides/ride_task_handler.dart';
 import 'keep_alive.dart';
+import '../../core/platform_support.dart';
 
 /// Der Einstiegspunkt des Service-Isolates. Der Service hat genau EINEN,
 /// also trägt ein Handler beide Fälle: Für einen Bereichs-Download tut er
@@ -30,7 +30,7 @@ class _ForegroundKeepAlive implements KeepAlive {
   bool _initialized = false;
 
   bool get _supported =>
-      !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
+      isAndroidApp;
 
   /// `allowWakeLock`: Ohne ihn schläft die CPU zwischen den Takten, und
   /// die Fahrt bekäme ihre Messungen gebündelt beim nächsten Aufwachen.

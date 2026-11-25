@@ -13,13 +13,13 @@
 /// der Web-Vorschau (Profil → Entwicklung).
 library;
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 import 'package:pmtiles/pmtiles.dart' show PmTilesArchive;
 
 import '../../core/app_distribution.dart';
+import '../../core/platform_support.dart';
 import 'map_providers.dart' show kMapTilesBase;
 
 /// Wofür eine Anfrage an den Host ging.
@@ -148,7 +148,7 @@ const kHostRequestsChannel = MethodChannel(
 /// Was MapLibre auf Android beim Host geholt hat, je Pfad. Leer im Web,
 /// außerhalb der Dev-App und wenn der Kanal nicht antwortet.
 Future<Map<String, int>> _nativeCounts() async {
-  if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) return {};
+  if (!(isAndroidApp || isIosApp)) return {};
   try {
     final raw = await kHostRequestsChannel.invokeMapMethod<String, int>(
       'counts',
@@ -190,7 +190,7 @@ Future<HostRequestSnapshot> readHostRequests() async {
 
 Future<void> resetHostRequests() async {
   HostRequestCounter.instance.reset();
-  if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) return;
+  if (!(isAndroidApp || isIosApp)) return;
   try {
     await kHostRequestsChannel.invokeMethod<void>('reset');
   } on PlatformException {

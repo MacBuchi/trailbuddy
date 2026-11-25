@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 import 'package:package_info_plus/package_info_plus.dart';
@@ -11,6 +10,7 @@ import 'app_distribution.dart';
 import 'app_info.dart';
 import 'errors.dart';
 import 'settings.dart';
+import 'platform_support.dart';
 
 /// Informationen über ein verfügbares Update von GitHub Releases.
 class UpdateInfo {
@@ -57,8 +57,7 @@ bool isNewerVersion(String latest, String current) {
 /// Aktualisieren (Verweise auf APK-Downloads sind dort unzulässig).
 bool get updateChecksApply =>
     AppDistribution.showsUpdateHints &&
-    !kIsWeb &&
-    defaultTargetPlatform == TargetPlatform.android;
+    isAndroidApp;
 
 /// Bekommt dieses Gerät Vorabversionen?
 ///

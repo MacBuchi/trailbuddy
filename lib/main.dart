@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:io' show Platform;
 
 import 'package:app_links/app_links.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
@@ -19,6 +18,7 @@ import 'data/exit_info_repository.dart';
 import 'data/exit_reporting.dart';
 import 'features/friends/invite_link.dart';
 import 'features/rides/ride_service.dart';
+import 'core/platform_support.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -90,7 +90,7 @@ Future<void> main() async {
   // ganz normal auf der Karte.
   if (kIsWeb) {
     launchLink = Uri.base;
-  } else if (Platform.isAndroid) {
+  } else if (hasAndroidChannels) {
     try {
       launchLink = await AppLinks().getInitialLink();
     } catch (_) {

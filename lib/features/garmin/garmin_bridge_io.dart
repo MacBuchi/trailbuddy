@@ -1,10 +1,10 @@
 import 'dart:async';
-import 'dart:io' show Platform;
 
 import 'package:flutter/services.dart';
 
 import '../../core/errors.dart';
 import 'garmin_bridge.dart';
+import '../../core/platform_support.dart';
 
 /// Der Name steht auch in `GarminBridge.kt`; `android_manifest_test` hält
 /// beide zusammen.
@@ -20,7 +20,7 @@ class _AndroidGarminBridge implements GarminBridge {
   bool _listening = false;
 
   @override
-  bool get supported => Platform.isAndroid;
+  bool get supported => hasAndroidChannels;
 
   void _listen() {
     if (_listening) return;

@@ -9,7 +9,6 @@
 // Fragen der Fahrt.
 import 'dart:async';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -25,6 +24,7 @@ import '../rides/ride_providers.dart';
 import '../routing/voice_service.dart' show VoiceSpeak, speakVoice;
 import 'nearby_core.dart';
 import 'nearby_providers.dart';
+import '../../core/platform_support.dart';
 
 /// Zeigt die Meldung, während die App im Hintergrund ist. Im Test
 /// überschrieben; auf dem Web und ohne Kanal tut sie nichts.
@@ -44,7 +44,7 @@ Future<void> _platformNotice({
   required String body,
   required int id,
 }) async {
-  if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) return;
+  if (!isAndroidApp) return;
   try {
     await initRideNotices();
     await rideNoticesPlugin.show(

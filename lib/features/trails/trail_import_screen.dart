@@ -27,8 +27,7 @@ import 'trail_providers.dart';
 import 'trail_sheet.dart';
 import 'trail_takeover.dart';
 
-/// Dateiauswahl als Provider, damit Tests Dateien einhängen, ohne den
-/// System-Dialog zu öffnen.
+/// Die Typgruppen der Dateiauswahl, EINE Liste für Android und iOS.
 ///
 /// **Auf Android ohne Typfilter.** Der System-Dialog (SAF) filtert nach
 /// MIME-Typen, und für `.gpx` gibt es keinen registrierten — Dateimanager
@@ -37,20 +36,36 @@ import 'trail_takeover.dart';
 /// Auswahl scheiterte, bevor die App eine Datei sah (Feldbefund v0.1.0,
 /// dieselbe Lehre wie im PilzBuddy-Import). Geprüft wird deshalb danach,
 /// in [gpxFilesFrom]. Im Browser filtert die Endung bequem vor.
+///
+/// **iOS liest nur UTIs** (#644): `file_selector_ios` wirft einen
+/// `ArgumentError`, wenn eine Gruppe weder alles erlaubt noch
+/// `uniformTypeIdentifiers` nennt — mit `mimeTypes` allein öffnete der
+/// Import dort nie. `public.data` ist dort dasselbe „jede Datei" wie
+/// `*/*` auf Android; jede Seite liest nur ihr Feld, eine Weiche braucht
+/// es nicht.
+List<XTypeGroup> gpxPickerTypeGroups(String allFiles, String gpxOrZip) =>
+    kIsWeb
+    ? [
+        XTypeGroup(label: gpxOrZip, extensions: ['gpx', 'zip']),
+      ]
+    : [
+        XTypeGroup(
+          label: allFiles,
+          mimeTypes: ['*/*'],
+          uniformTypeIdentifiers: ['public.data'],
+        ),
+      ];
+
+/// Dateiauswahl als Provider, damit Tests Dateien einhängen, ohne den
+/// System-Dialog zu öffnen. Die Typen: [gpxPickerTypeGroups].
 final gpxPickerProvider = Provider<Future<List<PickedFile>> Function()>((ref) {
   return () async {
     // Ohne `BuildContext`: die Sprache wie beim Dienst (`serviceL10n`).
     final l = serviceL10n();
-    final typeGroups = kIsWeb
-        ? [
-            XTypeGroup(
-              label: l.importPickerGpxOrZip,
-              extensions: ['gpx', 'zip'],
-            ),
-          ]
-        : [
-            XTypeGroup(label: l.importPickerAllFiles, mimeTypes: ['*/*']),
-          ];
+    final typeGroups = gpxPickerTypeGroups(
+      l.importPickerAllFiles,
+      l.importPickerGpxOrZip,
+    );
     final files = await openFiles(acceptedTypeGroups: typeGroups);
     return [
       for (final f in files)
