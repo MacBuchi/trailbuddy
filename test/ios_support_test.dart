@@ -470,4 +470,29 @@ void main() {
     );
     expect(board, isNot(contains('<imageView')));
   });
+
+  test(
+    'eigene Dateien stehen in den Build-Phasen der APP, nicht der Tests',
+    () {
+      final pbxproj = File(
+        'ios/Runner.xcodeproj/project.pbxproj',
+      ).readAsStringSync();
+      String phase(String id) {
+        final start = RegExp(
+          '$id /\\* \\w+ \\*/ = \\{',
+        ).firstMatch(pbxproj)!.start;
+        final at = pbxproj.indexOf('files = (', start);
+        return pbxproj.substring(at, pbxproj.indexOf(');', at));
+      }
+
+      final sources = phase('97C146EA1CF9000F007C117D');
+      final resources = phase('97C146EC1CF9000F007C117D');
+      for (final f in ['BackupExclusion.swift', 'HostRequestCounter.swift']) {
+        expect(sources, contains('$f in Sources'), reason: f);
+      }
+      for (final f in ['PrivacyInfo.xcprivacy', 'InfoPlist.strings']) {
+        expect(resources, contains('$f in Resources'), reason: f);
+      }
+    },
+  );
 }

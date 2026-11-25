@@ -2,6 +2,12 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## The iPhone: import, privacy and a shared foundation
+
+*Version 0.204.0, 2026-11-26*
+
+On the iPhone, GPX import now opens the file picker; before, it failed there. Rides, the outbox, caches and maps stay out of the iCloud backup on the iPhone, just as they stay out of the Google backup on Android. The prompts for location, camera and photo library come in German and English, and the app starts on its own background instead of a white screen. Nothing changes on Android or the web.
+
 ## The map on the iPhone simulator
 
 *Version 0.203.1, 2026-11-25*

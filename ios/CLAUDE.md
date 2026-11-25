@@ -36,17 +36,35 @@ nur, was man beim Arbeiten an `ios/` wissen muss.
 - **`Info.plist`**: Texte für Standort beim Benutzen, Kamera und Mediathek
   (fehlt einer, beendet iOS die App beim ersten Zugriff), Sprachen `de`
   und `en`, URL-Schema = Bundle-Kennung für den Anmelde-Rücksprung
-  (Android: `${applicationId}://login-callback`). Die Berechtigungstexte
-  sind bisher nur deutsch (offen: `InfoPlist.strings` je Sprache, A14).
-  Kein Standort im Hintergrund, keine `UIBackgroundModes`, solange die
-  Fahrt fehlt.
+  (Android: `${applicationId}://login-callback`). Die Texte stehen seit
+  0.204.0 je Sprache in `de.lproj`/`en.lproj/InfoPlist.strings` (A14),
+  `Info.plist` trägt die englische Fassung (Entwicklungssprache);
+  `ios_support_test` verlangt in beiden Dateien dieselben Schlüssel wie
+  `Info.plist`. Kein Standort im Hintergrund, keine `UIBackgroundModes`,
+  solange die Fahrt fehlt.
+- **Datenschutz-Manifest** (`PrivacyInfo.xcprivacy`, seit 0.204.0):
+  dieselben Datenarten wie die Datensicherheit in `docs/play-console.md`,
+  kein Tracking, Gründe für UserDefaults (CA92.1) und Dateizeiten
+  (C617.1). Die Gerätekennung kommt erst mit Push dazu. Wer eine Datenart
+  ergänzt, ändert Manifest, Play-Tabelle und `ios_support_test` zusammen.
 - **Das Symbol** erzeugt `tool/brand_icons.py` (eine Größe, 1024 px,
-  randlos) — nie von Hand tauschen. Der Startschirm ist noch Flutters
-  leere Vorlage.
+  randlos) — nie von Hand tauschen. **Das Startfenster** ist der Grund der
+  App ohne Zeichen (`LaunchBackground.colorset` hell/dunkel =
+  `@color/ground` auf Android, wie dort vor Android 12; Design 1p), danach
+  zeichnet der Splash der App. `ios_support_test` hält die Farben gleich.
 - **CI** (`ci.yml`, „Build iOS (Simulator)"): `flutter build ios
-  --simulator --debug` auf `macos-latest`. Ein Kompilier-Check, kein
-  Beweis, dass die App dort läuft; kein Pflicht-Check, bis der Betreiber
-  ihn in den Branch-Schutz nimmt.
+  --simulator --debug` auf `macos-latest`, danach STARTET der Job die App
+  im jüngsten iPhone-Simulator (`integration_test/ios_start_smoke_test.dart`,
+  ohne Zugangsdaten): Anmeldung erreicht, eigene Kanäle antworten, die
+  Ordner sind angelegt und von der Sicherung ausgenommen. Kein
+  Pflicht-Check, bis der Betreiber ihn in den Branch-Schutz nimmt.
+- **iPhone 8 / iOS 16 geht mit Xcode 27 nicht** (#644, 2026-11-25):
+  Xcode 27 debuggt und installiert nur ab iOS 17 („Pairing State:
+  unsupported"), und ein Bericht nennt einen Startabsturz von
+  Xcode-27-Builds auf iOS 16. Ein zweites Xcode daneben läuft auf dem
+  Rechner des Betreibers nicht; Geräte-Tests laufen auf dem iPad Air 4
+  (iOS 26) und im Simulator, das iPhone 8 erst über einen Build mit
+  Xcode 26 (Xcode Cloud, braucht das bezahlte Konto).
 - **Xcode 27 hat keine `Simulator.app` mehr** (es gibt `DeviceHub.app`).
   Starten und Bilder gehen über `xcrun simctl` (`install`, `launch`,
   `io … screenshot`); bedienen über einen Integrationstest
@@ -71,3 +89,55 @@ nur, was man beim Arbeiten an `ios/` wissen muss.
     Eingabetaste des Passworts. `xcrun simctl io … screenshot` zeigt
     während `flutter test` den Home-Bildschirm, nicht die App — was zu
     sehen ist, sagen die Finder.
+- **Plattform-Weichen stehen nur in `lib/core/platform_support.dart`**
+  (#644, seit 0.204.0; `ios_support_test` sucht in `lib/` nach
+  `TargetPlatform.android/iOS` und `Platform.isAndroid/isIOS`). Zwei Arten:
+  `isAndroidApp`/`isIosApp` lesen `defaultTargetPlatform` (Zusagen der App,
+  im Test umschaltbar), `hasAndroidChannels`/`hasIosChannels` die Plattform
+  des PROZESSES (`dart:io`, bedingter Import) — für Stellen, die einen
+  eigenen nativen Kanal ansprechen. `flutter test` spielt Android, hat
+  aber keine Kanäle: Mit `isAndroidApp` statt `Platform.isAndroid` fielen
+  14 Flow-Tests an App-Links, Bildschirm und Garmin (beim Bau gefunden).
+  Die Fähigkeits-Tabelle (Funktion × Android/iOS) steht in
+  `ios_support_test`; wer etwas freischaltet, ändert dort die Spalte.
+- **Keine iCloud-Sicherung von Fahrten, Korb und Zwischenspeichern**
+  (#644, seit 0.204.0): iOS sichert `Application Support` ab Werk. EINE
+  Liste in `lib/core/backup_exclusions.dart` (= die `file`-Einträge von
+  `backup_rules.xml`, Test), `main()` schickt sie ohne Warten an
+  `BackupExclusion.swift`, das die Ordner ANLEGT und `isExcludedFromBackup`
+  setzt — ein Ordner, den es noch nicht gibt, trägt kein Merkmal, und vor
+  der Anmeldung legt niemand sie an. **MapLibres Zwischenspeicher**
+  (`<Bundle-ID>/.mapbox/cache.db`) nimmt MapLibre Native selbst aus
+  (nachgewiesen: frische Installation ohne eigenen Eintrag). Zwei Fallen
+  der Abfrage `notExcluded`: Das Merkmal steht am Ordner, nicht an der
+  Datei darin (die Suche geht nach oben), und nur bis zum Container der
+  App — darüber liegt im Simulator der Mac, dessen Simulator-Ordner selbst
+  ausgenommen sind (die Prüfung sagte sonst immer ja). **Offen:**
+  Sitzungs-Token und Einstellungen liegen in den `NSUserDefaults` und
+  gehen mit in die Sicherung (Datenschutzerklärung sagt es; Schlüsselbund
+  ist eine eigene Entscheidung in #644).
+- **Der Anfragezähler auf iOS** (#596 H7, #644, seit 0.204.0):
+  `HostRequestCounter.swift` hängt ein `URLProtocol` in MapLibres
+  Sitzung (`MLNNetworkConfiguration.sharedManager.sessionConfiguration`,
+  über die Laufzeit — der Runner bindet das Modul `MapLibre` nicht selbst
+  ein). Derselbe Kanal und dieselbe Antwort wie `HostRequestCounter.kt`,
+  dazu `install`/`installed`. Eingehängt aus `main()` im Debug-Build
+  (`installNativeHostCounter`, vor `runApp`), sichtbar unter Profil →
+  „Entwicklung" (`devToolsVisibleProvider`: auch iOS-Debug). **`#if DEBUG`
+  greift im Runner nicht** — `SWIFT_ACTIVE_COMPILATION_CONDITIONS` ist
+  nur im Testziel gesetzt; deshalb entscheidet Dart. Der Smoke-Test mit
+  Testkonto prüft, dass MapLibre gezählt wird (Gegenprobe ohne `install`:
+  rot).
+- **Neue Dateien im Xcode-Projekt**: `project.pbxproj` hat zwei
+  Sources- und zwei Resources-Phasen (App und `RunnerTests`); eine Datei
+  in der Phase des Testziels baut, aber der App fehlt sie („Cannot find
+  … in scope" erst beim nächsten vollständigen Bau). Die Phasen der App
+  sind `97C146EA…` (Sources) und `97C146EC…` (Resources).
+  `ios_support_test` prüft, dass jede eigene Datei dort steht.
+- **Der GPX-Import auf iOS** (#644, seit 0.204.0): `file_selector_ios`
+  liest nur UTIs und WARF bei einer Gruppe nur mit `mimeTypes` — der
+  Import öffnete nie. Eine Gruppe für beide (`gpxPickerTypeGroups`:
+  `*/*` für Android, `public.data` für iOS);
+  `test/trails/gpx_picker_types_test.dart` ruft die echten Plattformteile
+  auf.
+
