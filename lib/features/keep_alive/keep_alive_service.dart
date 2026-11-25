@@ -29,8 +29,7 @@ class _ForegroundKeepAlive implements KeepAlive {
   static const _serviceId = 2801;
   bool _initialized = false;
 
-  bool get _supported =>
-      isAndroidApp;
+  bool get _supported => isAndroidApp;
 
   /// `allowWakeLock`: Ohne ihn schläft die CPU zwischen den Takten, und
   /// die Fahrt bekäme ihre Messungen gebündelt beim nächsten Aufwachen.

@@ -16,8 +16,7 @@ class ApkInstaller {
   final MethodChannel _channel;
 
   /// Nur die per APK verteilte Android-App aktualisiert sich selbst.
-  bool get supported =>
-      isAndroidApp;
+  bool get supported => isAndroidApp;
 
   /// Hat die Nutzerin dieser App erlaubt, Apps zu installieren?
   ///

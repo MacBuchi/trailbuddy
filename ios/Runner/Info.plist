@@ -31,11 +31,11 @@
 		</dict>
 	</array>
 	<key>NSCameraUsageDescription</key>
-	<string>Für ein Foto am Hinweis zu einem Trail. Ort und Kameradaten entfernt TrailBuddy vor dem Hochladen.</string>
+	<string>For a photo with a trail report. TrailBuddy removes location and camera data before uploading.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Zeigt deine Position auf der Karte, solange du TrailBuddy offen hast.</string>
+	<string>Shows your position on the map while TrailBuddy is open.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Für ein Foto aus deiner Mediathek am Hinweis zu einem Trail. Ort und Kameradaten entfernt TrailBuddy vor dem Hochladen.</string>
+	<string>For a photo from your library with a trail report. TrailBuddy removes location and camera data before uploading.</string>
 	<key>CFBundleName</key>
 	<string>trailbuddy</string>
 	<key>CFBundlePackageType</key>

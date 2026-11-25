@@ -55,9 +55,7 @@ bool isNewerVersion(String latest, String current) {
 ///
 /// Web ist immer aktuell, und im Play-Build übernimmt der Store das
 /// Aktualisieren (Verweise auf APK-Downloads sind dort unzulässig).
-bool get updateChecksApply =>
-    AppDistribution.showsUpdateHints &&
-    isAndroidApp;
+bool get updateChecksApply => AppDistribution.showsUpdateHints && isAndroidApp;
 
 /// Bekommt dieses Gerät Vorabversionen?
 ///

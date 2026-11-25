@@ -1,7 +1,6 @@
 import 'package:flutter/foundation.dart';
 
-import 'platform_host_stub.dart'
-    if (dart.library.io) 'platform_host_io.dart';
+import 'platform_host_stub.dart' if (dart.library.io) 'platform_host_io.dart';
 
 /// Läuft die App als Android-App?
 ///

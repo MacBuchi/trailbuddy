@@ -100,8 +100,7 @@ class ExitInfoRepository {
 
   final MethodChannel _channel;
 
-  bool get _supported =>
-      isAndroidApp;
+  bool get _supported => isAndroidApp;
 
   /// Die letzten Beendigungen, neueste zuerst.
   Future<List<AppExit>> recentExits({int limit = 10}) async {

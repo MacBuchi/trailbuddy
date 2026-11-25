@@ -1,0 +1,4 @@
+/* Permission texts in English (#644, A14). Same keys as de.lproj. */
+"NSLocationWhenInUseUsageDescription" = "Shows your position on the map while TrailBuddy is open.";
+"NSCameraUsageDescription" = "For a photo with a trail report. TrailBuddy removes location and camera data before uploading.";
+"NSPhotoLibraryUsageDescription" = "For a photo from your library with a trail report. TrailBuddy removes location and camera data before uploading.";

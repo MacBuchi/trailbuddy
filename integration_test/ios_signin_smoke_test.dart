@@ -7,17 +7,23 @@
 //
 // Geprüft wird: Login erscheint, Anmeldung führt zur Hülle, die Karte ist
 // die MapLibre-Platform-View (kein Rückfall auf flutter_map) und beim
-// Anlegen fliegt keine Ausnahme. Gegenprobe: falsches Passwort ⇒ der Test
+// Anlegen fliegt keine Ausnahme; dazu zählt der native Zähler, was
+// MapLibre beim Kartenhost holt. Gegenprobe: falsches Passwort ⇒ der Test
 // scheitert mit „E-Mail oder Passwort falsch." im Bild; `objective_c`
 // 9.6.3 ⇒ Assertion aus `maplibre_ios` beim Anlegen der Karte.
 //
 // Achtung: `xcrun simctl io … screenshot` sieht die App dieses Laufs
 // nicht; was zu sehen ist, sagen die Finder.
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart' show FlutterMap;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:maplibre/maplibre.dart' as ml;
+import 'package:path_provider/path_provider.dart';
+import 'package:trailbuddy/core/backup_exclusions.dart';
+import 'package:trailbuddy/features/map/host_requests.dart';
 import 'package:trailbuddy/main.dart' as app;
 
 const _mail = String.fromEnvironment('TB_MAIL');
@@ -79,6 +85,46 @@ void main() {
       expect(find.byType(UiKitView), findsOneWidget);
       expect(find.byType(FlutterMap), findsNothing, reason: 'Rückfall');
       expect(tester.takeException(), isNull);
+
+      // Der native Zähler (#644, `HostRequestCounter.swift`, nur Debug)
+      // sieht, was MapLibre selbst beim Kartenhost holt — Dart sieht es
+      // nicht. Ohne ihn bliebe „im Bereich nichts übers Netz" (A8) auf
+      // iOS unbelegbar. Gegenprobe: ohne `HostRequestCounter.install()`
+      // im AppDelegate steht hier 0.
+      expect(
+        await kHostRequestsChannel.invokeMethod<bool>('installed'),
+        isTrue,
+        reason: 'Zähler nicht in MapLibres Sitzung',
+      );
+      var native = 0;
+      for (var i = 0; i < 60 && native == 0; i++) {
+        await tester.pump(const Duration(milliseconds: 250));
+        final counts = await kHostRequestsChannel.invokeMapMethod<String, int>(
+          'counts',
+        );
+        native = counts?.values.fold<int>(0, (a, b) => a + b) ?? 0;
+      }
+      expect(native, greaterThan(0), reason: 'MapLibre nicht gezählt');
+      final snap = await readHostRequests();
+      expect(snap.counts[HostRequestKind.map] ?? 0, greaterThan(0));
+
+      // Nichts davon in die iCloud-Sicherung (#644): die Ordner der Liste
+      // und alles, was MapLibre unter dem App-Verzeichnis ablegt (sein
+      // Zwischenspeicher zeigt, wo man geschaut hat).
+      final base = (await getApplicationSupportDirectory()).path;
+      final maplibre = Directory(base)
+          .listSync(recursive: true)
+          .whereType<File>()
+          .map((f) => f.path)
+          .where((p) => p.endsWith('.db') || p.contains('.mapbox'))
+          .toList();
+      final open = await kBackupChannel.invokeListMethod<String>(
+        'notExcluded',
+        [for (final d in kBackupExcludedDirs) '$base/$d', ...maplibre],
+      );
+      debugPrint('Backup-Prüfung: MapLibre $maplibre, offen $open');
+      expect(maplibre, isNotEmpty, reason: 'MapLibres Speicher nicht gefunden');
+      expect(open, isEmpty, reason: 'MapLibre: $maplibre');
     },
     timeout: const Timeout(Duration(minutes: 3)),
   );

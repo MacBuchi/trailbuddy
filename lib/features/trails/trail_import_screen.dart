@@ -43,8 +43,7 @@ import 'trail_takeover.dart';
 /// Import dort nie. `public.data` ist dort dasselbe „jede Datei" wie
 /// `*/*` auf Android; jede Seite liest nur ihr Feld, eine Weiche braucht
 /// es nicht.
-List<XTypeGroup> gpxPickerTypeGroups(String allFiles, String gpxOrZip) =>
-    kIsWeb
+List<XTypeGroup> gpxPickerTypeGroups(String allFiles, String gpxOrZip) => kIsWeb
     ? [
         XTypeGroup(label: gpxOrZip, extensions: ['gpx', 'zip']),
       ]
