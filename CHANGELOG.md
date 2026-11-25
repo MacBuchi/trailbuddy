@@ -2,6 +2,12 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Die Karte auf dem iPhone-Simulator
+
+*Version 0.203.1, 2026-11-25*
+
+Auf dem iPhone-Simulator erschien nach der Anmeldung keine Karte. Schuld war ein Fehlalarm in einer Hilfsbibliothek; die neue Fassung behebt ihn. Auf Android und im Web ändert sich nichts.
+
 ## Erste Schritte aufs iPhone
 
 *Version 0.203.0, 2026-11-24*

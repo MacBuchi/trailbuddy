@@ -247,7 +247,7 @@ Code liegt — nicht wieder hierher.
 | `lib/l10n/CLAUDE.md` | Sprachen der Oberfläche: ARB, Vorlage Deutsch, erzeugte Dateien, Testgerät Deutsch (#209) |
 | `web/CLAUDE.md` | Kein Netzziel ohne Datenschutzerklärung · Web (Service Worker, Build) |
 | `android/CLAUDE.md` | Android (Flavors, Backup-Ausschlüsse) · Die Dev-App (#356) · Play Store vorbereitet, nicht eingereicht |
-| `ios/CLAUDE.md` | Das iPhone (#644): Projekt, SPM statt CocoaPods, kein Signier-Team im Repo, was iOS nicht verspricht, Info.plist, CI-Simulatorbuild |
+| `ios/CLAUDE.md` | Das iPhone (#644): Projekt, SPM statt CocoaPods, kein Signier-Team im Repo, was iOS nicht verspricht, Info.plist, CI-Simulatorbuild, Anmelden bis zur Karte im Simulator |
 | `garmin/CLAUDE.md` | Die Uhr-App (Connect IQ, fēnix 5): Bauen, Tests, Vorführmodus, Watchdog, Speicher, Farben, Testroute |
 | `test/CLAUDE.md` | Dart-MCP (`analyze_files`, `run_tests`, `lsp`: Pfad-Fallen, Messung) · Gegenprobe · Fallen im Harness (pumpApp, FakeSettings, Touren, Isolates, FakeMapView) |
 

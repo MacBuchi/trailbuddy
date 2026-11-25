@@ -51,3 +51,23 @@ nur, was man beim Arbeiten an `ios/` wissen muss.
   Starten und Bilder gehen über `xcrun simctl` (`install`, `launch`,
   `io … screenshot`); bedienen über einen Integrationstest
   (`flutter test integration_test/… -d <udid>`).
+- **Anmelden bis zur Karte im Simulator** (seit 0.203.1,
+  `integration_test/ios_signin_smoke_test.dart`): die echte App gegen das
+  Live-Projekt mit dem Testkonto des Betreibers (`--dart-define=TB_MAIL`,
+  `TB_PW`; ohne beide übersprungen, kein CI-Test). Prüft Login → Hülle →
+  MapLibre-Platform-View ohne Rückfall auf flutter_map und ohne Ausnahme.
+  Gegenproben (2026-11-25, iPhone 17, iOS 26.2): falsches Passwort und
+  `objective_c` 9.6.3 — beide rot. Drei Fallen:
+  - **`objective_c` ab 9.6.4** (direkt in `pubspec.yaml`,
+    `test/dependency_floor_test.dart`): Bis 9.6.3 schlägt dessen
+    Debug-Prüfung `_isValid` im arm64-Simulator fehl
+    (dart-lang/native#3786), sobald `maplibre_ios` seine Platform View
+    oder den Kartenzwischenspeicher anlegt — die Anmeldung klappte, die
+    Karte blieb leer. Das war der „Login erreicht die Karte nicht"-Befund
+    vom 2026-11-24.
+  - **Der erste Start braucht gut 10 s bis zum Login**, und kurz steht
+    nur ein Feld da — warten, bis E-Mail UND Passwort stehen.
+  - **Die Bildschirmtastatur verdeckt „Anmelden"**; der Test schickt die
+    Eingabetaste des Passworts. `xcrun simctl io … screenshot` zeigt
+    während `flutter test` den Home-Bildschirm, nicht die App — was zu
+    sehen ist, sagen die Finder.
