@@ -1,0 +1,6 @@
+#include "Generated.xcconfig"
+// Das Signier-Team steht nie im öffentlichen Repo (#644): wer auf ein
+// Gerät installiert, legt `ios/Flutter/Local.xcconfig` mit
+// `DEVELOPMENT_TEAM = <Team-ID>` an (von Git ignoriert). Ohne die Datei
+// baut der Simulator und `--no-codesign` wie gewohnt.
+#include? "Local.xcconfig"

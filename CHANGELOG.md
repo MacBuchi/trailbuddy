@@ -2,6 +2,12 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Erste Schritte aufs iPhone
+
+*Version 0.203.0, 2026-11-24*
+
+TrailBuddy lässt sich jetzt für das iPhone bauen. Es gibt noch keine Version zum Herunterladen. Fahrten aufzeichnen, Push, ganze Regionen und die Übergabe an eine Navi-App bleiben dort aus, bis sie auf einem echten iPhone geprüft sind. Auf Android und im Web ändert sich nichts.
+
 ## Routen an Kreuzungen
 
 *Version 0.202.0, 2026-11-22*

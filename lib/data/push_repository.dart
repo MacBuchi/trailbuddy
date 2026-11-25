@@ -13,6 +13,8 @@ class PushRepository {
 
   final SupabaseClient _client;
 
+  /// `push_devices.platform` kennt nur 'android' und 'web'; iOS kommt
+  /// gar nicht hierher (`pushPlatformSupported`, #644).
   static String get _platform => kIsWeb ? 'web' : 'android';
 
   /// Dieses Gerät eintragen — oder die vorhandene Zeile auffrischen.

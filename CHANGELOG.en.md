@@ -2,6 +2,12 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## First steps towards the iPhone
+
+*Version 0.203.0, 2026-11-24*
+
+TrailBuddy can now be built for the iPhone. There is no download yet. Ride recording, push notifications, whole regions and handing a place to a navigation app stay off there until they have been tested on a real iPhone. Nothing changes on Android or on the web.
+
 ## Routes at crossings
 
 *Version 0.202.0, 2026-11-22*

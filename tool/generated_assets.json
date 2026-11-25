@@ -76,6 +76,10 @@
     "store/feature_graphic.png": {
       "sha256": "7cebe2a6a822f3ffb8526f3ffcc3a75566037106c5d536068f03601949868f97",
       "regenerate": "python3 tool/brand_icons.py (braucht rsvg-convert aus librsvg und die Schriften aus assets/fonts)"
+    },
+    "ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-1024x1024.png": {
+      "sha256": "731c51c7aa15d52bef4280af6321c7725e48c147de05a245fad2f5344f26fae4",
+      "regenerate": "python3 tool/brand_icons.py (braucht rsvg-convert aus librsvg)"
     }
   }
 }

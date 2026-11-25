@@ -15,6 +15,7 @@ import 'package:path_provider/path_provider.dart';
 
 import '../../l10n/l10n.dart';
 import '../../core/errors.dart';
+import '../../core/platform_support.dart';
 import '../../core/settings.dart';
 import '../../data/providers.dart';
 import '../routing/route_profile.dart';
@@ -38,16 +39,19 @@ import 'trail_values.dart';
 /// Gibt es die Aufzeichnung auf dieser Plattform? Im Browser nicht: Dort
 /// gibt es kein Service-Isolate, und ein Tab im Hintergrund bekommt
 /// keine Positionen — eine Fahrt, die nur läuft, solange man hinsieht,
-/// wäre keine. Als Provider, damit ein Test beide Fälle sehen kann.
-final rideRecordingAvailableProvider = Provider<bool>((ref) => !kIsWeb);
+/// wäre keine. Auf dem iPhone noch nicht (#644): Der Dienst ist ein
+/// Android-Vordergrunddienst, und ob iOS eine Fahrt bei gesperrtem
+/// Bildschirm weiterzeichnet, zeigt erst das Gerät. Als Provider, damit
+/// ein Test beide Fälle sehen kann.
+final rideRecordingAvailableProvider = Provider<bool>((ref) => isAndroidApp);
 
 /// Gibt es den Schalter „Wheelie, Sprung und Stoppie erkennen" (#36)?
 /// Überall, wo es Fahrten gibt — seit 0.148.0 auch in der offiziellen App
 /// (Betreiber 2026-10-31: eine versteckte Funktion, ab Werk aus), vorher
 /// nur in der Dev-App. Ein Mess-Werkzeug für den Messplan des
 /// Airtime-Konzepts, noch keine Trail-Werte. Tests überschreiben den
-/// Provider.
-final sensorLogAvailableProvider = Provider<bool>((ref) => !kIsWeb);
+/// Provider. Auf iOS aus, solange es dort keine Fahrten gibt (#644).
+final sensorLogAvailableProvider = Provider<bool>((ref) => isAndroidApp);
 
 /// Schreibt die nächste Fahrt die Rohdaten mit? Aus, wo es den Schalter
 /// nicht gibt — auch wenn er einmal gesetzt war.

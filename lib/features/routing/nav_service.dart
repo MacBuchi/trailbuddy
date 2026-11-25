@@ -5,12 +5,12 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
 
 import '../../core/errors.dart';
+import '../../core/platform_support.dart';
 import '../../l10n/l10n.dart' show serviceL10n;
 import '../keep_alive/keep_alive.dart';
 import '../rides/ride_providers.dart' show kRideTickInterval;
@@ -39,8 +39,10 @@ abstract interface class NavServiceBridge {
 class PlatformNavServiceBridge implements NavServiceBridge {
   const PlatformNavServiceBridge();
 
-  /// Im Browser gibt es keinen Dienst und keine Benachrichtigung (9.5).
-  bool get _supported => !kIsWeb;
+  /// Im Browser gibt es keinen Dienst und keine Benachrichtigung (9.5),
+  /// auf dem iPhone noch nicht (#644: `flutter_foreground_task` ist dort
+  /// kein Dauerdienst).
+  bool get _supported => isAndroidApp;
 
   @override
   Future<void> arm(NavRouteData route) async {

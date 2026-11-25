@@ -38,6 +38,7 @@ import 'package:vector_map_tiles/vector_map_tiles.dart';
 
 import '../../core/connectivity.dart';
 import '../../core/errors.dart';
+import '../../core/platform_support.dart';
 import '../keep_alive/keep_alive.dart';
 import '../../core/line_geometry.dart';
 import '../../l10n/l10n.dart';
@@ -387,8 +388,10 @@ final poiBundleFetcherProvider = Provider<OverviewFetcher>(
 
 /// Ob „Ganze Region speichern" angeboten wird: nur auf dem Telefon
 /// (Betreiber, 2026-10-09 — DACH sind rund 3,2 GB, das passt nicht
-/// verlässlich in einen Browser). Die Naht für Tests.
-final wholeRegionSupportedProvider = Provider<bool>((ref) => !kIsWeb);
+/// verlässlich in einen Browser). Auf dem iPhone noch nicht (#644):
+/// ob iOS Gigabytes an Kacheln behält und offline liest, ist dort nicht
+/// gemessen. Die Naht für Tests.
+final wholeRegionSupportedProvider = Provider<bool>((ref) => isAndroidApp);
 
 /// Öffnet das Archiv des Hosts für den Download — die Naht für Tests.
 final areaSourceOpenerProvider = Provider<Future<PmTilesArchive> Function(Uri)>(
