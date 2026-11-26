@@ -52,12 +52,21 @@ nur, was man beim Arbeiten an `ios/` wissen muss.
   App ohne Zeichen (`LaunchBackground.colorset` hell/dunkel =
   `@color/ground` auf Android, wie dort vor Android 12; Design 1p), danach
   zeichnet der Splash der App. `ios_support_test` hält die Farben gleich.
-- **CI** (`ci.yml`, „Build iOS (Simulator)"): `flutter build ios
-  --simulator --debug` auf `macos-latest`, danach STARTET der Job die App
-  im jüngsten iPhone-Simulator (`integration_test/ios_start_smoke_test.dart`,
-  ohne Zugangsdaten): Anmeldung erreicht, eigene Kanäle antworten, die
-  Ordner sind angelegt und von der Sicherung ausgenommen. Kein
-  Pflicht-Check, bis der Betreiber ihn in den Branch-Schutz nimmt.
+- **CI** (`ci.yml`, „Build iOS (Simulator)"): auf `macos-latest` baut
+  und STARTET `flutter test` die App im jüngsten iPhone-Simulator
+  (`integration_test/ios_start_smoke_test.dart`, ohne Zugangsdaten):
+  Anmeldung erreicht, eigene Kanäle antworten, die Ordner sind angelegt
+  und von der Sicherung ausgenommen. Vorher 19–20 min je Lauf
+  (2026-11-26), deshalb: kein eigener `flutter build` davor (7 min, kaum
+  weiterverwendet), der Simulator bootet nach dem
+  Einrichten (parallel bremste er den 3-Kern-Runner), und auf PRs läuft
+  der Job nur, wenn iOS betroffen ist (`ios/`, pubspec, Integrationstests,
+  `ci.yml`, `main.dart`, Plattform-Weichen) — auf `main` immer. Ein reiner
+  Dart-PR, der den Start auf iOS bricht, fällt also erst auf `main` auf.
+  Ein Cache für Xcodes DerivedData half nicht (942 MB geladen, trotzdem
+  alles neu gebaut — Flutter legt `ios/Flutter/ephemeral` je Lauf neu an).
+  Was bleibt: Boot ~4 min, Xcode ~6 min, Test ~1 min.
+  Kein Pflicht-Check, bis der Betreiber ihn in den Branch-Schutz nimmt.
 - **iPhone 8 / iOS 16: bauen mit Xcode 27, aufspielen mit Xcode 26**
   (#644, am Gerät 2026-11-26, iOS 16.7.10): Xcode 27 sieht Geräte unter
   iOS 17 nicht („Pairing State: unsupported"), seine Builds (Ziel iOS
