@@ -5,21 +5,22 @@
 /// `test/map/host_requests_test.dart` sucht danach in `lib/`. So zählt
 /// [HostRequestCounter] alles, was Dart holt: Manifeste, Orte, Namen,
 /// Höhen, die Range-Anfragen auf Karte und Wege im Browser und beim
-/// Speichern eines Bereichs. Was MapLibre auf Android selbst lädt (Karte,
-/// Wege), zählt die native Seite (`HostRequestCounter.kt`, nur in der
-/// Dev-App); [readHostRequests] legt beides zusammen.
+/// Speichern eines Bereichs. Was MapLibre selbst lädt (Karte, Wege), zählt
+/// die native Seite (`HostRequestCounter.kt` in der Dev-App,
+/// `HostRequestCounter.swift` in iOS-Debug-Builds); [readHostRequests] legt beides zusammen.
 ///
 /// Gezählt wird immer (eine Zahl je Abruf), gezeigt nur in der Dev-App und
 /// der Web-Vorschau (Profil → Entwicklung).
 library;
 
-import 'package:flutter/foundation.dart';
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 import 'package:pmtiles/pmtiles.dart' show PmTilesArchive;
 
 import '../../core/app_distribution.dart';
+import '../../core/platform_support.dart';
 import 'map_providers.dart' show kMapTilesBase;
 
 /// Wofür eine Anfrage an den Host ging.
@@ -145,10 +146,11 @@ const kHostRequestsChannel = MethodChannel(
   'de.mcbuchi.trailbuddy/host_requests',
 );
 
-/// Was MapLibre auf Android beim Host geholt hat, je Pfad. Leer im Web,
-/// außerhalb der Dev-App und wenn der Kanal nicht antwortet.
+/// Was MapLibre beim Host geholt hat, je Pfad (Android und iOS). Leer im
+/// Web, außerhalb der Dev-App bzw. des iOS-Debug-Builds und wenn der Kanal
+/// nicht antwortet.
 Future<Map<String, int>> _nativeCounts() async {
-  if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) return {};
+  if (!(isAndroidApp || isIosApp)) return {};
   try {
     final raw = await kHostRequestsChannel.invokeMapMethod<String, int>(
       'counts',
@@ -158,6 +160,24 @@ Future<Map<String, int>> _nativeCounts() async {
     return {};
   } on MissingPluginException {
     return {};
+  }
+}
+
+/// Den nativen Zähler auf iOS einhängen (#644) — aus `main()`, bevor eine
+/// Karte etwas lädt, nur im Debug-Build (dort zeigt das Profil
+/// „Entwicklung", [devToolsVisibleProvider]). Android hängt ihn in der
+/// Dev-App selbst ein (`MainActivity.kt`). Gibt zurück, ob er hängt.
+Future<bool> installNativeHostCounter({
+  bool? enabled,
+  MethodChannel channel = kHostRequestsChannel,
+}) async {
+  if (!(enabled ?? (kDebugMode && hasIosChannels))) return false;
+  try {
+    return await channel.invokeMethod<bool>('install') ?? false;
+  } on PlatformException {
+    return false;
+  } on MissingPluginException {
+    return false;
   }
 }
 
@@ -190,7 +210,7 @@ Future<HostRequestSnapshot> readHostRequests() async {
 
 Future<void> resetHostRequests() async {
   HostRequestCounter.instance.reset();
-  if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) return;
+  if (!(isAndroidApp || isIosApp)) return;
   try {
     await kHostRequestsChannel.invokeMethod<void>('reset');
   } on PlatformException {
@@ -209,8 +229,13 @@ final hostRequestsProvider =
       })
     >((ref) => (read: readHostRequests, reset: resetHostRequests));
 
-/// Ob das Profil die Zeile „Entwicklung" zeigt: nur Dev-App und
-/// Web-Vorschau. Als Provider, weil beide Schalter `const` sind.
+/// Ob das Profil die Zeile „Entwicklung" zeigt: Dev-App, Web-Vorschau und
+/// iOS im Debug-Build (#644 — iOS hat keine Dev-App, und nur dort zählt
+/// die native Seite, `ios/Runner/HostRequestCounter.swift`). Als Provider,
+/// weil die Schalter `const` sind.
 final devToolsVisibleProvider = Provider<bool>(
-  (ref) => AppDistribution.isDevBuild || AppDistribution.isPreviewBuild,
+  (ref) =>
+      AppDistribution.isDevBuild ||
+      AppDistribution.isPreviewBuild ||
+      (kDebugMode && isIosApp),
 );

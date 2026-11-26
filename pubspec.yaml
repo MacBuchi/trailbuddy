@@ -4,7 +4,7 @@ publish_to: 'none'
 
 # Beide Teile erhöhen (z. B. 0.1.0+1 → 0.1.1+2). Ein Bump auf main taggt und
 # baut ein Prerelease (release.yml); ohne Bump kein Release (Version Guard).
-version: 0.203.1+309
+version: 0.204.0+310
 
 environment:
   sdk: ^3.11.0
@@ -164,6 +164,11 @@ dev_dependencies:
   integration_test:
     sdk: flutter
   flutter_lints: ^6.0.0
+  # Die Plattformteile der Dateiauswahl, nur für den Vertragstest der
+  # Typgruppen (#644, `test/trails/gpx_picker_types_test.dart`): Er ruft
+  # die echten Umsetzungen auf, statt ihre Regeln nachzubauen.
+  file_selector_android: ^0.5.2+11
+  file_selector_ios: ^0.5.3+6
 
 flutter:
   uses-material-design: true

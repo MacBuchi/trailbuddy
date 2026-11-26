@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:io' show Platform;
 
 import 'package:app_links/app_links.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
@@ -10,6 +9,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'app.dart';
 import 'core/app_theme.dart';
+import 'core/backup_exclusions.dart';
+import 'features/map/host_requests.dart' show installNativeHostCounter;
 import 'core/errors.dart';
 import 'core/settings.dart';
 import 'core/stall_watch.dart';
@@ -19,6 +20,7 @@ import 'data/exit_info_repository.dart';
 import 'data/exit_reporting.dart';
 import 'features/friends/invite_link.dart';
 import 'features/rides/ride_service.dart';
+import 'core/platform_support.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -83,6 +85,12 @@ Future<void> main() async {
   // stumm — PilzBuddy #465. `test/rides/ride_live_bridge_test.dart`
   // prüft, dass sie hier steht.
   initRideCommunication();
+  // Fahrten, Korb und Zwischenspeicher nie in die iCloud-Sicherung (#644);
+  // auf Android tun das die Backup-Regeln im Manifest.
+  unawaited(excludeFromCloudBackup());
+  // Was MapLibre selbst beim Kartenhost holt, zählen (#644, nur iOS-Debug);
+  // vor der ersten Karte, deshalb abgewartet.
+  await installNativeHostCounter();
 
   // Eine gescannte Einladung (#502): Android schickt die Adresse als Intent,
   // der Browser hat sie in Uri.base. Vor runApp, damit der Router beim ersten
@@ -90,7 +98,7 @@ Future<void> main() async {
   // ganz normal auf der Karte.
   if (kIsWeb) {
     launchLink = Uri.base;
-  } else if (Platform.isAndroid) {
+  } else if (hasAndroidChannels) {
     try {
       launchLink = await AppLinks().getInitialLink();
     } catch (_) {

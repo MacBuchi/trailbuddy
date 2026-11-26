@@ -1,0 +1,5 @@
+/* Berechtigungstexte auf Deutsch (#644, A14). Dieselben Schlüssel in
+   en.lproj; test/ios_support_test.dart hält beide und Info.plist zusammen. */
+"NSLocationWhenInUseUsageDescription" = "Zeigt deine Position auf der Karte, solange du TrailBuddy offen hast.";
+"NSCameraUsageDescription" = "Für ein Foto an einer Meldung zu einem Trail. Ort und Kameradaten entfernt TrailBuddy vor dem Hochladen.";
+"NSPhotoLibraryUsageDescription" = "Für ein Foto aus deiner Mediathek an einer Meldung zu einem Trail. Ort und Kameradaten entfernt TrailBuddy vor dem Hochladen.";

@@ -12,5 +12,10 @@ import UIKit
 
   func didInitializeImplicitFlutterEngine(_ engineBridge: FlutterImplicitEngineBridge) {
     GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
+    // Die eigenen Kanäle der App (#644), dieselben Namen wie in Kotlin.
+    if let registrar = engineBridge.pluginRegistry.registrar(forPlugin: "TrailBuddyRunner") {
+      BackupExclusion.register(with: registrar.messenger())
+      HostRequestCounter.register(with: registrar.messenger())
+    }
   }
 }

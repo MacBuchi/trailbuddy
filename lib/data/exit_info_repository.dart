@@ -1,7 +1,7 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
 import 'tombstone.dart';
+import '../core/platform_support.dart';
 
 /// Der Kanal zu `MainActivity.kt`; `test/android_manifest_test.dart` hält
 /// beide Seiten zusammen — ein Tippfehler antwortet stumm mit „kein Kanal".
@@ -100,8 +100,7 @@ class ExitInfoRepository {
 
   final MethodChannel _channel;
 
-  bool get _supported =>
-      !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
+  bool get _supported => isAndroidApp;
 
   /// Die letzten Beendigungen, neueste zuerst.
   Future<List<AppExit>> recentExits({int limit = 10}) async {

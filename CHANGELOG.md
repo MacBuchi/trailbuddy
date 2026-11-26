@@ -2,6 +2,12 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Das iPhone: Import, Datenschutz und ein gemeinsamer Unterbau
+
+*Version 0.204.0, 2026-11-26*
+
+Auf dem iPhone öffnet der GPX-Import jetzt die Dateiauswahl; vorher brach er dort ab. Fahrten, Ausgangskorb, Zwischenspeicher und Karten gehen auf dem iPhone nicht in die iCloud-Sicherung, genau wie sie auf Android nicht im Google-Backup landen. Die Fragen nach Standort, Kamera und Mediathek gibt es dort auf Deutsch und Englisch, und beim Start erscheint der Grund der App statt einer weißen Fläche. Auf Android und im Web ändert sich nichts.
+
 ## Die Karte auf dem iPhone-Simulator
 
 *Version 0.203.1, 2026-11-25*

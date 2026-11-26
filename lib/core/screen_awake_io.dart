@@ -1,9 +1,8 @@
-import 'dart:io' show Platform;
-
 import 'package:flutter/services.dart';
 
 import 'errors.dart';
 import 'screen_awake.dart';
+import 'platform_support.dart';
 
 /// Der Name steht auch in `MainActivity.kt`; `android_manifest_test` hält
 /// beide zusammen.
@@ -15,7 +14,7 @@ class _AndroidScreenAwake implements ScreenAwake {
   static const _channel = MethodChannel(kScreenChannel);
 
   @override
-  bool get supported => Platform.isAndroid;
+  bool get supported => hasAndroidChannels;
 
   @override
   Future<void> keepOn(bool on) async {

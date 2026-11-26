@@ -21,7 +21,6 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -30,6 +29,7 @@ import '../../l10n/l10n.dart';
 import 'ride_confirm.dart';
 import 'ride_store.dart';
 import 'wheelie_notify.dart';
+import '../../core/platform_support.dart';
 
 /// Der Kanal der Meldungen — derselbe wie für Push (`strings.xml`,
 /// `MainActivity.kt`); der Manifest-Test hält die Namen zusammen.
@@ -202,7 +202,7 @@ final rideConfirmTapsProvider = Provider<Stream<String> Function()>(
 );
 
 Stream<String> _platformTaps() {
-  if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) {
+  if (!isAndroidApp) {
     return const Stream.empty();
   }
   final controller = StreamController<String>();

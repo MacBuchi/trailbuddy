@@ -1,6 +1,6 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../core/platform_support.dart';
 
 /// Übergibt eine geladene APK an Androids System-Installer
 /// (`MainActivity.kt`, Kanal `apk_install`).
@@ -16,8 +16,7 @@ class ApkInstaller {
   final MethodChannel _channel;
 
   /// Nur die per APK verteilte Android-App aktualisiert sich selbst.
-  bool get supported =>
-      !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
+  bool get supported => isAndroidApp;
 
   /// Hat die Nutzerin dieser App erlaubt, Apps zu installieren?
   ///

@@ -7,11 +7,10 @@
 library;
 
 import 'dart:async';
-import 'dart:io';
 
 import 'package:app_links/app_links.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/platform_support.dart';
 
 /// Host und Pfad der Einladung. Dieselben wie in `AppInfo.inviteUrl` und im
 /// Manifest; `test/android_manifest_test.dart` hält beide zusammen.
@@ -58,7 +57,7 @@ class InviteNotifier extends Notifier<String?> {
     // meldet die Adresse als neuen Intent. Der Startlink selbst kommt nicht
     // über diesen Strom: Supabase hört schon beim `initialize` zu und der
     // Kanal sendet die Startadresse nur einmal. Deshalb liest `main()` ihn.
-    if (kIsWeb || !Platform.isAndroid) return inviteNameFromLink(launchLink);
+    if (!hasAndroidChannels) return inviteNameFromLink(launchLink);
     _links = AppLinks().uriLinkStream.listen((link) {
       final name = inviteNameFromLink(link);
       if (name != null) state = name;

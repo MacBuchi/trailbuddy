@@ -1,9 +1,8 @@
-import 'dart:io' show Platform;
-
 import 'package:flutter/services.dart';
 
 import 'errors.dart';
 import 'picture_in_picture.dart';
+import 'platform_support.dart';
 
 /// Der Name steht auch in `MainActivity.kt`; `android_manifest_test` hält
 /// beide zusammen.
@@ -14,7 +13,7 @@ PictureInPicture createPictureInPicture() => _AndroidPictureInPicture();
 class _AndroidPictureInPicture implements PictureInPicture {
   static const _channel = MethodChannel(kPipChannel);
 
-  bool get _supported => Platform.isAndroid;
+  bool get _supported => hasAndroidChannels;
 
   @override
   Future<void> allow(bool on) async {
