@@ -180,8 +180,9 @@ jobs:
   # (2026-11-26: 19–20 min je Lauf). Deshalb:
   # - EIN Build: `flutter test` baut selbst; ein `flutter build` davor
   #   kostete 7 min und wurde kaum weiterverwendet.
-  # - Xcodes DerivedData (Zwischenstände und SPM-Pakete: Firebase, gRPC,
-  #   MapLibre) liegt im Cache; neu gebaut wird nur, was sich änderte.
+  # - KEIN DerivedData-Cache: probiert (PR #655), 942 MB geladen, Xcode
+  #   baute trotzdem alles neu (336 statt 408 s) — Flutter legt die
+  #   Plugin-Pakete unter ios/Flutter/ephemeral je Lauf neu an.
   # - Der Simulator bootet NACH dem Einrichten, nicht parallel: Auf dem
   #   3-Kern-Runner bremste der Start alles andere aus (gemessen: Flutter
   #   einrichten 6 statt 0,7 min).
@@ -225,23 +226,8 @@ jobs:
         run: flutter config --enable-swift-package-manager
       - if: steps.scope.outputs.run == 'true'
         run: flutter pub get
-      - name: Xcode-Version
-        id: xcode
-        if: steps.scope.outputs.run == 'true'
-        run: |
-          xcodebuild -version
-          echo "build=$(xcodebuild -version | awk '/Build version/ {print $3}')" >> "$GITHUB_OUTPUT"
-      - name: DerivedData aus dem Cache
-        if: steps.scope.outputs.run == 'true'
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/Library/Developer/Xcode/DerivedData
-            build/ios
-          key: ios-dd-${{ steps.xcode.outputs.build }}-${{ hashFiles('pubspec.lock', 'ios/Runner.xcodeproj/project.pbxproj') }}-${{ github.sha }}
-          restore-keys: |
-            ios-dd-${{ steps.xcode.outputs.build }}-${{ hashFiles('pubspec.lock', 'ios/Runner.xcodeproj/project.pbxproj') }}-
-            ios-dd-${{ steps.xcode.outputs.build }}-
+      - if: steps.scope.outputs.run == 'true'
+        run: xcodebuild -version
       - name: Bauen und im Simulator starten (ohne Zugangsdaten)
         if: steps.scope.outputs.run == 'true'
         run: |
