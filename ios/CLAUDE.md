@@ -52,12 +52,17 @@ nur, was man beim Arbeiten an `ios/` wissen muss.
   App ohne Zeichen (`LaunchBackground.colorset` hell/dunkel =
   `@color/ground` auf Android, wie dort vor Android 12; Design 1p), danach
   zeichnet der Splash der App. `ios_support_test` hält die Farben gleich.
-- **CI** (`ci.yml`, „Build iOS (Simulator)"): `flutter build ios
-  --simulator --debug` auf `macos-latest`, danach STARTET der Job die App
-  im jüngsten iPhone-Simulator (`integration_test/ios_start_smoke_test.dart`,
-  ohne Zugangsdaten): Anmeldung erreicht, eigene Kanäle antworten, die
-  Ordner sind angelegt und von der Sicherung ausgenommen. Kein
-  Pflicht-Check, bis der Betreiber ihn in den Branch-Schutz nimmt.
+- **CI** (`ci.yml`, „Build iOS (Simulator)"): auf `macos-latest` baut
+  und STARTET `flutter test` die App im jüngsten iPhone-Simulator
+  (`integration_test/ios_start_smoke_test.dart`, ohne Zugangsdaten):
+  Anmeldung erreicht, eigene Kanäle antworten, die Ordner sind angelegt
+  und von der Sicherung ausgenommen. Kein eigener `flutter build` davor
+  (kostete 7 min und wurde kaum weiterverwendet), der Simulator bootet ab
+  dem ersten Schritt im Hintergrund (erster Start 3–4 min), und ein PR
+  ohne Änderung fürs Binary (Liste des Version Guards plus `ci.yml`)
+  überspringt die Schritte, der Check bleibt grün. Vorher 19 min je Lauf
+  (2026-11-26). Kein Pflicht-Check, bis der Betreiber ihn in den
+  Branch-Schutz nimmt.
 - **iPhone 8 / iOS 16: bauen mit Xcode 27, aufspielen mit Xcode 26**
   (#644, am Gerät 2026-11-26, iOS 16.7.10): Xcode 27 sieht Geräte unter
   iOS 17 nicht („Pairing State: unsupported"), seine Builds (Ziel iOS

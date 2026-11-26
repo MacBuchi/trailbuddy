@@ -176,23 +176,46 @@ jobs:
   # iCloud-Sicherung ausgenommen. Bis zur Karte geht nur der Test mit dem
   # Testkonto, nicht hier (ios/CLAUDE.md). Apple Silicon, weil MapLibre und
   # die Native-Assets kein x64-Simulator-Archiv bringen müssen.
-  # Öffentliches Repo: die macOS-Minuten kosten nichts.
+  # Öffentliches Repo: die macOS-Minuten kosten nichts — Wartezeit schon.
+  # Schnell, weil (gemessen am Lauf vom 2026-11-26, 19 min): EIN Build
+  # (`flutter test` baut selbst; ein `flutter build` davor kostete 7 min und
+  # wurde kaum weiterverwendet), der Simulator bootet von Anfang an im
+  # Hintergrund (der erste Start migriert 3–4 min lang), und ein PR, der
+  # nichts fürs Binary ändert (dieselbe Liste wie der Version Guard, nur
+  # `ci.yml` selbst zählt mit), überspringt die Schritte — der Check bleibt
+  # grün statt zu fehlen.
   build-ios:
     name: Build iOS (Simulator)
     runs-on: macos-latest
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v7
-      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
         with:
-          channel: stable
-          flutter-version: 3.47.5
-          cache: true
-      - run: flutter config --enable-swift-package-manager
-      - run: flutter pub get
-      - run: xcodebuild -version
-      - run: flutter build ios --simulator --debug
-      - name: Start im Simulator (ohne Zugangsdaten)
+          fetch-depth: 0
+      - name: Betrifft die Änderung die App?
+        id: scope
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          if [ "$EVENT_NAME" != "pull_request" ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          range="origin/$BASE_REF...HEAD"
+          changed=$(
+            {
+              git diff --name-only "$range" -- . ':!*.md' ':!.github' ':!tool' ':!supabase' ':!docs' ':!garmin' ':!.claude' ':!.codex' ':!.agents' ':!.mcp.json' ':!.git-blame-ignore-revs' ':!store' || true
+              git diff --name-only "$range" -- CHANGELOG.md CHANGELOG.en.md .github/workflows/ci.yml || true
+            } | grep -v '^$' || true
+          )
+          if [ -n "$changed" ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=false" >> "$GITHUB_OUTPUT"
+            echo "Nichts fürs Binary geändert — iOS-Build übersprungen." >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - name: Simulator im Hintergrund starten
+        if: steps.scope.outputs.run == 'true'
         run: |
           # Das jüngste verfügbare iPhone; der Runner bringt mehrere mit.
           UDID=$(xcrun simctl list devices available -j | python3 -c '
@@ -206,9 +229,27 @@ jobs:
                   print(phones[0]["udid"]); break
           ')
           test -n "$UDID" || { echo "kein iPhone-Simulator"; exit 1; }
-          xcrun simctl boot "$UDID"
-          xcrun simctl bootstatus "$UDID" -b
-          flutter test integration_test/ios_start_smoke_test.dart -d "$UDID"
+          echo "SIM_UDID=$UDID" >> "$GITHUB_ENV"
+          nohup xcrun simctl boot "$UDID" > /tmp/sim_boot.log 2>&1 &
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
+        if: steps.scope.outputs.run == 'true'
+        with:
+          channel: stable
+          flutter-version: 3.47.5
+          cache: true
+      - if: steps.scope.outputs.run == 'true'
+        run: flutter config --enable-swift-package-manager
+      - if: steps.scope.outputs.run == 'true'
+        run: flutter pub get
+      - if: steps.scope.outputs.run == 'true'
+        run: xcodebuild -version
+      - name: Bauen und im Simulator starten (ohne Zugangsdaten)
+        if: steps.scope.outputs.run == 'true'
+        run: |
+          # bootstatus wartet still (ohne -d), bis der Start im Hintergrund
+          # fertig ist; -b bootet selbst, falls er gescheitert ist.
+          xcrun simctl bootstatus "$SIM_UDID" -b > /dev/null || { cat /tmp/sim_boot.log; exit 1; }
+          flutter test integration_test/ios_start_smoke_test.dart -d "$SIM_UDID"
 
   # Probelauf gegen einen lokalen Supabase-Stack (supabase/config.toml): beide
   # Wege, die es in der Wirklichkeit gibt — Bestand (Basis-Schema, dann nur
