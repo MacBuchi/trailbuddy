@@ -58,13 +58,29 @@ nur, was man beim Arbeiten an `ios/` wissen muss.
   ohne Zugangsdaten): Anmeldung erreicht, eigene Kanäle antworten, die
   Ordner sind angelegt und von der Sicherung ausgenommen. Kein
   Pflicht-Check, bis der Betreiber ihn in den Branch-Schutz nimmt.
-- **iPhone 8 / iOS 16 geht mit Xcode 27 nicht** (#644, 2026-11-25):
-  Xcode 27 debuggt und installiert nur ab iOS 17 („Pairing State:
-  unsupported"), und ein Bericht nennt einen Startabsturz von
-  Xcode-27-Builds auf iOS 16. Ein zweites Xcode daneben läuft auf dem
-  Rechner des Betreibers nicht; Geräte-Tests laufen auf dem iPad Air 4
-  (iOS 26) und im Simulator, das iPhone 8 erst über einen Build mit
-  Xcode 26 (Xcode Cloud, braucht das bezahlte Konto).
+- **iPhone 8 / iOS 16: bauen mit Xcode 27, aufspielen mit Xcode 26**
+  (#644, am Gerät 2026-11-26, iOS 16.7.10): Xcode 27 sieht Geräte unter
+  iOS 17 nicht („Pairing State: unsupported"), seine Builds (Ziel iOS
+  15.0) starten dort aber — der gemeldete dyld-Absturz trat beim Start
+  nicht auf, Anmeldung und Karte gingen. Xcode 26.6 lässt sich auf
+  macOS 27 nicht über den Installer einrichten, das entpackte `.xip` läuft
+  aber daneben (`/Applications/Xcode-26.6.app`, iOS-Plattform per
+  `xcodebuild -downloadPlatform iOS`). Umgeschaltet wird mit
+  `xcode-select -s`; mit Xcode 26 findet `flutter devices` das Gerät, und
+  `flutter run --release` installiert (oder `ios-deploy` aus
+  `bin/cache/artifacts` mit einem Build von Xcode 27). Drei Fallen:
+  - **`DEVELOPER_DIR` reicht nicht**: `hooks_runner` startet die
+    Native-Asset-Hooks (`objective_c`) ohne die Umgebung
+    (`includeParentEnvironment: false`), `xcrun` fällt auf `xcode-select`
+    zurück und mischt das SDK von Xcode 27 mit dem clang von Xcode 26
+    („unknown architecture" in den `.tbd`). Nach dem Umschalten
+    `.dart_tool/hooks_runner/shared/objective_c` löschen.
+  - **Kein Selbststart nach der Installation**: Für iOS 16.7 fehlen die
+    DeviceSupport-Symbole (legt sonst die Xcode-Oberfläche an), also von
+    Hand antippen; im Release-Modus ohne Folgen.
+  - **Entwicklermodus am Gerät und ein Konto in Xcode** (die Konten
+    teilen sich beide Fassungen; einzutragen in Xcode 27). Ohne Konto:
+    „No Accounts" und kein Profil.
 - **Xcode 27 hat keine `Simulator.app` mehr** (es gibt `DeviceHub.app`).
   Starten und Bilder gehen über `xcrun simctl` (`install`, `launch`,
   `io … screenshot`); bedienen über einen Integrationstest
