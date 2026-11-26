@@ -44,6 +44,7 @@ import 'package:tb_ambient/tb_ambient.dart';
 
 import 'airtime_message.dart';
 import 'pocket_watch.dart';
+import 'ride_location.dart';
 import 'ride_store.dart' show rideIdFor;
 import 'ride_task_handler.dart';
 import 'sensor_fusion.dart';
@@ -231,10 +232,9 @@ class SensorSources {
     ),
     gps: () =>
         Geolocator.getPositionStream(
-          locationSettings: AndroidSettings(
-            accuracy: LocationAccuracy.best,
-            intervalDuration: kSensorGpsInterval,
-          ),
+          // Je Plattform (#644): Auf iOS teilt sich der Logger den Strom
+          // der Fahrt — `geolocator_apple` hält je Engine nur einen.
+          locationSettings: rideLocationSettings(interval: kSensorGpsInterval),
         ).map(
           (p) => [
             p.timestamp.microsecondsSinceEpoch.toDouble(),

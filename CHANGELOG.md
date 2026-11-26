@@ -2,6 +2,12 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Fahrten aufzeichnen auf dem iPhone
+
+*Version 0.205.0, 2026-11-26*
+
+Auf dem iPhone lässt sich jetzt eine Fahrt aufzeichnen. Sie läuft weiter, wenn TrailBuddy im Hintergrund ist oder der Bildschirm gesperrt; oben zeigt das iPhone dann den blauen Standort-Hinweis. Wischst du die App aus der App-Übersicht weg, endet die Aufzeichnung — das sagt die Leiste beim Start. Beim nächsten Öffnen geht die Fahrt weiter, und TrailBuddy nennt die Zeit, in der nichts aufgezeichnet wurde. Das gilt auch auf Android, etwa nach einem Neustart des Telefons. Wheelie, Sprung und Stoppie werden auf dem iPhone genauso erkannt; Mitteilungen unterwegs und Ansagen kommen dort später. Erlaubst du nur den ungefähren Standort, sagt die App jetzt, dass eine Fahrt den genauen braucht.
+
 ## Das iPhone: Import, Datenschutz und ein gemeinsamer Unterbau
 
 *Version 0.204.0, 2026-11-26*

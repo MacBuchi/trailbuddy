@@ -33,7 +33,7 @@
 	<key>NSCameraUsageDescription</key>
 	<string>For a photo with a trail report. TrailBuddy removes location and camera data before uploading.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Shows your position on the map while TrailBuddy is open.</string>
+	<string>Shows your position on the map and records a ride you start, also in the background and with the screen locked.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>For a photo from your library with a trail report. TrailBuddy removes location and camera data before uploading.</string>
 	<key>CFBundleName</key>
@@ -69,6 +69,10 @@
 			</array>
 		</dict>
 	</dict>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>location</string>
+	</array>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>UILaunchStoryboardName</key>

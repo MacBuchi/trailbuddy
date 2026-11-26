@@ -381,6 +381,22 @@
   "@rideStarted": {
     "description": "Leiste nach dem Start einer Fahrt."
   },
+  "rideStartedIos": "Fahrt läuft — auch im Hintergrund und bei gesperrtem Bildschirm. Wischst du TrailBuddy aus der App-Übersicht weg, endet die Aufzeichnung; beim nächsten Öffnen geht sie weiter.",
+  "@rideStartedIos": {
+    "description": "Leiste nach dem Start einer Fahrt auf dem iPhone (#644): was iOS hält und was nicht."
+  },
+  "rideReducedAccuracy": "Für eine Fahrt braucht TrailBuddy den genauen Standort. Schalte „Genauer Standort“ in den Einstellungen ein.",
+  "@rideReducedAccuracy": {
+    "description": "Leiste: Start mit nur ungefährem Standort (#644)."
+  },
+  "rideGapNotice": "Die Fahrt läuft weiter. Von {from} bis {to} wurde nichts aufgezeichnet — die App war beendet.",
+  "@rideGapNotice": {
+    "description": "Leiste beim Wiederaufnehmen einer Fahrt mit Lücke (#644).",
+    "placeholders": {
+      "from": {"type": "String"},
+      "to": {"type": "String"}
+    }
+  },
   "rideNoPermission": "Ohne Standortberechtigung lässt sich keine Fahrt aufzeichnen.",
   "@rideNoPermission": {
     "description": "Leiste: Start ohne Berechtigung."

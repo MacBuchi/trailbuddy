@@ -26,7 +26,7 @@ nur, was man beim Arbeiten an `ios/` wissen muss.
   (das SPM-Gerüst unter `ios/Flutter/ephemeral` enthält Dart) — die Zeile
   bleibt stehen, sonst taucht sie bei jedem als Änderung auf.
 - **Was iOS NICHT verspricht** (`lib/core/platform_support.dart`,
-  `isAndroidApp`): Fahrt aufzeichnen und Sensor-Rohdaten, ganze Regionen,
+  `isAndroidApp`): ganze Regionen, Downloads im Hintergrund,
   der Navigationsdienst, Push (`pushPlatformSupported` — ohne APNs und
   `GoogleService-Info.plist`; `push_devices.platform` kennt nur `android`
   und `web`), „In Navi-App öffnen" (`geo:` gibt es dort nicht ⇒
@@ -40,8 +40,10 @@ nur, was man beim Arbeiten an `ios/` wissen muss.
   0.204.0 je Sprache in `de.lproj`/`en.lproj/InfoPlist.strings` (A14),
   `Info.plist` trägt die englische Fassung (Entwicklungssprache);
   `ios_support_test` verlangt in beiden Dateien dieselben Schlüssel wie
-  `Info.plist`. Kein Standort im Hintergrund, keine `UIBackgroundModes`,
-  solange die Fahrt fehlt.
+  `Info.plist`. Seit 0.205.0 `UIBackgroundModes` mit genau `location`
+  (die Fahrt, unten) und KEIN `NSLocationAlways…` — der Test wacht über
+  beides; ein weiterer Modus (Audio für Ansagen) kommt nur mit seinem
+  Nachweis.
 - **Datenschutz-Manifest** (`PrivacyInfo.xcprivacy`, seit 0.204.0):
   dieselben Datenarten wie die Datensicherheit in `docs/play-console.md`,
   kein Tracking, Gründe für UserDefaults (CA92.1) und Dateizeiten
@@ -165,4 +167,42 @@ nur, was man beim Arbeiten an `ios/` wissen muss.
   `*/*` für Android, `public.data` für iOS);
   `test/trails/gpx_picker_types_test.dart` ruft die echten Plattformteile
   auf.
-
+- **Fahrt aufzeichnen auf iOS** (#644 Paket 3, seit 0.205.0;
+  `lib/features/rides/ride_location.dart`, Plan im Kommentar vom
+  2026-11-26): derselbe Weg wie auf Android — `flutter_foreground_task`
+  startet für `RideTaskHandler` eine ZWEITE Engine, `serviceTick`, Brücke,
+  Logger und Fusion bleiben dieselben. Fünf Dinge, die man wissen muss:
+  - **Wach hält den Prozess nur der Standortstrom**, nicht das Paket:
+    Dessen iOS-Teil ist eine Engine mit `NSTimer`, ohne Hintergrundaufgabe.
+    `HeldFix` hält in der Dienst-Engine EINEN `getPositionStream`
+    (`AppleSettings`: `allowBackgroundLocationUpdates`,
+    `showBackgroundLocationIndicator` = der blaue Hinweis als
+    Offenlegung, `pauseLocationUpdatesAutomatically: false`, `fitness`),
+    begonnen in `onStart` — also im Vordergrund, sonst verweigert „Beim
+    Benutzen" den Hintergrund. Der Takt liest den letzten frischen Punkt
+    (≤ 10 s, jeden einmal) statt eines Einzel-Fixes. `geolocator_apple`
+    hält je Engine einen Strom: Der Sensor-Logger bekommt denselben, mit
+    denselben Einstellungen (`rideLocationSettings`).
+  - **Die Dienst-Engine braucht den Rückruf** `setPluginRegistrantCallback`
+    in `AppDelegate` (vor `super.application`), sonst hat sie keine
+    Plugins. `import flutter_foreground_task` geht unter SPM.
+  - **Wegwischen beendet die Fahrt**: `applicationWillTerminate` zerstört
+    den Task, der Prozess ist weg, iOS startet nichts neu (das ginge nur
+    mit „Immer" und Ortswechsel-Diensten — nicht versprochen). Die Leiste
+    beim Start sagt es (`rideStartedIos`); beim nächsten Start nimmt
+    `restore()` die Fahrt auf und meldet die Lücke ab `kRideGapNotice`
+    (2 min, plattformübergreifend).
+  - **Keine Meldung des Pakets** (`IOSNotificationOptions(showNotification:
+    false)`, keine Frage nach Mitteilungen): Sie wäre nur ein Banner.
+    Mitteilungen unterwegs (Trail-Fragen, Airtime-Banner) und Ansagen
+    fehlen auf iOS noch (Paket 3b) — die Fragen stellt das Zerlege-Blatt.
+    Downloads (`dataSync`) starten auf iOS keinen Dienst.
+  - **Sensoren**: `sensors_plus` liefert auf iOS dieselbe Achse
+    (Unix-µs aus Systemstart + Sensorzeit). Licht, Nähe und Messbereich
+    gibt es nicht (`tb_ambient` leer, kein Kanal `…/sensors`) —
+    „unbekannt", wie auf Android ohne Sensor.
+  Bank: `tool/ios_ride_bench.sh <udid>` (Testkonto aus der Umgebung,
+  erfundene Strecke über `simctl location`, App N s hinter der
+  Einstellungen-App, `integration_test/ios_ride_background_test.dart`
+  prüft die Punkte im Fenster). Bildschirm an: `ScreenAwake.swift`
+  (`isIdleTimerDisabled`), Kanal und Vertrag wie Kotlin.

@@ -2,6 +2,12 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## Recording rides on the iPhone
+
+*Version 0.205.0, 2026-11-26*
+
+You can now record a ride on the iPhone. Recording continues while TrailBuddy is in the background or the screen is locked; the iPhone then shows the blue location indicator at the top. If you swipe the app away in the app switcher, recording stops, and the bar says so when you start. The next time you open the app, the ride continues and TrailBuddy tells you when nothing was recorded. This also applies on Android, for example after the phone restarts. Wheelies, jumps and stoppies are detected the same way on the iPhone; notifications on the way and spoken cues come there later. If you only allow your approximate location, the app now says that a ride needs your precise one.
+
 ## The iPhone: import, privacy and a shared foundation
 
 *Version 0.204.0, 2026-11-26*
