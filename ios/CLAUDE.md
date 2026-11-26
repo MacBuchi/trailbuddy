@@ -56,13 +56,15 @@ nur, was man beim Arbeiten an `ios/` wissen muss.
   und STARTET `flutter test` die App im jüngsten iPhone-Simulator
   (`integration_test/ios_start_smoke_test.dart`, ohne Zugangsdaten):
   Anmeldung erreicht, eigene Kanäle antworten, die Ordner sind angelegt
-  und von der Sicherung ausgenommen. Kein eigener `flutter build` davor
-  (kostete 7 min und wurde kaum weiterverwendet), der Simulator bootet ab
-  dem ersten Schritt im Hintergrund (erster Start 3–4 min), und ein PR
-  ohne Änderung fürs Binary (Liste des Version Guards plus `ci.yml`)
-  überspringt die Schritte, der Check bleibt grün. Vorher 19 min je Lauf
-  (2026-11-26). Kein Pflicht-Check, bis der Betreiber ihn in den
-  Branch-Schutz nimmt.
+  und von der Sicherung ausgenommen. Vorher 19–20 min je Lauf
+  (2026-11-26), deshalb: kein eigener `flutter build` davor (7 min, kaum
+  weiterverwendet), Xcodes DerivedData im Cache (Schlüssel: Xcode-Build,
+  `pubspec.lock`, `project.pbxproj`), der Simulator bootet nach dem
+  Einrichten (parallel bremste er den 3-Kern-Runner), und auf PRs läuft
+  der Job nur, wenn iOS betroffen ist (`ios/`, pubspec, Integrationstests,
+  `ci.yml`, `main.dart`, Plattform-Weichen) — auf `main` immer. Ein reiner
+  Dart-PR, der den Start auf iOS bricht, fällt also erst auf `main` auf.
+  Kein Pflicht-Check, bis der Betreiber ihn in den Branch-Schutz nimmt.
 - **iPhone 8 / iOS 16: bauen mit Xcode 27, aufspielen mit Xcode 26**
   (#644, am Gerät 2026-11-26, iOS 16.7.10): Xcode 27 sieht Geräte unter
   iOS 17 nicht („Pairing State: unsupported"), seine Builds (Ziel iOS
