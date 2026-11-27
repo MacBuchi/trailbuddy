@@ -84,6 +84,7 @@ final class GarminBridge: NSObject, IQDeviceEventDelegate, IQAppMessageDelegate,
   private var appUuid: UUID?
   private var device: IQDevice?
   private var listeningTo: UUID?
+  private var messagesFrom: UUID?
   private var connectWaiters: [(Bool) -> Void] = []
 
   /// Ein `send` nach dem anderen (wie Kotlin): Zwei Folgen zugleich
@@ -98,10 +99,34 @@ final class GarminBridge: NSObject, IQDeviceEventDelegate, IQAppMessageDelegate,
     channel.setMethodCallHandler { [weak self] call, result in
       self?.handle(call, result)
     }
+    // Spuren fürs Systemprotokoll (#644): Ein neuer Prozess und der Wechsel
+    // Vorder-/Hintergrund — ohne sie war am Gerät nicht zu sagen, warum
+    // nach einem Neustart keine Nachricht der Uhr mehr ankam.
+    NSLog("TB-GARMIN up device=%@ app=%@", device == nil ? "none" : "stored", Self.appState())
+    let center = NotificationCenter.default
+    center.addObserver(
+      forName: UIApplication.didEnterBackgroundNotification, object: nil, queue: .main
+    ) { _ in NSLog("TB-GARMIN app background") }
+    center.addObserver(
+      forName: UIApplication.willEnterForegroundNotification, object: nil, queue: .main
+    ) { _ in NSLog("TB-GARMIN app foreground") }
+  }
+
+  /// `active`, `inactive` oder `background` — für die Zeilen im Protokoll.
+  static func appState() -> String {
+    switch UIApplication.shared.applicationState {
+    case .active: return "active"
+    case .inactive: return "inactive"
+    case .background: return "background"
+    @unknown default: return "unknown"
+    }
   }
 
   private func handle(_ call: FlutterMethodCall, _ result: @escaping FlutterResult) {
     let args = call.arguments as? [String: Any]
+    if call.method != "send" {
+      NSLog("TB-GARMIN call %@ app=%@", call.method, Self.appState())
+    }
     switch call.method {
     case "status":
       guard let id = args?["appId"] as? String, setApp(id) else {
@@ -229,6 +254,7 @@ final class GarminBridge: NSObject, IQDeviceEventDelegate, IQAppMessageDelegate,
       ConnectIQ.sharedInstance().unregister(forAllDeviceEvents: self)
       ConnectIQ.sharedInstance().unregister(forAllAppMessages: self)
       listeningTo = nil
+      messagesFrom = nil
     }
     device = chosen
     Self.saveDevice(chosen)
@@ -251,13 +277,20 @@ final class GarminBridge: NSObject, IQDeviceEventDelegate, IQAppMessageDelegate,
   }
 
   /// Auf Verbindung und Nachrichten der Uhr hören, einmal je Uhr.
+  /// Gerät und Nachrichten getrennt gemerkt: Beim Kaltstart aus Garmin
+  /// Connect (`willConnectTo` → `take`) fehlt die App-Kennung noch — Dart
+  /// setzt sie erst mit `status`. Die Nachrichten meldet dann der nächste
+  /// Aufruf an, statt nie.
   private func listen(_ device: IQDevice) {
-    guard listeningTo != device.uuid else { return }
-    listeningTo = device.uuid
-    ConnectIQ.sharedInstance().register(forDeviceEvents: device, delegate: self)
-    if let app = iqApp(device) {
-      ConnectIQ.sharedInstance().register(forAppMessages: app, delegate: self)
+    if listeningTo != device.uuid {
+      listeningTo = device.uuid
+      messagesFrom = nil
+      ConnectIQ.sharedInstance().register(forDeviceEvents: device, delegate: self)
     }
+    guard messagesFrom != device.uuid, let app = iqApp(device) else { return }
+    messagesFrom = device.uuid
+    NSLog("TB-GARMIN listen messages")
+    ConnectIQ.sharedInstance().register(forAppMessages: app, delegate: self)
   }
 
   private func whenConnected(_ then: @escaping (Bool) -> Void) {
@@ -397,7 +430,7 @@ final class GarminBridge: NSObject, IQDeviceEventDelegate, IQAppMessageDelegate,
 
   func deviceStatusChanged(_ device: IQDevice!, status: IQDeviceStatus) {
     DispatchQueue.main.async {
-      NSLog("TB-GARMIN device %@", Self.deviceName(status))
+      NSLog("TB-GARMIN device %@ app=%@", Self.deviceName(status), Self.appState())
       self.channel.invokeMethod("device", arguments: Self.deviceName(status))
       if status == .connected {
         let waiting = self.connectWaiters
@@ -411,7 +444,7 @@ final class GarminBridge: NSObject, IQDeviceEventDelegate, IQAppMessageDelegate,
     DispatchQueue.main.async {
       // Nur die Art, nie Inhalt (Kennungen, Koordinaten).
       let kind = (message as? [String: Any])?["t"] as? String ?? "?"
-      NSLog("TB-GARMIN receive %@", kind)
+      NSLog("TB-GARMIN receive %@ app=%@", kind, Self.appState())
       self.channel.invokeMethod("message", arguments: message)
     }
   }
