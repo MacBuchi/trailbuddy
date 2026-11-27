@@ -558,6 +558,48 @@ void main() {
     );
   });
 
+  group('Lücke beim Wiederaufnehmen (#644)', () {
+    RidePoint ago(Duration d) => RidePoint(
+      lat: 7.001,
+      lng: 11.002,
+      at: DateTime.now().toUtc().subtract(d),
+      accuracyM: 5,
+    );
+
+    testWidgets('lag der letzte Punkt Minuten zurück, sagt die Karte es', (
+      tester,
+    ) async {
+      // iOS: weggewischt oder vom System beendet — der Prozess schrieb
+      // nichts mehr. Die Fahrt läuft weiter, die Lücke wird genannt.
+      await store.begin(
+        uid: annaId,
+        startedAt: DateTime.now().toUtc().subtract(const Duration(minutes: 20)),
+      );
+      await store.appendPoint(ago(const Duration(minutes: 9)));
+      await pump(tester);
+      await settle(tester);
+      expect(find.textContaining('wurde nichts aufgezeichnet'), findsOneWidget);
+      expect(bridge.armed, isTrue);
+      expect(find.byTooltip('Fahrt beenden'), findsOneWidget);
+      await drainSnackbars(tester);
+    });
+
+    testWidgets('lief der Dienst weiter, gibt es keine Meldung', (
+      tester,
+    ) async {
+      // Android nach dem Wegwischen: Der Dienst hat bis eben geschrieben.
+      await store.begin(
+        uid: annaId,
+        startedAt: DateTime.now().toUtc().subtract(const Duration(minutes: 20)),
+      );
+      await store.appendPoint(ago(const Duration(seconds: 30)));
+      await pump(tester);
+      await settle(tester);
+      expect(find.textContaining('wurde nichts aufgezeichnet'), findsNothing);
+      expect(bridge.armed, isTrue);
+    });
+  });
+
   testWidgets('eine zu alte unterbrochene Fahrt zeichnet nicht weiter auf', (
     tester,
   ) async {

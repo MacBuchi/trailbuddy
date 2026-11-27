@@ -522,14 +522,18 @@
     position goes to buddies nearby who have it on too, also not stored. Without
     permission everything else works as before; you can revoke it in the
     settings of Android or the browser.</p>
-  <p><strong>Recording a ride</strong> (Android only): when you start a
+  <p><strong>Recording a ride</strong> (Android; on the iPhone not yet
+    released): when you start a
     ride, the app measures your position every five seconds — also in the
     background and with the phone in your pocket, through a foreground
-    service with a persistent notification you can always see. Position,
+    service with a persistent notification you can always see. On the
+    iPhone, the system shows the blue location indicator at the top
+    instead while measuring; if you swipe the app away there, recording
+    stops. Position,
     accuracy, time and the elevation reported by GPS are measured. The
     ride is saved as a file on your device (under “My rides” in the
     profile; that is also where you delete it) and <strong>never leaves
-    it on its own</strong> — neither to Supabase nor via Android backup.
+    it on its own</strong> — neither to Supabase nor via Android backup or iCloud backup.
     Only if you export it there as a GPX file does it go, through your
     system's share menu, to the app or recipient you choose. Recording
     ends with “Stop the ride”, or on its own after twelve hours at the

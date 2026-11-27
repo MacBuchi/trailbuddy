@@ -13,6 +13,7 @@ import '../garmin/watch_buddies.dart'
 import '../garmin/watch_providers.dart';
 import '../../core/app_colors.dart';
 import '../../core/geo.dart';
+import '../../core/platform_support.dart';
 import '../../core/connectivity.dart';
 import '../../core/picture_in_picture.dart';
 import '../../core/widgets/motion.dart';
@@ -202,8 +203,9 @@ class _MapScreenState extends ConsumerState<MapScreen> {
   void initState() {
     super.initState();
     // Eine Fahrt, die der Prozess-Kill unterbrochen hat, läuft weiter
-    // (#28): Der Service hat derweil in die Datei geschrieben.
-    unawaited(ref.read(rideProvider.notifier).restore());
+    // (#28): Der Service hat derweil in die Datei geschrieben — auf iOS
+    // nicht (#644), dann sagt die Leiste, was fehlt.
+    unawaited(_restoreRide());
     // Bildschirm an, solange eine Fahrt läuft und ihr Knopf an ist (#445).
     ref.listenManual<bool>(
       rideHoldsScreenProvider,
@@ -1397,6 +1399,23 @@ class _MapScreenState extends ConsumerState<MapScreen> {
     );
   }
 
+  /// Holt eine unterbrochene Fahrt zurück und nennt die Lücke (#644).
+  Future<void> _restoreRide() async {
+    final gap = await ref.read(rideProvider.notifier).restore();
+    if (gap == null || !mounted) return;
+    final local = MaterialLocalizations.of(context);
+    String clock(DateTime at) =>
+        local.formatTimeOfDay(TimeOfDay.fromDateTime(at.toLocal()));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        duration: const Duration(seconds: 8),
+        content: Text(
+          context.l10n.rideGapNotice(clock(gap.from), clock(gap.to)),
+        ),
+      ),
+    );
+  }
+
   /// Fahrt aufzeichnen oder beenden (#28). Beim Beenden ist die Fahrt
   /// gespeichert, BEVOR das Blatt aufgeht — wer es wegwischt, behält.
   Future<void> _toggleRide() async {
@@ -1407,12 +1426,20 @@ class _MapScreenState extends ConsumerState<MapScreen> {
       final result = await notifier.start();
       if (!mounted) return;
       final text = switch (result) {
-        RideStartResult.started => l.rideStarted,
+        // iOS (#644): Wegwischen beendet die Aufzeichnung — gesagt wird es
+        // bei jedem Start, nicht erst, wenn es passiert ist.
+        RideStartResult.started => isIosApp ? l.rideStartedIos : l.rideStarted,
         RideStartResult.noPermission => l.rideNoPermission,
+        RideStartResult.reducedAccuracy => l.rideReducedAccuracy,
         RideStartResult.noService => l.rideNoService,
         RideStartResult.failed => l.rideStartFailed,
       };
-      messenger.showSnackBar(SnackBar(content: Text(text)));
+      messenger.showSnackBar(
+        SnackBar(
+          duration: Duration(seconds: isIosApp ? 8 : 4),
+          content: Text(text),
+        ),
+      );
       return;
     }
     await _endRide();

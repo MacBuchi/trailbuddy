@@ -29,7 +29,13 @@ class _ForegroundKeepAlive implements KeepAlive {
   static const _serviceId = 2801;
   bool _initialized = false;
 
-  bool get _supported => isAndroidApp;
+  /// Android: Vordergrunddienst für Fahrt und Download. iOS (#644): nur
+  /// für den Standort — dort hält allein der Strom der Fahrt den Prozess
+  /// wach; ein Download im Hintergrund bekäme nichts davon.
+  bool get _supported => isAndroidApp || isIosApp;
+
+  static bool _wanted(Set<KeepAliveType> types) =>
+      isAndroidApp || types.contains(KeepAliveType.location);
 
   /// `allowWakeLock`: Ohne ihn schläft die CPU zwischen den Takten, und
   /// die Fahrt bekäme ihre Messungen gebündelt beim nächsten Aufwachen.
@@ -56,7 +62,12 @@ class _ForegroundKeepAlive implements KeepAlive {
             'Läuft, solange eine Fahrt aufgezeichnet oder ein Kartenbereich gespeichert wird.',
         onlyAlertOnce: true,
       ),
-      iosNotificationOptions: const IOSNotificationOptions(),
+      // Auf iOS keine Meldung: Sie wäre ein gewöhnliches Banner (das Paket
+      // hat keine stehende), und sie fragte nach der Erlaubnis für
+      // Mitteilungen. Die Offenlegung ist der blaue Standort-Hinweis.
+      iosNotificationOptions: const IOSNotificationOptions(
+        showNotification: false,
+      ),
       foregroundTaskOptions: _options(null),
     );
     _initialized = true;
@@ -74,7 +85,7 @@ class _ForegroundKeepAlive implements KeepAlive {
     Set<KeepAliveType> types, {
     List<KeepAliveButton> buttons = const [],
   }) async {
-    if (!_supported) return;
+    if (!_supported || !_wanted(types)) return;
     try {
       _initOnce();
       if (await FlutterForegroundTask.isRunningService) {
@@ -88,7 +99,9 @@ class _ForegroundKeepAlive implements KeepAlive {
       // Ohne die Berechtigung läuft der Service trotzdem, nur ohne
       // sichtbare Meldung — ein abgelehnter Dialog ist kein Grund
       // abzubrechen.
-      await FlutterForegroundTask.requestNotificationPermission();
+      if (isAndroidApp) {
+        await FlutterForegroundTask.requestNotificationPermission();
+      }
       // Seit flutter_foreground_task 9 WIRFT `startService` nicht mehr,
       // ein Fehlschlag kommt nur im Ergebnis — bis 0.108.0 ging er hier
       // still unter.

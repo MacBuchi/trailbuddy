@@ -39,19 +39,25 @@ import 'trail_values.dart';
 /// Gibt es die Aufzeichnung auf dieser Plattform? Im Browser nicht: Dort
 /// gibt es kein Service-Isolate, und ein Tab im Hintergrund bekommt
 /// keine Positionen — eine Fahrt, die nur läuft, solange man hinsieht,
-/// wäre keine. Auf dem iPhone noch nicht (#644): Der Dienst ist ein
-/// Android-Vordergrunddienst, und ob iOS eine Fahrt bei gesperrtem
-/// Bildschirm weiterzeichnet, zeigt erst das Gerät. Als Provider, damit
-/// ein Test beide Fälle sehen kann.
-final rideRecordingAvailableProvider = Provider<bool>((ref) => isAndroidApp);
+/// wäre keine. Auf dem iPhone seit #644 (Paket 3): im Hintergrund und bei
+/// gesperrtem Bildschirm über den Standortstrom (`ride_location.dart`),
+/// NICHT nach dem Wegwischen — das sagt die Leiste beim Start. Als
+/// Provider, damit ein Test beide Fälle sehen kann.
+final rideRecordingAvailableProvider = Provider<bool>(
+  (ref) => isAndroidApp || isIosApp,
+);
 
 /// Gibt es den Schalter „Wheelie, Sprung und Stoppie erkennen" (#36)?
 /// Überall, wo es Fahrten gibt — seit 0.148.0 auch in der offiziellen App
 /// (Betreiber 2026-10-31: eine versteckte Funktion, ab Werk aus), vorher
 /// nur in der Dev-App. Ein Mess-Werkzeug für den Messplan des
 /// Airtime-Konzepts, noch keine Trail-Werte. Tests überschreiben den
-/// Provider. Auf iOS aus, solange es dort keine Fahrten gibt (#644).
-final sensorLogAvailableProvider = Provider<bool>((ref) => isAndroidApp);
+/// Provider. Auf iOS seit #644 mit: Fusion und Erkennung sind dasselbe
+/// Dart; Licht, Nähe und Messbereich fehlen dort („unbekannt"), Banner
+/// kommen erst mit den Benachrichtigungen (Paket 3b).
+final sensorLogAvailableProvider = Provider<bool>(
+  (ref) => isAndroidApp || isIosApp,
+);
 
 /// Schreibt die nächste Fahrt die Rohdaten mit? Aus, wo es den Schalter
 /// nicht gibt — auch wenn er einmal gesetzt war.
@@ -117,6 +123,12 @@ Future<RideStartResult?> _platformPermission() async {
     if (permission == LocationPermission.denied ||
         permission == LocationPermission.deniedForever) {
       return RideStartResult.noPermission;
+    }
+    // Nur „Ungefährer Standort" (iOS 14+, Android 12+): Punkte auf ein bis
+    // drei Kilometer genau sind keine Fahrt (#644).
+    if (await Geolocator.getLocationAccuracy() ==
+        LocationAccuracyStatus.reduced) {
+      return RideStartResult.reducedAccuracy;
     }
     return null;
   } catch (e, stackTrace) {
@@ -215,7 +227,22 @@ final rideServiceBridgeProvider = Provider<RideServiceBridge>(
   (ref) => const PlatformRideServiceBridge(),
 );
 
-enum RideStartResult { started, noPermission, noService, failed }
+enum RideStartResult {
+  started,
+  noPermission,
+  reducedAccuracy,
+  noService,
+  failed,
+}
+
+/// Wie lange darf der letzte Punkt beim Wiederaufnehmen zurückliegen, bis
+/// die Lücke eine Meldung wert ist (#644)? Auf Android schreibt der Dienst
+/// nach dem Wegwischen weiter, die Lücke ist dort also nur ein Neustart des
+/// Geräts; auf iOS endet die Aufzeichnung mit dem Prozess.
+const kRideGapNotice = Duration(minutes: 2);
+
+/// Eine Strecke ohne Aufzeichnung mitten in der Fahrt (#644).
+typedef RideGap = ({DateTime from, DateTime to});
 
 class RideNotifier extends Notifier<RecordedRide?> {
   @override
@@ -226,17 +253,30 @@ class RideNotifier extends Notifier<RecordedRide?> {
   /// Holt eine unterbrochene Fahrt zurück und zeichnet weiter auf.
   /// Aufgerufen beim Kartenstart: Wer unterwegs ist und dessen App
   /// zwischendurch weggeräumt wurde, hat die Fahrt nicht beendet.
-  Future<void> restore() async {
+  ///
+  /// Gibt die Lücke zurück, wenn der letzte Punkt länger als
+  /// [kRideGapNotice] zurückliegt — die Karte sagt dann, von wann bis wann
+  /// nichts aufgezeichnet ist (#644: auf iOS nach dem Wegwischen oder
+  /// wenn das System die App beendet hat).
+  Future<RideGap?> restore() async {
     // Im Browser gibt es keine Aufzeichnung und keinen Store auf Platte:
     // `path_provider` wirft dort, und ohne await landete das als
     // ungefangener Fehler bei jedem Start (#337).
-    if (state != null || !ref.read(rideRecordingAvailableProvider)) return;
+    if (state != null || !ref.read(rideRecordingAvailableProvider)) {
+      return null;
+    }
     final uid = ref.read(currentUserIdProvider);
-    if (uid == null) return;
+    if (uid == null) return null;
     final ride = await ref.read(rideStoreProvider).readActive(uid: uid);
-    if (ride == null) return;
+    if (ride == null) return null;
     state = ride;
+    RideGap? gap;
     if (_withinMaxDuration(ride)) {
+      final last = ride.points.isEmpty
+          ? ride.startedAt
+          : ride.points.last.at.toUtc();
+      final now = DateTime.now().toUtc();
+      if (now.difference(last) > kRideGapNotice) gap = (from: last, to: now);
       // Der Service läuft nach einem Wegwischen weiter; hier wird nur
       // wieder angemeldet, was ohnehin gilt. Läuft er nicht mehr
       // (Neustart des Geräts), setzt das ihn wieder auf.
@@ -245,6 +285,7 @@ class RideNotifier extends Notifier<RecordedRide?> {
     } else {
       await _disarm();
     }
+    return gap;
   }
 
   Future<RideStartResult> start() async {

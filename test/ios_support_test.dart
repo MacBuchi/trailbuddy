@@ -14,6 +14,7 @@ import 'package:trailbuddy/core/update_check.dart';
 import 'package:trailbuddy/data/apk_installer.dart';
 import 'package:trailbuddy/features/map/host_requests.dart';
 import 'package:trailbuddy/core/push_messaging.dart';
+import 'package:trailbuddy/core/screen_awake_io.dart' show kScreenChannel;
 import 'package:trailbuddy/features/offline_areas/area_providers.dart';
 import 'package:trailbuddy/features/rides/ride_providers.dart';
 import 'package:trailbuddy/features/trails/trail_navigation.dart';
@@ -37,12 +38,12 @@ void main() {
         <String, ({bool android, bool ios, bool Function() read})>{
           'Fahrt aufzeichnen': (
             android: true,
-            ios: false,
+            ios: true,
             read: () => read(rideRecordingAvailableProvider),
           ),
           'Sensor-Rohdaten': (
             android: true,
-            ios: false,
+            ios: true,
             read: () => read(sensorLogAvailableProvider),
           ),
           'ganze Regionen': (
@@ -218,9 +219,37 @@ void main() {
           reason: key,
         );
       }
-      // Kein Standort im Hintergrund, solange die Fahrt auf iOS fehlt.
+      // Die Fahrt (#644, Paket 3): Standort im Hintergrund NUR über den
+      // Hintergrundmodus und „Beim Benutzen" — kein „Immer", und sonst
+      // kein Modus (Audio, Abruf, Push), den die App nicht nachweist.
       expect(plist, isNot(contains('NSLocationAlways')));
-      expect(plist, isNot(contains('UIBackgroundModes')));
+      final modes = RegExp(
+        r'<key>UIBackgroundModes</key>\s*<array>(.*?)</array>',
+        dotAll: true,
+      ).firstMatch(plist);
+      expect(modes, isNotNull);
+      expect(
+        RegExp(
+          r'<string>(\w+)</string>',
+        ).allMatches(modes![1]!).map((m) => m[1]).toList(),
+        ['location'],
+      );
+      expect(plist, isNot(contains('BGTaskSchedulerPermittedIdentifiers')));
+    });
+
+    test('der Standort-Text nennt die Fahrt im Hintergrund', () {
+      // Ohne das wäre der blaue Hinweis bei gesperrtem Bildschirm eine
+      // Überraschung — und die App-Prüfung fragt danach.
+      expect(
+        RegExp(
+          r'<key>NSLocationWhenInUseUsageDescription</key>\s*<string>[^<]*background',
+        ).hasMatch(plist),
+        isTrue,
+      );
+      expect(
+        File('ios/Runner/de.lproj/InfoPlist.strings').readAsStringSync(),
+        contains('auch im Hintergrund'),
+      );
     });
 
     test('beide Sprachen der Oberfläche sind angemeldet', () {
@@ -389,6 +418,45 @@ void main() {
     });
   });
 
+  group('Fahrt aufzeichnen auf iOS (#644, Paket 3)', () {
+    // Ohne Kommentare: Eine auskommentierte Zeile ist kein Aufruf.
+    final delegate = File(
+      'ios/Runner/AppDelegate.swift',
+    ).readAsLinesSync().map((l) => l.split('//').first).join('\n');
+
+    test('die Engine des Dienstes bekommt die Plugins der App', () {
+      // Ohne den Rückruf startet flutter_foreground_task die zweite Engine
+      // ohne Plugins: kein Standort, keine Sensoren, keine Brücke.
+      expect(
+        RegExp(
+          r'SwiftFlutterForegroundTaskPlugin\.setPluginRegistrantCallback\s*\{\s*registry in\s*GeneratedPluginRegistrant\.register\(with: registry\)',
+        ).hasMatch(delegate),
+        isTrue,
+      );
+      // Gesetzt, BEVOR die App-Engine läuft (die Fahrt kann beim Start
+      // wieder aufgenommen werden).
+      expect(
+        delegate.indexOf('setPluginRegistrantCallback'),
+        lessThan(delegate.indexOf('super.application(')),
+      );
+    });
+
+    test('Bildschirm an: derselbe Kanal und Vertrag wie Kotlin', () {
+      final swift = File('ios/Runner/ScreenAwake.swift').readAsStringSync();
+      final kotlin = File(
+        'android/app/src/main/kotlin/de/mcbuchi/trailbuddy/MainActivity.kt',
+      ).readAsStringSync();
+      expect(swift, contains('"$kScreenChannel"'));
+      expect(kotlin, contains('"$kScreenChannel"'));
+      for (final code in [swift, kotlin]) {
+        expect(code, contains('"keepOn"'));
+        expect(code, contains('"on"'));
+      }
+      expect(swift, contains('isIdleTimerDisabled = on'));
+      expect(delegate, contains('ScreenAwake.register'));
+    });
+  });
+
   group('Datenschutz-Manifest und Texte (#644)', () {
     final privacy = File('ios/Runner/PrivacyInfo.xcprivacy').readAsStringSync();
 
@@ -487,7 +555,11 @@ void main() {
 
       final sources = phase('97C146EA1CF9000F007C117D');
       final resources = phase('97C146EC1CF9000F007C117D');
-      for (final f in ['BackupExclusion.swift', 'HostRequestCounter.swift']) {
+      for (final f in [
+        'BackupExclusion.swift',
+        'HostRequestCounter.swift',
+        'ScreenAwake.swift',
+      ]) {
         expect(sources, contains('$f in Sources'), reason: f);
       }
       for (final f in ['PrivacyInfo.xcprivacy', 'InfoPlist.strings']) {

@@ -42,10 +42,14 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
   - **Die GPS-Höhe wird ROH mitgeschrieben** (`RidePoint.altM`) und
     nirgends angezeigt: Ob sie als Höhenquelle taugt, wird gemessen,
     bevor eine Zahl daraus wird; Dateihöhen bleiben die Quelle.
-  - **Kein Web, noch kein iPhone.** `rideRecordingAvailableProvider`
-    (= `isAndroidApp`, seit 0.203.0; vorher `!kIsWeb`) versteckt den
-    Knopf; ein Tab im Hintergrund bekommt keine Positionen, und auf iOS
-    ist der Dauerdienst nicht gezeigt (`ios/CLAUDE.md`, #644). Der Service-Import ist bedingt (`keep_alive_stub`).
+  - **Kein Web.** `rideRecordingAvailableProvider` (Android und seit
+    0.205.0 iOS) versteckt den Knopf; ein Tab im Hintergrund bekommt
+    keine Positionen. **Auf iOS** derselbe Dienst als zweite Engine, wach
+    gehalten vom Standortstrom (`ride_location.dart`), endet aber mit dem
+    Wegwischen (`ios/CLAUDE.md`, #644). Liegt beim Wiederaufnehmen der
+    letzte Punkt über `kRideGapNotice` zurück, nennt die Karte die Lücke
+    — auf beiden Plattformen. Nur ungefährer Standort startet keine Fahrt
+    (`RideStartResult.reducedAccuracy`). Der Service-Import ist bedingt (`keep_alive_stub`).
   Manifest: `FOREGROUND_SERVICE(_LOCATION|_DATA_SYNC)`,
   `POST_NOTIFICATIONS`, `RECEIVE_BOOT_COMPLETED` entfernt, Service-Typ
   `dataSync|location`, Symbol `ic_notification.xml` (nur Alphakanal,

@@ -12,16 +12,23 @@
 // kein `logError` mit Sink. Alles, was gebraucht wird, kommt über die
 // Brücke (`FlutterForegroundTask.saveData`, also SharedPreferences —
 // lesbar in beiden Isolaten) oder aus der Datei.
+//
+// **Auf iOS** (#644) ist dieses Isolate eine zweite Engine im SELBEN
+// Prozess: Sie überlebt das Wegwischen nicht, und wach hält sie nur der
+// Standortstrom, den sie hält ([HeldFix], `ride_location.dart`). Derselbe
+// Code, dieselbe Brücke — nur der Fix kommt aus dem Strom.
 import 'dart:io';
 
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 import 'package:geolocator/geolocator.dart';
 
+import '../../core/platform_support.dart';
 import '../../l10n/l10n.dart' show refreshServiceLocale;
 import '../routing/nav_notice.dart';
 import '../routing/voice_service.dart';
 import 'ride_confirm.dart';
 import 'ride_confirm_notify.dart';
+import 'ride_location.dart';
 import 'ride_store.dart';
 import 'ride_track.dart';
 import 'sensor_log.dart';
@@ -213,7 +220,11 @@ class RideConfirmWatcher {
   }
 }
 
+/// Der Strom der Fahrt auf iOS — einer je Isolate des Dienstes.
+final rideHeldFix = HeldFix();
+
 Future<Position?> _fix() async {
+  if (isIosApp) return rideHeldFix.fix();
   try {
     // KEIN `timeLimit` (PilzBuddy-Lehre): Es machte aus jedem langsamen
     // Hintergrund-Fix stillschweigend gar keinen.
@@ -239,6 +250,9 @@ Future<void> serviceTick({Future<Position?> Function()? fix}) async {
         await FlutterForegroundTask.getData<bool>(key: kNavDataActive) == true;
     if (!recording && !navigating) {
       await stopSensorLog();
+      // Ohne Fahrt kein Strom: Auf iOS hielte er sonst den Prozess wach
+      // (und den blauen Hinweis an).
+      await rideHeldFix.stop();
       return;
     }
     // Die Sprache aus dem Profil (#209) — sie kann sich während der Fahrt
@@ -269,8 +283,14 @@ Future<void> serviceTick({Future<Position?> Function()? fix}) async {
 /// Der Task-Handler des Service: misst je Takt, solange die Brücke
 /// „aktiv" sagt.
 class RideTaskHandler extends TaskHandler {
+  /// Auf iOS beginnt der Strom HIER: Der Dienst startet, während die App
+  /// vorne ist — nur dann erlaubt „Beim Benutzen" ihn danach im
+  /// Hintergrund. Der erste Takt käme erst nach 5 s, vielleicht schon bei
+  /// gesperrtem Bildschirm.
   @override
-  Future<void> onStart(DateTime timestamp, TaskStarter starter) async {}
+  Future<void> onStart(DateTime timestamp, TaskStarter starter) async {
+    if (isIosApp) rideHeldFix.start();
+  }
 
   @override
   void onRepeatEvent(DateTime timestamp) {
@@ -292,5 +312,8 @@ class RideTaskHandler extends TaskHandler {
       FlutterForegroundTask.sendDataToMain(kNavMessageOpen);
 
   @override
-  Future<void> onDestroy(DateTime timestamp, bool isTimeout) => stopSensorLog();
+  Future<void> onDestroy(DateTime timestamp, bool isTimeout) async {
+    await stopSensorLog();
+    await rideHeldFix.stop();
+  }
 }
