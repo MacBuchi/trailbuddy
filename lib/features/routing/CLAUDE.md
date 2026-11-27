@@ -1363,6 +1363,10 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     (Neustart des Geräts), wird aufgeräumt statt geöffnet. Der Harness
     hängt `FakeNavServiceBridge` ein — ohne ginge jeder Navigations-Test
     an `path_provider`.
+  - **Auf iOS seit #644 Paket 3b** (`navServiceSupported`): derselbe
+    gehaltene Standortstrom wie die Fahrt hält den Dienst wach; es gibt
+    dort keine Benachrichtigung mit Rest und kein „Navigation beenden" —
+    Takt und Ansagen ja, beendet wird in der App (`ios/CLAUDE.md`).
 - **Ansagen übers Ohr** (#525, seit 0.185.0, `voice_cues.dart` rein,
   `voice_service.dart` im Dienst; Konzept-Routing 9.10, A12 seit E7).
   Fünf Dinge, die man wissen muss:
@@ -1392,7 +1396,9 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     eigene Engine nur mit den Plugins aus `pubspec.yaml`. Je Satz Fokus
     „darf leiser machen", nach dem letzten frei. Ohne `<queries>` für
     `TTS_SERVICE` bleibt es ab Android 11 still, ohne Fehler
-    (`android_manifest_test` hält Queries, Kanalnamen und „kein Kotlin"). Im Test
+    (`android_manifest_test` hält Queries, Kanalnamen und „kein Kotlin").
+    Der iOS-Teil (#644 Paket 3b, Swift, `AVSpeechSynthesizer`, Musik wird
+    leiser) hat denselben Kanal und Vertrag (`ios_support_test`). Im Test
     spricht die Naht `speak:`; ob es klingt, zeigt nur das Gerät
     (Ohrhörer, Bildschirm aus, Musik).
   - **Die Uhr bekommt dieselben Momente** (Uhr-App 1.8.0): `speakCues`

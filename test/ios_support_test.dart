@@ -17,6 +17,11 @@ import 'package:trailbuddy/core/push_messaging.dart';
 import 'package:trailbuddy/core/screen_awake_io.dart' show kScreenChannel;
 import 'package:trailbuddy/features/offline_areas/area_providers.dart';
 import 'package:trailbuddy/features/rides/ride_providers.dart';
+import 'package:trailbuddy/features/rides/sensor_log.dart' show kSensorChannel;
+import 'package:trailbuddy/features/routing/nav_service.dart'
+    show navServiceSupported;
+import 'package:trailbuddy/features/routing/voice_service.dart'
+    show kVoiceChannel;
 import 'package:trailbuddy/features/trails/trail_navigation.dart';
 
 void main() {
@@ -45,6 +50,18 @@ void main() {
             android: true,
             ios: true,
             read: () => read(sensorLogAvailableProvider),
+          ),
+          // Paket 3b: derselbe gehaltene Standortstrom wie die Fahrt.
+          'Navigation im Dienst': (
+            android: true,
+            ios: true,
+            read: () => navServiceSupported,
+          ),
+          // Der iOS-Teil von tb_voice (AVSpeechSynthesizer).
+          'Ansagen übers Ohr': (
+            android: true,
+            ios: true,
+            read: () => read(voiceCuesAvailableProvider),
           ),
           'ganze Regionen': (
             android: true,
@@ -220,8 +237,11 @@ void main() {
         );
       }
       // Die Fahrt (#644, Paket 3): Standort im Hintergrund NUR über den
-      // Hintergrundmodus und „Beim Benutzen" — kein „Immer", und sonst
-      // kein Modus (Audio, Abruf, Push), den die App nicht nachweist.
+      // Hintergrundmodus und „Beim Benutzen" — kein „Immer". Dazu `audio`
+      // für die Ansagen (Paket 3b): Am iPhone 8 (iOS 16.7) verweigerte die
+      // Audio-Sitzung im Hintergrund ohne ihn jeden Satz ('!pla',
+      // 2026-11-27). Sonst kein Modus (Abruf, Push), den die App nicht
+      // nachweist.
       expect(plist, isNot(contains('NSLocationAlways')));
       final modes = RegExp(
         r'<key>UIBackgroundModes</key>\s*<array>(.*?)</array>',
@@ -232,7 +252,7 @@ void main() {
         RegExp(
           r'<string>(\w+)</string>',
         ).allMatches(modes![1]!).map((m) => m[1]).toList(),
-        ['location'],
+        ['location', 'audio'],
       );
       expect(plist, isNot(contains('BGTaskSchedulerPermittedIdentifiers')));
     });
@@ -454,6 +474,87 @@ void main() {
       }
       expect(swift, contains('isIdleTimerDisabled = on'));
       expect(delegate, contains('ScreenAwake.register'));
+    });
+
+    test('Knöpfe der Mitteilungen: die Engine des Pakets hat Plugins', () {
+      // Ein Knopf ohne „App öffnen" antwortet in einer EIGENEN Engine von
+      // flutter_local_notifications (Paket 3b) — ohne Rückruf ohne Plugins.
+      expect(
+        RegExp(
+          r'FlutterLocalNotificationsPlugin\.setPluginRegistrantCallback\s*\{\s*registry in\s*GeneratedPluginRegistrant\.register\(with: registry\)',
+        ).hasMatch(delegate),
+        isTrue,
+      );
+      expect(
+        RegExp(
+          r'UNUserNotificationCenter\.current\(\)\.delegate\s*=\s*self',
+        ).hasMatch(delegate),
+        isTrue,
+      );
+      final superCall = delegate.indexOf('super.application(');
+      expect(
+        delegate.indexOf('FlutterLocalNotificationsPlugin'),
+        lessThan(superCall),
+      );
+      expect(delegate.indexOf('.delegate = self'), lessThan(superCall));
+    });
+
+    test('Messbereich (…/sensors): bewusst unbekannt, kein Swift-Kanal', () {
+      // Core Motion nennt keinen Messbereich; `readSensorRange` gibt ohne
+      // Kanal '' zurück, und das heißt „unbekannt" (ios/CLAUDE.md).
+      final swift = [
+        for (final dir in ['ios/Runner', 'packages'])
+          for (final f in Directory(dir).listSync(recursive: true))
+            if (f is File && f.path.endsWith('.swift')) f.readAsStringSync(),
+      ];
+      expect(swift, isNotEmpty);
+      for (final code in swift) {
+        expect(code, isNot(contains(kSensorChannel)));
+      }
+    });
+  });
+
+  group('Ansagen auf iOS: tb_voice in Swift wie in Java (#644, Paket 3b)', () {
+    // Ohne Kommentare: dort stehen dieselben Namen zur Erklärung.
+    final swift = File(
+      'packages/tb_voice/ios/tb_voice/Sources/tb_voice/TbVoicePlugin.swift',
+    ).readAsLinesSync().map((l) => l.split('//').first).join('\n');
+    final java = File(
+      'packages/tb_voice/android/src/main/java/de/mcbuchi/trailbuddy/voice/TbVoicePlugin.java',
+    ).readAsStringSync();
+
+    test('derselbe Kanal, dieselbe Methode, dieselben Antworten', () {
+      expect(swift, contains('"${kVoiceChannel.name}"'));
+      expect(java, contains('"${kVoiceChannel.name}"'));
+      for (final code in [swift, java]) {
+        expect(code, contains('"speak"'));
+        expect(code, contains('"text"'));
+        expect(code, contains('"language"'));
+      }
+      // Leerer Text: false; sonst sofort true, der Satz läuft danach.
+      expect(swift, matches(RegExp(r'isEmpty \{\s*result\(false\)')));
+      expect(swift, contains('result(true)'));
+      expect(swift, contains('FlutterMethodNotImplemented'));
+    });
+
+    test('Musik wird leiser, nicht gestoppt — und danach wieder laut', () {
+      expect(swift, contains('.duckOthers'));
+      expect(swift, contains('mode: .voicePrompt'));
+      expect(swift, contains('.notifyOthersOnDeactivation'));
+      expect(java, contains('AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK'));
+    });
+
+    test('ein Plugin (auch in der Engine des Dienstes), über SPM', () {
+      final pubspec = File('packages/tb_voice/pubspec.yaml').readAsStringSync();
+      expect(
+        RegExp(r'ios:\s*\n\s*pluginClass: TbVoicePlugin').hasMatch(pubspec),
+        isTrue,
+      );
+      expect(
+        File('packages/tb_voice/ios/tb_voice/Package.swift').readAsStringSync(),
+        contains('name: "tb_voice"'),
+      );
+      expect(swift, contains('class TbVoicePlugin: NSObject, FlutterPlugin'));
     });
   });
 

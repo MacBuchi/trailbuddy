@@ -262,6 +262,7 @@ List<Override> overridesFor(
   // Ab Werk keine Uhr (#449) — ohne die Zeile fragte der Kanal.
   garminBridgeProvider.overrideWithValue(garmin ?? FakeGarminBridge()),
   ridePermissionProvider.overrideWithValue(() async => null),
+  rideNoticePermissionProvider.overrideWithValue(() async {}),
   // Der Ausgangskorb (#30) im Speicher; der Netzwechsel kommt aus dem
   // Test (Vorgabe: WLAN, ohne Wechsel).
   outboxProvider.overrideWithValue(outbox ?? FakeOutbox()),

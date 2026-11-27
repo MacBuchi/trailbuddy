@@ -638,6 +638,53 @@ void main() {
     await drainSnackbars(tester);
   });
 
+  testWidgets(
+    'Mitteilungen: gefragt wird beim Start der Fahrt, nach dem Standort (#644)',
+    (tester) async {
+      final log = <String>[];
+      await pump(
+        tester,
+        extra: [
+          ridePermissionProvider.overrideWithValue(() async {
+            log.add('standort');
+            return null;
+          }),
+          rideNoticePermissionProvider.overrideWithValue(() async {
+            log.add('mitteilungen');
+          }),
+        ],
+      );
+      expect(log, isEmpty, reason: 'nie beim App-Start');
+      await tester.tap(button);
+      await settle(tester);
+      expect(log, ['standort', 'mitteilungen']);
+      expect(service.running, isTrue);
+      await drainSnackbars(tester);
+      await tester.tap(button);
+      await settle(tester);
+      await drainSnackbars(tester);
+    },
+  );
+
+  testWidgets('ohne Standort keine Frage nach Mitteilungen', (tester) async {
+    var asked = false;
+    await pump(
+      tester,
+      extra: [
+        ridePermissionProvider.overrideWithValue(
+          () async => RideStartResult.noPermission,
+        ),
+        rideNoticePermissionProvider.overrideWithValue(() async {
+          asked = true;
+        }),
+      ],
+    );
+    await tester.tap(button);
+    await settle(tester);
+    expect(asked, isFalse);
+    await drainSnackbars(tester);
+  });
+
   testWidgets('ohne einen einzigen Standort wird nichts gespeichert', (
     tester,
   ) async {

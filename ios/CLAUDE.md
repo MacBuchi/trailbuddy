@@ -27,7 +27,7 @@ nur, was man beim Arbeiten an `ios/` wissen muss.
   bleibt stehen, sonst taucht sie bei jedem als Änderung auf.
 - **Was iOS NICHT verspricht** (`lib/core/platform_support.dart`,
   `isAndroidApp`): ganze Regionen, Downloads im Hintergrund,
-  der Navigationsdienst, Push (`pushPlatformSupported` — ohne APNs und
+  Push (`pushPlatformSupported` — ohne APNs und
   `GoogleService-Info.plist`; `push_devices.platform` kennt nur `android`
   und `web`), „In Navi-App öffnen" (`geo:` gibt es dort nicht ⇒
   Zwischenablage). Vorher hieß überall `!kIsWeb` „Android". Wer eines
@@ -40,10 +40,10 @@ nur, was man beim Arbeiten an `ios/` wissen muss.
   0.204.0 je Sprache in `de.lproj`/`en.lproj/InfoPlist.strings` (A14),
   `Info.plist` trägt die englische Fassung (Entwicklungssprache);
   `ios_support_test` verlangt in beiden Dateien dieselben Schlüssel wie
-  `Info.plist`. Seit 0.205.0 `UIBackgroundModes` mit genau `location`
-  (die Fahrt, unten) und KEIN `NSLocationAlways…` — der Test wacht über
-  beides; ein weiterer Modus (Audio für Ansagen) kommt nur mit seinem
-  Nachweis.
+  `Info.plist`. `UIBackgroundModes` mit genau `location` (die Fahrt, seit
+  0.205.0) und `audio` (die Ansagen, seit 0.206.0, Nachweis unten) und
+  KEIN `NSLocationAlways…` — der Test wacht über beides; ein weiterer
+  Modus kommt nur mit seinem Nachweis.
 - **Datenschutz-Manifest** (`PrivacyInfo.xcprivacy`, seit 0.204.0):
   dieselben Datenarten wie die Datensicherheit in `docs/play-console.md`,
   kein Tracking, Gründe für UserDefaults (CA92.1) und Dateizeiten
@@ -79,7 +79,7 @@ nur, was man beim Arbeiten an `ios/` wissen muss.
   `xcodebuild -downloadPlatform iOS`). Umgeschaltet wird mit
   `xcode-select -s`; mit Xcode 26 findet `flutter devices` das Gerät, und
   `flutter run --release` installiert (oder `ios-deploy` aus
-  `bin/cache/artifacts` mit einem Build von Xcode 27). Drei Fallen:
+  `bin/cache/artifacts` mit einem Build von Xcode 27). Vier Fallen:
   - **`DEVELOPER_DIR` reicht nicht**: `hooks_runner` startet die
     Native-Asset-Hooks (`objective_c`) ohne die Umgebung
     (`includeParentEnvironment: false`), `xcrun` fällt auf `xcode-select`
@@ -92,6 +92,13 @@ nur, was man beim Arbeiten an `ios/` wissen muss.
   - **Entwicklermodus am Gerät und ein Konto in Xcode** (die Konten
     teilen sich beide Fassungen; einzutragen in Xcode 27). Ohne Konto:
     „No Accounts" und kein Profil.
+  - **`flutter attach` bricht ab** („connection to device ended too
+    early", 2026-11-27). Die App schreibt die Adresse ihres VM-Service ins
+    Systemprotokoll (`pymobiledevice3 syslog live`, „VM service is
+    listening on …"); `pymobiledevice3 usbmux forward <port> <port>` holt
+    den Port, dann geht der Service direkt (Bildzeiten aus der Timeline,
+    Messung in #644). Die Karte zeichnet MapLibre selbst: Flutter-Frames
+    messen nur, was darüber liegt.
 - **Xcode 27 hat keine `Simulator.app` mehr** (es gibt `DeviceHub.app`).
   Starten und Bilder gehen über `xcrun simctl` (`install`, `launch`,
   `io … screenshot`); bedienen über einen Integrationstest
@@ -193,16 +200,67 @@ nur, was man beim Arbeiten an `ios/` wissen muss.
     `restore()` die Fahrt auf und meldet die Lücke ab `kRideGapNotice`
     (2 min, plattformübergreifend).
   - **Keine Meldung des Pakets** (`IOSNotificationOptions(showNotification:
-    false)`, keine Frage nach Mitteilungen): Sie wäre nur ein Banner.
-    Mitteilungen unterwegs (Trail-Fragen, Airtime-Banner) und Ansagen
-    fehlen auf iOS noch (Paket 3b) — die Fragen stellt das Zerlege-Blatt.
-    Downloads (`dataSync`) starten auf iOS keinen Dienst.
+    false)`): Sie wäre nur ein Banner. Die Mitteilungen unterwegs kommen
+    über `flutter_local_notifications` (unten). Downloads (`dataSync`)
+    starten auf iOS keinen Dienst.
   - **Sensoren**: `sensors_plus` liefert auf iOS dieselbe Achse
     (Unix-µs aus Systemstart + Sensorzeit). Licht, Nähe und Messbereich
-    gibt es nicht (`tb_ambient` leer, kein Kanal `…/sensors`) —
-    „unbekannt", wie auf Android ohne Sensor.
+    gibt es nicht (`tb_ambient` leer, kein Kanal `…/sensors` —
+    Core Motion nennt keinen Messbereich, also auch kein Swift-Gegenstück;
+    `ios_support_test` wacht) — „unbekannt", wie auf Android ohne Sensor.
   Bank: `tool/ios_ride_bench.sh <udid>` (Testkonto aus der Umgebung,
   erfundene Strecke über `simctl location`, App N s hinter der
   Einstellungen-App, `integration_test/ios_ride_background_test.dart`
   prüft die Punkte im Fenster). Bildschirm an: `ScreenAwake.swift`
   (`isIdleTimerDisabled`), Kanal und Vertrag wie Kotlin.
+- **Mitteilungen, Ansagen und Navigation unterwegs** (#644 Paket 3b, seit
+  0.206.0; Plan im Kommentar vom 2026-11-27). Sechs Dinge, die man wissen
+  muss:
+  - **Knöpfe hängen an Kategorien, gesetzt NUR beim `initialize`**
+    (`ride_notice_darwin.dart`): je Knopfsatz eine, mit den Kennungen der
+    Android-Knöpfe (Test), Beschriftung aus `serviceL10n()` beim
+    Einrichten. Jede `show` trägt `iOS: rideNoticeDarwin(…)` — ohne käme die
+    Mitteilung ohne Knöpfe. Nur „Ändern…" öffnet die App (`foreground`).
+  - **Die Erlaubnis erst beim Start einer Fahrt**: `initialize` fragte ab
+    Werk sofort (`request*Permission` = `true`), also beim App-Start —
+    alle drei stehen auf `false`. `RideNotifier.start` fragt nach dem
+    Standort (`rideNoticePermissionProvider`, Hinweis + Ton); eine
+    Ablehnung hält die Fahrt nicht auf, dann fragt das Zerlege-Blatt.
+  - **Ein Knopf ohne „App öffnen" antwortet in einer DRITTEN Engine** —
+    der von `flutter_local_notifications` (`FlutterLocalNotificationsIsolate`),
+    nicht im Dienst; wie auf Android ein eigenes Isolate. Dafür
+    `FlutterLocalNotificationsPlugin.setPluginRegistrantCallback` und
+    `UNUserNotificationCenter.current().delegate` in `AppDelegate`, beides
+    vor `super.application`. Jede Engine außer dieser meldet das Plugin als
+    App-Delegate an (App UND Dienst); am iPhone 8 (iOS 16.7, 2026-11-27)
+    stand trotzdem jede Antwort GENAU EINMAL in der Fahrt („Trail ist
+    frei" und „Stimmt" gesperrt gedrückt, App im Hintergrund). Die Knöpfe
+    zeigt iOS erst nach etwa 1 s Halten auf EINER Mitteilung — Tippen
+    öffnet die App, Wischen zeigt nur „Optionen"; ein Stapel geht beim
+    ersten Halten nur auf.
+  - **Die Stimme**: `packages/tb_voice/ios` (Swift, SPM), derselbe Kanal und
+    Vertrag wie Java. `AVSpeechSynthesizer`, Sitzung je Satz `.playback` /
+    `.voicePrompt` / `.duckOthers` + `.interruptSpokenAudioAndMixWithOthers`,
+    danach frei mit `.notifyOthersOnDeactivation`. `TB-VOICE`-Zeilen im
+    Systemprotokoll (Sitzung an oder Fehlercode, Beginn, Ende).
+    **`UIBackgroundModes` `audio` ist nötig**: Im Simulator (iOS 26.2)
+    bekam die Stimme die Sitzung im Hintergrund auch ohne ihn, am iPhone 8
+    (iOS 16.7, 2026-11-27) nicht — jeder Satz bei gesperrtem Bildschirm
+    endete mit `session error 561015905` (`'!pla'`, `cannotStartPlaying`),
+    zu hören nur bei offener App. Mit `audio`: `session active
+    app=background`, `start`, `done`, die Musik wird leiser und wieder
+    laut. Der Simulator taugt für diese Frage also nicht.
+  - **Navigation im Dienst** (`navServiceSupported`): derselbe gehaltene
+    Strom wie die Fahrt (`HeldFix`, startet beim Tipp, also vorne). Ohne
+    Benachrichtigung mit Rest und ohne „Navigation beenden" vom
+    Sperrbildschirm — der Dienst hält den Takt und spricht, beendet wird
+    in der App; Wegwischen beendet ihn (`restore` räumt auf).
+  - **Die Bank** `tool/ios_ride_bench.sh --notice` (`TB_SERVICE_BENCH`,
+    `lib/features/rides/service_bench.dart`, sonst eine Konstante): Der
+    Dienst zeigt alle 30 s eine Frage an einen erfundenen Trail und spricht
+    einen Satz; gefragt wird „vorläufig" (kein Dialog, den keine Hand
+    wegtippt). **Falle: Der Simulator führt Mitteilungen auch OHNE
+    Erlaubnis in `getActiveNotifications`** (`auth=false`) — der Test prüft
+    deshalb die Erlaubnis mit. Knöpfe drücken kann die Bank nicht (dazu
+    bräuchte es eine Bedienhilfe wie AXe oder XCUITest); das bleibt dem
+    Gerät.

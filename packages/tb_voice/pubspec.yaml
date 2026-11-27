@@ -1,7 +1,8 @@
 name: tb_voice
 description: >-
-  Die Sprachausgabe des Geräts für TrailBuddys Ansagen (#525) — nur der
-  Android-Teil; die Dart-Seite steht in der App
+  Die Sprachausgabe des Geräts für TrailBuddys Ansagen (#525) — Android
+  (Java, TextToSpeech) und iOS (Swift, AVSpeechSynthesizer, #644); die
+  Dart-Seite steht in der App
   (lib/features/routing/voice_service.dart). Ein Plugin, damit es auch in
   der Engine des Vordergrund-Dienstes registriert ist.
 version: 1.0.0
@@ -20,4 +21,6 @@ flutter:
     platforms:
       android:
         package: de.mcbuchi.trailbuddy.voice
+        pluginClass: TbVoicePlugin
+      ios:
         pluginClass: TbVoicePlugin

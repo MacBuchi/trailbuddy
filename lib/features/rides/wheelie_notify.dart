@@ -21,6 +21,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 import '../../l10n/l10n.dart';
 import 'ride_confirm_notify.dart';
+import 'ride_notice_darwin.dart';
 import 'sensor_fusion.dart';
 import 'sensor_log.dart';
 
@@ -198,6 +199,7 @@ class _PlatformWheelieNotices implements WheelieNotices {
               ),
             ],
           ),
+          iOS: rideNoticeDarwin(kWheelieCategory),
         ),
       );
     } catch (_) {
@@ -241,6 +243,7 @@ class _PlatformWheelieNotices implements WheelieNotices {
               ),
             ],
           ),
+          iOS: rideNoticeDarwin(kJumpCategory),
         ),
       );
     } catch (_) {
@@ -284,6 +287,7 @@ class _PlatformWheelieNotices implements WheelieNotices {
               ),
             ],
           ),
+          iOS: rideNoticeDarwin(kStoppieCategory),
         ),
       );
     } catch (_) {
@@ -351,6 +355,7 @@ Future<void> _showMissed({required String file, DateTime? notedAt}) async {
             ),
           ],
         ),
+        iOS: rideNoticeDarwin(kMissedCategory, passive: true),
       ),
     );
   } catch (_) {

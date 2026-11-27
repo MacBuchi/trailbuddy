@@ -2,6 +2,12 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Mitteilungen, Ansagen und Navigation auf dem iPhone
+
+*Version 0.206.0, 2026-11-27*
+
+Auf dem iPhone fragt TrailBuddy jetzt unterwegs wie auf Android: Fährst du auf einen Trail, an dem etwas gemeldet ist, kommt eine Mitteilung mit „Stimmt", „Trail ist frei" und „Ändern…", und erkannte Wheelies, Sprünge und Stoppies melden sich mit „Stimmt" und „War keiner". Die Knöpfe gehen auch bei gesperrtem Bildschirm, ohne die App zu öffnen. Ob TrailBuddy Mitteilungen schicken darf, fragt das iPhone einmal beim Start der ersten Fahrt, nicht beim Öffnen der App. Die Ansagen übers Ohr sprechen jetzt auch auf dem iPhone, und Musik wird dabei nur leiser. Die Navigation läuft dort im Hintergrund weiter und spricht bei gesperrtem Bildschirm; beendet wird sie in der App. Auf Android und im Web ändert sich nichts.
+
 ## Fahrten aufzeichnen auf dem iPhone
 
 *Version 0.205.0, 2026-11-26*

@@ -2,6 +2,12 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## Notifications, spoken cues and navigation on the iPhone
+
+*Version 0.206.0, 2026-11-27*
+
+On the iPhone, TrailBuddy now asks on the way, as it does on Android. When you ride onto a trail with a report, a notification comes with "That’s right", "Trail is open" and "Change…", and detected wheelies, jumps and stoppies ask with "Correct" and "Wasn't one". The buttons work with the screen locked, without opening the app. The iPhone asks once, when you start your first ride, whether TrailBuddy may send notifications. It does not ask when you open the app. Spoken cues now play on the iPhone too, and music only gets quieter while they play. Navigation keeps running there in the background and speaks with the screen locked; you end it in the app. Nothing changes on Android or the web.
+
 ## Recording rides on the iPhone
 
 *Version 0.205.0, 2026-11-26*
