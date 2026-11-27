@@ -185,7 +185,9 @@ jobs:
   #   Plugin-Pakete unter ios/Flutter/ephemeral je Lauf neu an.
   # - Der Simulator bootet NACH dem Einrichten, nicht parallel: Auf dem
   #   3-Kern-Runner bremste der Start alles andere aus (gemessen: Flutter
-  #   einrichten 6 statt 0,7 min).
+  #   einrichten 6 statt 0,7 min). Gewartet wird aber nur auf „Booted",
+  #   nicht auf `bootstatus`: Der Rest des Hochfahrens fällt in Pakete und
+  #   Bau (vorher 4:27 min nur Warten, Lauf vom 2026-11-27).
   # - Auf PRs nur, wenn iOS betroffen ist (ios/, pubspec, Integrationstests,
   #   diese Datei, die Plattform-Weichen und `main.dart`); reines Dart prüft
   #   „Analyze & Test". Auf `main` immer. Übersprungen bleibt der Check grün.
@@ -226,10 +228,34 @@ jobs:
         run: flutter config --enable-swift-package-manager
       - if: steps.scope.outputs.run == 'true'
         run: flutter pub get
-      - if: steps.scope.outputs.run == 'true'
-        run: xcodebuild -version
+      - name: Xcode-Fassung (Schlüssel des Paket-Caches)
+        id: xcode
+        if: steps.scope.outputs.run == 'true'
+        run: |
+          xcodebuild -version
+          echo "id=$(xcodebuild -version | tr '\n' '-' | tr -d ' ')" >> "$GITHUB_OUTPUT"
+      # Die Swift-Pakete (Firebase, MapLibre, Connect IQ …) kamen bei jedem
+      # Lauf neu übers Netz — gut 4 min des Xcode-Schritts (Lauf vom
+      # 2026-11-27). Gesichert werden nur die geholten Pakete, nicht der Bau
+      # (der DerivedData-Cache half nicht, siehe oben); `info.plist` dazu,
+      # damit Xcode den Ordner seinem Workspace zuordnet. Schlüssel: Xcode +
+      # beide Package.resolved + pubspec.lock (die Plugins bringen Pakete mit).
+      - name: Swift-Pakete aus dem Cache
+        if: steps.scope.outputs.run == 'true'
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/Library/Caches/org.swift.swiftpm
+            ~/Library/Developer/Xcode/DerivedData/*/SourcePackages
+            ~/Library/Developer/Xcode/DerivedData/*/info.plist
+          key: spm-${{ steps.xcode.outputs.id }}-${{ hashFiles('ios/**/Package.resolved', 'pubspec.lock') }}
+          restore-keys: spm-${{ steps.xcode.outputs.id }}-
       - name: Bauen und im Simulator starten (ohne Zugangsdaten)
         if: steps.scope.outputs.run == 'true'
+        env:
+          # Kein Index fürs Editieren (FLUTTER_XCODE_* geht als Build-
+          # Einstellung an xcodebuild).
+          FLUTTER_XCODE_COMPILER_INDEX_STORE_ENABLE: 'NO'
         run: |
           # Das jüngste verfügbare iPhone; der Runner bringt mehrere mit.
           UDID=$(xcrun simctl list devices available -j | python3 -c '
@@ -243,9 +269,14 @@ jobs:
                   print(phones[0]["udid"]); break
           ')
           test -n "$UDID" || { echo "kein iPhone-Simulator"; exit 1; }
+          # `boot` meldet „Booted", sobald Flutter das Gerät sieht; das lange
+          # Hochfahren danach (`bootstatus`, ~4 min) läuft parallel zu Paketen
+          # und Bau — die App kommt erst nach dem Bau aufs Gerät.
+          echo "::notice::boot start $(date +%T)"
           xcrun simctl boot "$UDID"
-          xcrun simctl bootstatus "$UDID" -b > /dev/null
+          echo "::notice::booted $(date +%T)"
           flutter test integration_test/ios_start_smoke_test.dart -d "$UDID"
+          echo "::notice::test done $(date +%T)"
 
   # Probelauf gegen einen lokalen Supabase-Stack (supabase/config.toml): beide
   # Wege, die es in der Wirklichkeit gibt — Bestand (Basis-Schema, dann nur
