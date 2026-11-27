@@ -29,7 +29,7 @@ import '../../l10n/l10n.dart';
 import 'ride_confirm.dart';
 import 'ride_notice_darwin.dart';
 import 'ride_store.dart';
-import 'service_bench.dart' show kServiceBench;
+import 'service_bench.dart' show kServiceBenchProvisional;
 import 'wheelie_notify.dart';
 import '../../core/platform_support.dart';
 
@@ -163,12 +163,12 @@ Future<bool?> requestRideNoticePermission() async {
         .resolvePlatformSpecificImplementation<
           IOSFlutterLocalNotificationsPlugin
         >()
-        // Die Bank (`service_bench.dart`) fragt vorläufig — ohne Dialog,
-        // den im Simulator keine Hand wegtippt.
+        // Die Bank im Simulator (`service_bench.dart`) fragt vorläufig —
+        // ohne Dialog, den dort keine Hand wegtippt.
         ?.requestPermissions(
           alert: true,
           sound: true,
-          provisional: kServiceBench,
+          provisional: kServiceBenchProvisional,
         );
   } catch (e, stackTrace) {
     logError('Fahrt: Erlaubnis für Mitteilungen', e, stackTrace);

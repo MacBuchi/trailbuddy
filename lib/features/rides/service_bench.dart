@@ -6,8 +6,9 @@
 // Hand für den Dialog des Systems. Deshalb zeigt der Dienst hier selbst alle
 // [kServiceBenchEvery] Takte eine Frage an einen erfundenen Trail (mit der
 // echten Fahrt im Payload, eine Antwort landet also in der Datei) und
-// spricht einen Satz. Gefragt wird „vorläufig" (provisional): ohne Dialog,
-// leise in der Mitteilungszentrale. Ob gezeigt und gesprochen wurde, sagen
+// spricht einen Satz. Im Simulator wird „vorläufig" gefragt
+// ([kServiceBenchProvisional]): ohne Dialog, leise in der
+// Mitteilungszentrale. Ob gezeigt und gesprochen wurde, sagen
 // `getActiveNotifications` und die `TB-VOICE`-Zeilen im Systemprotokoll.
 import 'dart:ui' show Locale;
 
@@ -21,6 +22,11 @@ import 'ride_confirm_notify.dart';
 import 'ride_task_handler.dart';
 
 const kServiceBench = bool.fromEnvironment('TB_SERVICE_BENCH');
+
+/// Im Simulator (tool/ios_ride_bench.sh): vorläufig fragen, ohne Dialog. Am
+/// Gerät bleibt es aus — dort soll der echte Dialog kommen und das Banner
+/// mit Knöpfen auf dem Sperrbildschirm stehen.
+const kServiceBenchProvisional = bool.fromEnvironment('TB_NOTICE_PROVISIONAL');
 
 /// Alle so viele Takte (5 s) eine Frage und ein Satz.
 const kServiceBenchEvery = 6;

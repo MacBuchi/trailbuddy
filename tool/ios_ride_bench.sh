@@ -47,6 +47,7 @@ fi
 flutter test integration_test/ios_ride_background_test.dart -d "$udid" \
   --dart-define=TB_MAIL="$TB_MAIL" --dart-define=TB_PW="$TB_PW" \
   --dart-define=TB_SERVICE_BENCH="$notice" \
+  --dart-define=TB_NOTICE_PROVISIONAL="$notice" \
   --dart-define=TB_BG_SECONDS="$seconds" >"$log" 2>&1 &
 test_pid=$!
 
