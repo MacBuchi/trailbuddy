@@ -665,6 +665,19 @@ void main() {
       expect(init, isNot(contains('ConnectIQ.sharedInstance()')));
     });
 
+    test('Nachrichten der Uhr auch nach dem Kaltstart aus Garmin Connect', () {
+      // `take` läuft beim Kaltstart vor `status`, also ohne App-Kennung:
+      // Gerät und Nachrichten sind getrennt gemerkt, damit der nächste
+      // `listen` die Nachrichten noch anmeldet (Befund 2026-11-27).
+      final code = body('listen');
+      final guard = code.indexOf(
+        'guard messagesFrom != device.uuid, let app = iqApp(device)',
+      );
+      expect(guard, greaterThan(-1));
+      expect(code.indexOf('register(forAppMessages:'), greaterThan(guard));
+      expect(code, isNot(contains('guard listeningTo != device.uuid')));
+    });
+
     test('Garmin Connect fragen und dorthin zurück — eigenes Schema', () {
       expect(swift, contains('urlScheme = "trailbuddy-ciq"'));
       expect(swift, contains('connectScheme = "gcm-ciq"'));
