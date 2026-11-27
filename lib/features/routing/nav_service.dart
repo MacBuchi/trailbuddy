@@ -36,13 +36,18 @@ abstract interface class NavServiceBridge {
   Future<NavRouteData?> restore();
 }
 
+/// Navigiert der Dienst mit (#232)? Im Browser gibt es keinen (9.5). Auf
+/// dem iPhone seit #644 Paket 3b: Wach hält ihn derselbe Standortstrom wie
+/// die Fahrt (`HeldFix`, begonnen beim Tipp auf „Navigation starten" —
+/// die App ist vorne). Dort gibt es keine Benachrichtigung mit Rest und
+/// „Navigation beenden"; der Dienst spricht die Ansagen und hält den Takt,
+/// beendet wird in der App. Wegwischen beendet ihn (`restore` räumt auf).
+bool get navServiceSupported => isAndroidApp || isIosApp;
+
 class PlatformNavServiceBridge implements NavServiceBridge {
   const PlatformNavServiceBridge();
 
-  /// Im Browser gibt es keinen Dienst und keine Benachrichtigung (9.5),
-  /// auf dem iPhone noch nicht (#644: `flutter_foreground_task` ist dort
-  /// kein Dauerdienst).
-  bool get _supported => isAndroidApp;
+  bool get _supported => navServiceSupported;
 
   @override
   Future<void> arm(NavRouteData route) async {

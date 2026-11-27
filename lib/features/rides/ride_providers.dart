@@ -22,6 +22,7 @@ import '../routing/route_profile.dart';
 import '../trails/trail_providers.dart';
 import '../routing/voice_cues.dart' show voiceTrailsOf;
 import 'ride_confirm.dart';
+import 'ride_confirm_notify.dart' show requestRideNoticePermission;
 import 'ride_import.dart';
 import 'ride_service.dart';
 import 'ride_store.dart';
@@ -109,6 +110,14 @@ typedef RidePermissionCheck = Future<RideStartResult?> Function();
 
 final ridePermissionProvider = Provider<RidePermissionCheck>(
   (ref) => _platformPermission,
+);
+
+/// Die Erlaubnis für Mitteilungen unterwegs (#644, Paket 3b) — auf iOS
+/// beim Start einer Fahrt, nie beim App-Start; auf Android fragt der
+/// Dienst selbst. Das Ergebnis hält nichts auf: Ohne Mitteilungen fragt
+/// das Zerlege-Blatt am Ende.
+final rideNoticePermissionProvider = Provider<Future<void> Function()>(
+  (ref) => requestRideNoticePermission,
 );
 
 Future<RideStartResult?> _platformPermission() async {
@@ -298,6 +307,8 @@ class RideNotifier extends Notifier<RecordedRide?> {
     // keine.
     final denial = await ref.read(ridePermissionProvider)();
     if (denial != null) return denial;
+    // Gleich danach die Mitteilungen — derselbe Tipp, noch vor dem Dienst.
+    await ref.read(rideNoticePermissionProvider)();
 
     final startedAt = DateTime.now().toUtc();
     try {

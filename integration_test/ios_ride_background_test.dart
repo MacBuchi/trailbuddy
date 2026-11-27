@@ -10,12 +10,22 @@
 // Während die App hinten war, kamen Punkte im Takt (5 s) dazu. Gegenprobe:
 // ohne `UIBackgroundModes: location` in Info.plist friert iOS den Prozess
 // ein — im Fenster steht kein Punkt.
+//
+// Mit `--notice` (Paket 3b, `TB_SERVICE_BENCH`) zeigt der Dienst alle 30 s
+// eine Frage an einen erfundenen Trail und spricht einen Satz
+// (`lib/features/rides/service_bench.dart`); geprüft wird zusätzlich, dass
+// die Fragen aus der Zeit im Hintergrund in der Mitteilungszentrale stehen.
+// Ob gesprochen wurde, sagen die `TB-VOICE`-Zeilen, die das Skript aus dem
+// Systemprotokoll holt.
 
 import 'package:flutter/material.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:trailbuddy/features/rides/ride_confirm_notify.dart';
 import 'package:trailbuddy/features/rides/ride_store.dart';
+import 'package:trailbuddy/features/rides/service_bench.dart';
 import 'package:trailbuddy/main.dart' as app;
 
 const _mail = String.fromEnvironment('TB_MAIL');
@@ -164,6 +174,41 @@ void main() {
       // Takt 5 s: mindestens 70 % der möglichen Punkte, keine Lücke über 20 s.
       expect(inside.length, greaterThanOrEqualTo(window.inSeconds * 0.7 ~/ 5));
       expect(maxGap, lessThanOrEqualTo(const Duration(seconds: 20)));
+
+      if (kServiceBench) {
+        // Gezeigt hat sie der Dienst: Nur er kennt die Bank-Trails. Der
+        // erste kommt mit dem 6. Takt (30 s) — die App ist da schon hinten.
+        await initRideNotices();
+        final shownIds = {
+          for (final n in await rideNoticesPlugin.getActiveNotifications())
+            n.id,
+        };
+        final bench = [
+          for (var t = kServiceBenchEvery; t <= 60; t += kServiceBenchEvery)
+            if (shownIds.contains(
+              confirmNotificationId(serviceBenchTrailId(t)),
+            ))
+              serviceBenchTrailId(t),
+        ];
+        final auth = await rideNoticesPlugin
+            .resolvePlatformSpecificImplementation<
+              IOSFlutterLocalNotificationsPlugin
+            >()
+            ?.checkPermissions();
+        // ignore: avoid_print
+        print(
+          'TB-BENCH notices ${bench.join(' ')} '
+          'auth=${auth?.isEnabled} provisional=${auth?.isProvisionalEnabled}',
+        );
+        expect(bench, isNotEmpty, reason: 'keine Frage aus dem Dienst');
+        // Der Simulator führt Mitteilungen auch OHNE Erlaubnis in der Liste
+        // (gemessen 2026-11-27) — gezeigt hätte er sie nicht.
+        expect(
+          auth?.isEnabled == true || auth?.isProvisionalEnabled == true,
+          isTrue,
+          reason: 'keine Erlaubnis für Mitteilungen',
+        );
+      }
 
       await tester.tap(stop.first);
       for (var i = 0; i < 20; i++) {

@@ -27,7 +27,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/errors.dart';
 import '../../l10n/l10n.dart';
 import 'ride_confirm.dart';
+import 'ride_notice_darwin.dart';
 import 'ride_store.dart';
+import 'service_bench.dart' show kServiceBench;
 import 'wheelie_notify.dart';
 import '../../core/platform_support.dart';
 
@@ -140,11 +142,43 @@ Future<void> initRideNotices({
   DidReceiveNotificationResponseCallback? onResponse,
 }) => _init(onResponse: onResponse);
 
+/// Die Einrichtung beider Plattformen; auf iOS mit den Kategorien der
+/// Knöpfe und OHNE Frage nach der Erlaubnis (`ride_notice_darwin.dart`).
+InitializationSettings rideNoticeInitSettings(AppLocalizations l) =>
+    InitializationSettings(
+      android: const AndroidInitializationSettings(kConfirmNotificationIcon),
+      iOS: rideNoticeDarwinSettings(l),
+    );
+
+/// Fragt nach der Erlaubnis für Mitteilungen — auf iOS beim Start einer
+/// Fahrt, nie beim App-Start (#644). Das System zeigt den Dialog nur,
+/// solange noch nicht entschieden ist; danach kommt die Antwort sofort.
+/// Auf Android fragt der Dienst selbst (`flutter_foreground_task`).
+/// Eine Ablehnung hält die Fahrt nicht auf. Wirft nie.
+Future<bool?> requestRideNoticePermission() async {
+  if (!isIosApp) return null;
+  try {
+    await _init();
+    return await _plugin
+        .resolvePlatformSpecificImplementation<
+          IOSFlutterLocalNotificationsPlugin
+        >()
+        // Die Bank (`service_bench.dart`) fragt vorläufig — ohne Dialog,
+        // den im Simulator keine Hand wegtippt.
+        ?.requestPermissions(
+          alert: true,
+          sound: true,
+          provisional: kServiceBench,
+        );
+  } catch (e, stackTrace) {
+    logError('Fahrt: Erlaubnis für Mitteilungen', e, stackTrace);
+    return null;
+  }
+}
+
 Future<void> _init({DidReceiveNotificationResponseCallback? onResponse}) async {
   await (_initialized ??= _plugin.initialize(
-    settings: const InitializationSettings(
-      android: AndroidInitializationSettings(kConfirmNotificationIcon),
-    ),
+    settings: rideNoticeInitSettings(serviceL10n()),
     onDidReceiveNotificationResponse: onResponse,
     onDidReceiveBackgroundNotificationResponse: rideConfirmBackgroundResponse,
   ));
@@ -186,6 +220,11 @@ Future<void> showConfirmNotice(
               ),
           ],
         ),
+        iOS: rideNoticeDarwin(
+          notice.actions.any((a) => a.$1 == ConfirmChoice.free)
+              ? kConfirmFreeCategory
+              : kConfirmCategory,
+        ),
       ),
     );
   } catch (_) {
@@ -196,13 +235,13 @@ Future<void> showConfirmNotice(
 
 /// Die Trails, zu denen eine Frage in der App angetippt wurde (Tipp auf
 /// die Benachrichtigung oder „Ändern…") — auch der Tipp, der die App
-/// erst gestartet hat. Nur Android; im Test überschrieben.
+/// erst gestartet hat. Android und iOS; im Test überschrieben.
 final rideConfirmTapsProvider = Provider<Stream<String> Function()>(
   (ref) => _platformTaps,
 );
 
 Stream<String> _platformTaps() {
-  if (!isAndroidApp) {
+  if (!(isAndroidApp || isIosApp)) {
     return const Stream.empty();
   }
   final controller = StreamController<String>();

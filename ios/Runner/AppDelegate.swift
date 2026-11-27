@@ -1,6 +1,8 @@
 import Flutter
 import UIKit
+import UserNotifications
 import flutter_foreground_task
+import flutter_local_notifications
 
 @main
 @objc class AppDelegate: FlutterAppDelegate, FlutterImplicitEngineDelegate {
@@ -14,6 +16,13 @@ import flutter_foreground_task
     SwiftFlutterForegroundTaskPlugin.setPluginRegistrantCallback { registry in
       GeneratedPluginRegistrant.register(with: registry)
     }
+    // Die Knöpfe der Mitteilungen unterwegs (#644, Paket 3b) antworten in
+    // einer eigenen Engine des Pakets — auch sie braucht die Plugins.
+    FlutterLocalNotificationsPlugin.setPluginRegistrantCallback { registry in
+      GeneratedPluginRegistrant.register(with: registry)
+    }
+    // Mitteilungen und Knöpfe gehen über den App-Delegate an die Plugins.
+    UNUserNotificationCenter.current().delegate = self as? UNUserNotificationCenterDelegate
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }
 

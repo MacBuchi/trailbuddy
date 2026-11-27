@@ -145,7 +145,10 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     (`build.gradle.kts`), den `ActionBroadcastReceiver` im Manifest
     (ohne tut ein Knopf nichts, still) und bringt `VIBRATE` mit; der
     Manifest-Test hält alles zusammen. Der Harness überschreibt
-    `rideConfirmTapsProvider`.
+    `rideConfirmTapsProvider` und `rideNoticePermissionProvider`.
+    **Auf iOS** (#644 Paket 3b) dieselben Mitteilungen mit Kategorien für
+    die Knöpfe (`ride_notice_darwin.dart`) und der Frage nach der
+    Erlaubnis erst beim Start einer Fahrt — Einzelheiten in `ios/CLAUDE.md`.
 - **Das Zerlege-Blatt** (#29, Konzept 5.1, `ride_split.dart` pur,
   `road_index.dart`, `ride_split_sheet.dart`, seit 0.20.0): nach der
   Aufzeichnung, aus „Meine Fahrten" (Schere) und aus dem GPX-Import für
@@ -322,7 +325,9 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     `handleWheelieResponse` fragt zuerst und sagt `true` für alles mit
     Wheelie-Payload (Schlüssel `w`), auch den Tipp ohne Knopf; dasselbe
     in `_platformTaps`. Ein zweites `initialize` mit eigenem Empfänger
-    ersetzte den der Trail-Frage.
+    ersetzte den der Trail-Frage. Auf iOS gilt dasselbe; der Empfänger läuft
+    dort in einer eigenen Engine des Pakets, und die Knöpfe stehen in den
+    Kategorien `tb.wheelie`/`tb.jump`/`tb.stoppie`/`tb.missed`.
   - **Zwei Isolates hängen an dieselbe Datei**: der Logger im Dienst,
     die Antwort im Isolate des Pakets — je eine kurze Zeile mit
     `FileMode.append`; für ein Mess-Werkzeug reicht das, eine Sperre

@@ -31,6 +31,7 @@ import 'ride_confirm_notify.dart';
 import 'ride_location.dart';
 import 'ride_store.dart';
 import 'ride_track.dart';
+import 'service_bench.dart';
 import 'sensor_log.dart';
 
 /// Schlüssel der Brücke zwischen den Isolaten. Bewusst flache Werte:
@@ -261,6 +262,7 @@ Future<void> serviceTick({Future<Position?> Function()? fix}) async {
     Future<Position?>? once;
     Future<Position?> shared() => once ??= (fix ?? _fix)();
     final point = recording ? await recordRideTick(fix: shared) : null;
+    if (kServiceBench && recording) await serviceBenchTick();
     // Die Rohdaten der Sensoren (#36, Dev-App): startet beim ersten Takt
     // der Fahrt; das Ende merkt der Logger selbst.
     await sensorLogTick();
