@@ -3,3 +3,4 @@
 "NSLocationWhenInUseUsageDescription" = "Zeigt deine Position auf der Karte und zeichnet eine Fahrt auf, die du startest – auch im Hintergrund und bei gesperrtem Bildschirm.";
 "NSCameraUsageDescription" = "Für ein Foto an einer Meldung zu einem Trail. Ort und Kameradaten entfernt TrailBuddy vor dem Hochladen.";
 "NSPhotoLibraryUsageDescription" = "Für ein Foto aus deiner Mediathek an einer Meldung zu einem Trail. Ort und Kameradaten entfernt TrailBuddy vor dem Hochladen.";
+"NSBluetoothAlwaysUsageDescription" = "Verbindet deine Garmin-Uhr mit TrailBuddy: Die Route geht auf die Uhr, ihre Fahrten kommen zurück.";

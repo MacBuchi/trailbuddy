@@ -637,6 +637,7 @@
   "navStartTitle": "Navigate",
   "navStartSummary": "{trails, plural, =0{{length}} =1{1 trail · {length}} other{{trails} trails · {length}}}",
   "navScreenTitle": "Keep the screen on",
+  "navWatchPick": "Connect watch",
   "navWatchSearching": "Looking for the watch …",
   "mapWatchStored": "Route on the watch",
   "navWatchSending": "Sending the route to the watch …",

@@ -15,6 +15,8 @@ import 'package:trailbuddy/data/apk_installer.dart';
 import 'package:trailbuddy/features/map/host_requests.dart';
 import 'package:trailbuddy/core/push_messaging.dart';
 import 'package:trailbuddy/core/screen_awake_io.dart' show kScreenChannel;
+import 'package:trailbuddy/features/garmin/garmin_bridge_io.dart'
+    show kGarminChannel;
 import 'package:trailbuddy/features/offline_areas/area_providers.dart';
 import 'package:trailbuddy/features/rides/ride_providers.dart';
 import 'package:trailbuddy/features/rides/sensor_log.dart' show kSensorChannel;
@@ -227,6 +229,8 @@ void main() {
         'NSLocationWhenInUseUsageDescription',
         'NSCameraUsageDescription',
         'NSPhotoLibraryUsageDescription',
+        // Die Garmin-Uhr (#644 Paket 4): Das SDK spricht selbst Bluetooth.
+        'NSBluetoothAlwaysUsageDescription',
       ]) {
         expect(
           RegExp(
@@ -555,6 +559,165 @@ void main() {
         contains('name: "tb_voice"'),
       );
       expect(swift, contains('class TbVoicePlugin: NSObject, FlutterPlugin'));
+    });
+  });
+
+  group('Die Garmin-Uhr auf iOS: GarminBridge.swift wie Kotlin (#644, '
+      'Paket 4)', () {
+    // Ohne Kommentare: dort stehen dieselben Namen zur Erklärung.
+    final swift = File(
+      'ios/Runner/GarminBridge.swift',
+    ).readAsLinesSync().map((l) => l.split('//').first).join('\n');
+    final kotlin = File(
+      'android/app/src/main/kotlin/de/mcbuchi/trailbuddy/GarminBridge.kt',
+    ).readAsStringSync();
+    final plist = File('ios/Runner/Info.plist').readAsStringSync();
+
+    String body(String func) {
+      final start = swift.indexOf('private func $func(');
+      expect(start, greaterThan(-1), reason: func);
+      final end = swift.indexOf('\n  private func ', start + 1);
+      return swift.substring(start, end < 0 ? swift.length : end);
+    }
+
+    test('derselbe Kanal, dieselben Methoden und Rückrufe', () {
+      expect(swift, contains('"$kGarminChannel"'));
+      expect(kotlin, contains('"$kGarminChannel"'));
+      for (final m in ['status', 'listen', 'open', 'send']) {
+        expect(swift, contains('case "$m"'), reason: m);
+        expect(kotlin, contains('"$m" ->'), reason: m);
+      }
+      // `pick` gibt es nur auf iOS: Dort sieht das SDK die Uhr nicht selbst.
+      expect(swift, contains('case "pick"'));
+      expect(kotlin, isNot(contains('"pick"')));
+      for (final code in [swift, kotlin]) {
+        expect(code, contains('invokeMethod("message"'));
+        expect(code, contains('invokeMethod("device"'));
+        expect(code, contains('"appId"'));
+        expect(code, contains('"messages"'));
+      }
+      expect(swift, contains('"PICKED"'));
+      expect(swift, contains('FlutterMethodNotImplemented'));
+    });
+
+    test('die Namen, auf die Dart hört, kommen auch aus Swift', () {
+      // WatchSendResult.ok, die Wiederaufnahme (`_resumable`), WatchOpen,
+      // WatchStatus und das neu Verbinden.
+      for (final name in [
+        'SUCCESS',
+        'FAILURE_TIMEOUT',
+        'FAILURE_DURING_TRANSFER',
+        'APP_IS_ALREADY_RUNNING',
+        'PROMPT_SHOWN_ON_DEVICE',
+        'APP_IS_NOT_INSTALLED',
+        'CONNECTED',
+      ]) {
+        expect(swift, contains('"$name"'), reason: name);
+      }
+      for (final key in ['connect', 'device', 'app', 'status', 'sent']) {
+        expect(swift, contains('"$key":'), reason: key);
+      }
+      for (final app in ['installed', 'not_installed', 'unknown']) {
+        expect(swift, contains('"$app"'), reason: app);
+      }
+      expect(swift, contains('"pick": true'));
+      // Was die Dart-Seite wieder aufnimmt, muss aus der Abbildung der
+      // iOS-Ergebnisse kommen (nicht nur aus der eigenen Frist).
+      final sendName = swift.substring(
+        swift.indexOf('static func sendName('),
+        swift.indexOf('static func openName('),
+      );
+      expect(
+        sendName,
+        matches(RegExp(r'case \.failure_Timeout: return "FAILURE_TIMEOUT"')),
+      );
+      expect(
+        sendName,
+        matches(
+          RegExp(
+            r'case \.failure_MaxRetries, \.failure_DeviceIsBusy: return "FAILURE_DURING_TRANSFER"',
+          ),
+        ),
+      );
+      expect(sendName, contains('case .success: return "SUCCESS"'));
+      // Dieselben Fristen wie Kotlin (20 s je Stück, 10 s beim Öffnen).
+      expect(swift, contains('ackTimeout: TimeInterval = 20'));
+      expect(swift, contains('openTimeout: TimeInterval = 10'));
+      expect(kotlin, contains('ACK_TIMEOUT_MS = 20_000L'));
+      expect(kotlin, contains('OPEN_TIMEOUT_MS = 10_000L'));
+    });
+
+    test('kein Bluetooth vor „Uhr verbinden": ohne Uhr startet kein SDK', () {
+      // `startSdk()` legt den Bluetooth-Zugang an; ohne gewählte Uhr
+      // fragen `status` und `listen`, ohne es aufzurufen.
+      for (final func in ['status', 'listenOnly']) {
+        final code = body(func);
+        final guard = code.indexOf('guard let device = device');
+        expect(guard, greaterThan(-1), reason: func);
+        expect(code.indexOf('startSdk()'), greaterThan(guard), reason: func);
+      }
+      // Gestartet wird nur dort, nie beim Anlegen der Brücke.
+      final init = swift.substring(
+        swift.indexOf('private init('),
+        swift.indexOf('private func handle('),
+      );
+      expect(init, isNot(contains('startSdk')));
+      expect(init, isNot(contains('ConnectIQ.sharedInstance()')));
+    });
+
+    test('Garmin Connect fragen und dorthin zurück — eigenes Schema', () {
+      expect(swift, contains('urlScheme = "trailbuddy-ciq"'));
+      expect(swift, contains('connectScheme = "gcm-ciq"'));
+      expect(
+        RegExp(
+          r'<key>CFBundleURLSchemes</key>\s*<array>\s*<string>trailbuddy-ciq</string>',
+        ).hasMatch(plist),
+        isTrue,
+      );
+      expect(
+        RegExp(
+          r'<key>LSApplicationQueriesSchemes</key>\s*<array>\s*<string>gcm-ciq</string>\s*</array>',
+        ).hasMatch(plist),
+        isTrue,
+      );
+      // Der Rücksprung kommt über Flutters Szenen-Rückruf, nicht über einen
+      // eigenen SceneDelegate (der Anmelde-Rücksprung geht weiter).
+      expect(swift, contains('registrar.addSceneDelegate(bridge)'));
+      expect(swift, contains('openURLContexts'));
+      expect(
+        File('ios/Runner/AppDelegate.swift').readAsStringSync(),
+        contains('GarminBridge.register(with: registrar)'),
+      );
+    });
+
+    test('das SDK genau in 1.8.0, als Paket der App', () {
+      final pbxproj = File(
+        'ios/Runner.xcodeproj/project.pbxproj',
+      ).readAsStringSync();
+      expect(
+        pbxproj,
+        contains(
+          'repositoryURL = "https://github.com/garmin/connectiq-companion-app-sdk-ios"',
+        ),
+      );
+      expect(
+        RegExp(r'kind = exactVersion;\s*version = 1\.8\.0;').hasMatch(pbxproj),
+        isTrue,
+      );
+      expect(pbxproj, contains('ConnectIQ in Frameworks'));
+      for (final resolved in [
+        'ios/Runner.xcworkspace/xcshareddata/swiftpm/Package.resolved',
+        'ios/Runner.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved',
+      ]) {
+        final text = File(resolved).readAsStringSync();
+        expect(
+          RegExp(
+            r'"connectiq-companion-app-sdk-ios"[\s\S]*?"version" : "1\.8\.0"',
+          ).hasMatch(text),
+          isTrue,
+          reason: resolved,
+        );
+      }
     });
   });
 

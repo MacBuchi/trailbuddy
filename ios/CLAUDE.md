@@ -264,3 +264,36 @@ nur, was man beim Arbeiten an `ios/` wissen muss.
     deshalb die Erlaubnis mit. Knöpfe drücken kann die Bank nicht (dazu
     bräuchte es eine Bedienhilfe wie AXe oder XCUITest); das bleibt dem
     Gerät.
+- **Die Garmin-Uhr** (#644 Paket 4, seit 0.207.0; Plan im Kommentar vom
+  2026-11-27, Konzept-Garmin §3): `GarminBridge.swift` mit Kanal und
+  Vertrag von `GarminBridge.kt`, nur in der Engine der App (wie Kotlin in
+  `MainActivity`). Fünf Dinge, die man wissen muss:
+  - **Das SDK als Paket der App**, nicht als Plugin: Ein Plugin käme auch
+    in die Engine des Dienstes, und zwei Instanzen meldeten sich beim
+    Einzelstück `ConnectIQ.sharedInstance()` an. `project.pbxproj` trägt
+    die Paket-Referenz mit `exactVersion` 1.8.0, beide `Package.resolved`
+    den Stand (`ios_support_test`). `ConnectIQ.framework` ist dynamisch und
+    wird von Xcode eingebettet; das `-ObjC` aus Garmins Anleitung gilt für
+    statisches Linken und fehlt bewusst — meldet das Gerät „unrecognized
+    selector", kommt es dazu.
+  - **Der Rücksprung aus Garmin Connect** kommt über Flutters
+    Szenen-Rückruf (`registrar.addSceneDelegate`, `openURLContexts`, beim
+    Kaltstart `willConnectTo`), nicht über den eigenen `SceneDelegate`:
+    `FlutterSceneDelegate` deklariert die Methoden nicht öffentlich, ein
+    Swift-`override` mit `super` ginge nicht. Eigenes Schema
+    `trailbuddy-ciq` (nicht das der Anmeldung); `LSApplicationQueriesSchemes`
+    `gcm-ciq` für „ist Garmin Connect da?".
+  - **Keine Bluetooth-Frage vor „Uhr verbinden"**: `startSdk()` nur in
+    `pick`, nach einem Rücksprung oder mit gespeicherter Uhr
+    (`Application Support/garmin/device`, `NSKeyedArchiver`, ohne
+    iCloud-Sicherung). `NSBluetoothAlwaysUsageDescription` in Plist und
+    beiden `InfoPlist.strings`.
+  - **`bluetooth-central` ist NICHT im Plist** — nach der Regel aus 3b erst
+    mit Nachweis am Gerät (Route und Ansagen an die Uhr bei gesperrtem
+    Bildschirm, Fahrt der Uhr im Hintergrund, nur mit `location` wach).
+  - **Kein Prüfstand**: Der Connect-IQ-Simulator koppelt nur über adb.
+    Der Start-Smoke prüft nur „ohne Garmin Connect: `connect: false`, kein
+    Lauschen, kein `pick`" (Gegenprobe ohne `register`: rot). Garmin
+    Connect verlangt iOS 18.2 (2026-11-27) — auf dem iPhone 8 nicht
+    installierbar; der Rest braucht ein neueres iPhone mit der fēnix 6S
+    (Betreiber, 2026-11-27).

@@ -33,6 +33,8 @@ import flutter_local_notifications
       BackupExclusion.register(with: registrar.messenger())
       HostRequestCounter.register(with: registrar.messenger())
       ScreenAwake.register(with: registrar.messenger())
+      // Die Garmin-Uhr (#644 Paket 4): Kanal + Rücksprung aus Garmin Connect.
+      GarminBridge.register(with: registrar)
     }
   }
 }

@@ -1,6 +1,7 @@
 // Die Naht zur Garmin-Uhr (docs/konzept-garmin.md, Abschnitt 3): auf
-// Android Garmins Companion-SDK über den Kanal in `GarminBridge.kt`, im
-// Web keine Uhr (A9, wie das Aufzeichnen). Dieselbe Bauweise wie
+// Android Garmins Companion-SDK über den Kanal in `GarminBridge.kt`, auf
+// dem iPhone dasselbe über `ios/Runner/GarminBridge.swift` (#644 Paket 4),
+// im Web keine Uhr (A9, wie das Aufzeichnen). Dieselbe Bauweise wie
 // `lib/core/screen_awake.dart`: Der Web-Weg ist die Vorgabe,
 // `dart.library.io` wählt den Kanal. Tests ersetzen [garminBridgeProvider].
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -26,6 +27,7 @@ class WatchStatus {
     this.connect = false,
     this.device,
     this.app = WatchApp.unknown,
+    this.pick = false,
   });
 
   static const none = WatchStatus();
@@ -37,9 +39,17 @@ class WatchStatus {
   final String? device;
   final WatchApp app;
 
+  /// Nur iOS (#644 Paket 4): Das SDK sieht die Uhr nicht von selbst, man
+  /// wählt sie einmal in Garmin Connect ([GarminBridge.pick]). Steht,
+  /// solange keine erreichbare Uhr gewählt ist.
+  final bool pick;
+
   /// Der Schalter „Auf der Uhr zeigen" steht nur dann (Konzept 3): eine
   /// verbundene Uhr, auf der unsere App nicht sicher fehlt.
   bool get canShow => connect && device != null && app != WatchApp.notInstalled;
+
+  /// Statt des Schalters „Uhr verbinden" (nur iOS).
+  bool get canPick => connect && pick && device == null;
 
   static WatchStatus fromChannel(Object? raw) {
     if (raw is! Map) return none;
@@ -53,6 +63,7 @@ class WatchStatus {
       connect: raw['connect'] == true,
       device: device is String ? device : null,
       app: app,
+      pick: raw['pick'] == true,
     );
   }
 }
@@ -120,6 +131,13 @@ abstract interface class GarminBridge {
   /// zu öffnen (#484: beim Start der App, sobald einmal eine Uhr gesehen
   /// wurde — sie schickt ihre Fahrten). true, wenn eine Uhr verbunden ist.
   Future<bool> listen();
+
+  /// Die Uhr in Garmin Connect wählen (nur iOS): true, wenn Garmin Connect
+  /// aufging. Die Wahl kommt später über [picked].
+  Future<bool> pick();
+
+  /// Garmin Connect hat eine Uhr zurückgegeben — der Stand ist neu zu fragen.
+  Stream<void> get picked;
 
   /// Was die Uhr zurückschickt: „gespeichert" (`ok`) und „hallo" (`hi`,
   /// Konzept 2).

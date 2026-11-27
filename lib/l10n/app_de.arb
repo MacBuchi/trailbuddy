@@ -3455,6 +3455,10 @@
   "@navScreenTitle": {
     "description": "Schalter im Start-Blatt und Tooltip des Knopfs: Bildschirm bleibt an."
   },
+  "navWatchPick": "Uhr verbinden",
+  "@navWatchPick": {
+    "description": "Chip im Start-Blatt der Navigation auf dem iPhone (#644), solange keine Garmin-Uhr gewählt ist; der Tipp öffnet Garmin Connect, dort wählt man die Uhr. Englisch: Connect watch."
+  },
   "navWatchSearching": "Uhr wird gesucht …",
   "@navWatchSearching": {
     "description": "Zeile im Start-Blatt der Navigation, solange die App nach einer verbundenen Garmin-Uhr fragt (kann beim ersten Mal ein paar Sekunden dauern)."

@@ -696,7 +696,22 @@ sagt (E3: „3 Routen oder 4000 Punkte", bei 700 Punkten je Route dasselbe).
   die Regel stürzte jeder Release-Build beim ersten `status` ab (0.150.0,
   gesehen am Pixel 7 Pro mit fēnix 5). Der Simulator-Modus zeigt das
   nicht — eine Abnahme braucht Garmin Connect und eine echte Uhr.
-- **Web**: keine Uhr. Wie das Aufzeichnen bleibt das Android (A9).
+- **iPhone** (#644 Paket 4, seit 0.207.0): Garmins Connect-IQ-SDK für
+  iOS 1.8.0 (SPM, `garmin/connectiq-companion-app-sdk-ios`, genau diese
+  Fassung) hinter DEMSELBEN Kanal und Vertrag (`ios/Runner/GarminBridge.swift`,
+  Ergebnisse mit den Namen des Android-SDK). Anders als auf Android spricht
+  das SDK selbst per Bluetooth LE mit der Uhr; Garmin Connect braucht es
+  nur zum **Wählen der Uhr**: Ohne gewählte Uhr sagt `status` `pick: true`,
+  das Start-Blatt zeigt „Uhr verbinden" (`nav-watch-pick`) statt des
+  Schalters, der Tipp (`pick`) öffnet Garmin Connect, das über das Schema
+  `trailbuddy-ciq` mit der Liste zurückspringt (`device: PICKED`, Dart
+  fragt neu). Die Uhr merkt sich die App selbst. Ohne gewählte Uhr startet
+  das SDK nicht — keine Bluetooth-Frage vor „Uhr verbinden". Garmin
+  Connect verlangt inzwischen iOS 18.2 (App Store, 2026-11-27); auf dem
+  iPhone 8 (iOS 16.7) des Betreibers ist es nicht installierbar, die
+  Abnahme am Gerät steht deshalb aus.
+- **Web**: keine Uhr. Wie das Aufzeichnen bleibt das Android und das
+  iPhone (A9).
 - **Nachrichten klein halten.** Wie groß eine Nachricht werden darf und
   wie lange die Übertragung dauert, ist zu messen (Abschnitt 8);
   notfalls geht die Route in Stücken mit Laufnummer.

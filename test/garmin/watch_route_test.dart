@@ -376,6 +376,28 @@ void main() {
     },
   );
 
+  test('iOS: „Uhr verbinden" nur mit Garmin Connect und ohne Uhr (#644)', () {
+    // GarminBridge.swift: ohne gewählte (oder erreichbare) Uhr `pick: true`.
+    final pick = WatchStatus.fromChannel({'connect': true, 'pick': true});
+    expect(pick.canPick, isTrue);
+    expect(pick.canShow, isFalse);
+    // Ohne Garmin Connect nichts anzubieten; Android sagt nie `pick`.
+    expect(
+      WatchStatus.fromChannel({'connect': false, 'pick': true}).canPick,
+      isFalse,
+    );
+    expect(WatchStatus.fromChannel({'connect': true}).canPick, isFalse);
+    // Mit Uhr steht der Schalter, nicht die Wahl.
+    final chosen = WatchStatus.fromChannel({
+      'connect': true,
+      'pick': true,
+      'device': 'fēnix 6S',
+      'app': 'installed',
+    });
+    expect(chosen.canShow, isTrue);
+    expect(chosen.canPick, isFalse);
+  });
+
   test(
     'App-Kennung, Kanal und Grenzen stehen gleich in Uhr, Kotlin und Dart',
     () {
