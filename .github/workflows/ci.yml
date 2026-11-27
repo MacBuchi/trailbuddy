@@ -183,6 +183,13 @@ jobs:
   # - KEIN DerivedData-Cache: probiert (PR #655), 942 MB geladen, Xcode
   #   baute trotzdem alles neu (336 statt 408 s) — Flutter legt die
   #   Plugin-Pakete unter ios/Flutter/ephemeral je Lauf neu an.
+  # - KEIN Cache der Swift-Pakete: probiert (PR #667, Schlüssel aus Xcode,
+  #   Package.resolved und pubspec.lock; ~/Library/Caches/org.swift.swiftpm
+  #   und DerivedData/*/SourcePackages). Treffer, aber Xcode holte trotzdem
+  #   jedes Paket („Fetching from …"), der Xcode-Bau blieb bei 418 s
+  #   (vorher 407 s). Auch COMPILER_INDEX_STORE_ENABLE=NO brachte nichts
+  #   Messbares. Die Gesamtzeit schwankt vor allem mit dem Simulator-Boot
+  #   (3:42 bis 4:27 min).
   # - Der Simulator bootet NACH dem Einrichten, nicht parallel: Auf dem
   #   3-Kern-Runner bremste der Start alles andere aus (gemessen: Flutter
   #   einrichten 6 statt 0,7 min).
@@ -226,34 +233,10 @@ jobs:
         run: flutter config --enable-swift-package-manager
       - if: steps.scope.outputs.run == 'true'
         run: flutter pub get
-      - name: Xcode-Fassung (Schlüssel des Paket-Caches)
-        id: xcode
-        if: steps.scope.outputs.run == 'true'
-        run: |
-          xcodebuild -version
-          echo "id=$(xcodebuild -version | tr '\n' '-' | tr -d ' ')" >> "$GITHUB_OUTPUT"
-      # Die Swift-Pakete (Firebase, MapLibre, Connect IQ …) kamen bei jedem
-      # Lauf neu übers Netz — gut 4 min des Xcode-Schritts (Lauf vom
-      # 2026-11-27). Gesichert werden nur die geholten Pakete, nicht der Bau
-      # (der DerivedData-Cache half nicht, siehe oben); `info.plist` dazu,
-      # damit Xcode den Ordner seinem Workspace zuordnet. Schlüssel: Xcode +
-      # beide Package.resolved + pubspec.lock (die Plugins bringen Pakete mit).
-      - name: Swift-Pakete aus dem Cache
-        if: steps.scope.outputs.run == 'true'
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: |
-            ~/Library/Caches/org.swift.swiftpm
-            ~/Library/Developer/Xcode/DerivedData/*/SourcePackages
-            ~/Library/Developer/Xcode/DerivedData/*/info.plist
-          key: spm-${{ steps.xcode.outputs.id }}-${{ hashFiles('ios/**/Package.resolved', 'pubspec.lock') }}
-          restore-keys: spm-${{ steps.xcode.outputs.id }}-
+      - if: steps.scope.outputs.run == 'true'
+        run: xcodebuild -version
       - name: Bauen und im Simulator starten (ohne Zugangsdaten)
         if: steps.scope.outputs.run == 'true'
-        env:
-          # Kein Index fürs Editieren (FLUTTER_XCODE_* geht als Build-
-          # Einstellung an xcodebuild).
-          FLUTTER_XCODE_COMPILER_INDEX_STORE_ENABLE: 'NO'
         run: |
           # Das jüngste verfügbare iPhone; der Runner bringt mehrere mit.
           UDID=$(xcrun simctl list devices available -j | python3 -c '
