@@ -41,7 +41,8 @@ nur, was man beim Arbeiten an `ios/` wissen muss.
   `Info.plist` trägt die englische Fassung (Entwicklungssprache);
   `ios_support_test` verlangt in beiden Dateien dieselben Schlüssel wie
   `Info.plist`. `UIBackgroundModes` mit genau `location` (die Fahrt, seit
-  0.205.0) und `audio` (die Ansagen, seit 0.206.0, Nachweis unten) und
+  0.205.0), `audio` (die Ansagen, seit 0.206.0, Nachweis unten) und
+  `bluetooth-central` (die Uhr, seit 0.207.1, Nachweis unten) und
   KEIN `NSLocationAlways…` — der Test wacht über beides; ein weiterer
   Modus kommt nur mit seinem Nachweis.
 - **Datenschutz-Manifest** (`PrivacyInfo.xcprivacy`, seit 0.204.0):
@@ -288,12 +289,27 @@ nur, was man beim Arbeiten an `ios/` wissen muss.
     (`Application Support/garmin/device`, `NSKeyedArchiver`, ohne
     iCloud-Sicherung). `NSBluetoothAlwaysUsageDescription` in Plist und
     beiden `InfoPlist.strings`.
-  - **`bluetooth-central` ist NICHT im Plist** — nach der Regel aus 3b erst
-    mit Nachweis am Gerät (Route und Ansagen an die Uhr bei gesperrtem
-    Bildschirm, Fahrt der Uhr im Hintergrund, nur mit `location` wach).
+  - **`bluetooth-central` ist nötig** (seit 0.207.1, iPhone 8 + fēnix 6S,
+    2026-11-27): Ohne laufende Fahrt oder Navigation friert iOS die App im
+    Hintergrund ein, und das SDK bekommt KEINE Nachricht der Uhr — auch
+    kein „hi" beim Öffnen der Uhr-App, die Fahrt blieb dort liegen. Mit dem
+    Modus `TB-GARMIN receive hi app=background` samt Antwort. Weggewischt
+    kommt weiter nichts an (die Fahrt wartet auf der Uhr, wie auf Android
+    bei beendetem Prozess).
+  - **Anmelden: Gerät und Nachrichten getrennt** (`listeningTo`,
+    `messagesFrom`): Beim Kaltstart aus Garmin Connect läuft `take` vor
+    `status`, also ohne App-Kennung — mit einem gemeinsamen Merker meldete
+    sich die Brücke nie für Nachrichten an.
+  - **Spuren im Systemprotokoll** (`pymobiledevice3 syslog live | grep
+    TB-GARMIN`): `up` (neuer Prozess, Uhr gespeichert?), `app
+    background/foreground`, `call <methode>`, `listen messages`,
+    `device`/`receive … app=<Zustand>`, `send … after i of n`; aus Dart
+    `w: Stück p/n` und das Ergebnis des Speicherns. Nie Inhalt.
   - **Kein Prüfstand**: Der Connect-IQ-Simulator koppelt nur über adb.
     Der Start-Smoke prüft nur „ohne Garmin Connect: `connect: false`, kein
     Lauschen, kein `pick`" (Gegenprobe ohne `register`: rot). Garmin
-    Connect verlangt iOS 18.2 (2026-11-27) — auf dem iPhone 8 nicht
-    installierbar; der Rest braucht ein neueres iPhone mit der fēnix 6S
-    (Betreiber, 2026-11-27).
+    Connect verlangt im App Store iOS 18.2 (2026-11-27); der Betreiber hat
+    eine ältere Fassung aufs iPhone 8 gebracht, damit lief die Abnahme
+    (Wahl, Route, Positionen, `rs`, Fahrt der Uhr zurück).
+    Offen: Eine Fahrt der Uhr mit drei Nachrichten kam nie ganz an — die
+    Uhr hört nach Stück 2 auf (Uhr-Seite, eigenes Issue).

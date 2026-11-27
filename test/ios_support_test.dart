@@ -244,8 +244,11 @@ void main() {
       // Hintergrundmodus und „Beim Benutzen" — kein „Immer". Dazu `audio`
       // für die Ansagen (Paket 3b): Am iPhone 8 (iOS 16.7) verweigerte die
       // Audio-Sitzung im Hintergrund ohne ihn jeden Satz ('!pla',
-      // 2026-11-27). Sonst kein Modus (Abruf, Push), den die App nicht
-      // nachweist.
+      // 2026-11-27). Und `bluetooth-central` für die Uhr (Paket 4): Ohne ihn
+      // fror iOS die App im Hintergrund ein, und KEINE Nachricht der Uhr
+      // kam an (iPhone 8, 2026-11-27: „hi" erst mit `app=active`); mit ihm
+      // `receive hi app=background` samt Antwort. Sonst kein Modus (Abruf,
+      // Push), den die App nicht nachweist.
       expect(plist, isNot(contains('NSLocationAlways')));
       final modes = RegExp(
         r'<key>UIBackgroundModes</key>\s*<array>(.*?)</array>',
@@ -254,9 +257,9 @@ void main() {
       expect(modes, isNotNull);
       expect(
         RegExp(
-          r'<string>(\w+)</string>',
+          r'<string>([\w-]+)</string>',
         ).allMatches(modes![1]!).map((m) => m[1]).toList(),
-        ['location', 'audio'],
+        ['location', 'audio', 'bluetooth-central'],
       );
       expect(plist, isNot(contains('BGTaskSchedulerPermittedIdentifiers')));
     });

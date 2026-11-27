@@ -121,6 +121,10 @@ class WatchRideInbox extends Notifier<int> {
       inc.events = watchEventsOf((message as Map)['ev']);
     }
     inc.touched = t;
+    // Nur Zähler, nie Inhalt — fürs Systemprotokoll am Gerät (#644).
+    debugPrint(
+      'TB-GARMIN w: Stück ${part.p + 1}/${part.n}, da ${inc.parts.length}',
+    );
     if (inc.parts.length < inc.n) return;
     _incoming.remove(part.id);
     if (!_saving.add(part.id)) return;
@@ -161,6 +165,7 @@ class WatchRideInbox extends Notifier<int> {
     final result = await ref
         .read(ridesProvider.notifier)
         .saveFromWatch(points, profile: profile, marks: marks);
+    debugPrint('TB-GARMIN w: ${points.length} Punkte, $result');
     if (result == WatchRideSave.failed) return;
     await bridge.send([watchRideAckOf(id)]);
     if (result == WatchRideSave.saved) state = state + 1;
