@@ -2,6 +2,12 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## The Garmin watch with the iPhone
+
+*Version 0.207.0, 2026-11-27*
+
+On the iPhone, too, the route now goes to the Garmin watch and its rides come back, as on Android. There, TrailBuddy does not see the watch by itself: the navigation start sheet shows "Connect watch" once, the tap opens Garmin Connect, and you choose the watch there. After that, the usual switch with its name appears. The iPhone asks for Bluetooth only on "Connect watch", never when you open the app. Garmin Connect must be installed on the iPhone; without it nothing appears. Nothing changes on Android or the web.
+
 ## Notifications, spoken cues and navigation on the iPhone
 
 *Version 0.206.0, 2026-11-27*

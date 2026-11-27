@@ -23,6 +23,12 @@ class _NoWatch implements GarminBridge {
   Future<bool> listen() async => false;
 
   @override
+  Future<bool> pick() async => false;
+
+  @override
+  Stream<void> get picked => const Stream.empty();
+
+  @override
   Stream<Object?> get messages => const Stream.empty();
 
   @override

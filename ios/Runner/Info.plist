@@ -29,7 +29,21 @@
 				<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
 			</array>
 		</dict>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>garmin-device-selection</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>trailbuddy-ciq</string>
+			</array>
+		</dict>
 	</array>
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>gcm-ciq</string>
+	</array>
+	<key>NSBluetoothAlwaysUsageDescription</key>
+	<string>Connects your Garmin watch with TrailBuddy: the route goes to the watch, and its rides come back.</string>
 	<key>NSCameraUsageDescription</key>
 	<string>For a photo with a trail report. TrailBuddy removes location and camera data before uploading.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>

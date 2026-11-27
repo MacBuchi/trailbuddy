@@ -4,7 +4,8 @@
 //
 // - der Start erreicht die Anmeldung, ohne Ausnahme;
 // - die eigenen Kanäle der App antworten (BackupExclusion.swift,
-//   HostRequestCounter.swift — dieselben Namen wie in Kotlin);
+//   HostRequestCounter.swift, GarminBridge.swift — dieselben Namen wie in
+//   Kotlin); die Uhr ohne Garmin Connect: „keine", ohne „Uhr verbinden";
 // - Fahrten, Korb und Zwischenspeicher sind von der iCloud-Sicherung
 //   ausgenommen (dieselbe Liste wie backup_rules.xml).
 //
@@ -14,10 +15,14 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:trailbuddy/core/backup_exclusions.dart';
+import 'package:trailbuddy/features/garmin/garmin_bridge.dart';
+import 'package:trailbuddy/features/garmin/garmin_bridge_io.dart'
+    show kGarminChannel;
 import 'package:trailbuddy/features/map/host_requests.dart';
 import 'package:trailbuddy/main.dart' as app;
 
@@ -42,6 +47,21 @@ void main() {
 
     // main() hat den Zähler eingehängt (Debug) — die Swift-Seite sagt es.
     expect(await kHostRequestsChannel.invokeMethod<bool>('installed'), isTrue);
+
+    // Die Uhr (#644 Paket 4): Im Simulator gibt es kein Garmin Connect —
+    // die Swift-Seite antwortet „nicht da", ohne das SDK zu starten, und
+    // ohne gewählte Uhr lauscht sie nicht.
+    const garmin = MethodChannel(kGarminChannel);
+    final status = WatchStatus.fromChannel(
+      await garmin.invokeMethod<Object?>('status', {'appId': kWatchAppId}),
+    );
+    expect(status.connect, isFalse);
+    expect(status.canPick, isFalse);
+    expect(
+      await garmin.invokeMethod<bool>('listen', {'appId': kWatchAppId}),
+      isFalse,
+    );
+    expect(await garmin.invokeMethod<bool>('pick'), isFalse);
 
     // Der Ausschluss läuft ohne Warten an; kurz Zeit geben.
     final base = (await getApplicationSupportDirectory()).path;

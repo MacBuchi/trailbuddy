@@ -208,6 +208,34 @@ class FakeGarminBridge implements GarminBridge {
     return status_.device != null;
   }
 
+  /// Wie oft „Uhr verbinden" Garmin Connect öffnete (nur iOS).
+  int picks = 0;
+
+  /// Was Garmin Connect nach [pick] zurückgibt: eine Uhr mit unserer App,
+  /// oder null — die Wahl abgebrochen.
+  WatchStatus? pickResult = const WatchStatus(
+    connect: true,
+    device: 'fēnix 6S',
+    app: WatchApp.installed,
+  );
+
+  final _picked = StreamController<void>.broadcast();
+
+  @override
+  Future<bool> pick() async {
+    picks++;
+    final chosen = pickResult;
+    if (chosen != null) {
+      status_ = chosen;
+      // Wie der Rücksprung aus Garmin Connect: erst nach dem Aufruf.
+      scheduleMicrotask(() => _picked.add(null));
+    }
+    return true;
+  }
+
+  @override
+  Stream<void> get picked => _picked.stream;
+
   /// Die Antworten auf Fahrten (`wk`) und „schick" (`wq`).
   List<Map<String, Object>> get rideAnswers => [
     for (final batch in sent)

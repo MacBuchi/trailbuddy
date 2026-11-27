@@ -152,6 +152,10 @@ final watchStatusProvider = FutureProvider.autoDispose<WatchStatus>((
 ) async {
   final bridge = ref.watch(garminBridgeProvider);
   if (!bridge.supported) return WatchStatus.none;
+  // iOS (#644 Paket 4): Nach „Uhr verbinden" kommt die Wahl aus Garmin
+  // Connect zurück — dann neu fragen, damit der Schalter erscheint.
+  final picked = bridge.picked.listen((_) => ref.invalidateSelf());
+  ref.onDispose(picked.cancel);
   final status = await bridge.status();
   // Eine Uhr mit unserer App: ab jetzt beim Start lauschen, und gleich
   // auch — sie hält vielleicht schon Fahrten (#484).

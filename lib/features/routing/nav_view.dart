@@ -238,6 +238,16 @@ class _NavStartOptionsState extends ConsumerState<NavStartOptions> {
                 ref.watch(navWatchProvider),
                 (v) => ref.read(navWatchProvider.notifier).set(v),
               )
+            else if (watch.canPick)
+              // iOS (#644 Paket 4): die Uhr einmal in Garmin Connect wählen.
+              ActionChip(
+                key: const ValueKey('nav-watch-pick'),
+                avatar: const Icon(Icons.watch_outlined, size: 18),
+                label: Text(l.navWatchPick),
+                onPressed: () => ref.read(garminBridgeProvider).pick(),
+                visualDensity: VisualDensity.compact,
+                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              )
             else if (watchSearching)
               Chip(
                 key: const ValueKey('nav-watch-searching'),

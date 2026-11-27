@@ -23,7 +23,7 @@ import 'package:trailbuddy/core/app_colors.dart';
 import 'package:trailbuddy/core/picture_in_picture.dart';
 import 'package:trailbuddy/core/screen_awake.dart';
 import 'package:trailbuddy/features/garmin/garmin_bridge.dart'
-    show WatchOpen, WatchSendResult;
+    show WatchOpen, WatchSendResult, WatchStatus;
 import 'package:trailbuddy/features/garmin/watch_providers.dart'
     show
         kWatchAckWait,
@@ -1718,6 +1718,45 @@ void main() {
     expect(find.byKey(const ValueKey('nav-watch-searching')), findsNothing);
     expect(find.byKey(const ValueKey('nav-watch')), findsOneWidget);
   });
+
+  testWidgets(
+    '#644: auf dem iPhone „Uhr verbinden", nach der Wahl der Schalter',
+    (tester) async {
+      // Das iOS-SDK sieht die Uhr nicht von selbst: ohne gewählte Uhr
+      // `pick: true` (GarminBridge.swift).
+      final watch = FakeGarminBridge(
+        status_: const WatchStatus(connect: true, pick: true),
+      );
+      await startFromRides(tester, garmin: watch);
+      await settle(tester, frames: 4);
+      expect(find.byKey(const ValueKey('nav-watch')), findsNothing);
+      expect(find.byKey(const ValueKey('nav-watch-pick')), findsOneWidget);
+      expect(find.text('Uhr verbinden'), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('nav-watch-pick')));
+      await settle(tester, frames: 6);
+      expect(watch.picks, 1);
+      // Der Rücksprung aus Garmin Connect fragt den Stand neu.
+      expect(find.byKey(const ValueKey('nav-watch-pick')), findsNothing);
+      expect(find.byKey(const ValueKey('nav-watch')), findsOneWidget);
+      expect(find.text('fēnix 6S'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    '#644: ohne Wahl in Garmin Connect bleibt „Uhr verbinden" stehen',
+    (tester) async {
+      final watch = FakeGarminBridge(
+        status_: const WatchStatus(connect: true, pick: true),
+      )..pickResult = null;
+      await startFromRides(tester, garmin: watch);
+      await settle(tester, frames: 4);
+      await tester.tap(find.byKey(const ValueKey('nav-watch-pick')));
+      await settle(tester, frames: 6);
+      expect(watch.picks, 1);
+      expect(find.byKey(const ValueKey('nav-watch-pick')), findsOneWidget);
+      expect(find.byKey(const ValueKey('nav-watch')), findsNothing);
+    },
+  );
 
   testWidgets(
     '#449: ohne „gespeichert" sagt die Leiste, dass die Uhr nicht antwortet',

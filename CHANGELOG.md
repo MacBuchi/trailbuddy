@@ -2,6 +2,12 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Die Garmin-Uhr am iPhone
+
+*Version 0.207.0, 2026-11-27*
+
+Auch auf dem iPhone geht die Route jetzt auf die Garmin-Uhr, und ihre Fahrten kommen zurück — wie auf Android. Dort sieht TrailBuddy die Uhr nicht von selbst: Im Start-Blatt der Navigation steht einmal „Uhr verbinden", der Tipp öffnet Garmin Connect, und dort wählst du die Uhr. Danach steht der gewohnte Schalter mit ihrem Namen. Nach Bluetooth fragt das iPhone erst bei „Uhr verbinden", nie beim Öffnen der App. Garmin Connect muss auf dem iPhone installiert sein; ohne erscheint nichts. Auf Android und im Web ändert sich nichts.
+
 ## Mitteilungen, Ansagen und Navigation auf dem iPhone
 
 *Version 0.206.0, 2026-11-27*
