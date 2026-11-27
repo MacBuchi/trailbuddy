@@ -40,11 +40,10 @@ nur, was man beim Arbeiten an `ios/` wissen muss.
   0.204.0 je Sprache in `de.lproj`/`en.lproj/InfoPlist.strings` (A14),
   `Info.plist` trägt die englische Fassung (Entwicklungssprache);
   `ios_support_test` verlangt in beiden Dateien dieselben Schlüssel wie
-  `Info.plist`. Seit 0.205.0 `UIBackgroundModes` mit genau `location`
-  (die Fahrt, unten) und KEIN `NSLocationAlways…` — der Test wacht über
-  beides; ein weiterer Modus (Audio für Ansagen) kommt nur mit seinem
-  Nachweis — im Simulator sprach die Stimme im Hintergrund ohne ihn
-  (Paket 3b, unten).
+  `Info.plist`. `UIBackgroundModes` mit genau `location` (die Fahrt, seit
+  0.205.0) und `audio` (die Ansagen, seit 0.206.0, Nachweis unten) und
+  KEIN `NSLocationAlways…` — der Test wacht über beides; ein weiterer
+  Modus kommt nur mit seinem Nachweis.
 - **Datenschutz-Manifest** (`PrivacyInfo.xcprivacy`, seit 0.204.0):
   dieselben Datenarten wie die Datensicherheit in `docs/play-console.md`,
   kein Tracking, Gründe für UserDefaults (CA92.1) und Dateizeiten
@@ -226,19 +225,24 @@ nur, was man beim Arbeiten an `ios/` wissen muss.
     `FlutterLocalNotificationsPlugin.setPluginRegistrantCallback` und
     `UNUserNotificationCenter.current().delegate` in `AppDelegate`, beides
     vor `super.application`. Jede Engine außer dieser meldet das Plugin als
-    App-Delegate an (App UND Dienst) — eine Antwort könnte daher doppelt
-    ankommen; ob, zeigt erst ein Knopfdruck am Gerät (eine doppelte Zeile
-    schadet nicht: je Trail gilt die letzte Antwort).
+    App-Delegate an (App UND Dienst); am iPhone 8 (iOS 16.7, 2026-11-27)
+    stand trotzdem jede Antwort GENAU EINMAL in der Fahrt („Trail ist
+    frei" und „Stimmt" gesperrt gedrückt, App im Hintergrund). Die Knöpfe
+    zeigt iOS erst nach etwa 1 s Halten auf EINER Mitteilung — Tippen
+    öffnet die App, Wischen zeigt nur „Optionen"; ein Stapel geht beim
+    ersten Halten nur auf.
   - **Die Stimme**: `packages/tb_voice/ios` (Swift, SPM), derselbe Kanal und
     Vertrag wie Java. `AVSpeechSynthesizer`, Sitzung je Satz `.playback` /
     `.voicePrompt` / `.duckOthers` + `.interruptSpokenAudioAndMixWithOthers`,
     danach frei mit `.notifyOthersOnDeactivation`. `TB-VOICE`-Zeilen im
     Systemprotokoll (Sitzung an oder Fehlercode, Beginn, Ende).
-    **`UIBackgroundModes` `audio` fehlt mit Absicht**: Im Simulator (iOS
-    26.2) bekam die Stimme im Hintergrund, wach gehalten nur vom Standort,
-    die Sitzung und sprach (`session active app=background`, `start`,
-    `done` nach ~2 s, 2026-11-27). Kommt am Gerät `cannotStartPlaying`
-    (`!pla`), dann gehört `audio` hinein — mit Test und Befund.
+    **`UIBackgroundModes` `audio` ist nötig**: Im Simulator (iOS 26.2)
+    bekam die Stimme die Sitzung im Hintergrund auch ohne ihn, am iPhone 8
+    (iOS 16.7, 2026-11-27) nicht — jeder Satz bei gesperrtem Bildschirm
+    endete mit `session error 561015905` (`'!pla'`, `cannotStartPlaying`),
+    zu hören nur bei offener App. Mit `audio`: `session active
+    app=background`, `start`, `done`, die Musik wird leiser und wieder
+    laut. Der Simulator taugt für diese Frage also nicht.
   - **Navigation im Dienst** (`navServiceSupported`): derselbe gehaltene
     Strom wie die Fahrt (`HeldFix`, startet beim Tipp, also vorne). Ohne
     Benachrichtigung mit Rest und ohne „Navigation beenden" vom

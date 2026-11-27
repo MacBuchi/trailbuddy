@@ -237,8 +237,11 @@ void main() {
         );
       }
       // Die Fahrt (#644, Paket 3): Standort im Hintergrund NUR über den
-      // Hintergrundmodus und „Beim Benutzen" — kein „Immer", und sonst
-      // kein Modus (Audio, Abruf, Push), den die App nicht nachweist.
+      // Hintergrundmodus und „Beim Benutzen" — kein „Immer". Dazu `audio`
+      // für die Ansagen (Paket 3b): Am iPhone 8 (iOS 16.7) verweigerte die
+      // Audio-Sitzung im Hintergrund ohne ihn jeden Satz ('!pla',
+      // 2026-11-27). Sonst kein Modus (Abruf, Push), den die App nicht
+      // nachweist.
       expect(plist, isNot(contains('NSLocationAlways')));
       final modes = RegExp(
         r'<key>UIBackgroundModes</key>\s*<array>(.*?)</array>',
@@ -249,7 +252,7 @@ void main() {
         RegExp(
           r'<string>(\w+)</string>',
         ).allMatches(modes![1]!).map((m) => m[1]).toList(),
-        ['location'],
+        ['location', 'audio'],
       );
       expect(plist, isNot(contains('BGTaskSchedulerPermittedIdentifiers')));
     });

@@ -18,7 +18,8 @@ import UIKit
 ///
 /// `TB-VOICE`-Zeilen im Systemprotokoll sind der Nachweis, ob im
 /// Hintergrund gesprochen wird (Sitzung an oder Fehlercode, Beginn und Ende
-/// des Satzes) — `UIBackgroundModes` `audio` kommt nur mit ihm (ios/CLAUDE.md).
+/// des Satzes). Am Gerät braucht es dafür `UIBackgroundModes` `audio`
+/// (ios/CLAUDE.md; im Simulator ging es ohne).
 public class TbVoicePlugin: NSObject, FlutterPlugin, AVSpeechSynthesizerDelegate {
   static let channelName = "de.mcbuchi.trailbuddy/voice"
 
