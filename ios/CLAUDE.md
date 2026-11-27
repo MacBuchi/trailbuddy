@@ -124,6 +124,18 @@ nur, was man beim Arbeiten an `ios/` wissen muss.
     Eingabetaste des Passworts. `xcrun simctl io … screenshot` zeigt
     während `flutter test` den Home-Bildschirm, nicht die App — was zu
     sehen ist, sagen die Finder.
+- **Kein Firebase auf iOS** (#668, seit 0.207.2): Push gibt es auf dem
+  iPhone nicht, trotzdem holte Xcode `firebase-ios-sdk` mit 14 weiteren
+  Google-Paketen (vollständige Git-Klone) und kompilierte Core und
+  Messaging — Flutter nimmt jedes Plugin, dessen `pubspec.yaml` `ios`
+  nennt. `dependency_overrides` zeigt auf `packages/overrides/firebase_*`,
+  eine von `tool/firebase_overrides.py` ERZEUGTE Kopie derselben Fassung
+  nur mit `lib/` und `android/`, ohne die Plattformen ios/macos/windows.
+  Übrig bleiben zwei Swift-Pakete (Connect IQ, MapLibre).
+  `test/firebase_overrides_test.dart` prüft Override, Plattformen,
+  Fassung und `Package.resolved`. **Nach jedem Firebase-Update** das
+  Skript laufen lassen (sonst nimmt die App die alte Kopie). Kommt Push
+  aufs iPhone, fällt das wieder weg.
 - **Plattform-Weichen stehen nur in `lib/core/platform_support.dart`**
   (#644, seit 0.204.0; `ios_support_test` sucht in `lib/` nach
   `TargetPlatform.android/iOS` und `Platform.isAndroid/isIOS`). Zwei Arten:

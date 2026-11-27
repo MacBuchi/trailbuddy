@@ -4,7 +4,7 @@ publish_to: 'none'
 
 # Beide Teile erhöhen (z. B. 0.1.0+1 → 0.1.1+2). Ein Bump auf main taggt und
 # baut ein Prerelease (release.yml); ohne Bump kein Release (Version Guard).
-version: 0.207.1+314
+version: 0.207.2+315
 
 environment:
   sdk: ^3.11.0
@@ -169,6 +169,16 @@ dev_dependencies:
   # die echten Umsetzungen auf, statt ihre Regeln nachzubauen.
   file_selector_android: ^0.5.2+11
   file_selector_ios: ^0.5.3+6
+
+# Firebase ohne iOS (#668): Push gibt es auf dem iPhone nicht, trotzdem holte
+# und kompilierte Xcode das ganze firebase-ios-sdk. Dieselben Fassungen wie
+# oben, ERZEUGT von tool/firebase_overrides.py (nur lib/, android/, ohne die
+# Plattformen ios, macos, windows). Nach jedem Firebase-Update neu erzeugen.
+dependency_overrides:
+  firebase_core:
+    path: packages/overrides/firebase_core
+  firebase_messaging:
+    path: packages/overrides/firebase_messaging
 
 flutter:
   uses-material-design: true
