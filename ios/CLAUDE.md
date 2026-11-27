@@ -79,7 +79,7 @@ nur, was man beim Arbeiten an `ios/` wissen muss.
   `xcodebuild -downloadPlatform iOS`). Umgeschaltet wird mit
   `xcode-select -s`; mit Xcode 26 findet `flutter devices` das Gerät, und
   `flutter run --release` installiert (oder `ios-deploy` aus
-  `bin/cache/artifacts` mit einem Build von Xcode 27). Drei Fallen:
+  `bin/cache/artifacts` mit einem Build von Xcode 27). Vier Fallen:
   - **`DEVELOPER_DIR` reicht nicht**: `hooks_runner` startet die
     Native-Asset-Hooks (`objective_c`) ohne die Umgebung
     (`includeParentEnvironment: false`), `xcrun` fällt auf `xcode-select`
@@ -92,6 +92,13 @@ nur, was man beim Arbeiten an `ios/` wissen muss.
   - **Entwicklermodus am Gerät und ein Konto in Xcode** (die Konten
     teilen sich beide Fassungen; einzutragen in Xcode 27). Ohne Konto:
     „No Accounts" und kein Profil.
+  - **`flutter attach` bricht ab** („connection to device ended too
+    early", 2026-11-27). Die App schreibt die Adresse ihres VM-Service ins
+    Systemprotokoll (`pymobiledevice3 syslog live`, „VM service is
+    listening on …"); `pymobiledevice3 usbmux forward <port> <port>` holt
+    den Port, dann geht der Service direkt (Bildzeiten aus der Timeline,
+    Messung in #644). Die Karte zeichnet MapLibre selbst: Flutter-Frames
+    messen nur, was darüber liegt.
 - **Xcode 27 hat keine `Simulator.app` mehr** (es gibt `DeviceHub.app`).
   Starten und Bilder gehen über `xcrun simctl` (`install`, `launch`,
   `io … screenshot`); bedienen über einen Integrationstest
