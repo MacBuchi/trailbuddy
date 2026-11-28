@@ -130,6 +130,19 @@ const Map<String, Object> watchRidePull = {'t': kWatchRidePull};
 /// „Die Fahrt [id] liegt auf dem Handy" — erst dann löscht die Uhr sie.
 Map<String, Object> watchRideAckOf(String id) => {'t': kWatchRideAck, 'id': id};
 
+/// Woran die letzte Fahrt der Uhr scheiterte (#666): `wf` im „hallo" =
+/// `[Teil, von, Art]`, Teil einsbasiert, Art `e` (Garmin Connect meldete
+/// einen Fehler, nach den Wiederholungen der Uhr) oder `s` (keine Antwort).
+/// Null ohne Angabe oder bei falscher Form; eine ältere Uhr schickt nichts.
+({int part, int of, bool silent})? watchRideFailureOf(Object? message) {
+  if (message is! Map) return null;
+  final wf = message['wf'];
+  if (wf is! List || wf.length != 3) return null;
+  final part = wf[0], of = wf[1], how = wf[2];
+  if (part is! int || of is! int || (how != 'e' && how != 's')) return null;
+  return (part: part, of: of, silent: how == 's');
+}
+
 /// Eine Nachricht der Fahrt: `(id, p, n, chunks, marks)`, oder null bei
 /// falscher Form. [marks] trägt nur die erste.
 ({String id, int p, int n, List<List<int>> chunks, List<RideMark> marks})?

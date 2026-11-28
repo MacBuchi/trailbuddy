@@ -70,6 +70,10 @@ class WatchCore {
     var tx as Array? = null;
     var txP as Number = 0;
     hidden var _txAt as Number = 0;
+    //! Fehlversuche der laufenden Nachricht und wann sie wieder geht
+    //! (#666, 0 = keiner wartet).
+    hidden var _txTry as Number = 0;
+    hidden var _retryAt as Number = 0;
     //! Eine Fahrt wartet, durfte aber nicht gehen, weil eine Route kam
     //! ([startUpload]): Sie geht, sobald die Route geladen ist (#509, Fall
     //! 509.7 — sonst verfiel ein „schick" während des Wartens).
@@ -116,6 +120,11 @@ class WatchCore {
     //! Connect und nach der letzten auf das `wk` des Handys (eine
     //! Nachricht braucht ~3,5 s, Messung 8.2); dann zu, die Fahrt wartet.
     static const RIDE_WAIT_MS = 20000;
+    //! Scheitert eine Nachricht der Fahrt, geht sie so oft wieder, je nach
+    //! so vielen ms (#666: Teil 3 von 3 kam nie an, die Uhr gab beim
+    //! ersten Fehler auf und fing beim nächsten „hallo" von vorn an).
+    static const PART_TRIES = 3;
+    static const PART_RETRY_MS = 3000;
     //! So lange steht „Fahrt gespeichert, wartet aufs Handy".
     static const QUEUED_SHOW_MS = 2500;
     //! So lange darf eine angekündigte Route ohne neues Stück sein (eins
@@ -230,7 +239,7 @@ class WatchCore {
     //! gewartet wird (Bild des Laders, Häppchen), langsam für eine Frist,
     //! sonst keiner. Ein Timer für alles — ältere Uhren haben nur wenige.
     hidden function pace() as Void {
-        var p = loading || wait != 0 ? 50 : (swapAt != 0 || exitAt != 0 || _calmAt != 0 || _sensorCue != null ? 250 : 0);
+        var p = loading || wait != 0 ? 50 : (swapAt != 0 || exitAt != 0 || _calmAt != 0 || _retryAt != 0 || _sensorCue != null ? 250 : 0);
         if (p != _pace) {
             _pace = p;
             _host.pace(p);
@@ -254,9 +263,14 @@ class WatchCore {
         if (_sensorCue != null && now - _sensorCueUntil >= 0) { clearSensorCue(); }
         // Die Frist der Frage läuft sichtbar ab (#513).
         if (swapAt != 0 && ui.asking()) { WatchUi.requestUpdate(); }
+        if (_retryAt != 0 && now - _retryAt >= 0) {
+            _retryAt = 0;
+            if (tx != null) { sendRidePart(); }
+        }
         if (exitAt != 0 && now - exitAt >= 0) {
             exitAt = 0;
             ev(80); // Frist: zu
+            stuck();
             _host.exit();
             return;
         }
@@ -319,6 +333,10 @@ class WatchCore {
         // (#510); ein älteres Handy übersieht den Schlüssel.
         var crash = EventLog.crashed(_host.connected());
         if (crash != null) { msg["ev"] = crash; }
+        // Woran die Fahrt zuletzt scheiterte (#666): `[Teil, von, Art]`.
+        stuck();
+        var wf = Application.Storage.getValue("wf");
+        if (wf != null) { msg["wf"] = wf; }
         toPhone(msg);
     }
 
@@ -776,6 +794,8 @@ class WatchCore {
         }
         tx = q[0];
         txP = 0;
+        _txTry = 0;
+        _retryAt = 0;
         sendRidePart();
         return true;
     }
@@ -794,9 +814,18 @@ class WatchCore {
     function rideSent(ok as Boolean) as Void {
         now = _host.now();
         var e = tx;
-        if (e == null) { return; }
+        if (e == null || _retryAt != 0) { return; }
         ev(ok ? 58 : 59); // Übertragung: Fahrt
         if (!ok) {
+            if (_txTry < PART_TRIES) {
+                // Gleich noch einmal — dieselbe Nachricht, nicht von vorn.
+                _txTry++;
+                _retryAt = now + PART_RETRY_MS;
+                if (closing) { armExit(RIDE_WAIT_MS); }
+                pace();
+                return;
+            }
+            failed(e, "e");
             tx = null;
             if (closing) {
                 showEnd(str(Rez.Strings.RideWaits));
@@ -805,15 +834,31 @@ class WatchCore {
             return;
         }
         txP++;
+        _txTry = 0;
         _txAt = now;
         // Sonst wartet sie auf `wk` — beim Beenden höchstens RIDE_WAIT_MS.
         if (txP < RideLog.messageCount(e)) { sendRidePart(); }
+    }
+
+    //! Die Fahrt [e] kam nicht ganz hinüber: Teil, Zahl der Teile und Art
+    //! (`e` Fehler von Garmin Connect, `s` keine Antwort) für das nächste
+    //! „hallo" (#666) — die Ursache sieht man sonst nur auf der Uhr.
+    hidden function failed(e as Array, how as String) as Void {
+        PhoneRoute.store("wf", [txP + 1, RideLog.messageCount(e), how]);
+    }
+
+    //! Hängt eine Nachricht der Fahrt ohne Antwort von Garmin Connect?
+    hidden function stuck() as Void {
+        var e = tx;
+        if (e != null && _retryAt == 0 && txP < RideLog.messageCount(e)
+                && now - _txAt >= RIDE_WAIT_MS) { failed(e, "s"); }
     }
 
     //! Das Handy hat die Fahrt [id] gespeichert (oder hatte sie schon):
     //! weg damit, kurz vibrieren, die nächste.
     hidden function rideAcked(id as String) as Void {
         if (!RideLog.ack(id)) { return; }
+        Application.Storage.deleteValue("wf");
         var e = tx;
         if (e != null && id.equals(e[0])) { tx = null; }
         _host.vibrate(false);
@@ -846,6 +891,8 @@ class WatchCore {
         } else if ("wq".equals(t)) {
             // Eine Antwort auf „hallo": Der Absturz-Ring kam mit an.
             EventLog.delivered();
+            // Das Handy las das „hallo" samt `wf`.
+            Application.Storage.deleteValue("wf");
             // Die Fahrt: „schick" (die Antwort auf „hallo" mit `rq`) …
             if (!closing) { startUpload(); }
         } else if ("wk".equals(t)) {

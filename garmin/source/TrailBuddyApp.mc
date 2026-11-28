@@ -328,6 +328,10 @@ class TrailBuddyApp extends Application.AppBase {
     //   `{t: "_t", ms}`       die Uhr des Ablaufs springt vor, dann ein Takt
     //   `{t: "_x", drop}`     Nachrichten dieser Art nicht senden (der
     //                         gewollte Bruch: „die Uhr antwortet nie ok")
+    //   `{t: "_e", p, n}`     die nächsten n Sendungen von Teil p der Fahrt
+    //                         scheitern (`onError`, #666)
+    //   `{t: "_l", n}`        eine erfundene Fahrt aus n Stücken wartet
+    //                         (13 Stücke = 3 Nachrichten, #666)
     //   `{t: "_s"}`           nur den Stand melden
     //   `{t: "_r"}`           der nächste Start (binnen 2 min) behält den
     //                         Speicher (der Treiber startet neu, #510)
@@ -344,6 +348,8 @@ class TrailBuddyApp extends Application.AppBase {
     (:bench) hidden var _shift as Number = 0;
     (:bench) hidden var _fixT as Number = 0;
     (:bench) hidden var _drop as String? = null;
+    (:bench) hidden var _failP as Number = -1;
+    (:bench) hidden var _failN as Number = 0;
     //! Das Menü, das die Uhr gerade zeigen würde ("" keins).
     (:bench) hidden var _benchMenu as String = "";
     (:bench) hidden var _fixTimer as Timer.Timer?;
@@ -390,7 +396,13 @@ class TrailBuddyApp extends Application.AppBase {
             System.println("bench drop " + t);
             return;
         }
-        System.println("bench tx " + t);
+        if (_failN > 0 && "w".equals(t) && msg["p"] == _failP) {
+            _failN--;
+            System.println("bench fail w " + _failP);
+            ackFor(kind).onError();
+            return;
+        }
+        System.println("bench tx " + t + ("w".equals(t) ? " " + msg["p"] : ""));
         transmit(msg, ackFor(kind));
     }
 
@@ -432,6 +444,14 @@ class TrailBuddyApp extends Application.AppBase {
         } else if ("_x".equals(t)) {
             var x = d["drop"];
             _drop = x instanceof String ? x : null;
+        } else if ("_e".equals(t)) {
+            var fp = d["p"];
+            var fn = d["n"];
+            _failP = fp instanceof Number ? fp : -1;
+            _failN = fn instanceof Number ? fn : 0;
+        } else if ("_l".equals(t)) {
+            var n = d["n"];
+            if (n instanceof Number) { benchLongRide(n); }
         } else if ("_r".equals(t) || "_z".equals(t)) {
             Application.Storage.setValue("benchKeep", Time.now().value());
             if ("_z".equals(t)) {
@@ -441,6 +461,24 @@ class TrailBuddyApp extends Application.AppBase {
             }
         }
         benchState();
+    }
+
+    //! Eine erfundene Fahrt aus [n] vollen Stücken nach Norden, am Äquator
+    //! (keine echte Spur, A7), wie [RideLog] sie ablegt.
+    (:bench)
+    hidden function benchLongRide(n as Number) as Void {
+        var id = "bench" + n;
+        var t0 = Time.now().value() - n * RideLog.CHUNK_POINTS * RideLog.EVERY_S;
+        for (var k = 0; k < n; k++) {
+            var c = [k * 3000, 100, t0 + k * RideLog.CHUNK_POINTS * RideLog.EVERY_S, 4000, 0] as Array<Number>;
+            for (var i = 1; i < RideLog.CHUNK_POINTS; i++) {
+                c.add(50 << 16);
+                c.add(RideLog.EVERY_S << 16);
+            }
+            Application.Storage.setValue(RideLog.key(id, k), c);
+        }
+        RideLog.enqueue(id, n, n * RideLog.CHUNK_POINTS);
+        System.println("bench long ride " + id);
     }
 
     (:bench)

@@ -97,6 +97,15 @@ class WatchRideInbox extends Notifier<int> {
             .read(watchEventStoreProvider)
             .add(WatchEventLog(at: now(), fromCrash: true, events: crash));
       }
+      // Woran die Fahrt zuletzt scheiterte (#666) — nur Zähler, fürs
+      // Systemprotokoll am Gerät.
+      final failed = watchRideFailureOf(message);
+      if (failed != null) {
+        debugPrint(
+          'TB-GARMIN w: Stück ${failed.part}/${failed.of} kam nicht an '
+          '(${failed.silent ? 'keine Antwort' : 'Fehler'})',
+        );
+      }
       if (hello.rides.isNotEmpty) {
         await ref.read(garminBridgeProvider).send([watchRidePull]);
       }

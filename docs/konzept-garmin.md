@@ -597,6 +597,15 @@ Entscheidung 5. Gebaut in `garmin/source/RideLog.mc` (Uhr),
   Lauf — nicht, solange eine Route ankommt: eine Übertragung zur Zeit.
   Neue Arten, keine neue Fassung: Eine ältere Seite übergeht sie, die
   Fahrt wartet dann einfach.
+- **Ein Teil scheitert** (#666, Uhr 1.10.2; Feldbefund 2026-11-27,
+  fēnix 6S am iPhone: Teil 3 von 3 kam nie an): Meldet Garmin Connect
+  für eine Nachricht der Fahrt einen Fehler, geht nach 3 s DERSELBE Teil
+  wieder, bis zu dreimal (`PART_TRIES`); das Handy hält die schon
+  angekommenen Teile 2 min. Erst danach gibt die Uhr auf, und das nächste
+  „hallo" trägt `wf: [Teil, von, Art]` — Teil einsbasiert, Art `e`
+  (Fehler) oder `s` (nach 20 s keine Antwort). Das Handy schreibt es ins
+  Systemprotokoll (`TB-GARMIN w: Stück 3/3 kam nicht an`); mit `wq` oder
+  `wk` löscht die Uhr die Angabe.
 - **Das Handy lauscht ab dem Start der App**, sobald das Startblatt einmal
   eine Uhr mit unserer App fand (`Settings.watchSeen`, Kanal-Methode
   `listen`: SDK starten, auf die Uhr hören, kein `openApplication`). Es

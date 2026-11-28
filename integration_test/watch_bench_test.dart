@@ -443,6 +443,77 @@ void main() {
             final hi = await waitFor((m) => m['t'] == 'hi');
             return hi != null && hi['ev'] == null;
           });
+
+          // #666: Eine lange Fahrt in drei Nachrichten. Scheitert ein Teil,
+          // geht derselbe wieder; gibt die Uhr auf, nennt das nächste
+          // „hallo" Teil und Art (`wf`).
+          const longId = 'bench13';
+          Future<Set<int>> longParts(Duration limit) async {
+            final got = <int>{};
+            final end = DateTime.now().add(limit);
+            while (DateTime.now().isBefore(end)) {
+              final part = watchRidePartOf(
+                await waitFor(
+                  (m) => m['t'] == kWatchRide,
+                  const Duration(seconds: 2),
+                ),
+              );
+              if (part == null || part.id != longId) continue;
+              got.add(part.p);
+              if (got.length == part.n) break;
+            }
+            return got;
+          }
+
+          Future<Map<Object?, Object?>?> hello() async {
+            inbox.removeWhere((m) => m['t'] == 'hi');
+            await send({'t': 'q'});
+            return waitFor((m) => m['t'] == 'hi');
+          }
+
+          await step(
+            'Keine Fahrt wartet',
+            () => stateUntil((s) => s['q'] == 0),
+          );
+          await send({'t': '_l', 'n': 13});
+          await send({'t': '_e', 'p': 1, 'n': 2});
+          inbox.clear();
+          await step('lange Fahrt im hallo', () async {
+            final hi = await hello();
+            return hi != null && watchHelloOf(hi).rides.contains(longId);
+          });
+          await send(watchRidePull);
+          await step('Teil 2 scheitert zweimal, alle 3 hinüber', () async {
+            final got = await longParts(_wait * 3);
+            return got.length == 3;
+          });
+          await send(watchRideAckOf(longId));
+          await step(
+            'lange Fahrt quittiert',
+            () => stateUntil((s) => s['q'] == 0),
+          );
+          await send({'t': '_l', 'n': 13});
+          // PART_TRIES (3) Wiederholungen + der erste Versuch.
+          await send({'t': '_e', 'p': 2, 'n': 4});
+          inbox.clear();
+          await hello();
+          await send(watchRidePull);
+          await step('Teil 3 gibt auf nach den Wiederholungen', () async {
+            final got = await longParts(_wait * 2);
+            return got.length == 2 && !got.contains(2);
+          });
+          await step('hallo nennt Teil 3/3', () async {
+            final hi = await hello();
+            final f = watchRideFailureOf(hi);
+            debugPrint('BENCH wf $f');
+            return f != null && f.part == 3 && f.of == 3 && !f.silent;
+          });
+          await send(watchRidePull);
+          await step('danach ganz hinüber', () async {
+            final got = await longParts(_wait * 3);
+            return got.length == 3;
+          });
+          await send(watchRideAckOf(longId));
         }
         // Speicher neben der größten Route, die das Handy schickt (#510:
         // reicht der Platz mit dem Ring?): kWatchMaxPoints mit Höhen, erst

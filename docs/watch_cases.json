@@ -675,6 +675,26 @@
       "id": "637.2",
       "erwartung": "Meldet das SDK Erfolg bei geschlossener Uhr-App, löst deren Hallo nach dem Öffnen den ausstehenden Versand erneut aus.",
       "handy": "637.2 handy: Hallo nach Versand an geschlossene Uhr versucht erneut"
+    },
+    {
+      "id": "666.1",
+      "erwartung": "Scheitert ein Teil der Fahrt, geht nach PART_RETRY_MS derselbe Teil wieder, nicht von vorn; der nächste folgt nach dem ok.",
+      "uhr": "coreRidePartRetries",
+      "konstant": ["PART_RETRY_MS = 3000"],
+      "kette": ["Teil 2 scheitert zweimal, alle 3 hinüber"]
+    },
+    {
+      "id": "666.2",
+      "erwartung": "Nach PART_TRIES Wiederholungen gibt die Uhr auf und nennt im nächsten hallo Teil, Zahl und Art (`wf`); nach `wq` ist es weg, die Fahrt geht von vorn.",
+      "uhr": "coreRidePartReportsFailure",
+      "handy": "#666: Woran die Fahrt scheiterte, steht im hallo",
+      "konstant": ["PART_TRIES = 3"],
+      "kette": ["Teil 3 gibt auf nach den Wiederholungen", "hallo nennt Teil 3/3", "danach ganz hinüber"]
+    },
+    {
+      "id": "666.3",
+      "erwartung": "Kommt von Garmin Connect keine Antwort auf einen Teil, nennt das hallo nach RIDE_WAIT_MS den Teil mit Art `s`.",
+      "uhr": "coreRidePartSilentReported"
     }
   ],
   "gespraeche": [
@@ -1065,8 +1085,12 @@
             "509.7",
             "484.19",
             "508.6",
-            "527.7"
-          ]
+            "527.7",
+            "666.1",
+            "666.2",
+            "666.3"
+          ],
+          "geraet": "#666: welche Art (`e` oder `s`) die fēnix 6S am iPhone meldet"
         }
       ]
     },

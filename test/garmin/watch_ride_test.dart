@@ -162,6 +162,44 @@ void main() {
       expect(watchRecordOf({'t': 'w'}), isNull);
     });
 
+    test('#666: Woran die Fahrt scheiterte, steht im hallo', () {
+      expect(
+        watchRideFailureOf({
+          't': 'hi',
+          'wf': [3, 3, 'e'],
+        }),
+        (part: 3, of: 3, silent: false),
+      );
+      expect(
+        watchRideFailureOf({
+          't': 'hi',
+          'wf': [2, 3, 's'],
+        })?.silent,
+        isTrue,
+      );
+      expect(watchRideFailureOf({'t': 'hi'}), isNull);
+      expect(
+        watchRideFailureOf({
+          't': 'hi',
+          'wf': [2, 3, 'x'],
+        }),
+        isNull,
+      );
+      expect(
+        watchRideFailureOf({
+          't': 'hi',
+          'wf': ['2', 3, 'e'],
+        }),
+        isNull,
+      );
+      // Die Uhr schreibt dieselbe Form.
+      final app = File('garmin/source/WatchCore.mc').readAsStringSync();
+      expect(app, contains('msg["wf"] = wf'));
+      expect(app, contains('"wf", [txP + 1, RideLog.messageCount(e), how]'));
+      expect(app, contains('failed(e, "e")'));
+      expect(app, contains('failed(e, "s")'));
+    });
+
     test('Uhr und Dart sprechen dieselben Arten', () {
       final app = File('garmin/source/WatchCore.mc').readAsStringSync();
       expect(app, contains('"$kWatchRidePull".equals(t)'));
