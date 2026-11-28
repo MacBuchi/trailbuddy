@@ -125,6 +125,11 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     Functions ein. `tool/push_flush_check.sh` ruft den Versand im Dry
     Run WIRKLICH auf (zurückgerollt): PL/pgSQL prüft den Rumpf erst beim
     Aufruf, und live läuft er jede Minute.
+  - **Die beiden Firebase-Pakete sind Kopien ohne iOS** (#668, seit
+    0.207.2, `packages/overrides/`, `tool/firebase_overrides.py`): Nach
+    einem Update von `firebase_core`/`firebase_messaging` erst
+    `flutter pub get`, dann das Skript, dann noch einmal `pub get` —
+    `test/firebase_overrides_test.dart` wird sonst rot.
   - **Firebase ist eingerichtet** (seit 0.37.0, Projekt
     `trailbuddy-6207b`, nur Cloud Messaging, ohne Analytics).
     `android/app/google-services.json` liegt im Repo — ihr Inhalt ist

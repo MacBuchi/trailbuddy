@@ -44,6 +44,8 @@ analyzer:
     # Trägt `flutter pub get` selbst ein (#644: das SPM-Gerüst unter
     # ios/Flutter/ephemeral); fehlt die Zeile, kommt sie bei jedem wieder.
     - ios/**
+    # Firebase ohne iOS (#668): Kopie aus dem Pub-Cache, nicht unser Code.
+    - packages/overrides/**
 
 linter:
   rules:
