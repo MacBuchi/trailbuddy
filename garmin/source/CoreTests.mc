@@ -119,6 +119,24 @@ function newLine(c as WatchCore, id as String) as Void {
 function done() as Void {
     TestRoutes.wipe();
     TestRoutes.wipeRides();
+    Application.Storage.deleteValue("wf");
+}
+
+//! Eine erfundene Fahrt aus [n] Stücken wartet (13 = drei Nachrichten, #666).
+function longRide(n as Number) as Void {
+    for (var k = 0; k < n; k++) {
+        Application.Storage.setValue(RideLog.key("lang", k), [k * 3000, 100, 1000000 + k * 300, 4000, 0, 50 << 16, 5 << 16]);
+    }
+    RideLog.enqueue("lang", n, n * 2);
+}
+
+//! Die Teile `p` der gesendeten Nachrichten `w`, zusammen: "0,1,1,2".
+function parts(h as FakeHost) as String {
+    var s = "";
+    for (var i = 0; i < h.sent.size(); i++) {
+        if ("w".equals(h.sent[i]["t"])) { s += (s.length() > 0 ? "," : "") + h.sent[i]["p"]; }
+    }
+    return s;
 }
 
 //! Eine Route [id] für die Ablage (#515), zwei Stücke; [rp] ersetzt eine,
@@ -568,6 +586,83 @@ function coreRideUploadWaitsForAck(logger as Logger) as Boolean {
     // Ein später `wk` löscht sie.
     c.handle({"t" => "wk", "id" => RideLog.queuedIds()[0]});
     Test.assertEqual(RideLog.queue().size(), 0);
+    TestCore.done();
+    return true;
+}
+
+//! #666: Scheitert ein Teil der Fahrt, geht nach PART_RETRY_MS derselbe
+//! Teil wieder — nicht von vorn und nicht gar nicht mehr.
+(:test)
+function coreRidePartRetries(logger as Logger) as Boolean {
+    var h = new FakeHost();
+    var c = TestCore.loaded(h);
+    TestCore.longRide(13);
+    c.handle({"t" => "wq"});
+    c.rideSent(true);
+    c.rideSent(false);
+    Test.assertEqual(TestCore.parts(h), "0,1");
+    TestCore.run(c, h, WatchCore.PART_RETRY_MS - 500);
+    Test.assertEqual(TestCore.parts(h), "0,1");
+    TestCore.run(c, h, 1000);
+    Test.assertEqual(TestCore.parts(h), "0,1,1");
+    c.rideSent(false);
+    TestCore.run(c, h, WatchCore.PART_RETRY_MS + 250);
+    c.rideSent(true);
+    c.rideSent(true);
+    Test.assertEqual(TestCore.parts(h), "0,1,1,1,2");
+    c.handle({"t" => "wk", "id" => "lang"});
+    Test.assertEqual(RideLog.queue().size(), 0);
+    TestCore.done();
+    return true;
+}
+
+//! #666: Nach PART_TRIES Wiederholungen gibt die Uhr auf und sagt im
+//! nächsten „hallo", welcher Teil wie scheiterte; nach `wq` ist es weg,
+//! und die Fahrt geht von vorn.
+(:test)
+function coreRidePartReportsFailure(logger as Logger) as Boolean {
+    var h = new FakeHost();
+    var c = TestCore.loaded(h);
+    TestCore.longRide(13);
+    c.handle({"t" => "wq"});
+    c.rideSent(true);
+    c.rideSent(true);
+    for (var i = 0; i <= WatchCore.PART_TRIES; i++) {
+        c.rideSent(false);
+        TestCore.run(c, h, WatchCore.PART_RETRY_MS + 250);
+    }
+    Test.assertEqual(TestCore.parts(h), "0,1,2,2,2,2");
+    Test.assert(c.tx == null);
+    c.handle({"t" => "q"});
+    var wf = (h.last("hi") as Dictionary)["wf"] as Array;
+    Test.assertEqual(wf[0], 3);
+    Test.assertEqual(wf[1], 3);
+    Test.assert("e".equals(wf[2]));
+    c.handle({"t" => "wq"});
+    Test.assertEqual(TestCore.parts(h), "0,1,2,2,2,2,0");
+    c.handle({"t" => "q"});
+    Test.assert((h.last("hi") as Dictionary)["wf"] == null);
+    TestCore.done();
+    return true;
+}
+
+//! #666: Kommt von Garmin Connect gar keine Antwort auf einen Teil, sagt
+//! es das nächste „hallo" als `s`.
+(:test)
+function coreRidePartSilentReported(logger as Logger) as Boolean {
+    var h = new FakeHost();
+    var c = TestCore.loaded(h);
+    TestCore.longRide(13);
+    c.handle({"t" => "wq"});
+    c.rideSent(true);
+    TestCore.run(c, h, WatchCore.RIDE_WAIT_MS - 500);
+    c.handle({"t" => "q"});
+    Test.assert((h.last("hi") as Dictionary)["wf"] == null);
+    TestCore.run(c, h, 1000);
+    c.handle({"t" => "q"});
+    var wf = (h.last("hi") as Dictionary)["wf"] as Array;
+    Test.assertEqual(wf[0], 2);
+    Test.assert("s".equals(wf[2]));
     TestCore.done();
     return true;
 }

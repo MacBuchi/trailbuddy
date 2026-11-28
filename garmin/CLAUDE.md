@@ -340,6 +340,18 @@ Abbiegehinweise.
   Speicher nur beim Senden, Stück für Stück. Speicher im Simulator ohne
   Route: 56 KB von 124 KB (2026-11-07). Die Grenze `MAX_POINTS` = 6000
   ist ein Startwert bis zur Messung 8.6.
+  **Ein Teil scheitert** (#666, 1.10.2): `rideSent(false)` gibt nicht
+  mehr auf, sondern stellt `_retryAt` (3 s, `PART_TRIES` = 3 je Teil);
+  ein Rückruf, der während dieser Pause kommt, zählt nicht. Danach
+  `failed` → `wf` im Speicher, `stuck` merkt einen Teil ohne jede
+  Antwort (beim „hallo" und vor dem Zugehen). Im Bench-Bau lassen `_e`
+  (Teil p scheitert n-mal) und `_l` (erfundene Fahrt aus n Stücken, 13 =
+  drei Nachrichten) den Fall im Kettenstand laufen. Kosten im
+  Vorführmodus +0,6 KB (1000 Punkte, 112,3 → 112,9 KB).
+  **Befund dabei (2026-11-28):** Schon `main` (1.10.1) nimmt im
+  Kettenstand (`CHAIN_BIG=700`) die zweite große Route während der Fahrt
+  nicht mehr (`x` mem; geladen 100,2 KB, vorher 97,9 KB bei #515) — die
+  Grenze 700 trägt den Wechsel nicht mehr.
 - **Unit-Tests auf allen Uhren des Manifests**: je Uhr den Simulator neu
   starten (nach einem Gerätewechsel schrieb `monkeydo` sonst nichts) und
   `GARMIN_DEVICE=<id> tool/garmin_build.sh --test`. Bilder der Uhr kommen

@@ -4,13 +4,15 @@
 
 ## The Garmin watch with the iPhone
 
-*Versions 0.207.0–0.207.2, 2026-11-27 to 2026-11-28*
+*Versions 0.207.0–0.207.3, 2026-11-27 to 2026-11-28*
 
 On the iPhone, too, the route now goes to the Garmin watch and its rides come back, as on Android. There, TrailBuddy does not see the watch by itself: the navigation start sheet shows "Connect watch" once, the tap opens Garmin Connect, and you choose the watch there. After that, the usual switch with its name appears. The iPhone asks for Bluetooth only on "Connect watch", never when you open the app. Garmin Connect must be installed on the iPhone; without it nothing appears. Nothing changes on Android or the web.
 
 Since 0.207.1, TrailBuddy hears the watch while the app sits in the background on the iPhone — before, a ride from the watch only arrived once you opened TrailBuddy. And when you connect the watch fresh from Garmin Connect, its messages now come through right away.
 
 Since 0.207.2 the iPhone app is smaller: it no longer carries the parts for push notifications, which do not exist on the iPhone yet. Push on Android and the web stays as it is.
+
+Since 0.207.3 (watch app 1.10.2), a long ride from the watch arrives in full, too. It goes over in several parts, and when one of them failed, the watch used to give up and start over next time — the ride never arrived. Now it sends the same part again after a few seconds. If that fails as well, it tells the phone on the next connection which part got stuck; that helps us find the cause.
 
 ## Notifications, spoken cues and navigation on the iPhone
 
