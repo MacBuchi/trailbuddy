@@ -193,6 +193,7 @@ class WatchSyncState {
     this.routeId,
     this.parts = 0,
     this.error,
+    this.cutM,
   });
 
   final WatchSyncPhase phase;
@@ -203,6 +204,9 @@ class WatchSyncState {
 
   /// Der Fehler des SDK beim Senden, oder null.
   final String? error;
+
+  /// Die Route passte nur bis hierher auf die Uhr (m, #671); null: ganz.
+  final double? cutM;
 }
 
 class WatchSync extends Notifier<WatchSyncState> {
@@ -242,14 +246,33 @@ class WatchSync extends Notifier<WatchSyncState> {
     NavSections sections,
     ElevationProfile? heights,
     List<WatchBranch> branches,
+    String name,
   })?
   _inputs;
 
-  /// Diese Linie ging schon einmal mit halb so vielen Punkten.
+  /// Diese Linie ging schon einmal mit halb so vielen Punkten — dann gilt
+  /// dieses Budget statt des gemeldeten.
   bool _shrunk = false;
+  int? _shrunkTo;
+
+  /// Das Budget der Uhr in Punkten (#671): das größte aus einem „hallo"
+  /// dieser Uhr (`tm` gleich) — ein „hallo" mitten in der Fahrt meldet
+  /// weniger frei, als ein Wechsel hergibt. Null, solange sich keine Uhr
+  /// mit Speicher gemeldet hat; dann gilt [kWatchDefaultPoints], und mit
+  /// dem „hallo" geht die Route im eigenen Budget hinterher.
+  int? _budget;
+  int? _watchTotal;
+
+  /// Das Budget für Routen, die nicht navigiert werden (Ablage, #515).
+  int? get budget => _budget;
+
+  /// Die Werte des Handys für die Uhr (#659): wann sie zuletzt gingen und
+  /// für welchen Abschnitt (`k`, `o`).
+  DateTime? _navValuesAt;
+  (int, int)? _navValuesKey;
 
   /// Ein `hi`, das kam, während noch gerechnet wurde.
-  ({String? id, String? bad, String? ver})? _early;
+  ({String? id, String? bad})? _early;
 
   /// Die Uhr-App spricht eine andere Fassung — dann geht nichts hin, bis
   /// ein `hi` mit der passenden kommt.
@@ -273,10 +296,6 @@ class WatchSync extends Notifier<WatchSyncState> {
   /// (etwa auf das Nachfassen `q`) schickt sie nicht noch einmal (gemessen
   /// 2026-11-06: dieselbe Route zweimal, 13 s umsonst).
   String? _sendingId;
-
-  /// Die Fassung der Uhr-App, wie sie ihr Hallo nennt. Unbekannt heißt alt:
-  /// sie fragt nicht, bevor eine neue Linie kommt (#501).
-  String? _watchVer;
 
   /// Die Uhr-App hat sich in diesem Lauf gemeldet — erst dann gehen
   /// Hinweise und Buddys hin (#525, #526, #519); eine geschlossene Uhr-App
@@ -335,7 +354,7 @@ class WatchSync extends Notifier<WatchSyncState> {
     });
 
     // Jeder neue Bestwert und jeder Wechsel der Erkennung geht hinterher,
-    // bei geladener Route oder ab Uhr-App 1.10.0 auch frei nach dem Hallo.
+    // bei geladener Route oder frei nach dem Hallo.
     // Ein neues Ereignis kommt zuerst als Hinweis. Am Fahrtende: aus.
     ref.listen(airtimeLiveProvider, (previous, next) {
       final cue = identical(previous?.log, next.log) ? null : _cueOf(next);
@@ -362,7 +381,9 @@ class WatchSync extends Notifier<WatchSyncState> {
         _sendEnd();
         _release();
       } else if (_follow && !identical(next.route.points, _line)) {
-        unawaited(_show(next.route.points, next.sections));
+        unawaited(_show(next.route.points, next.sections, name: next.title));
+      } else {
+        _sendNavValues();
       }
     });
     return const WatchSyncState();
@@ -451,12 +472,19 @@ class WatchSync extends Notifier<WatchSyncState> {
   /// angestoßen, wenn es dieselbe Linie war — [prepare]). Derweil stößt das
   /// Handy die Uhr-App an; läuft sie, gehen die Stücke, sonst warten sie
   /// auf ihr `hi`.
-  Future<void> _show(List<LatLng> points, NavSections sections) async {
+  Future<void> _show(
+    List<LatLng> points,
+    NavSections sections, {
+    String name = '',
+  }) async {
     final gen = ++_gen;
     _line = points;
     _route = null;
     _inputs = null;
     _shrunk = false;
+    _shrunkTo = null;
+    _navValuesAt = null;
+    _navValuesKey = null;
     _early = null;
     _ackTimer?.cancel();
     _nudgeTimer?.cancel();
@@ -481,12 +509,14 @@ class WatchSync extends Notifier<WatchSyncState> {
     final branches = await branchesSoon;
     final open = await opening;
     if (gen != _gen) return;
-    final route = watchRouteOf(
-      points,
-      sections,
+    _inputs = (
+      points: points,
+      sections: sections,
       heights: heights,
       branches: branches,
+      name: name,
     );
+    final route = _build();
     if (route == null) {
       state = const WatchSyncState(
         phase: WatchSyncPhase.failed,
@@ -495,12 +525,6 @@ class WatchSync extends Notifier<WatchSyncState> {
       return;
     }
     _route = route;
-    _inputs = (
-      points: points,
-      sections: sections,
-      heights: heights,
-      branches: branches,
-    );
     if (open == WatchOpen.notInstalled) {
       state = WatchSyncState(
         phase: WatchSyncPhase.failed,
@@ -513,7 +537,7 @@ class WatchSync extends Notifier<WatchSyncState> {
     final early = _early;
     _early = null;
     if (early != null) {
-      return _onHello(early.id, early.bad, kWatchProtocol, early.ver);
+      return _onHello(early.id, early.bad, kWatchProtocol, null, null);
     }
     if (open == WatchOpen.prompted) {
       state = WatchSyncState(phase: WatchSyncPhase.prompted, routeId: route.id);
@@ -521,6 +545,21 @@ class WatchSync extends Notifier<WatchSyncState> {
       return;
     }
     await _push();
+  }
+
+  /// Die Route aus [_inputs] fürs Budget der Uhr (#671); nach einer
+  /// Ablehnung das halbierte.
+  WatchRoute? _build() {
+    final i = _inputs;
+    if (i == null) return null;
+    return watchRouteOf(
+      i.points,
+      i.sections,
+      heights: i.heights,
+      branches: i.branches,
+      maxPoints: _shrunkTo ?? _budget ?? kWatchDefaultPoints,
+      name: i.name,
+    );
   }
 
   /// Die Stücke der Route an die Uhr, eine Übertragung nach der anderen:
@@ -560,6 +599,7 @@ class WatchSync extends Notifier<WatchSyncState> {
       phase: WatchSyncPhase.sending,
       routeId: route.id,
       parts: parts.length,
+      cutM: route.cutM,
     );
     final bridge = ref.read(garminBridgeProvider);
     // Erst die Ankündigung: Sie ist klein und gleich da, die Stücke
@@ -605,6 +645,7 @@ class WatchSync extends Notifier<WatchSyncState> {
       phase: WatchSyncPhase.sent,
       routeId: route.id,
       parts: parts.length,
+      cutM: route.cutM,
     );
     _ackTimer?.cancel();
     _ackTimer = Timer(kWatchAckWait, () {
@@ -613,6 +654,7 @@ class WatchSync extends Notifier<WatchSyncState> {
           phase: WatchSyncPhase.unconfirmed,
           routeId: route.id,
           parts: parts.length,
+          cutM: route.cutM,
         );
         _nudge(0);
       }
@@ -659,7 +701,9 @@ class WatchSync extends Notifier<WatchSyncState> {
       return;
     }
     final hello = watchHelloOf(message);
-    if (hello.hello) return _onHello(hello.id, hello.bad, hello.v, hello.ver);
+    if (hello.hello) {
+      return _onHello(hello.id, hello.bad, hello.v, hello.budget, hello.totalB);
+    }
     // #501 (Konzept 2, was der Alarm auslöst): Weicht die Uhr ab, rechnet
     // das Handy die Linie ab ihrem Stand neu und schickt sie; die Uhr fragt
     // kurz, ob sie sie nimmt.
@@ -702,16 +746,26 @@ class WatchSync extends Notifier<WatchSyncState> {
   }
 
   /// Die Uhr-App meldet sich: Spricht sie eine andere Fassung, geht nichts
-  /// hin, und die Leiste nennt die veraltete Seite. Hat sie die Route
-  /// schon, gilt sie als gespeichert; sonst geht die aktuelle. Eine neu
-  /// gestartete Uhr-App hat ihr GPS noch nicht.
-  void _onHello(String? id, String? bad, int? v, String? ver) {
+  /// hin, und die Leiste nennt die veraltete Seite. Ihr Speicher setzt das
+  /// Budget (#671); änderte es sich, entsteht die Route neu. Hat sie die
+  /// Route schon, gilt sie als gespeichert; sonst geht die aktuelle. Eine
+  /// neu gestartete Uhr-App hat ihr GPS noch nicht.
+  void _onHello(String? id, String? bad, int? v, int? budget, int? totalB) {
+    if (budget != null) {
+      final same = totalB == _watchTotal && _budget != null;
+      _watchTotal = totalB;
+      _budget = same ? math.max(_budget!, budget) : budget;
+    }
+    final bridge = ref.read(garminBridgeProvider);
     if (!_follow) {
-      // Keine Navigation auf dem Handy: Nur die Uhr ohne Linie bekommt eine —
-      // die nächste in Reichweite (#484). Sensorwerte folgen auch ohne Linie.
+      // Keine Navigation auf dem Handy: Die Uhr zeigt ihr Startmenü (#672).
+      // Nur die Uhr ohne Linie bekommt eine — die nächste in Reichweite
+      // (#484). Sensorwerte folgen auch ohne Linie.
       _watchRouteId = id;
-      _watchVer = ver;
-      if (_watchCanAnswerCue && ref.read(airtimeLiveProvider).file != null) {
+      if (ref.read(navigationProvider) == null) {
+        unawaited(bridge.send([watchNoNav]));
+      }
+      if (ref.read(airtimeLiveProvider).file != null) {
         _lastBests = null;
         _sendBests();
       }
@@ -719,18 +773,22 @@ class WatchSync extends Notifier<WatchSyncState> {
       return;
     }
     _watchRouteId = id;
-    _watchVer = ver;
     _outdated = watchOutdatedOf(v);
     _gps = false;
-    final route = _route;
     if (_outdated != null) {
       _early = null;
-      if (route != null) _failedOutdated();
+      if (_route != null) _failedOutdated();
       return;
     }
-    final bridge = ref.read(garminBridgeProvider);
+    // Das Budget kam erst jetzt (oder ist ein anderes): neu vereinfachen.
+    final old = _route;
+    if (old != null && !_pushing) {
+      final fresh = _build();
+      if (fresh != null && fresh.id != old.id) _route = fresh;
+    }
+    final route = _route;
     if (route == null) {
-      _early = (id: id, bad: bad, ver: ver);
+      _early = (id: id, bad: bad);
       // Die Uhr wartet beim Start auf eine Antwort: Es kommt eine, nur
       // noch nicht fertig gerechnet.
       unawaited(bridge.send([watchAnnounceOf(null, 0)]));
@@ -767,7 +825,13 @@ class WatchSync extends Notifier<WatchSyncState> {
     _follow = true;
     _freeLine = true;
     _freeTrailId = found.trail.id;
-    unawaited(_show(found.points, freeSections(found.trail, found.points)));
+    unawaited(
+      _show(
+        found.points,
+        freeSections(found.trail, found.points),
+        name: found.trail.name ?? '',
+      ),
+    );
   }
 
   /// #501 (Konzept 2): Die Uhr meldet, dass sie neben ihrer Linie fährt. Das
@@ -776,7 +840,7 @@ class WatchSync extends Notifier<WatchSyncState> {
   /// nimmt; eine ältere nähme sie still, und die ließ man bisher in Ruhe.
   /// Gerechnet wird erst ab der Schwelle der Seite Navigation im Profil.
   void _replanForWatch(LatLng at, double offM) {
-    if (!_follow || !watchKnowsAsk(_watchVer) || _replanRunning) return;
+    if (!_follow || _replanRunning) return;
     if (ref.read(navigationProvider) == null) {
       // Freiheit statt Navigation: die Uhr fährt ohne Ziel. Liegt neben
       // ihrer Linie ein anderer Trail, geht der an sie (#484).
@@ -785,7 +849,13 @@ class WatchSync extends Notifier<WatchSyncState> {
       final found = nearestTrailLine(trails, at);
       if (found == null || found.trail.id == _freeTrailId) return;
       _freeTrailId = found.trail.id;
-      unawaited(_show(found.points, freeSections(found.trail, found.points)));
+      unawaited(
+        _show(
+          found.points,
+          freeSections(found.trail, found.points),
+          name: found.trail.name ?? '',
+        ),
+      );
       return;
     }
     if (offM < ref.read(navReplanOfferDistanceProvider)) return;
@@ -806,13 +876,8 @@ class WatchSync extends Notifier<WatchSyncState> {
     if (route == null) return;
     if (_shrunk || inputs == null) return _failed(kWatchTooBig);
     _shrunk = true;
-    final smaller = watchRouteOf(
-      inputs.points,
-      inputs.sections,
-      heights: inputs.heights,
-      branches: inputs.branches,
-      maxPoints: math.max(2, route.pointCount ~/ 2),
-    );
+    _shrunkTo = math.max(2, route.pointCount ~/ 2);
+    final smaller = _build();
     if (smaller == null || smaller.id == route.id) return _failed(kWatchTooBig);
     _route = smaller;
     unawaited(_push());
@@ -849,6 +914,7 @@ class WatchSync extends Notifier<WatchSyncState> {
       phase: WatchSyncPhase.stored,
       routeId: id,
       parts: state.parts,
+      cutM: _route?.cutM,
     );
     // Die Bestwerte gehen erst jetzt: Vorher verwarf eine geschlossene
     // Uhr-App sie. Startete die Uhr-App neu, hat sie sie vergessen.
@@ -856,10 +922,10 @@ class WatchSync extends Notifier<WatchSyncState> {
     _lastBests = null;
     _sendBests();
     _startPositions();
+    // Die Werte des Handys gleich, nicht erst mit dem nächsten Fix (#659).
+    _navValuesAt = null;
+    _sendNavValues();
   }
-
-  bool get _watchCanAnswerCue =>
-      watchVersionAtLeast(_watchVer, kWatchCueAnswerFrom);
 
   /// Erkennt das Handy gerade? Der jüngste Takt
   /// ist der abgespielte oder die Lage jetzt, was neuer ist.
@@ -875,7 +941,7 @@ class WatchSync extends Notifier<WatchSyncState> {
   /// [cue] davor in derselben Sendung. [off]: Die Fahrt ist zu Ende, die
   /// Erkennung aus, egal was die Takte sagen.
   void _sendBests({Map<String, Object>? cue, bool off = false}) {
-    if (!_bests && !_watchCanAnswerCue) return;
+    if (!_bests && !_heard) return;
     final on = !off && _detecting();
     var bests = watchBestsOf(ref.read(airtimeLiveProvider).log, on: on);
     // Nach einem „an" geht auch das „aus", ohne Ereignis mit lauter Nullen.
@@ -911,7 +977,7 @@ class WatchSync extends Notifier<WatchSyncState> {
   /// genug ([kWatchCueMaxAge]) und der letzte länger als [kWatchCueEvery]
   /// her ist; sonst null. Ein Ereignis wird nur einmal betrachtet.
   Map<String, Object>? _cueOf(AirtimeLiveState live) {
-    if (!_bests && !_watchCanAnswerCue) return null;
+    if (!_bests && !_heard) return null;
     FusionEvent? newest;
     for (final e in live.log.events) {
       if (e.startUs > _cueSeenUs &&
@@ -928,6 +994,44 @@ class WatchSync extends Notifier<WatchSyncState> {
     final cue = watchCueOf(newest, now, pocket: live.pocket);
     if (cue != null) _cueAtUs = now;
     return cue;
+  }
+
+  /// Die Werte des Handys an die Uhr (#659): solange sie die Route der
+  /// Navigation hat, alle [kWatchNavValuesEvery] und sofort, wenn ein
+  /// neuer Abschnitt beginnt (anderer Trail, anderer Kopf voraus). Die Uhr
+  /// zeigt sie statt ihrer eigenen, solange sie frisch sind.
+  void _sendNavValues() {
+    final route = _route;
+    final nav = ref.read(navigationProvider);
+    final st = nav?.state;
+    if (route == null ||
+        nav == null ||
+        st == null ||
+        !_follow ||
+        _pushing ||
+        state.phase != WatchSyncPhase.stored ||
+        state.routeId != route.id ||
+        !identical(nav.route.points, _line)) {
+      return;
+    }
+    final msg = watchNavValuesOf(
+      route,
+      st.alongM,
+      nav.route.lengthM,
+      climbDistM: nav.climbDistM,
+      climbEleM: nav.climbEleM,
+    );
+    final key = (msg['k']! as int, msg['o']! as int);
+    final now = DateTime.now();
+    final at = _navValuesAt;
+    if (key == _navValuesKey &&
+        at != null &&
+        now.difference(at) < kWatchNavValuesEvery) {
+      return;
+    }
+    _navValuesAt = now;
+    _navValuesKey = key;
+    unawaited(ref.read(garminBridgeProvider).send([msg]));
   }
 
   /// Hinweise der Ansagen an die Uhr (#525), wenn sie sich gemeldet hat.

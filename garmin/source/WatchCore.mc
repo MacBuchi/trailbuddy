@@ -2,6 +2,7 @@ import Toybox.Application;
 import Toybox.Lang;
 import Toybox.Math;
 import Toybox.Position;
+import Toybox.System;
 import Toybox.Time;
 import Toybox.WatchUi;
 
@@ -97,9 +98,20 @@ class WatchCore {
     hidden var _pace as Number = 0;
     //! Die Klasse des letzten Fixes im Ring (#510), -1 noch keiner.
     hidden var _fixCls as Number = -1;
+    //! Die Werte des Handys (#659): die letzte `nv`, wann sie kam und wo die
+    //! Uhr da stand; ob die Ansicht sie gerade zeigt (für den Ring).
+    hidden var _nv as Dictionary? = null;
+    hidden var _nvAt as Number = 0;
+    hidden var _nvAlong as Float = 0.0;
+    hidden var _along as Float = 0.0;
+    hidden var _nvOn as Boolean = false;
 
     static const WAIT_ANSWER = 1;
     static const WAIT_ROUTE = 2;
+    //! Das Startmenü steht (#672): Freie Fahrt · Letzte Route · Ablage.
+    //! Noch ist keine Route geladen — ein zweites `Menu2` neben einer großen
+    //! Route stürzte im fēnix-5-Simulator ab.
+    static const WAIT_MENU = 3;
     static const SEND_END = 1;
     static const SEND_RIDE = 2;
     //! So lange wartet der Start auf die Antwort auf „hallo". Erst 3 s
@@ -166,24 +178,19 @@ class WatchCore {
             PhoneRoute.drop();
             Application.Storage.deleteValue("loading");
         }
-        var r;
-        if (host.connected()) {
-            wait = WAIT_ANSWER;
-            r = placeholder();
-        } else {
-            r = stored();
-        }
+        // Mit Handy wartet der Start auf dessen Antwort, ohne steht das
+        // Startmenü (#672) — geladen wird erst, was gewählt ist.
+        wait = host.connected() ? WAIT_ANSWER : WAIT_MENU;
+        var r = placeholder();
         // Für den Typprüfer: setRoute legt alle drei neu an.
         route = r;
         tracker = new NavTracker(r);
         stats = new RideStats(0);
         setRoute(r);
-        if (wait != 0) {
-            // Beim Start die Fassung statt „Lade Route" (#592): Nach dem
-            // Aufspielen sieht man sofort, ob die neue .prg drauf ist.
-            ui.setWaiting("v" + TbVersion.VERSION);
-            ev(71); // Stand: Lader wartet
-        }
+        // Beim Start die Fassung statt „Lade Route" (#592): Nach dem
+        // Aufspielen sieht man sofort, ob die neue .prg drauf ist.
+        ui.setWaiting("v" + TbVersion.VERSION);
+        if (wait == WAIT_ANSWER) { ev(71); } // Stand: Lader wartet
     }
 
     //! Eine Route aus zwei Punkten, solange keine geladen ist (Warten aufs
@@ -230,6 +237,8 @@ class WatchCore {
         stats.bests = _bests;
         stats.counting = log.state() == RideLog.RECORDING;
         _sensorCue = null;
+        _nv = null;
+        _along = 0.0;
         ui = _host.newView(self);
         if (free) { ui.setFree(); }
         ui.setRecord(log.state(), log.trailOpen());
@@ -239,7 +248,7 @@ class WatchCore {
     //! gewartet wird (Bild des Laders, Häppchen), langsam für eine Frist,
     //! sonst keiner. Ein Timer für alles — ältere Uhren haben nur wenige.
     hidden function pace() as Void {
-        var p = loading || wait != 0 ? 50 : (swapAt != 0 || exitAt != 0 || _calmAt != 0 || _retryAt != 0 || _sensorCue != null ? 250 : 0);
+        var p = loading || wait == WAIT_ANSWER || wait == WAIT_ROUTE ? 50 : (swapAt != 0 || exitAt != 0 || _calmAt != 0 || _retryAt != 0 || _sensorCue != null ? 250 : 0);
         if (p != _pace) {
             _pace = p;
             _host.pace(p);
@@ -255,6 +264,58 @@ class WatchCore {
         loading = true;
         pace();
         sayHello();
+        if (wait == WAIT_MENU) { startMenu(); }
+    }
+
+    // --- Das Startmenü (#672) --------------------------------------------------
+
+    //! Navigiert das Handy nicht (`nn`), antwortet es nicht oder ist keins
+    //! da: Was soll die Uhr? Freie Fahrt, die letzte Route, eine der Ablage.
+    //! Gibt es nur die freie Fahrt, fährt sie gleich frei.
+    hidden function startMenu() as Void {
+        wait = WAIT_MENU;
+        loading = false;
+        if (PhoneRoute.currentId() == null && PhoneRoute.shelf().size() == 0 && !_host.hasTestRoute()) {
+            startChoice(:free);
+            return;
+        }
+        ev(96); // Startmenü gezeigt
+        _host.menu(:start);
+        // Eine Fahrt, die während des Wartens nicht durfte, geht jetzt.
+        if (_uploadLater) {
+            _uploadLater = false;
+            startUpload();
+        }
+        pace();
+    }
+
+    //! Eine Wahl im Startmenü: `:free` (auch ZURÜCK), `:last`, oder die
+    //! Stelle einer Route der Ablage.
+    function startChoice(k as Object?) as Void {
+        now = _host.now();
+        if (wait != WAIT_MENU || closing) { return; }
+        wait = 0;
+        ui.setWaiting(null);
+        if (k instanceof Number) {
+            ev(99); // Startmenü: Route der Ablage
+            shelfChoice(k);
+            return;
+        }
+        if (k == :last) {
+            ev(98); // Startmenü: letzte Route
+            loadStored();
+            return;
+        }
+        ev(97); // Startmenü: freie Fahrt
+        free = true;
+        setRoute(placeholder());
+        loading = true;
+        pace();
+    }
+
+    //! Die letzte Route fürs Startmenü: `[Name, Meter, bergauf]`, oder null.
+    function lastRoute() as Array? {
+        return PhoneRoute.currentId() == null ? null : PhoneRoute.currentMeta();
     }
 
     //! Der Takt: Fristen, Lader, Häppchen der Route.
@@ -292,9 +353,9 @@ class WatchCore {
                 ev(82); // Frist: ruhige Minute
                 if (pendingId == null) { CrashGuard.calm(); }
             }
-            if (wait != 0) {
+            if (wait == WAIT_ANSWER || wait == WAIT_ROUTE) {
                 waitStep();
-            } else if (loading) {
+            } else if (loading && wait == 0) {
                 loadStep();
             }
         }
@@ -318,7 +379,11 @@ class WatchCore {
         _helloAt = now;
         // `ver` (#500): das Handy sieht daran, ob die Uhr ein Fenster um
         // ihren Stand versteht.
-        var msg = {"t" => "hi", "v" => PhoneRoute.PROTOCOL, "ver" => TbVersion.VERSION} as Dictionary;
+        // Der Speicher (#671): Das Handy rechnet daraus, wie viele Punkte
+        // eine Route haben darf; die geladene gibt ihre beim Wechsel frei.
+        var st = System.getSystemStats();
+        var msg = {"t" => "hi", "v" => PhoneRoute.PROTOCOL, "ver" => TbVersion.VERSION,
+            "m" => st.freeMemory, "tm" => st.totalMemory, "lp" => free ? 0 : route.size()} as Dictionary;
         var id = PhoneRoute.currentId();
         if (id != null) { msg["id"] = id; }
         var bad = CrashGuard.bad();
@@ -417,8 +482,9 @@ class WatchCore {
     hidden function waitStep() as Void {
         if (now - _waitUntil >= 0) {
             ev(83); // Frist: Warten vorbei
-            endWait();
-            loadStored();
+            // Kam eine Route nicht ganz, zählt die gespeicherte nicht als
+            // gewählt: Das Startmenü fragt (#672).
+            startMenu();
             return;
         }
         if (now - _lastFrame >= FRAME_MS) {
@@ -443,6 +509,8 @@ class WatchCore {
     //! Der Lader sagt, wie weit die angekündigte Route ist: „Route kommt ·
     //! 1/2" (das Stück, das gerade unterwegs ist).
     hidden function waitForRoute(id as String?, n as Number) as Void {
+        // Das Startmenü geht: Die Navigation des Handys kommt (#672).
+        if (wait == WAIT_MENU) { _host.menu(:close); }
         wait = WAIT_ROUTE;
         _waitUntil = now + INCOMING_MS;
         var text = str(Rez.Strings.RouteComing);
@@ -788,7 +856,8 @@ class WatchCore {
         tx = null;
         var q = RideLog.queue();
         if (q.size() == 0) { return false; }
-        if (!closing && (wait != 0 || pendingId != null)) {
+        // Das Startmenü hält nichts auf (#672): Es kommt keine Route.
+        if (!closing && (wait == WAIT_ANSWER || wait == WAIT_ROUTE || pendingId != null)) {
             _uploadLater = true;
             return false;
         }
@@ -910,9 +979,21 @@ class WatchCore {
         } else if ("k".equals(t)) {
             EventLog.delivered();
             // … oder die gespeicherte ist aktuell.
-            if (wait != 0) {
+            if (wait == WAIT_ANSWER || wait == WAIT_ROUTE) {
                 endWait();
                 loadStored();
+            }
+        } else if ("nn".equals(t)) {
+            EventLog.delivered();
+            // … oder das Handy navigiert nicht (#672): gleich das Startmenü.
+            if (wait == WAIT_ANSWER) { startMenu(); }
+        } else if ("nv".equals(t)) {
+            // Die Werte des Handys (#659) — nur für die laufende Route.
+            if (id != null && id.equals(route.id)) {
+                _nv = d;
+                _nvAt = now;
+                _nvAlong = _along;
+                phoneValues();
             }
         } else if ("e".equals(t)) {
             // Das Handy hat die Navigation beendet: Zeigt die Uhr eine Route
@@ -1085,7 +1166,9 @@ class WatchCore {
         if (pendingId == null) { return; }
         ev(70); // Stand: Routenwechsel
         pendingId = null;
+        if (wait == WAIT_MENU) { _host.menu(:close); }
         wait = 0;
+        _nv = null;
         loading = false;
         _calmAt = 0;
         _host.gps(false, false);
@@ -1109,6 +1192,8 @@ class WatchCore {
         var p = route.toLocal(lat, lon);
         var s = tracker.update(p[0], p[1], null, null, _host.compass());
         _phoneFixed = true;
+        _along = s.alongM;
+        phoneValues();
         ui.setState(s, null, true);
     }
 
@@ -1161,6 +1246,8 @@ class WatchCore {
         ui.noPhone = !_host.connected();
         fixEv(s.offRoute ? 2 : 1);
         stats.update(p[0], p[1], now, speed, alt, hr, s.offRoute ? -1 : route.sectionAt(s.alongM));
+        _along = s.alongM;
+        phoneValues();
         ui.setState(s, speed, false);
         showBuddies(false);
         // #500: Die Uhr meldet ihren Stand, wenn sie ihn braucht — jenseits
@@ -1170,6 +1257,39 @@ class WatchCore {
             toPhone({"t" => "d", "la" => Math.round(lat * 100000.0), "lo" => Math.round(lon * 100000.0),
                 "off" => Math.round(drift)});
         }
+    }
+
+    //! Die Werte des Handys für die Ansicht (#659): `[k, o, d, c, r, g]`
+    //! aus der letzten `nv`, solange sie höchstens 30 s alt ist und der
+    //! eigene Stand denselben Trail und denselben Kopf voraus nennt. Meter
+    //! laufen mit dem eigenen Stand seit dem Empfang weiter, Höhenmeter
+    //! bleiben bis zur nächsten. Sonst null — die Uhr rechnet selbst. Der
+    //! Wechsel steht im Ring (Art 13).
+    hidden function phoneValues() as Void {
+        var v = null;
+        var d = _nv;
+        if (d != null && now - _nvAt <= 30000 && route.isReady() && !free) {
+            var k = d["k"];
+            var o = d["o"];
+            var dm = d["d"];
+            var c = d["c"];
+            var r = d["r"];
+            var g = d["g"];
+            if (k instanceof Number && o instanceof Number && dm instanceof Number && c instanceof Number
+                    && r instanceof Number && g instanceof Number
+                    && o == route.sectionAt(_along) && k == route.nextSection(_along)) {
+                var gone = _along - _nvAlong;
+                var dl = dm - gone;
+                var rl = r - gone;
+                v = [k, o, dl < 0 ? 0.0 : dl, c, rl < 0 ? 0.0 : rl, g];
+            }
+        }
+        var on = v != null;
+        if (on != _nvOn) {
+            _nvOn = on;
+            ev(on ? 104 : 105); // Werte vom Handy / eigene
+        }
+        ui.phoneVals = v;
     }
 
     //! Schon in Fahrt, aber kein START: einmal kurz vibrieren und es

@@ -38,12 +38,14 @@ WatchShelfEntry _entry(WatchRoute r, String name) =>
     WatchShelfEntry(id: r.id, name: name, lengthM: 1200, climbM: 80);
 
 Map<String, Object> _hello({
-  String ver = '1.9.0',
+  int v = kWatchProtocol,
   List<WatchShelfEntry> sh = const [],
 }) => {
   't': 'hi',
-  'v': kWatchProtocol,
-  'ver': ver,
+  'v': v,
+  'ver': '1.11.0',
+  'm': 40000,
+  'tm': 126784,
   if (sh.isNotEmpty) 'sh': [for (final e in sh) e.toJson()],
 };
 
@@ -110,19 +112,13 @@ void main() {
           RegExp(r'const SHELF_MAX = (\d+);').firstMatch(mc)?.group(1),
           '$kWatchShelfMax',
         );
-        expect(
-          watchKnowsShelf(File('garmin/VERSION').readAsStringSync().trim()),
-          isTrue,
-          reason: 'die Uhr-App dieses Stands kennt die Ablage',
-        );
+        expect(watchKnowsShelf(kWatchProtocol), isTrue);
       },
     );
 
-    test('erst ab Uhr-App 1.9.0', () {
-      expect(watchKnowsShelf('1.9.0'), isTrue);
-      expect(watchKnowsShelf('1.9.0-dev'), isTrue);
-      expect(watchKnowsShelf('1.10.0'), isTrue);
-      expect(watchKnowsShelf('1.8.0'), isFalse);
+    test('nur mit demselben Protokoll (#671: keine Versionsweichen)', () {
+      expect(watchKnowsShelf(kWatchProtocol), isTrue);
+      expect(watchKnowsShelf(kWatchProtocol - 1), isFalse);
       expect(watchKnowsShelf(null), isFalse);
     });
 
@@ -233,19 +229,16 @@ void main() {
       },
     );
 
-    test(
-      'eine Uhr-App vor 1.9.0 bekommt nichts — sie nähme es als Navigation',
-      () async {
-        final c = container();
-        final r = _route(0.0005);
-        await c.read(watchShelfProvider.notifier).put(_entry(r, 'A'), r);
-        bridge.answer(_hello(ver: '1.8.0'));
-        await pumpEventQueue();
-        expect(shelfSent(), isEmpty);
-        expect(c.read(watchShelfProvider).failure, WatchShelfFailure.outdated);
-        expect(c.read(watchShelfProvider).jobs, hasLength(1));
-      },
-    );
+    test('eine Uhr-App mit anderem Protokoll bekommt nichts', () async {
+      final c = container();
+      final r = _route(0.0005);
+      await c.read(watchShelfProvider.notifier).put(_entry(r, 'A'), r);
+      bridge.answer(_hello(v: kWatchProtocol - 1));
+      await pumpEventQueue();
+      expect(shelfSent(), isEmpty);
+      expect(c.read(watchShelfProvider).failure, WatchShelfFailure.outdated);
+      expect(c.read(watchShelfProvider).jobs, hasLength(1));
+    });
 
     test(
       '637.1 handy: unklarer Öffnungsstatus, erneutes Hallo und verlorenes sh',
@@ -259,17 +252,17 @@ void main() {
         await pumpEventQueue();
         expect(bridge.queries, 1);
 
-        bridge.answer(_hello(ver: '1.10.0'));
+        bridge.answer(_hello());
         await pumpEventQueue();
         final sent = shelfSent().length;
         expect(sent, r.parts().length);
-        bridge.answer(_hello(ver: '1.10.0'));
+        bridge.answer(_hello());
         await pumpEventQueue();
         expect(shelfSent(), hasLength(sent));
 
         gate.complete();
         await pumpEventQueue();
-        bridge.answer(_hello(ver: '1.10.0', sh: [entry]));
+        bridge.answer(_hello(sh: [entry]));
         await pumpEventQueue();
         expect(c.read(watchShelfProvider).jobs, isEmpty);
         expect(c.read(watchShelfProvider).entries.single.id, r.id);
@@ -283,13 +276,13 @@ void main() {
         final c = container();
         final r = _route(0.0005);
         final entry = _entry(r, 'A');
-        bridge.answer(_hello(ver: '1.10.0'));
+        bridge.answer(_hello());
         await pumpEventQueue();
         await c.read(watchShelfProvider.notifier).put(entry, r);
         await pumpEventQueue();
         // Das SDK meldete SUCCESS, aber die bis jetzt geschlossene Uhr nahm nichts.
         expect(shelfSent(), hasLength(r.parts().length));
-        bridge.answer(_hello(ver: '1.10.0'));
+        bridge.answer(_hello());
         await pumpEventQueue();
         expect(shelfSent(), hasLength(2 * r.parts().length));
         bridge.answer(_shelf([entry], id: r.id));

@@ -141,6 +141,9 @@ class NavView extends WatchUi.View {
     //! Kein Handy verbunden (#515): Abseits sagt die Infofläche, dass
     //! niemand umplanen kann — eine Route aus der Ablage fährt ohne.
     var noPhone as Boolean = false;
+    //! Die Werte des Handys (#659, `WatchCore.phoneValues`): `[k, o, d, c,
+    //! r, g]`, nur gesetzt, wenn sie zum eigenen Stand passen; sonst null.
+    var phoneVals as Array? = null;
     //! #501: Die Frage, ob die Uhr die neue Linie nimmt, bis [_askUntil];
     //! [_askBig]: „START = JA" groß (die erste nach 1.3.x).
     hidden var _askUntil as Number = 0;
@@ -1216,22 +1219,26 @@ class NavView extends WatchUi.View {
         var cx = w / 2;
         var cum = _route.cum;
         var on = _route.sectionAt(s.alongM);
+        // Die Werte des Handys gehen vor, solange sie passen (#659).
+        var v = phoneVals;
         if (on >= 0) {
             var b = cum[_route.secTo[on]];
             shieldLine(dc, cx, FIELD_Y + /*L:field_line1_dy*/2, _route.secGrade[on], _route.secName[on], null, false);
-            numberLine(dc, cx, FIELD_Y + /*L:field_line2_dy*/24, meters(b - s.alongM), null);
+            numberLine(dc, cx, FIELD_Y + /*L:field_line2_dy*/24, meters(v != null ? v[2] as Float : b - s.alongM), null);
             return;
         }
         var next = _route.nextSection(s.alongM);
         if (next >= 0) {
             var head = cum[_route.secFrom[next]];
             shieldLine(dc, cx, FIELD_Y + /*L:field_line1_dy*/2, _route.secGrade[next], _route.secName[next], null, false);
-            numberLine(dc, cx, FIELD_Y + /*L:field_line2_dy*/24, meters(head - s.alongM), _route.climbBetween(s.alongM, head));
+            numberLine(dc, cx, FIELD_Y + /*L:field_line2_dy*/24, meters(v != null ? v[2] as Float : head - s.alongM),
+                v != null && (v[3] as Number) >= 0 ? (v[3] as Number).toFloat() : _route.climbBetween(s.alongM, head));
             return;
         }
         dc.setColor(TbColors.MUTED, Graphics.COLOR_TRANSPARENT);
         dc.drawText(cx, FIELD_Y + /*L:field_line1_dy*/2, /*F:field_note*/Graphics.FONT_XTINY, _toGoal, Graphics.TEXT_JUSTIFY_CENTER);
-        numberLine(dc, cx, FIELD_Y + /*L:field_line2_dy*/24, meters(s.remainingM), _route.climbLeft(s.alongM));
+        numberLine(dc, cx, FIELD_Y + /*L:field_line2_dy*/24, meters(v != null ? v[4] as Float : s.remainingM),
+            v != null && (v[5] as Number) >= 0 ? (v[5] as Number).toFloat() : _route.climbLeft(s.alongM));
     }
 
     //! Schild und Name, zusammen mittig. Ist der Name für die Breite des
@@ -1411,8 +1418,11 @@ class NavView extends WatchUi.View {
         var toGoal = null;
         if (s != null && _route.isReady()) {
             var next = _route.nextSection(s.alongM);
-            if (next >= 0) { toTrail = _route.climbBetween(s.alongM, _route.cum[_route.secFrom[next]]); }
-            toGoal = _route.climbLeft(s.alongM);
+            var v = phoneVals;
+            if (next >= 0) {
+                toTrail = v != null && (v[3] as Number) >= 0 ? (v[3] as Number).toFloat() : _route.climbBetween(s.alongM, _route.cum[_route.secFrom[next]]);
+            }
+            toGoal = v != null && (v[5] as Number) >= 0 ? (v[5] as Number).toFloat() : _route.climbLeft(s.alongM);
         }
         climbCell(dc, cx + COL_X, /*L:cell_row1_y*/106, /*S:signpost*/5, toTrail, null);
         climbCell(dc, cx - COL_X, /*L:cell_row2_y*/150, /*S:flag*/6, toGoal, null);

@@ -10,13 +10,14 @@ import Toybox.Test;
 (:test)
 function talk_hallo_neue_route(logger as Logger) as Boolean {
     return TestTalk.play("hallo-neue-route", ["handy"] as Array<String>, [
-        {"von" => "uhr", "tu" => "start", "msg" => {"t" => "hi", "v" => 2, "ver" => "1.3.0"}, "gleich" => ["v"], "dann" => ["wartet"]},
+        {"von" => "uhr", "tu" => "start", "msg" => {"t" => "hi", "v" => 3, "m" => 40000, "tm" => 126784, "lp" => 0, "ver" => "1.3.0"}, "gleich" => ["v"], "dann" => ["wartet"]},
+        {"von" => "handy", "msg" => {"t" => "nn"}, "dann" => ["startmenue"]},
         {"von" => "handy", "msg" => {"t" => "n", "id" => "$a", "np" => 2}, "dann" => ["route_kommt"]},
         {"von" => "handy", "msg" => {"t" => "r", "id" => "$a"}},
         {"von" => "uhr", "msg" => {"t" => "ok", "id" => "$a"}, "nach_ms" => 500, "dann" => ["route:$a"]},
         {"von" => "handy", "msg" => {"t" => "b", "jn" => 1, "ja" => 600}, "dann" => ["bestwerte"]},
         {"von" => "handy", "msg" => {"t" => "p", "la" => 4750090, "lo" => 1150000}},
-        {"von" => "uhr", "tu" => "restart", "msg" => {"t" => "hi", "v" => 2, "ver" => "1.3.0", "id" => "$a"}, "dann" => ["wartet"]},
+        {"von" => "uhr", "tu" => "restart", "msg" => {"t" => "hi", "v" => 3, "m" => 40000, "tm" => 126784, "lp" => 0, "ver" => "1.3.0", "id" => "$a"}, "dann" => ["wartet"]},
         {"von" => "handy", "msg" => {"t" => "k", "id" => "$a"}, "nach_ms" => 500, "dann" => ["route:$a"]},
         {"von" => "handy", "msg" => {"t" => "e", "id" => "$a"}, "dann" => ["zu"]}
     ] as Array<Dictionary>);
@@ -26,7 +27,8 @@ function talk_hallo_neue_route(logger as Logger) as Boolean {
 (:test)
 function talk_sprung_hinweis(logger as Logger) as Boolean {
     return TestTalk.play("sprung-hinweis", ["handy"] as Array<String>, [
-        {"von" => "uhr", "tu" => "start", "msg" => {"t" => "hi", "v" => 2, "ver" => "1.6.0"}, "gleich" => ["v"], "dann" => ["wartet"]},
+        {"von" => "uhr", "tu" => "start", "msg" => {"t" => "hi", "v" => 3, "m" => 40000, "tm" => 126784, "lp" => 0, "ver" => "1.6.0"}, "gleich" => ["v"], "dann" => ["wartet"]},
+        {"von" => "handy", "msg" => {"t" => "nn"}, "dann" => ["startmenue"]},
         {"von" => "handy", "msg" => {"t" => "n", "id" => "$a", "np" => 2}, "dann" => ["route_kommt"]},
         {"von" => "handy", "msg" => {"t" => "r", "id" => "$a"}},
         {"von" => "uhr", "msg" => {"t" => "ok", "id" => "$a"}, "nach_ms" => 500, "dann" => ["route:$a", "erkennt_nicht"]},
@@ -41,7 +43,7 @@ function talk_sprung_hinweis(logger as Logger) as Boolean {
 (:test)
 function talk_sprung_antwort(logger as Logger) as Boolean {
     return TestTalk.play("sprung-antwort", ["ohne_route", "handy"] as Array<String>, [
-        {"von" => "uhr", "tu" => "start", "msg" => {"t" => "hi", "v" => 2, "ver" => "1.10.0"}, "gleich" => ["v"], "nach_ms" => 8500, "dann" => ["frei"]},
+        {"von" => "uhr", "tu" => "start", "msg" => {"t" => "hi", "v" => 3, "m" => 40000, "tm" => 126784, "lp" => 0, "ver" => "1.10.0"}, "gleich" => ["v"], "nach_ms" => 8500, "dann" => ["frei"]},
         {"von" => "handy", "msg" => {"t" => "b", "on" => 1, "jn" => 0}, "gleich" => ["on", "jn"], "dann" => ["erkennt"]},
         {"von" => "handy", "msg" => {"t" => "c", "k" => "air", "v" => 900, "s" => "$sprung"}, "gleich" => ["k", "v"], "dann" => ["hinweis"]},
         {"von" => "uhr", "tu" => "down", "msg" => {"t" => "ca", "k" => "air", "s" => "$sprung", "y" => 0}, "gleich" => ["k", "y"]}
@@ -52,7 +54,8 @@ function talk_sprung_antwort(logger as Logger) as Boolean {
 (:test)
 function talk_buddys_uhr(logger as Logger) as Boolean {
     return TestTalk.play("buddys-uhr", ["handy"] as Array<String>, [
-        {"von" => "uhr", "tu" => "start", "msg" => {"t" => "hi", "v" => 2, "ver" => "1.8.0"}, "gleich" => ["v"], "dann" => ["wartet"]},
+        {"von" => "uhr", "tu" => "start", "msg" => {"t" => "hi", "v" => 3, "m" => 40000, "tm" => 126784, "lp" => 0, "ver" => "1.8.0"}, "gleich" => ["v"], "dann" => ["wartet"]},
+        {"von" => "handy", "msg" => {"t" => "nn"}, "dann" => ["startmenue"]},
         {"von" => "handy", "msg" => {"t" => "n", "id" => "$a", "np" => 2}, "dann" => ["route_kommt"]},
         {"von" => "handy", "msg" => {"t" => "r", "id" => "$a"}},
         {"von" => "uhr", "msg" => {"t" => "ok", "id" => "$a"}, "nach_ms" => 500, "dann" => ["route:$a"]},
@@ -67,7 +70,7 @@ function talk_buddys_uhr(logger as Logger) as Boolean {
 function talk_fassung_handy_alt(logger as Logger) as Boolean {
     return TestTalk.play("fassung-handy-alt", ["geladen"] as Array<String>, [
         {"von" => "handy", "msg" => {"t" => "r", "id" => "$a", "v" => 1}},
-        {"von" => "uhr", "msg" => {"t" => "x", "id" => "$a", "c" => "ver", "v" => 2}, "gleich" => ["c", "v"], "dann" => ["route:t"]}
+        {"von" => "uhr", "msg" => {"t" => "x", "id" => "$a", "c" => "ver", "v" => 3}, "gleich" => ["c", "v"], "dann" => ["route:t"]}
     ] as Array<Dictionary>);
 }
 
@@ -88,7 +91,8 @@ function talk_kleiner_nach_absturz(logger as Logger) as Boolean {
 (:test)
 function talk_ende_an_der_uhr(logger as Logger) as Boolean {
     return TestTalk.play("ende-an-der-uhr", ["handy"] as Array<String>, [
-        {"von" => "uhr", "tu" => "start", "msg" => {"t" => "hi", "v" => 2, "ver" => "1.3.0"}},
+        {"von" => "uhr", "tu" => "start", "msg" => {"t" => "hi", "v" => 3, "m" => 40000, "tm" => 126784, "lp" => 0, "ver" => "1.3.0"}},
+        {"von" => "handy", "msg" => {"t" => "nn"}, "dann" => ["startmenue"]},
         {"von" => "handy", "msg" => {"t" => "n", "id" => "$a", "np" => 2}},
         {"von" => "handy", "msg" => {"t" => "r", "id" => "$a"}},
         {"von" => "uhr", "msg" => {"t" => "ok", "id" => "$a"}, "nach_ms" => 500, "dann" => ["route:$a"]},
@@ -120,7 +124,7 @@ function talk_aufzeichnung(logger as Logger) as Boolean {
 (:test)
 function talk_fahrt_wartet(logger as Logger) as Boolean {
     return TestTalk.play("fahrt-wartet", ["handy", "fahrt"] as Array<String>, [
-        {"von" => "uhr", "tu" => "start", "msg" => {"t" => "hi", "v" => 2, "ver" => "1.3.0", "rq" => ["$f"]}, "dann" => ["wartet", "fahrt_wartet"]},
+        {"von" => "uhr", "tu" => "start", "msg" => {"t" => "hi", "v" => 3, "m" => 40000, "tm" => 126784, "lp" => 0, "ver" => "1.3.0", "rq" => ["$f"]}, "dann" => ["wartet", "fahrt_wartet"]},
         {"von" => "handy", "msg" => {"t" => "wq"}, "nach_ms" => 9000},
         {"von" => "uhr", "msg" => {"t" => "w", "id" => "$f", "p" => 0, "n" => 1, "c" => "*"}},
         {"von" => "handy", "msg" => {"t" => "wk", "id" => "$f"}, "dann" => ["keine_fahrt"]}
@@ -131,7 +135,8 @@ function talk_fahrt_wartet(logger as Logger) as Boolean {
 (:test)
 function talk_freie_fahrt_linie(logger as Logger) as Boolean {
     return TestTalk.play("freie-fahrt-linie", ["handy", "ohne_route"] as Array<String>, [
-        {"von" => "uhr", "tu" => "start", "msg" => {"t" => "hi", "v" => 2, "ver" => "1.3.0"}, "nach_ms" => 9000, "dann" => ["frei"]},
+        {"von" => "uhr", "tu" => "start", "msg" => {"t" => "hi", "v" => 3, "m" => 40000, "tm" => 126784, "lp" => 0, "ver" => "1.3.0"}, "nach_ms" => 9000, "dann" => ["frei"]},
+        {"von" => "handy", "msg" => {"t" => "nn"}, "dann" => ["frei"]},
         {"von" => "uhr", "tu" => "fixes", "fa" => 0, "fb" => 3, "msg" => {"t" => "g", "la" => 4800500, "lo" => 900010}},
         {"von" => "handy", "msg" => {"t" => "n", "id" => "$a", "np" => 1}},
         {"von" => "handy", "msg" => {"t" => "r", "id" => "$a"}},
@@ -143,7 +148,8 @@ function talk_freie_fahrt_linie(logger as Logger) as Boolean {
 (:test)
 function talk_abseits_umplanen(logger as Logger) as Boolean {
     return TestTalk.play("abseits-umplanen", ["handy"] as Array<String>, [
-        {"von" => "uhr", "tu" => "start", "msg" => {"t" => "hi", "v" => 2, "ver" => "1.3.0"}},
+        {"von" => "uhr", "tu" => "start", "msg" => {"t" => "hi", "v" => 3, "m" => 40000, "tm" => 126784, "lp" => 0, "ver" => "1.3.0"}},
+        {"von" => "handy", "msg" => {"t" => "nn"}, "dann" => ["startmenue"]},
         {"von" => "handy", "msg" => {"t" => "n", "id" => "$a", "np" => 2}},
         {"von" => "handy", "msg" => {"t" => "r", "id" => "$a"}},
         {"von" => "uhr", "msg" => {"t" => "ok", "id" => "$a"}, "nach_ms" => 500, "dann" => ["route:$a"]},
@@ -170,7 +176,8 @@ function talk_frage_start_ja(logger as Logger) as Boolean {
 (:test)
 function talk_route_beenden(logger as Logger) as Boolean {
     return TestTalk.play("route-beenden", ["handy"] as Array<String>, [
-        {"von" => "uhr", "tu" => "start", "msg" => {"t" => "hi", "v" => 2, "ver" => "1.3.0"}},
+        {"von" => "uhr", "tu" => "start", "msg" => {"t" => "hi", "v" => 3, "m" => 40000, "tm" => 126784, "lp" => 0, "ver" => "1.3.0"}},
+        {"von" => "handy", "msg" => {"t" => "nn"}, "dann" => ["startmenue"]},
         {"von" => "handy", "msg" => {"t" => "n", "id" => "$a", "np" => 2}},
         {"von" => "handy", "msg" => {"t" => "r", "id" => "$a"}},
         {"von" => "uhr", "msg" => {"t" => "ok", "id" => "$a"}, "nach_ms" => 500, "dann" => ["route:$a"]},
@@ -185,7 +192,7 @@ function talk_nachfragen(logger as Logger) as Boolean {
         {"von" => "handy", "msg" => {"t" => "n", "id" => "$a", "np" => 2}},
         {"von" => "handy", "msg" => {"t" => "r", "id" => "$a"}, "verloren" => true},
         {"von" => "handy", "msg" => {"t" => "q"}},
-        {"von" => "uhr", "msg" => {"t" => "hi", "v" => 2, "ver" => "1.3.0"}},
+        {"von" => "uhr", "msg" => {"t" => "hi", "v" => 3, "m" => 40000, "tm" => 126784, "lp" => 0, "ver" => "1.3.0"}},
         {"von" => "handy", "msg" => {"t" => "n", "id" => "$a", "np" => 2}},
         {"von" => "handy", "msg" => {"t" => "r", "id" => "$a"}},
         {"von" => "uhr", "msg" => {"t" => "ok", "id" => "$a"}, "dann" => ["fragt"]}
@@ -196,11 +203,12 @@ function talk_nachfragen(logger as Logger) as Boolean {
 (:test)
 function talk_frei_fragt_wieder(logger as Logger) as Boolean {
     return TestTalk.play("frei-fragt-wieder", ["handy", "ohne_route"] as Array<String>, [
-        {"von" => "uhr", "tu" => "start", "msg" => {"t" => "hi", "v" => 2, "ver" => "1.3.0"}, "nach_ms" => 9000, "dann" => ["frei"]},
+        {"von" => "uhr", "tu" => "start", "msg" => {"t" => "hi", "v" => 3, "m" => 40000, "tm" => 126784, "lp" => 0, "ver" => "1.3.0"}, "nach_ms" => 9000, "dann" => ["frei"]},
+        {"von" => "handy", "msg" => {"t" => "nn"}, "dann" => ["frei"]},
         {"von" => "handy", "msg" => {"t" => "n", "id" => "$a", "np" => 2}, "verloren" => true},
         {"von" => "handy", "msg" => {"t" => "r", "id" => "$a"}, "verloren" => true},
         {"von" => "uhr", "tu" => "fixes", "fa" => 0, "fb" => 7, "msg" => {"t" => "g", "la" => 0, "lo" => 100}},
-        {"von" => "uhr", "msg" => {"t" => "hi", "v" => 2, "ver" => "1.3.0"}},
+        {"von" => "uhr", "msg" => {"t" => "hi", "v" => 3, "m" => 40000, "tm" => 126784, "lp" => 0, "ver" => "1.3.0"}},
         {"von" => "handy", "msg" => {"t" => "n", "id" => "$a", "np" => 2}},
         {"von" => "handy", "msg" => {"t" => "r", "id" => "$a"}},
         {"von" => "uhr", "msg" => {"t" => "ok", "id" => "$a"}, "nach_ms" => 500, "dann" => ["route:$a"]}
@@ -211,11 +219,44 @@ function talk_frei_fragt_wieder(logger as Logger) as Boolean {
 (:test)
 function talk_ablage(logger as Logger) as Boolean {
     return TestTalk.play("ablage", ["handy"] as Array<String>, [
-        {"von" => "uhr", "tu" => "start", "msg" => {"t" => "hi", "v" => 2, "ver" => "1.9.0"}, "gleich" => ["v"], "dann" => ["wartet"]},
+        {"von" => "uhr", "tu" => "start", "msg" => {"t" => "hi", "v" => 3, "m" => 40000, "tm" => 126784, "lp" => 0, "ver" => "1.9.0"}, "gleich" => ["v"], "dann" => ["wartet"]},
         {"von" => "handy", "msg" => {"t" => "r", "id" => "$s", "sh" => 1, "nm" => "Hausrunde"}, "gleich" => ["sh"]},
-        {"von" => "uhr", "msg" => {"t" => "sh", "id" => "$s", "l" => [["$s", "Hausrunde", 2500, 0]]}, "nach_ms" => 9000, "dann" => ["ablage:1", "route:t"]},
+        {"von" => "uhr", "msg" => {"t" => "sh", "id" => "$s", "l" => [["$s", "Hausrunde", 2500, 0]]}, "nach_ms" => 9000, "dann" => ["ablage:1", "startmenue"]},
         {"von" => "uhr", "tu" => "shelf0", "still" => true, "nach_ms" => 2000, "dann" => ["route:$s"]},
         {"von" => "handy", "msg" => {"t" => "sd", "id" => "$s"}},
         {"von" => "uhr", "msg" => {"t" => "sh", "l" => []}, "dann" => ["ablage:0", "route:$s"]}
+    ] as Array<Dictionary>);
+}
+
+//! Die Uhr-App startet, das Handy navigiert nicht (#672): nn statt Schweigen, das Startmenü, die freie Fahrt
+(:test)
+function talk_startmenue_ohne_navigation(logger as Logger) as Boolean {
+    return TestTalk.play("startmenue-ohne-navigation", ["handy"] as Array<String>, [
+        {"von" => "uhr", "tu" => "start", "msg" => {"t" => "hi", "v" => 3, "m" => 40000, "tm" => 126784, "lp" => 0}, "gleich" => ["v"], "dann" => ["wartet"]},
+        {"von" => "handy", "msg" => {"t" => "nn"}, "dann" => ["startmenue"]},
+        {"von" => "uhr", "tu" => "menuFree", "nach_ms" => 500, "dann" => ["frei"]}
+    ] as Array<Dictionary>);
+}
+
+//! Das hallo geht verloren (#672): nach 8 s das Startmenü, die letzte Route lädt erst auf Wahl
+(:test)
+function talk_startmenue_ohne_antwort(logger as Logger) as Boolean {
+    return TestTalk.play("startmenue-ohne-antwort", ["handy"] as Array<String>, [
+        {"von" => "uhr", "tu" => "start", "msg" => {"t" => "hi", "v" => 3, "m" => 40000, "tm" => 126784, "lp" => 0}, "verloren" => true, "dann" => ["wartet"]},
+        {"von" => "handy", "still" => true, "nach_ms" => 8500, "dann" => ["startmenue"]},
+        {"von" => "uhr", "tu" => "menuLast", "nach_ms" => 500, "dann" => ["route:t"]}
+    ] as Array<Dictionary>);
+}
+
+//! Das Handy navigiert (#659): nach dem ok seine Werte, die Uhr zeigt sie; 30 s ohne neue rechnet sie selbst
+(:test)
+function talk_werte_vom_handy(logger as Logger) as Boolean {
+    return TestTalk.play("werte-vom-handy", ["handy"] as Array<String>, [
+        {"von" => "handy", "msg" => {"t" => "n", "id" => "$a", "np" => 2}, "dann" => ["route_kommt"]},
+        {"von" => "handy", "msg" => {"t" => "r", "id" => "$a"}},
+        {"von" => "uhr", "msg" => {"t" => "ok", "id" => "$a"}, "nach_ms" => 500, "dann" => ["route:$a"]},
+        {"von" => "handy", "msg" => {"t" => "nv", "id" => "$a", "k" => -1, "o" => -1, "d" => 2400, "c" => -1, "r" => 2400, "g" => -1}},
+        {"von" => "uhr", "tu" => "fixes", "fa" => 0, "fb" => 2, "dann" => ["werte_handy"]},
+        {"von" => "uhr", "tu" => "fixes", "fa" => 2, "fb" => 10, "dann" => ["werte_uhr"]}
     ] as Array<Dictionary>);
 }

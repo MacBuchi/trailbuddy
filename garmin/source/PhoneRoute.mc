@@ -7,7 +7,7 @@ import Toybox.System;
 //! ist [currentId] (fehlt ohne Route vom Handy), `bad` eine Route, die die
 //! App zweimal abstürzen ließ ([CrashGuard]). Die Route kommt in Stücken
 //! (`lib/features/garmin/watch_route.dart`, `WatchRoute.parts`),
-//! Protokoll 2 (#449, 2026-11-05):
+//! Protokoll 3 (gepackt seit #449, 2026-11-05; Speicher im „hallo", `nv`, `nn` seit #659/#671/#672):
 //!
 //!   t    "r"
 //!   id   Kennung der Route
@@ -15,6 +15,8 @@ import Toybox.System;
 //!   v, np, o, e0, sec   der Kopf, nur im ersten Stück: Protokoll, Anzahl
 //!        der Punkte, erster Punkt [lat, lon] in 1e-5°, erste Höhe (fehlt
 //!        ohne Höhen), die Trails [[von, bis, sGrad, Name], …]
+//!   nm, len, hm   Name, Meter und bergauf (Protokoll 3, #672: das
+//!        Startmenü nennt die letzte Route damit)
 //!   pts  je Punkt `(dLat << 16) | dLon` gegen den Vorgänger ([unpackHi],
 //!        [unpackLo]); der erste Punkt der Route gegen `o`
 //!   ele  die Höhendifferenzen dazu, zwei je Zahl, oder fehlt
@@ -39,7 +41,7 @@ import Toybox.System;
 module PhoneRoute {
     //! Fassung des Protokolls (`kWatchProtocol` in Dart; ein Test der App
     //! liest diese Zeile).
-    const PROTOCOL = 2;
+    const PROTOCOL = 3;
     //! Mehr Stücke nimmt die Uhr nicht an (800 Punkte gepackt in Stücken
     //! zu 800 Zahlen: 2; Luft für kleinere Stücke).
     const MAX_PARTS = 30;
@@ -141,7 +143,7 @@ module PhoneRoute {
             return fail("mem");
         }
         if ((head != null && !store(slot + "h", head)) || !store(slot + p, part)
-                || (lastShelf && p == 0 && !store(slot + "m", metaOf(msg)))) {
+                || (p == 0 && !store(slot + "m", metaOf(msg)))) {
             clear(slot);
             return fail("store");
         }
@@ -400,6 +402,20 @@ module PhoneRoute {
         if (!(slot instanceof String)) { return null; }
         var id = Storage.getValue(slot + "id");
         return id instanceof String ? id : null;
+    }
+
+    //! Name, Meter und bergauf der gespeicherten Route (Protokoll 3: jeder
+    //! Kopf trägt `nm`, `len`, `hm`) fürs Startmenü (#672), oder null.
+    function currentMeta() as Array? {
+        var slot = Storage.getValue("cur");
+        if (!(slot instanceof String)) { return null; }
+        var l = shelf();
+        for (var i = 0; i < l.size(); i++) {
+            var e = l[i] as Array;
+            if (slot.equals(e[1])) { return [e[2], e[3], e[4]]; }
+        }
+        var m = Storage.getValue(slot + "m");
+        return m instanceof Array && m.size() >= 3 ? m : null;
     }
 
     //! Die gespeicherte Route verwerfen (sie ließ die App abstürzen, sie

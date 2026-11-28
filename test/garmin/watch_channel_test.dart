@@ -9,6 +9,8 @@ import 'package:latlong2/latlong.dart';
 import 'package:trailbuddy/features/garmin/watch_branches.dart'
     show WatchBranch;
 import 'package:trailbuddy/features/garmin/watch_providers.dart';
+import 'package:trailbuddy/features/garmin/watch_route.dart'
+    show kWatchPointBytes, kWatchReserveBytes;
 import 'package:trailbuddy/features/garmin/watch_ride_inbox.dart'
     show kWatchRecordCheck;
 import 'package:trailbuddy/features/rides/ride_providers.dart'
@@ -106,7 +108,13 @@ void main() {
     );
     // Die App geht auf und meldet sich ohne Route: Jetzt kommt sie an.
     b.channel.appOpen = true;
-    b.bridge.fromWatch({'t': 'hi', 'v': 2, 'ver': '1.3.0'});
+    b.bridge.fromWatch({
+      't': 'hi',
+      'v': 3,
+      'm': 40000,
+      'tm': 126784,
+      'ver': '1.3.0',
+    });
     expect(
       await b.until(() => b.sync.phase == WatchSyncPhase.stored),
       isTrue,
@@ -132,7 +140,13 @@ void main() {
       b.phone.navigate();
       await b.run(const Duration(milliseconds: 500));
       final hiSent = b.now;
-      b.bridge.fromWatch({'t': 'hi', 'v': 2, 'ver': '1.3.0'});
+      b.bridge.fromWatch({
+        't': 'hi',
+        'v': 3,
+        'm': 40000,
+        'tm': 126784,
+        'ver': '1.3.0',
+      });
       // Innerhalb der 8 s hört die Uhr „es kommt eine" (`n`) — hin und zurück
       // je 3,5 s.
       await b.run(const Duration(seconds: 8));
@@ -187,6 +201,10 @@ void main() {
     final b = _Bench(tester, branches: longPhoneBranches);
     b.channel.failRouteAfter = 1;
     await b.phone.open();
+    // Die Uhr meldet Platz für mehr als die Vorgabe (#671): Linie und
+    // Stummel brauchen dann zwei Stücke.
+    b.bridge.hello(null, free: kWatchReserveBytes + 2000 * kWatchPointBytes);
+    await tester.pump();
     b.phone.navigate(route: longPhoneRoute());
     expect(
       await b.until(() => b.sync.phase == WatchSyncPhase.stored),
@@ -211,6 +229,10 @@ void main() {
     // Nachricht 0 ist die Ankündigung `n`, 1 und 2 die beiden Stücke.
     b.channel.lose.add(2);
     await b.phone.open();
+    // Die Uhr meldet Platz für mehr als die Vorgabe (#671): Linie und
+    // Stummel brauchen dann zwei Stücke.
+    b.bridge.hello(null, free: kWatchReserveBytes + 2000 * kWatchPointBytes);
+    await tester.pump();
     b.phone.navigate(route: longPhoneRoute());
     expect(
       await b.until(() => b.sync.phase == WatchSyncPhase.unconfirmed),
@@ -222,7 +244,13 @@ void main() {
       isTrue,
       reason: 'kein Nachfragen',
     );
-    b.bridge.fromWatch({'t': 'hi', 'v': 2, 'ver': '1.3.0'});
+    b.bridge.fromWatch({
+      't': 'hi',
+      'v': 3,
+      'm': 40000,
+      'tm': 126784,
+      'ver': '1.3.0',
+    });
     expect(
       await b.until(() => b.sync.phase == WatchSyncPhase.stored),
       isTrue,

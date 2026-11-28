@@ -55,6 +55,13 @@ class NavTracker {
     hidden var _off as Float = 0.0;
     hidden var _armed as Boolean = false;
     hidden var _reportedOff as Float = -1.0;
+    //! #664 (wie `NavTracker` in route_progress.dart): Die Linie war einmal
+    //! in 30 m; der ferne Teil, auf dem die letzten Fixe lagen — Beginn,
+    //! jetzt, wie viele.
+    hidden var _reached as Boolean = false;
+    hidden var _candFirst as Float = 0.0;
+    hidden var _candLast as Float = 0.0;
+    hidden var _candCount as Number = 0;
 
     function initialize(r as NavRoute) {
         route = r;
@@ -124,15 +131,42 @@ class NavTracker {
     }
 
     //! [alongM, offM]: zuerst im Fenster ab [last] (zurück 30 m, voraus
-    //! 800 m); liegt dort nichts in 30 m, die ganze Linie — und liegt auch
-    //! dort nichts so nah, bleibt der Stand des Fensters (kein Sprung auf
-    //! die Rückfahrt), der Abstand aber ist der zur ganzen Linie.
+    //! 800 m). Liegt dort nichts in 30 m, ein ferner Teil aber schon (die
+    //! Rückfahrt 40 m daneben), ist das nur ein Kandidat (#664): Der Stand
+    //! bleibt, der Abstand ist der zum fernen Teil — nicht abseits. Genommen
+    //! wird er nach 3 Fixen in Folge, die zusammen 50 m auf ihm vorankommen
+    //! (Zahlen statt Konstanten, des Speichers wegen). Bis die Linie einmal
+    //! erreicht war, gilt jeder Teil sofort. Liegt nirgends etwas in 30 m,
+    //! bleibt der Stand des Fensters, der Abstand ist der zur ganzen Linie.
     function progress(x as Float, y as Float, last as Float) as [Float, Float] {
         var w = nearest(x, y, last - BACK_SLACK_M, last + AHEAD_WINDOW_M);
-        if (w != null && w[1] <= OFF_ROUTE_M) { return w; }
+        if (w != null && w[1] <= OFF_ROUTE_M) {
+            _reached = true;
+            _candCount = 0;
+            return w;
+        }
         var all = nearest(x, y, -1.0e9, 1.0e9) as [Float, Float];
-        if (all[1] <= OFF_ROUTE_M || w == null) { return all; }
-        return [w[0], all[1]];
+        if (w == null || all[1] > OFF_ROUTE_M || !_reached) {
+            _candCount = 0;
+            if (all[1] <= OFF_ROUTE_M) { _reached = true; }
+            if (w == null || all[1] <= OFF_ROUTE_M) { return all; }
+            return [w[0], all[1]];
+        }
+        var near = _candCount == 0 ? null : nearest(x, y, _candLast - 200.0, _candLast + 200.0);
+        if (near != null && near[1] <= OFF_ROUTE_M) {
+            _candCount++;
+        } else {
+            near = all;
+            _candFirst = all[0];
+            _candCount = 1;
+        }
+        _candLast = near[0];
+        var span = _candLast - _candFirst;
+        if (_candCount >= 3 && (span >= 50.0 || span <= -50.0)) {
+            _candCount = 0;
+            return near;
+        }
+        return [last, near[1]];
     }
 
     //! Der nächste Fußpunkt zwischen [from] und [to] Metern ab Start —

@@ -24,67 +24,86 @@ import '../rides/sensor_fusion.dart'
     show FusionEvent, FusionLive, JumpEvent, StoppieEvent, WheelieEvent;
 import '../rides/trail_values.dart' show AirtimeLog;
 import '../routing/nav_sections.dart';
+import '../routing/route_progress.dart' show climbAfter;
 import '../trails/gpx.dart' show TrackPoint;
 import '../trails/trail_elevation.dart' show ElevationProfile;
-import '../trails/trail_geometry.dart' show simplify;
 import '../../core/geo.dart' as geo;
-import '../offline_areas/height_tiles.dart' show kClimbHysteresisM;
+import '../offline_areas/height_tiles.dart'
+    show hysteresisClimb, kClimbHysteresisM;
 import 'watch_branches.dart';
 
 /// Fassung des Protokolls (`v`); die Uhr lehnt eine andere ab. 2 seit
-/// dem Packen (#449, 2026-11-05).
-const kWatchProtocol = 2;
+/// dem Packen (#449, 2026-11-05), 3 seit dem Speicher im „hallo", den
+/// Werten des Handys (`nv`) und der Antwort „keine Navigation" (#659, #671,
+/// #672; 2026-11-28 — die Uhr-App ist eine Entwickler-App, es gibt keine
+/// älteren Stände zu bedienen, also auch keine Versionsweichen mehr).
+const kWatchProtocol = 3;
 
 /// So weit darf ein Schritt in 1e-5° gehen, damit er in 16 Bit passt —
 /// in der Länge bei 47° gut 240 m. Längere Abschnitte teilt [watchRouteOf].
 const kWatchMaxDelta = 32767;
 
-/// So viele Punkte trägt die fēnix 5 mit Reserve (Kettenstand 2026-11-13,
-/// `garmin/CLAUDE.md`): 2000 und 1750 enden beim Laden in „Out of Memory",
-/// 1500 lädt noch, aber erst bei 800 nimmt die Uhr während der Fahrt eine
-/// zweite gleich große Route an (darüber `x` mem) — Spitze 102 von 124 KB.
-/// Seit 1.8.0 (#525/#526/#519, Betreiber 2026-11-18) 700: Mit 800 hatte
-/// `main` beim Wechsel nur 0,2 KB Luft, und die ~2,3 KB der Buddys und
-/// Schilder sprengten sie.
-const kWatchMaxPoints = 700;
+/// So viele Byte belegt ein Punkt der Route im Arbeitsspeicher der Uhr
+/// (vier Felder `xs/ys/cum/climb` in `NavRoute.mc`), gemessen im
+/// Kettenstand (#671, fēnix 5, 2026-11-28: 600 → 800 → 1000 Punkte je
+/// +4,1 KB, 20,6 B; `garmin/CLAUDE.md` „Das Budget aus dem hallo").
+const kWatchPointBytes = 21;
 
-/// Startwert der Vereinfachung (Konzept 2); passt es nicht, verdoppelt.
-const kWatchSimplifyM = 5.0;
+/// Ein Stummel belegt drei Felder (`brAt/brX/brY`), drei Viertel eines
+/// Punkts mit Höhen.
+const kWatchBranchBytes = kWatchPointBytes * 3 ~/ 4;
 
-/// So viele Zahlen trägt ein Stück — rund 4 KB serialisiert (5 Byte je
-/// Ganzzahl), mit Kopf und Trails im ersten. Gepackt sind das gut 500
-/// Punkte samt Höhen. Die Uhr hält beim Empfang ein Stück und braucht zum
-/// Speichern das Zwei- bis Dreifache frei; je Wert in ihrem Speicher
-/// gelten 8 KB.
-const kWatchPartInts = 800;
+/// So viel muss neben der Route frei bleiben, gemessen ab dem Stand beim
+/// „hallo" (Lader mit Platzhalter): Ansicht, Verfolgung, Zahlen und
+/// Aufnahme der Fahrt (3,0 KB) und das Stück einer zweiten Route samt der
+/// Prüfung in `PhoneRoute.take` (4 KB + 16 B je Zahl, mit Nachricht) — die
+/// Uhr nimmt während der Fahrt eine zweite gleich große Route an.
+/// Kettenstand (#671, fēnix 5, Stücke zu [kWatchPartInts]): frei beim
+/// „hallo" 36,9 KB; 900 Punkte gehen samt Wechsel (frei mit Aufnahme
+/// 15,8 KB), 1000 nicht (13,3 KB, `x` mem). Mit 19 KB sind es 830 — 70
+/// Punkte Luft.
+const kWatchReserveBytes = 19 * 1024;
 
-/// Fassung der Uhr-App, ab der sie ein Fenster um ihren Stand (#500) und
-/// die Frage nach einer neuen Linie (#501) versteht. Ohne Angabe ist die
-/// Uhr älter: sie bekommt nichts Neues.
-const kWatchWindowFrom = '1.3.0';
+/// Ohne „hallo" mit Speicher (die Uhr hat sich in diesem Lauf noch nicht
+/// gemeldet): so viele Punkte — nicht mehr, als die fēnix 5 im Kettenstand
+/// samt Wechsel während der Fahrt nimmt (#671). Mit dem „hallo" geht die
+/// Route im Budget der Uhr hinterher.
+const kWatchDefaultPoints = 500;
 
-/// „1.3.0-dev" ist dieselbe Fassung wie „1.3.0"; keine Angabe heißt alt.
-bool watchKnowsWindow(String? version) =>
-    watchVersionAtLeast(version, kWatchWindowFrom);
+/// Mehr Punkte nimmt die Uhr nie (`PhoneRoute.MAX_POINTS`).
+const kWatchPointsCap = 4000;
 
-/// Ist die Uhr-App [version] mindestens [from]? Ohne Angabe nein.
-bool watchVersionAtLeast(String? version, String from) {
-  if (version == null) return false;
-  final here = version.split('-').first.split('.');
-  final need = from.split('.');
-  int part(List<String> p, int i) =>
-      i < p.length ? (int.tryParse(p[i]) ?? 0) : 0;
-  for (var i = 0; i < 3; i++) {
-    final a = part(here, i), b = part(need, i);
-    if (a != b) return a > b;
-  }
-  return true;
+/// Wenigstens so viele: darunter navigiert keine Linie mehr.
+const kWatchMinPoints = 50;
+
+/// Das Budget in Punkten aus dem Speicher, den die Uhr im „hallo" meldet
+/// (#671): [freeB] frei jetzt, [loaded] Punkte der geladenen Route (die
+/// gibt sie beim Wechsel frei). Null ohne Angabe.
+int? watchBudgetOf(int? freeB, int loaded) {
+  if (freeB == null) return null;
+  final clean = freeB + loaded * kWatchPointBytes - kWatchReserveBytes;
+  return (clean ~/ kWatchPointBytes).clamp(kWatchMinPoints, kWatchPointsCap);
 }
 
-/// Die Uhr fragt, bevor eine neue Linie ihre laufende Navigation ersetzt
-/// (#501). Eine ältere nähme sie still — wer auf der Uhr fährt, soll das
-/// nicht unwissend tun.
-bool watchKnowsAsk(String? version) => watchKnowsWindow(version);
+/// Startwert der Vereinfachung (Konzept 2): Genauer muss die Linie für die
+/// Uhr nicht sein — passt sie so ins Budget, bleibt der Rest frei.
+const kWatchSimplifyM = 5.0;
+
+/// Ab dieser Abweichung navigiert die Linie nicht mehr (#671): Die Uhr sagt
+/// bei 30 m „abseits" (`OFF_ROUTE_M`), mit 25 m Vereinfachung blieben dem
+/// GPS 5 m. Braucht eine Route mehr, schneidet das Handy sie ab und sagt
+/// es ([WatchRoute.cutM]).
+const kWatchMaxTolM = 25.0;
+
+/// So viele Zahlen trägt ein Stück — rund 2 KB serialisiert (5 Byte je
+/// Ganzzahl), mit Kopf und Trails im ersten; gepackt gut 250 Punkte samt
+/// Höhen. Die Uhr hält beim Empfang ein Stück und verlangt zum Speichern
+/// 4 KB + 16 B je Zahl frei (`PhoneRoute.take`). Seit #671 400 statt 800:
+/// Das halbiert, was neben einer geladenen Route frei sein muss, und trägt
+/// gut 400 Punkte mehr Route (Kettenstand: mit 800 scheiterte schon der
+/// Wechsel zweier 600-Punkte-Routen, mit 400 gehen 900) — für ein Stück
+/// mehr je Route.
+const kWatchPartInts = 400;
 
 /// Namen kürzt die App: Die Uhr zeigt ohnehin nur eine Zeile.
 const kWatchNameChars = 24;
@@ -236,6 +255,11 @@ class WatchRoute {
     required this.sec,
     this.br = const [],
     this.tolM = kWatchSimplifyM,
+    this.name = '',
+    this.lengthM = 0,
+    this.climbM = 0,
+    this.cutM,
+    this.secOf = const [],
   });
 
   final String id;
@@ -246,10 +270,24 @@ class WatchRoute {
   /// Die Stummel als `[Punkt, dLat, dLon, …]`, nach Punkt sortiert.
   final List<int> br;
 
-  /// Mit dieser Toleranz vereinfacht (Douglas-Peucker, m): mehr als
-  /// [kWatchSimplifyM] heißt, die Linie war für [kWatchMaxPoints] zu lang
-  /// (#515: die Ablage sagt es, wenn es viel war).
+  /// So weit weicht die vereinfachte Linie höchstens ab (m): mehr als
+  /// [kWatchSimplifyM] heißt, die Linie war fürs Budget zu lang (#515: die
+  /// Ablage sagt es, wenn es viel war).
   final double tolM;
+
+  /// Name, Länge (m) und bergauf (hm) im Kopf (`nm`, `len`, `hm`): Das
+  /// Startmenü der Uhr nennt die letzte Route damit (#672).
+  final String name;
+  final int lengthM;
+  final int climbM;
+
+  /// Passte die Linie nur verkürzt aufs Budget ([kWatchMaxTolM]), endet sie
+  /// hier (m der ganzen Linie) — sonst null (#671).
+  final double? cutM;
+
+  /// Je Eintrag in [sec] der Trail der Navigation, aus dem er kam — die
+  /// Werte des Handys (`nv`, #659) nennen Trails mit dieser Stelle.
+  final List<NavTrailSection> secOf;
 
   int get pointCount => pts.length ~/ 2;
 
@@ -294,12 +332,15 @@ class WatchRoute {
     'o': [pts[0], pts[1]],
     if (ele case final e?) 'e0': e[0],
     if (sec.isNotEmpty) 'sec': sec,
+    'nm': name,
+    'len': lengthM,
+    'hm': climbM,
   };
 
   /// So viele Zahlen kostet der Kopf auf dem Draht (Namen nach Bytes, eine
   /// Zahl je 5): Er zählt in die Grenze des ersten Stücks.
   int _headInts() {
-    var n = 8;
+    var n = 11 + (utf8.encode(name).length + 4) ~/ 5;
     for (final s in sec) {
       n += 4 + (utf8.encode('${s[3]}').length + 4) ~/ 5;
     }
@@ -376,11 +417,14 @@ class WatchRoute {
   }
 }
 
-/// Die navigierte Linie für die Uhr: vereinfacht (Douglas-Peucker, erst
-/// [kWatchSimplifyM], dann doppelt, bis höchstens [maxPoints] bleiben),
-/// Höhen aus dem Profil des Geländemodells (falls da), die Trails der
-/// Route als Abschnitte. Der Ziel-Trail hinter dem Ende („Zum
-/// Trailkopf") fährt nicht mit — er liegt nicht auf der Linie.
+/// Die navigierte Linie für die Uhr (#671): vereinfacht auf höchstens
+/// [maxPoints] Punkte — das Budget aus dem „hallo" ([watchBudgetOf]) —, mit
+/// Vorrang die größte Abweichung zuerst ([watchSimplify]), und nicht
+/// genauer als [kWatchSimplifyM]. Bliebe dabei mehr Abweichung als
+/// [kWatchMaxTolM], endet die Route dort, wo das Budget noch reicht
+/// ([WatchRoute.cutM]). Höhen aus dem Profil des Geländemodells (falls da),
+/// die Trails der Route als Abschnitte. Der Ziel-Trail hinter dem Ende
+/// („Zum Trailkopf") fährt nicht mit — er liegt nicht auf der Linie.
 ///
 /// Die Punkte der [branches] (Nummern in [points]) bleiben beim
 /// Vereinfachen stehen: Die Uhr zeichnet einen Stummel vom Punkt der
@@ -390,7 +434,8 @@ WatchRoute? watchRouteOf(
   NavSections sections, {
   ElevationProfile? heights,
   List<WatchBranch> branches = const [],
-  int maxPoints = kWatchMaxPoints,
+  int maxPoints = kWatchDefaultPoints,
+  String name = '',
 }) {
   if (points.length < 2) return null;
   final track = [for (final p in points) TrackPoint(p.latitude, p.longitude)];
@@ -404,7 +449,12 @@ WatchRoute? watchRouteOf(
     );
   }
   if (!(cum.last > 0)) return null;
-  final fixed = {
+  // Die Stummel kosten mit: Was sie belegen, fehlt der Linie.
+  final budget = math.max(
+    2,
+    maxPoints - branches.length * kWatchBranchBytes ~/ kWatchPointBytes,
+  );
+  final allFixed = {
     for (final b in branches)
       if (b.index >= 0 && b.index < points.length) b.index,
     // Die Wendepunkte der Höhe bleiben auch: Douglas-Peucker sieht nur die
@@ -416,14 +466,44 @@ WatchRoute? watchRouteOf(
   for (var i = 0; i < track.length; i++) {
     index[track[i]] = i;
   }
-  var tol = kWatchSimplifyM;
-  var line = _packable(_simplifyKeeping(track, fixed, tol), index, cum);
-  // Die Stummel sind auf [kWatchMaxBranches] gekappt, es bleibt also
-  // immer genug für die Linie; die Grenze der Toleranz ist nur ein Riegel.
-  while (line.e5.length > maxPoints && tol < 1e5) {
-    tol *= 2;
-    line = _packable(_simplifyKeeping(track, fixed, tol), index, cum);
+
+  // Auf das Budget, samt der Zwischenpunkte langer Geraden (16 Bit).
+  ({_Packed line, double tol}) fit(int last) {
+    final fixed = {
+      for (final i in allFixed)
+        if (i < last) i,
+    };
+    var target = budget;
+    while (true) {
+      final s = watchSimplify(points, fixed, maxPoints: target, last: last);
+      final line = _packable([for (final i in s.kept) track[i]], index, cum);
+      final over = line.e5.length - budget;
+      if (over <= 0 || target <= fixed.length + 2) {
+        return (line: line, tol: s.tolM);
+      }
+      target -= over;
+    }
   }
+
+  var last = points.length - 1;
+  var fitted = fit(last);
+  double? cutM;
+  if (fitted.tol > kWatchMaxTolM) {
+    // Die längste Anfangsstrecke, die mit höchstens kWatchMaxTolM passt.
+    var lo = 1, hi = last;
+    while (lo < hi) {
+      final mid = (lo + hi + 1) >> 1;
+      if (fit(mid).tol <= kWatchMaxTolM) {
+        lo = mid;
+      } else {
+        hi = mid - 1;
+      }
+    }
+    last = lo;
+    fitted = fit(last);
+    cutM = cum[last];
+  }
+  final line = fitted.line;
   final along = line.along;
 
   final pts = <int>[];
@@ -446,10 +526,13 @@ WatchRoute? watchRouteOf(
   }
 
   final sec = <List<Object>>[];
+  final secOf = <NavTrailSection>[];
   for (final t in sections.ridden) {
+    if (cutM != null && t.startM >= cutM) continue;
     final from = _nearest(along, t.startM), to = _nearest(along, t.endM);
     if (to <= from) continue;
     sec.add([from, to, watchGrade(t), _short(t.name)]);
+    secOf.add(t);
   }
   // Die Stummel an ihren Punkt der vereinfachten Linie, das Ende als
   // Versatz gegen die Kreuzung.
@@ -472,8 +555,92 @@ WatchRoute? watchRouteOf(
     ele: ele,
     sec: sec,
     br: br,
-    tolM: tol,
+    tolM: math.max(kWatchSimplifyM, fitted.tol),
+    name: _short(name),
+    lengthM: along.last.round(),
+    climbM: ele == null
+        ? 0
+        : hysteresisClimb([
+            for (final e in ele) e.toDouble(),
+          ], kClimbHysteresisM).$1.round(),
+    cutM: cutM,
+    secOf: secOf,
   );
+}
+
+/// Douglas-Peucker mit Vorrang (#671): Die Punkte [fixed], Anfang und Ende
+/// ([last], ohne: der letzte Punkt) bleiben; dann kommt immer der Punkt
+/// mit der größten Abweichung von der bisherigen Linie dazu, bis
+/// [maxPoints] erreicht sind oder keiner mehr als [minTolM] abweicht. So
+/// nutzt eine lange Route das Budget ganz, statt die Toleranz zu
+/// verdoppeln und im Mittel ein Viertel liegen zu lassen. Douglas-Peucker
+/// statt Visvalingam: Es begrenzt genau die Größe, nach der die Uhr
+/// „abseits" sagt — den Abstand zur Linie —, Visvalingam nur eine Fläche,
+/// und an einer Serpentine wiegt eine schmale, lange Kehre wenig Fläche.
+/// [tolM]: die größte Abweichung, die bleibt.
+({List<int> kept, double tolM}) watchSimplify(
+  List<LatLng> points,
+  Set<int> fixed, {
+  required int maxPoints,
+  double minTolM = kWatchSimplifyM,
+  int? last,
+}) {
+  final end = last ?? points.length - 1;
+  if (end < 1) return (kept: [0], tolM: 0);
+  final kx = 111194.9 * math.cos(points.first.latitude * math.pi / 180);
+  const ky = 111194.9;
+  final xs = [for (var i = 0; i <= end; i++) points[i].longitude * kx];
+  final ys = [for (var i = 0; i <= end; i++) points[i].latitude * ky];
+  // Die schlimmste Stelle zwischen a und b: (Abstand, Stelle).
+  (double, int) worst(int a, int b) {
+    final ax = xs[a], ay = ys[a];
+    final dx = xs[b] - ax, dy = ys[b] - ay;
+    final l2 = dx * dx + dy * dy;
+    var d2 = -1.0, at = -1;
+    for (var i = a + 1; i < b; i++) {
+      final px = xs[i] - ax, py = ys[i] - ay;
+      final t = l2 == 0 ? 0.0 : ((px * dx + py * dy) / l2).clamp(0.0, 1.0);
+      final ex = px - t * dx, ey = py - t * dy;
+      final e = ex * ex + ey * ey;
+      if (e > d2) {
+        d2 = e;
+        at = i;
+      }
+    }
+    return (d2 < 0 ? 0.0 : math.sqrt(d2), at);
+  }
+
+  final keep = {
+    0,
+    end,
+    for (final i in fixed)
+      if (i > 0 && i < end) i,
+  };
+  final cuts = keep.toList()..sort();
+  // Größte Abweichung zuerst; die Stelle trennt gleiche Abstände.
+  final queue = SplayTreeSet<(double, int, int, int)>((x, y) {
+    final c = y.$1.compareTo(x.$1);
+    return c != 0 ? c : x.$2.compareTo(y.$2);
+  });
+  void push(int a, int b) {
+    if (b - a < 2) return;
+    final (d, i) = worst(a, b);
+    queue.add((d, i, a, b));
+  }
+
+  for (var k = 0; k + 1 < cuts.length; k++) {
+    push(cuts[k], cuts[k + 1]);
+  }
+  while (queue.isNotEmpty && keep.length < maxPoints) {
+    final top = queue.first;
+    if (top.$1 <= minTolM) break;
+    queue.remove(top);
+    keep.add(top.$2);
+    push(top.$3, top.$2);
+    push(top.$2, top.$4);
+  }
+  final tol = queue.isEmpty ? 0.0 : queue.first.$1;
+  return (kept: keep.toList()..sort(), tolM: tol);
 }
 
 /// Die vereinfachte Linie in 1e-5°, so dicht, dass jeder Schritt in 16 Bit
@@ -481,7 +648,9 @@ WatchRoute? watchRouteOf(
 /// stark vereinfacht) bekommt Zwischenpunkte auf der Geraden. [along] ist
 /// die Lage ab Start (Meter der Originallinie), [orig] die Nummer in der
 /// Originallinie, null für einen Zwischenpunkt.
-({List<(int, int)> e5, List<double> along, List<int?> orig}) _packable(
+typedef _Packed = ({List<(int, int)> e5, List<double> along, List<int?> orig});
+
+_Packed _packable(
   List<TrackPoint> kept,
   Map<TrackPoint, int> index,
   List<double> cum,
@@ -551,25 +720,6 @@ Set<int> climbTurnIndices(
   // nächste Punkt der Linie.
   final scale = cum.last / d.last;
   return {for (final i in turns) _nearest(cum, d[i] * scale)};
-}
-
-/// Douglas-Peucker je Stück zwischen den Punkten in [fixed] — die bleiben.
-List<TrackPoint> _simplifyKeeping(
-  List<TrackPoint> track,
-  Set<int> fixed,
-  double tol,
-) {
-  if (fixed.isEmpty) return simplify(track, toleranceM: tol);
-  final cuts = {0, ...fixed, track.length - 1}.toList()..sort();
-  final out = <TrackPoint>[];
-  for (var k = 0; k + 1 < cuts.length; k++) {
-    final piece = simplify(
-      track.sublist(cuts[k], cuts[k + 1] + 1),
-      toleranceM: tol,
-    );
-    out.addAll(k == 0 ? piece : piece.skip(1));
-  }
-  return out;
 }
 
 /// Der S-Grad, wie die Uhr ihn färbt: 0–3 (ab S3 schwarz wie in der App),
@@ -642,10 +792,9 @@ Map<String, Object>? watchBestsOf(AirtimeLog log, {bool on = false}) {
 /// ms, Wheelie in Metern. Eine ältere Uhr übergeht die Art.
 const kWatchCue = 'c';
 
-/// Antwort auf einen Sensorhinweis, ab Uhr-App 1.10.0: `s` gibt den
-/// Ereignisbeginn als Dezimaltext unverändert zurück (Unix-µs > 32 Bit).
+/// Antwort auf einen Sensorhinweis: `s` gibt den Ereignisbeginn als
+/// Dezimaltext unverändert zurück (Unix-µs > 32 Bit).
 const kWatchCueAnswer = 'ca';
-const kWatchCueAnswerFrom = '1.10.0';
 
 String watchSensorKind(FusionEvent event) => switch (event) {
   JumpEvent() => 'air',
@@ -717,12 +866,23 @@ Map<String, Object>? watchCueOf(
 /// zweimal abstürzen ließ und die sie deshalb verworfen hat. Keine
 /// Meldung: `hello` false.
 ///
-/// `v` ist die Fassung des Protokolls der Uhr-App (null, wenn sie fehlt).
-/// `ver` ist die Fassung der Uhr-App selbst, seit #500 — eine alte App
-/// sagt nichts, dann geht alles wie bisher. `rides` sind die Fahrten, die
-/// auf der Uhr auf das Handy warten (`rq`, #484, `watch_ride.dart`).
-({bool hello, String? id, String? bad, int? v, String? ver, List<String> rides})
-watchHelloOf(Object? message) {
+/// `v` ist die Fassung des Protokolls der Uhr-App (null, wenn sie fehlt),
+/// `ver` die der Uhr-App selbst. `rides` sind die Fahrten, die auf der Uhr
+/// auf das Handy warten (`rq`, #484, `watch_ride.dart`). Seit Protokoll 3
+/// (#671) der Speicher: `m` frei in Byte, `tm` gesamt, `lp` die Punkte der
+/// geladenen Route — daraus [budget] ([watchBudgetOf]); null ohne Angabe.
+typedef WatchHello = ({
+  bool hello,
+  String? id,
+  String? bad,
+  int? v,
+  String? ver,
+  List<String> rides,
+  int? budget,
+  int? totalB,
+});
+
+WatchHello watchHelloOf(Object? message) {
   if (message is! Map || message['t'] != kWatchHello) {
     return (
       hello: false,
@@ -731,13 +891,18 @@ watchHelloOf(Object? message) {
       v: null,
       ver: null,
       rides: const [],
+      budget: null,
+      totalB: null,
     );
   }
   final id = message['id'],
       bad = message['bad'],
       v = message['v'],
       ver = message['ver'],
-      rq = message['rq'];
+      rq = message['rq'],
+      m = message['m'],
+      tm = message['tm'],
+      lp = message['lp'];
   return (
     hello: true,
     id: id is String ? id : null,
@@ -750,7 +915,63 @@ watchHelloOf(Object? message) {
               if (r is String) r,
           ]
         : const <String>[],
+    budget: watchBudgetOf(m is int ? m : null, lp is int ? lp : 0),
+    totalB: tm is int ? tm : null,
   );
+}
+
+/// Die Antwort auf `hi`, wenn das Handy nicht navigiert (#672): Die Uhr
+/// zeigt gleich ihr Startmenü, statt 8 s auf nichts zu warten.
+const kWatchNoNav = 'nn';
+const Map<String, Object> watchNoNav = {'t': kWatchNoNav};
+
+/// Die Werte des Handys, solange es verbunden ist (#659): `{t: "nv", id,
+/// k, o, d, c, r, g}` — `k` der nächste Trailkopf und `o` der Trail, auf
+/// dem man ist (Stellen in `sec` der Route, -1 ohne), `d` Meter bis zum
+/// Ende dieses Trails bzw. zum Kopf bzw. zum Ziel, `c` Höhenmeter bis zum
+/// Kopf, `r` Meter und `g` Höhenmeter bis zum Ziel (-1 ohne Profil). Die
+/// Uhr nimmt sie, solange sie frisch sind und ihr eigener Stand denselben
+/// Trail nennt; sonst rechnet sie selbst.
+const kWatchNavValues = 'nv';
+
+/// Alle so viele Sekunden die Werte, dazu sofort bei einem neuen Abschnitt.
+const kWatchNavValuesEvery = Duration(seconds: 10);
+
+/// Die Werte des Handys ([kWatchNavValues], #659) beim Stand [alongM] der
+/// Navigation auf einer Linie von [lengthM] — die Trails nach ihrer Stelle
+/// in [WatchRoute.sec], die Höhenmeter aus dem Profil des Geländemodells
+/// (`climbAfter`, dieselbe Hysterese wie das Ergebnis).
+Map<String, Object> watchNavValuesOf(
+  WatchRoute route,
+  double alongM,
+  double lengthM, {
+  List<double>? climbDistM,
+  List<double>? climbEleM,
+}) {
+  final secs = route.secOf;
+  var o = -1, k = -1;
+  for (var i = 0; i < secs.length; i++) {
+    final t = secs[i];
+    if (alongM >= t.startM && alongM < t.endM) o = i;
+    if (t.startM > alongM && (k < 0 || t.startM < secs[k].startM)) k = i;
+  }
+  final d = o >= 0
+      ? secs[o].endM - alongM
+      : (k >= 0 ? secs[k].startM - alongM : lengthM - alongM);
+  final c = k < 0
+      ? null
+      : climbAfter(climbDistM, climbEleM, alongM, untilM: secs[k].startM);
+  final g = climbAfter(climbDistM, climbEleM, alongM);
+  return {
+    't': kWatchNavValues,
+    'id': route.id,
+    'k': k,
+    'o': o,
+    'd': math.max(0.0, d).round(),
+    'c': c?.round() ?? -1,
+    'r': math.max(0.0, lengthM - alongM).round(),
+    'g': g?.round() ?? -1,
+  };
 }
 
 /// Die Uhr konnte ein Stück der Route [id] nicht nehmen: `(id, code)`

@@ -22,7 +22,7 @@ const kWatchEventsOffer = Duration(days: 1);
 
 /// Die Arten der Nachrichten, wie die Uhr sie zählt (`EventLog.IN_T`,
 /// `OUT_T`: je drei Zeichen ab Stelle 0).
-const kWatchEventsIn = ' q  wq wk p  n  k  e  r  b  c  u  sd ';
+const kWatchEventsIn = ' q  wq wk p  n  k  e  r  b  c  u  sd nn nv ';
 const kWatchEventsOut = ' hi x  ok g  d  e  rs re rp rr rt w  sh ca ';
 
 /// Die Kennung der Zeile im Feedback-Text, die `tool/garmin_events.py`
@@ -85,6 +85,8 @@ List<int>? watchEventsOf(Object? raw) {
     9: 'fix',
     10: 'due',
     11: 'shelf',
+    12: 'startMenu',
+    13: 'values',
   };
   return (kind: kinds[e.kind] ?? 'other', detail: '${e.detail}');
 }

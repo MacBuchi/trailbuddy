@@ -309,7 +309,7 @@ void main() {
 
     test('„hallo" mit wartenden Fahrten: schick', () async {
       await container.read(watchRideInboxProvider.notifier).start();
-      bridge.answer({'t': 'hi', 'v': 2});
+      bridge.answer({'t': 'hi', 'v': 3, 'm': 40000, 'tm': 126784});
       await flush();
       expect(bridge.rideAnswers, isEmpty);
       bridge.answer({

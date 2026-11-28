@@ -2,6 +2,18 @@
 
 *What's new — in plain words, by topic. Each block names its versions. This English list starts with version 0.120.0; the German CHANGELOG.md describes all earlier versions.*
 
+## The watch: more route, the phone's numbers, a start menu
+
+*Version 0.208.0 (watch app 1.11.0), 2026-11-28*
+
+When it connects, the watch now tells the phone how much memory it has free, and the phone sends exactly as much route as fits — on the fēnix 5 a good 800 points instead of 700, and the watch still takes a second route of the same size on the way. The line is simplified as finely as possible instead of twice as coarsely the moment it is slightly too long. If a very long route still does not fit, only its beginning goes over, and the navigation says so: "Only the first 41.2 km fit on the watch; without the phone the navigation ends there." The same note appears when you put a route on the watch.
+
+While the phone is connected, the watch shows its numbers for distance and climb to the trail head and to the goal — the same as on the phone, no longer slightly different ones. If the phone stays at home or the connection drops, the watch calculates on its own again after half a minute.
+
+If you ride out on a path and back right next to it, your place no longer jumps onto the way back just because one GPS point lay beside it. Only when you actually ride a stretch there are you on the way back — on the watch and the phone by the same rule.
+
+If you start the watch app while the phone is not navigating, it no longer quietly loads the last route but asks: free ride, the last route or one of the saved ones. The phone now tells the watch right away that it is not navigating instead of letting it wait eight seconds. BACK means free ride.
+
 ## The Garmin watch with the iPhone
 
 *Versions 0.207.0–0.207.3, 2026-11-27 to 2026-11-28*

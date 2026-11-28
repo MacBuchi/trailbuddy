@@ -19,7 +19,11 @@ import '../routing/nav_sections.dart';
 import '../trails/terrain_heights.dart';
 import 'watch_branches.dart';
 import 'watch_providers.dart'
-    show kWatchBranchesWait, kWatchHeightsWait, watchBranchesLoaderProvider;
+    show
+        kWatchBranchesWait,
+        kWatchHeightsWait,
+        watchBranchesLoaderProvider,
+        watchSyncProvider;
 import 'watch_ride_inbox.dart' show watchRideInboxProvider;
 import 'watch_route.dart';
 import 'watch_shelf.dart';
@@ -85,6 +89,9 @@ Future<void> putOnWatch(
     sections,
     heights: heights,
     branches: branches,
+    maxPoints:
+        ref.read(watchSyncProvider.notifier).budget ?? kWatchDefaultPoints,
+    name: name,
   );
   if (route == null) return say(l.watchShelfUnfit);
   final entry = WatchShelfEntry(
@@ -109,10 +116,12 @@ Future<void> putOnWatch(
     WatchShelfPut.already => l.watchShelfAlready,
     WatchShelfPut.notInstalled => l.watchShelfNotInstalled,
   };
+  final going = put == WatchShelfPut.sending || put == WatchShelfPut.waiting;
+  final cut = route.cutM;
   say(
-    strong && (put == WatchShelfPut.sending || put == WatchShelfPut.waiting)
-        ? '$text ${l.watchShelfSimplified}'
-        : text,
+    going && cut != null
+        ? '$text ${l.watchShelfCut(formatMeters(cut))}'
+        : (strong && going ? '$text ${l.watchShelfSimplified}' : text),
   );
 }
 

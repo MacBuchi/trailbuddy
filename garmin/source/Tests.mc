@@ -218,6 +218,33 @@ function loopArrivesOnlyOnLastHalf(logger as Logger) as Boolean {
     return true;
 }
 
+//! #664 (Feldbefund fēnix 6S, 2026-11-27): Hinweg nach Osten, Rückweg 40 m
+//! nördlich. Ein Ausreißer nahe der Rückfahrt springt nicht; wer sie 50 m
+//! fährt (drei Fixe und mehr), ist dort. Wie `route_progress_test`.
+(:test)
+function farPartOnlyOnceRidden(logger as Logger) as Boolean {
+    var r = NavRoute.decoded(TestRoutes.v2("far", false, [0, 0, 0, 450, 0, 450, 36, 0, 0, -450, 0, -450],
+        null, null, null));
+    var t = new NavTracker(r);
+    for (var m = 0; m <= 300; m += 10) { t.update(m.toFloat(), 0.0, null, 0.0, null); }
+    var s = t.update(310.0, 35.0, null, 0.0, null);
+    Test.assert(s.alongM < 305.0 && s.alongM > 295.0);
+    Test.assert(s.offM < 10.0);
+    s = t.update(320.0, 0.0, null, 0.0, null);
+    Test.assert(s.alongM < 330.0);
+    // Zwei Fixe auf der Rückfahrt reichen nicht …
+    t.update(300.0, 40.0, null, 0.0, null);
+    s = t.update(290.0, 40.0, null, 0.0, null);
+    Test.assert(s.alongM < 330.0);
+    // … gefahren über 50 m schon.
+    for (var m = 280; m >= 240; m -= 10) { s = t.update(m.toFloat(), 40.0, null, 0.0, null); }
+    Test.assert(s.alongM > 1700.0 && s.remainingM < 300.0);
+    // Vor dem ersten Erreichen gilt jeder Teil sofort (Start auf der Rückfahrt).
+    s = new NavTracker(r).update(500.0, 41.0, null, 0.0, null);
+    Test.assert(s.alongM > 1500.0);
+    return true;
+}
+
 (:test)
 function headingSources(logger as Logger) as Boolean {
     var t = new NavTracker(TestRoutes.straightRoute());

@@ -887,6 +887,9 @@ class _WatchBadge extends ConsumerWidget {
       if (apart) l.navWatchApart(formatMeters(apartM!)),
       if (drift != null) l.navWatchDrift(formatMeters(drift)),
       if (sync.phase != WatchSyncPhase.idle) text,
+      // #671: Nur der Anfang passte ins Budget der Uhr.
+      if (sync.cutM case final cut? when sync.phase != WatchSyncPhase.failed)
+        l.navWatchCut(formatMeters(cut)),
       // Verbunden nur, wenn sonst nichts zu sagen ist — „Route auf der Uhr“
       // sagt die Verbindung schon.
       if (here.connected && sync.phase == WatchSyncPhase.idle)

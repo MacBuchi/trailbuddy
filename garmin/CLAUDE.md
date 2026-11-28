@@ -74,7 +74,12 @@ Abbiegehinweise.
   Striche. Ein Absturz am Gerät steht in `GARMIN/APPS/LOGS/CIQ_LOG.YML`
   (vor dem Sync lesen, danach heißt es `.BAK`) — mit Datei, Zeile und
   Funktion, sobald die `.prg` von `tool/garmin_build.sh` kommt.
-- **Protokoll 2** (`PhoneRoute.mc`, Konzept 2): je Punkt eine Zahl
+- **Protokoll 3** (#659/#664/#671/#672, 1.11.0; Konzept 2): wie 2, dazu
+  Speicher im „hallo", `nv`, `nn`, `nm`/`len`/`hm` in jedem Kopf. Keine
+  Versionsweichen mehr (Betreiber 2026-11-28). Die Testroute
+  (`resources/route/route.json`) trägt `v` 3 — nach einer neuen Fassung mit
+  `tool/garmin_route.py --points 1000` neu schreiben, sonst lädt sie nicht
+  (`resourceRouteDecodes`). **Gepackt seit Protokoll 2** (`PhoneRoute.mc`): je Punkt eine Zahl
   `(dLat << 16) | dLon`, Höhen zu zweit, Stummel `[Punkt, gepackt]`.
   `unpackHi/Lo` maskieren, damit es nicht darauf ankommt, ob `>>` das
   Vorzeichen mitnimmt. `NavRoute` liest die Stücke über `RouteParts`
@@ -156,7 +161,8 @@ Abbiegehinweise.
   so einem Fehler hing der Simulator beim nächsten `--test`: Prozesse
   `monkeydo`/`simulator` beenden, dann neu.
 - **„Hallo"** (`sayHello` in `WatchCore`): beim Start und auf `q`
-  vom Handy `{t: "hi", v, id, bad}` mit `PhoneRoute.currentId()` — der
+  vom Handy `{t: "hi", v, id, bad, m, tm, lp}` (Speicher seit #671, unten
+  „Das Budget aus dem hallo") mit `PhoneRoute.currentId()` — der
   Kennung der GESPEICHERTEN Route, nicht der geladenen (eine fertig
   empfangene wartet vielleicht noch auf den Wechsel). Das Handy schickt
   daraufhin die aktuelle Route, wenn sie abweicht (Konzept 2, „Das Handy
@@ -256,14 +262,43 @@ Abbiegehinweise.
   `garmin/`, Datum und Uhrzeit); im Repo steht der Platzhalter „dev".
   Connect IQ kann die Version der App zur Laufzeit nicht lesen. Steht
   auf der Uhr ein alter Stempel, ist die neue `.prg` nicht drauf.
+- **Das Budget aus dem hallo** (#671, Kettenstand 2026-11-28, Bench-Bau
+  1.11.0, fēnix 5, 123,8 KB): frei beim „hallo" 36,9 KB. Je Punkt
+  20,6 B (600 → 800 → 1000 Punkte je +4,1 KB), Ansicht/Verfolgung/Aufnahme
+  daneben 3,0 KB. Mit Stücken zu 800 Zahlen scheiterte schon der Wechsel
+  zweier 600-Punkte-Routen (`x` mem, frei 21,6 KB — `take` verlangt
+  4 KB + 16 B je Zahl, und die Nachricht liegt dabei im Speicher); mit 400
+  Zahlen je Stück gehen 900 Punkte samt Wechsel (frei mit Aufnahme
+  15,8 KB, Spitze 113,6 KB), 1000 nicht (13,3 KB). Daraus
+  `kWatchPointBytes` 21 und `kWatchReserveBytes` 19 KB: Budget 830.
+  `main` (1.10.2) nahm 700 nicht mehr (Befund oben). Wer an der Uhr
+  etwas dazubaut, misst mit `CHAIN_BIG=N tool/garmin_bench.sh chain`
+  (900 muss gehen, sonst die Reserve anheben) und die ganze Kette mit dem
+  Budget aus dem „hallo" (`tool/garmin_bench.sh chain`).
+- **Die Werte des Handys** (#659, `nv`, `WatchCore.phoneValues`): je Fix
+  und je `nv` gerechnet, nicht je Bild; `NavView.phoneVals` ist null oder
+  `[k, o, d, c, r, g]` und nur gesetzt, wenn `o`/`k` zu `sectionAt`/
+  `nextSection` des eigenen Stands passen und die Werte ≤ 30 s alt sind.
+  Ein Routenwechsel (`setRoute`, `swapRoute`) verwirft sie. Ring Art 13.
+- **Das Startmenü** (#672, `wait` = `WAIT_MENU`): ohne Handy, nach `nn`,
+  nach `ANSWER_MS` ohne Antwort und nach `INCOMING_MS` ohne Stück. Der
+  Kern ruft `menu(:start)`, eine Route vom Handy `menu(:close)` (der Wirt
+  merkt sich `_startOpen`, `MenuDelegate(:start)` ruft `startChoice`,
+  ZURÜCK = `:free`). Nichts zur Wahl (keine gespeicherte Route, keine
+  Ablage, Store-Bau ohne Testroute: `hasTestRoute`) ⇒ gleich frei. Der
+  Vorführmodus wählt selbst `:last` (sonst sähen die Bilder nur das
+  Menü), der Bench-Bau meldet `menu: "start"`, `_k` `free`/`last`/`s<k>`
+  wählt. Ein „schick" während des Wartens geht mit dem Menü (`_uploadLater`).
+  Ring Art 12. Tests: `TestCore.loaded` wählt `:last` und leert `menus`.
 - **Der Start wartet aufs Handy** (`wait` in `WatchCore`, Betreiber
   2026-11-06): Mit verbundenem Handy lädt `initialize` NICHT die
   gespeicherte Route, sondern einen Platzhalter, und die Ansicht zeigt
   den Lader (`NavView.setWaiting`) mit der Fassung `v<VERSION>` (#592;
   „Lade Route … %" bleibt fürs Dekodieren). `n` vom Handy heißt „Route kommt"
-  (Frist 45 s je Stück), `k` „deine ist aktuell" → `loadStored`; ohne
-  Antwort nach `ANSWER_MS` = 8 s auch (3 s waren zu kurz: „hallo" hin
-  und Antwort zurück messen 5–7 s, 2026-11-06). Der Takt ist der EINE Timer
+  (Frist 45 s je Stück), `k` „deine ist aktuell" → `loadStored`, `nn`
+  „keine Navigation" → Startmenü; ohne Antwort nach `ANSWER_MS` = 8 s
+  auch das Startmenü (#672; 3 s waren zu kurz: „hallo" hin und Antwort
+  zurück messen 5–7 s, 2026-11-06). Der Takt ist der EINE Timer
   des Wirts (`WatchCore.pace`: 50 ms beim Laden und Warten, 250 ms für
   eine Frist, sonst keiner; `waitStep` zeichnet ein Bild je 100 ms) —
   ältere Uhren haben nur wenige Timer. Solange gewartet wird, zählen weder
@@ -642,7 +677,7 @@ Abbiegehinweise.
     `shelfSurvivesRestart`, `shelfTakesWithoutSwap` rot.
   - **Die Antwort ist `sh`, nicht `ok`**: `WatchSync` hört `ok` für seine
     Route, die Ablage `sh` (`lib/features/garmin/watch_shelf.dart`); das
-    Handy schickt `sh` nur an `ver` ≥ 1.9.0 (`watchKnowsShelf`).
+    Handy schickt `sh` nur an dieselbe Protokollfassung (`watchKnowsShelf`, seit 1.11.0 ohne Versionsweiche).
   - **Im Gespräch ist ein Wert ein Beispiel**: `l: []` im `sh` der Uhr
     kam beim Handy als leere Ablage an — das Gespräch „ablage" trägt
     deshalb einen Eintrag mit `$s`.

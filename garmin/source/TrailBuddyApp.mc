@@ -142,6 +142,18 @@ class TrailBuddyApp extends Application.AppBase {
     //! Aktionsmenü (langes HOCH, #513), `:zoom` die Zoomstufen.
     (:nobench)
     function menu(kind as Symbol) as Void {
+        if (kind == :start) {
+            startMenu();
+            return;
+        }
+        if (kind == :close) {
+            // Das Startmenü geht, weil eine Route vom Handy kommt (#672).
+            if (_startOpen) {
+                _startOpen = false;
+                WatchUi.popView(WatchUi.SLIDE_IMMEDIATE);
+            }
+            return;
+        }
         if (kind == :action) {
             actionMenu();
             return;
@@ -177,6 +189,43 @@ class TrailBuddyApp extends Application.AppBase {
         m.addItem(new WatchUi.MenuItem(str(Rez.Strings.Save), core.free ? null : str(Rez.Strings.EndsNav), :save, null));
         m.addItem(new WatchUi.MenuItem(str(Rez.Strings.Discard), null, :discard, null));
         WatchUi.pushView(m, new MenuDelegate(:pause), WatchUi.SLIDE_IMMEDIATE);
+    }
+
+    //! Das Startmenü steht noch (#672) — das Handy kann es wegnehmen.
+    hidden var _startOpen as Boolean = false;
+    function startClosed() as Void { _startOpen = false; }
+
+    //! Das Startmenü (#672): Freie Fahrt · Letzte Route (Name, km) · die
+    //! Routen der Ablage. START nimmt, ZURÜCK heißt freie Fahrt. Im
+    //! Vorführmodus gleich die letzte Route (die Testroute), sonst sähen
+    //! die Bilder nur das Menü.
+    (:nobench)
+    hidden function startMenu() as Void {
+        if (self has :startDemo) {
+            core.startChoice(:last);
+            return;
+        }
+        var m = new WatchUi.Menu2({:title => str(Rez.Strings.AppName)});
+        m.addItem(new WatchUi.MenuItem(str(Rez.Strings.StartFree), null, :free, null));
+        var last = core.lastRoute();
+        if (last != null || (PhoneRoute.currentId() == null && hasTestRoute())) {
+            m.addItem(new WatchUi.MenuItem(last != null ? last[0] as String : str(Rez.Strings.StartLast),
+                last != null ? routeLabel(last[1], last[2]) : null, :last, null));
+        }
+        var l = PhoneRoute.shelf();
+        for (var k = 0; k < l.size(); k++) {
+            var e = l[k] as Array;
+            m.addItem(new WatchUi.MenuItem(e[2] as String, routeLabel(e[3], e[4]), k, null));
+        }
+        _startOpen = true;
+        WatchUi.pushView(m, new MenuDelegate(:start), WatchUi.SLIDE_IMMEDIATE);
+    }
+
+    //! „12,4 km · 640 hm" aus Metern und Höhenmetern.
+    (:nobench)
+    hidden function routeLabel(len as Object?, hm as Object?) as String {
+        var km = (len instanceof Number ? len : 0) / 100;
+        return km / 10 + str(Rez.Strings.DecimalSep) + km % 10 + " km · " + (hm instanceof Number ? hm : 0) + " hm";
     }
 
     //! Das Aktionsmenü (#513): nur die Punkte, die gerade gehen
@@ -233,9 +282,7 @@ class TrailBuddyApp extends Application.AppBase {
         var l = PhoneRoute.shelf();
         for (var k = 0; k < l.size(); k++) {
             var e = l[k] as Array;
-            var km = (e[3] as Number) / 100;
-            m.addItem(new WatchUi.MenuItem(e[2] as String,
-                km / 10 + str(Rez.Strings.DecimalSep) + km % 10 + " km · " + e[4] + " hm", k, null));
+            m.addItem(new WatchUi.MenuItem(e[2] as String, routeLabel(e[3], e[4]), k, null));
         }
         WatchUi.switchToView(m, new MenuDelegate(:shelf), WatchUi.SLIDE_IMMEDIATE);
     }
@@ -260,6 +307,13 @@ class TrailBuddyApp extends Application.AppBase {
         Position.enableLocationEvents(on ? Position.LOCATION_CONTINUOUS : Position.LOCATION_DISABLE,
             method(:onPosition));
     }
+
+    //! Gibt es eine Testroute (Entwicklerbau)? Das Startmenü bietet sie als
+    //! letzte Route an, ohne sie zu laden (#672).
+    (:testroute)
+    function hasTestRoute() as Boolean { return true; }
+    (:store)
+    function hasTestRoute() as Boolean { return false; }
 
     //! Ohne Route vom Handy, im Entwicklerbau: die erfundene Testroute.
     (:testroute)
@@ -410,8 +464,13 @@ class TrailBuddyApp extends Application.AppBase {
     //! sagt ihm, welches stünde.
     (:bench)
     function menu(kind as Symbol) as Void {
+        if (kind == :close) {
+            if ("start".equals(_benchMenu)) { _benchMenu = ""; }
+            return;
+        }
         _benchMenu = kind == :pause ? "pause" : (kind == :trail ? "trail" : (kind == :quit ? "quit"
-            : (kind == :action ? "action" : (kind == :zoom ? "zoom" : (kind == :shelf ? "shelf" : "discard")))));
+            : (kind == :action ? "action" : (kind == :zoom ? "zoom" : (kind == :shelf ? "shelf"
+            : (kind == :start ? "start" : "discard"))))));
         System.println("bench menu " + _benchMenu);
     }
 
@@ -505,13 +564,18 @@ class TrailBuddyApp extends Application.AppBase {
             c.confirmNo();
         } else if ("menu".equals(k)) {
             c.menuKey();
+        } else if ("free".equals(k) || "last".equals(k)) {
+            // Das Startmenü (#672).
+            _benchMenu = "";
+            c.startChoice("free".equals(k) ? :free : :last);
         } else if ("zoom".equals(k) || "end_route".equals(k) || "shelf".equals(k)) {
             _benchMenu = "";
             c.actionChoice("zoom".equals(k) ? :zoom : ("shelf".equals(k) ? :shelf : :endRoute));
         } else if (k.length() > 1 && "s".equals(k.substring(0, 1))) {
             // `s<k>`: Route k der Ablage (#515).
+            var sk = k.substring(1, null).toNumber();
+            if ("start".equals(m)) { c.startChoice(sk); } else { c.shelfChoice(sk); }
             _benchMenu = "";
-            c.shelfChoice(k.substring(1, null).toNumber());
         } else if (k.length() > 1 && "z".equals(k.substring(0, 1))) {
             _benchMenu = "";
             var z = k.substring(1, null).toNumber();
@@ -900,7 +964,10 @@ class MenuDelegate extends WatchUi.Menu2InputDelegate {
         }
         if (id != :discard && id != :zoom && id != :shelf) { WatchUi.popView(WatchUi.SLIDE_IMMEDIATE); }
         var c = watchCore();
-        if (_kind == :pause) {
+        if (_kind == :start) {
+            (Application.getApp() as TrailBuddyApp).startClosed();
+            c.startChoice(id);
+        } else if (_kind == :pause) {
             c.pauseChoice(id);
         } else if (_kind == :trail) {
             c.trailChoice(id != :drop);
@@ -914,6 +981,11 @@ class MenuDelegate extends WatchUi.Menu2InputDelegate {
     function onBack() as Void {
         WatchUi.popView(WatchUi.SLIDE_IMMEDIATE);
         if (_kind == :trail) { watchCore().trailChoice(true); }
+        // ZURÜCK im Startmenü heißt freie Fahrt (#672).
+        if (_kind == :start) {
+            (Application.getApp() as TrailBuddyApp).startClosed();
+            watchCore().startChoice(:free);
+        }
     }
 }
 

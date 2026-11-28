@@ -2,6 +2,18 @@
 
 *Was ist neu — in Alltagssprache, nach Themen. Jeder Block nennt seine Versionen.*
 
+## Die Uhr: mehr Route, die Zahlen vom Handy, ein Startmenü
+
+*Version 0.208.0 (Uhr-App 1.11.0), 2026-11-28*
+
+Die Uhr sagt dem Handy jetzt beim Verbinden, wie viel Speicher sie frei hat, und das Handy schickt genau so viel Route, wie dort Platz hat — auf der fēnix 5 gut 800 Punkte statt 700, und die Uhr nimmt unterwegs trotzdem eine zweite, gleich große Route an. Die Linie wird dabei so fein wie möglich vereinfacht, statt beim kleinsten Überschreiten gleich doppelt so grob. Passt eine sehr lange Route auch so nicht, geht nur der Anfang hinüber, und die Navigation sagt es: „Nur die ersten 41,2 km passen auf die Uhr; ohne Handy endet die Navigation dort." Dasselbe steht beim Ablegen einer Route auf der Uhr.
+
+Solange das Handy verbunden ist, zeigt die Uhr seine Zahlen für Weg und Höhenmeter bis zum Trailkopf und zum Ziel — dieselben wie auf dem Handy, nicht mehr leicht abweichende. Bleibt das Handy zu Hause oder reißt die Verbindung ab, rechnet die Uhr nach einer halben Minute wieder selbst.
+
+Fährt man auf einem Weg hin und daneben zurück, springt der Stand nicht mehr auf den Rückweg, nur weil ein einzelner GPS-Punkt danebenlag. Erst wer dort wirklich ein Stück fährt, ist auf dem Rückweg — auf Uhr und Handy nach derselben Regel.
+
+Startet man die Uhr-App, ohne dass das Handy navigiert, lädt sie nicht mehr still die letzte Route, sondern fragt: Freie Fahrt, die letzte Route oder eine der gespeicherten. Das Handy sagt der Uhr dafür gleich, dass es nicht navigiert, statt sie acht Sekunden warten zu lassen. ZURÜCK heißt freie Fahrt.
+
 ## Die Garmin-Uhr am iPhone
 
 *Versionen 0.207.0–0.207.3, 2026-11-27 bis 2026-11-28*

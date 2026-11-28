@@ -30,12 +30,15 @@ import 'package:trailbuddy/features/garmin/watch_providers.dart'
         kWatchNudges,
         kWatchPositionEvery,
         kWatchPositionFor,
+        WatchSync,
+        WatchSyncPhase,
+        WatchSyncState,
         watchBranchesLoaderProvider,
         watchSyncProvider;
 import 'package:trailbuddy/features/garmin/watch_branches.dart'
     show WatchBranch;
 import 'package:trailbuddy/features/garmin/watch_route.dart'
-    show kWatchProtocol, watchUnpack;
+    show kWatchProtocol, watchNoNav, watchUnpack;
 import 'package:trailbuddy/features/map/map_view/map_view.dart';
 import 'package:trailbuddy/features/offline_areas/area_plan.dart';
 import 'package:trailbuddy/features/offline_areas/area_store.dart';
@@ -724,7 +727,15 @@ void main() {
       await settle(tester, frames: 2);
       expect(find.byKey(const ValueKey('nav-air-wheelie')), findsOneWidget);
 
-      // Am Ende: dieselben Werte in der Bilanz.
+      // Am Ende: dieselben Werte in der Bilanz (Fixe im Fenster, #664).
+      await fix(
+        tester,
+        48.007,
+        9.0,
+        heading: 0,
+        speed: 5,
+        at: t.add(const Duration(seconds: 60)),
+      );
       await fix(
         tester,
         48.011,
@@ -791,8 +802,11 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('nav-go')));
       await settle(tester);
 
-      // Erst nach zwei Dritteln eingestiegen: keine Bilanz.
+      // Erst nach zwei Dritteln eingestiegen: keine Bilanz. Weit vor dem
+      // Fenster gilt der Stand erst nach drei Fixen und 50 m (#664).
       await fix(tester, 48.007, 9.0, heading: 0, speed: 5);
+      await fix(tester, 48.0073, 9.0, heading: 0, speed: 5);
+      await fix(tester, 48.0076, 9.0, heading: 0, speed: 5);
       expect(find.byKey(const ValueKey('nav-trail')), findsOneWidget);
       // Im kleinen Fenster (#312 N3): der Trail mit Rest, ohne Überlauf.
       tester.view.physicalSize = const Size(450, 600);
@@ -814,8 +828,12 @@ void main() {
       await fix(tester, 48.011, 9.0, heading: 0, speed: 5);
       expect(find.byKey(const ValueKey('nav-done')), findsNothing);
 
-      // Zurück an den Anfang und ganz gefahren: die Bilanz, die von selbst geht.
+      // Zurück an den Anfang und ganz gefahren: die Bilanz, die von selbst
+      // geht. Der Sprung zurück gilt erst nach drei Fixen und 50 m (#664).
       await fix(tester, 48.0005, 9.0, heading: 0, speed: 5);
+      await fix(tester, 48.0008, 9.0, heading: 0, speed: 5);
+      await fix(tester, 48.0011, 9.0, heading: 0, speed: 5);
+      await fix(tester, 48.006, 9.0, heading: 0, speed: 5);
       await fix(tester, 48.011, 9.0, heading: 0, speed: 5);
       expect(find.byKey(const ValueKey('nav-done')), findsOneWidget);
       expect(
@@ -1175,6 +1193,32 @@ void main() {
     },
   );
 
+  testWidgets('671.3 die Leiste nennt die km, die auf die Uhr passen', (
+    tester,
+  ) async {
+    final watch = FakeGarminBridge.connected();
+    await startFromRides(
+      tester,
+      garmin: watch,
+      overrides: [watchSyncProvider.overrideWith(_CutWatchSync.new)],
+    );
+    await tester.tap(find.byKey(const ValueKey('nav-watch')));
+    await settle(tester, frames: 2);
+    await tester.tap(find.byKey(const ValueKey('nav-go')));
+    await settle(tester, frames: 10);
+    await tester.tap(find.byKey(const ValueKey('nav-watch-status-stored')));
+    await settle(tester, frames: 4);
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('nav-watch-status-note')),
+        matching: find.textContaining(
+          'Nur die ersten 41,2 km passen auf die Uhr; ohne Handy endet die Navigation dort',
+        ),
+      ),
+      findsOneWidget,
+    );
+  });
+
   testWidgets('#449 G2: Schalter aus heißt nichts an die Uhr', (tester) async {
     final watch = FakeGarminBridge.connected();
     await startFromRides(tester, garmin: watch);
@@ -1259,13 +1303,13 @@ void main() {
     await settle(tester, frames: 4);
     expect(watch.routeParts.where((m) => m['p'] == 0), hasLength(1));
     expect(
-      watch.sent.length,
-      batches + 2,
-      reason: 'nur die Frage und „deine ist aktuell"',
+      [for (final b in watch.sent.sublist(batches)) b.single['t']],
+      ['q', 'k', 'nv'],
+      reason: 'nur die Frage, „deine ist aktuell" und die Werte (#659)',
     );
     // Die startende Uhr wartet auf eine Antwort (Betreiber 2026-11-06): Sie
     // zeigt dann gleich ihre gespeicherte.
-    expect(watch.sent.last, [
+    expect(watch.sent[watch.sent.length - 2], [
       {'t': 'k', 'id': id},
     ]);
     // Eine andere Kennung: Die aktuelle geht, angekündigt vor den Stücken.
@@ -1483,9 +1527,13 @@ void main() {
       watch.reconnect();
       await settle(tester, frames: 4);
       expect(
-        watch.sent.length,
-        batches,
-        reason: 'ohne Navigation folgt die Uhr nichts mehr',
+        watch.sent.sublist(batches),
+        [
+          [watchNoNav],
+        ],
+        reason:
+            'ohne Navigation folgt die Uhr nichts mehr — sie hört nur, '
+            'dass keine läuft (#672)',
       );
     },
   );
@@ -2418,4 +2466,21 @@ void main() {
       expect(pip.allowed, [true, false]);
     },
   );
+}
+
+/// Die Uhr hat nur den Anfang bekommen (#671): 41,2 km von einer längeren
+/// Route — der Stand steht fest, damit die Leiste ihn zeigt.
+class _CutWatchSync extends WatchSync {
+  @override
+  WatchSyncState build() => const WatchSyncState(
+    phase: WatchSyncPhase.stored,
+    routeId: 'r',
+    cutM: 41200,
+  );
+
+  @override
+  void follow(bool on) {}
+
+  @override
+  void prepare(List<LatLng> points) {}
 }
