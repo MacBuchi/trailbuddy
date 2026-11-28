@@ -219,9 +219,53 @@ Was die Nachricht trägt:
 - Kopf: Protokollversion, Länge, Höhenmeter, eine Kennung der Route.
 
 Die Form steht in `garmin/source/PhoneRoute.mc` und `NavRoute.mc`
-(Protokoll 2, Schlüssel `v`, `id`, `np`, `o`, `e0`, `sec`, `pts`, `ele`,
-`br`); die Testroute liest sie aus der Ressource, `tool/garmin_route.py`
-schreibt sie.
+(Protokoll 3, Schlüssel `v`, `id`, `np`, `o`, `e0`, `sec`, `nm`, `len`,
+`hm`, `pts`, `ele`, `br`); die Testroute liest sie aus der Ressource,
+`tool/garmin_route.py` schreibt sie.
+
+**Protokoll 3** (#659, #664, #671, #672; Betreiber 2026-11-28: „keine
+Rücksicht auf ältere Stände" — die Uhr-App ist eine Entwickler-App,
+TrailBuddy nicht veröffentlicht; also keine Versionsweichen und keine
+Rückwege mehr, nur die Prüfung der Fassung `v`). Ziel: Leistung und
+Robustheit, sparsam mit Speicher, ohne an Funktionen zu sparen.
+
+- **Der Speicher im „hallo"**: `m` frei, `tm` gesamt (Byte), `lp` Punkte
+  der geladenen Route. Das Handy rechnet daraus das Budget in Punkten
+  (`watchBudgetOf`: frei + `lp` × 21 B − 19 KB Reserve, gemessen im
+  Kettenstand, Abschnitt 12) und merkt sich das größte dieser Uhr. Ohne
+  „hallo" gelten 500 Punkte — weniger, als die fēnix 5 sicher nimmt; mit
+  dem „hallo" geht die Route im eigenen Budget hinterher. `x mem` bleibt
+  nur die Notbremse.
+- **Genau aufs Budget vereinfacht**: Douglas-Peucker mit Vorrang (die
+  größte Abweichung zuerst) bis zum Budget, nie genauer als 5 m; Kreuzungen
+  der Stummel, Wendepunkte der Höhe, Anfang und Ende bleiben. Statt
+  Visvalingam, weil es genau die Größe begrenzt, nach der die Uhr
+  „abseits" sagt. Bliebe mehr als **25 m** Abweichung (die Uhr sagt bei
+  30 m „abseits", dem GPS blieben 5 m), geht nur die längste
+  Anfangsstrecke, die passt; Leiste und Ablage sagen „Nur die ersten … km
+  passen auf die Uhr". Die Stücke tragen höchstens **400 Zahlen** (vorher
+  800): Was neben einer geladenen Route frei sein muss, um eine zweite
+  abzulegen, halbiert sich.
+- **Die Werte des Handys** `{t: "nv", id, k, o, d, c, r, g}` alle 10 s,
+  sofort nach dem `ok` und bei jedem neuen Abschnitt (`k` nächster
+  Trailkopf, `o` Trail, auf dem man ist — Stellen in `sec`; `d` Meter bis
+  zum Ende dieses Trails bzw. zum Kopf bzw. zum Ziel, `c` Höhenmeter bis
+  zum Kopf, `r`/`g` Meter und Höhenmeter bis zum Ziel, -1 ohne Profil).
+  Die Uhr zeigt sie, solange sie höchstens 30 s alt sind und ihr eigener
+  Stand denselben Trail und Kopf nennt; Meter laufen mit dem eigenen Stand
+  weiter, Höhenmeter bleiben bis zur nächsten. Sonst rechnet sie selbst
+  (A8). Kein Zeichen für die Quelle; der Wechsel steht im Ring.
+- **„Keine Navigation"** `{t: "nn"}` auf das „hallo", wenn das Handy
+  nicht navigiert: Die Uhr zeigt gleich ihr Startmenü (Abschnitt 2,
+  „Das Handy antwortet sofort").
+- **Ein ferner Teil der Linie gilt erst, wenn er gefahren wird** (#664,
+  Feldbefund fēnix 6S): Liegt ein Fix außerhalb des Fensters, aber in
+  30 m eines fernen Teils (die Rückfahrt 40 m daneben), ist das nur ein
+  Kandidat — der Stand bleibt, der Abstand ist der zum fernen Teil (also
+  nicht „abseits"). Genommen wird er nach 3 Fixen in Folge, die zusammen
+  50 m auf ihm vorankommen; ein Fix zurück im Fenster verwirft ihn. Bis
+  die Linie einmal erreicht war, gilt jeder Teil sofort. Dieselbe Regel in
+  `route_progress.dart` und `NavTracker.mc`.
 
 **Protokoll 2 — gepackt** (#449, 2026-11-05, Betreiber: „sparsam mit
 Speicher und Datenstrom, robust mit Fehlerbehandlung"). Jede Zahl kostet
@@ -267,7 +311,8 @@ kleinere. **Bricht die Übertragung mittendrin ab**
 (`FAILURE_DURING_TRANSFER`, `FAILURE_TIMEOUT`), gehen nach 2 s die
 übrigen Stücke noch einmal, höchstens zweimal — die Uhr hat die
 angekommenen schon abgelegt. Die Uhr sendet nur, wenn ein Handy
-verbunden ist. **Höchstens 700 Punkte** (seit Uhr-App 1.8.0, Betreiber
+verbunden ist. **Seit Protokoll 3 das Budget aus dem „hallo"** (oben;
+fēnix 5: 830 Punkte). Davor **höchstens 700 Punkte** (seit Uhr-App 1.8.0, Betreiber
 2026-11-18: mit 800 hatte der Wechsel zweier gleich großer Routen nur
 0,2 KB Luft, die Buddys und Schilder kosten ~2,3 KB; mit 700 geladen
 99,3 KB, Spitze beim Wechsel 103,7 von 123,8 KB. Seit jede `.prg` wie das
@@ -464,8 +509,14 @@ angekommen (beantwortet 8.2). Deshalb:
   jeder Übertragung —, oder `{t: "k", id}` — die gespeicherte ist
   aktuell. Ist beim Start ein Handy verbunden, zeigt die Uhr bis dahin
   das Logo als Lader statt der alten Route, nach `n` mit „Route kommt ·
-  1/2". Ohne Antwort in 8 s oder ohne neues Stück in 45 s zeigt sie die
-  gespeicherte, wie ohne Handy. Erst waren es 3 s; gemessen brauchen
+  1/2". Navigiert das Handy nicht, sagt es `{t: "nn"}`. Ohne Handy, nach
+  `nn`, ohne Antwort in 8 s oder ohne neues Stück in 45 s steht das
+  **Startmenü** (#672): Freie Fahrt · die letzte Route (Name, km, hm aus
+  `nm`/`len`/`hm` ihres Kopfs) · die Routen der Ablage; START nimmt,
+  ZURÜCK heißt freie Fahrt. Es kommt, bevor eine Route lädt (ein zweites
+  `Menu2` neben einer großen Route stürzte im Simulator ab); gibt es nur
+  die freie Fahrt, fährt die Uhr gleich frei. Kommt doch eine Route vom
+  Handy, geht das Menü, und der Lader zählt. Erst waren es 3 s; gemessen brauchen
   „hallo" und Antwort über Garmin Connect zusammen 5–7 s (eine kleine
   Nachricht 3,5 s je Richtung, 2026-11-06), also 8 s (Betreiber). Eine
   laufende Navigation auf der Uhr übergeht `n`: Sie bleibt, bis die neue
@@ -632,9 +683,10 @@ und starten dort ohne Handy — die Zahl gilt, bis Messung 8.6 eine andere
 sagt (E3: „3 Routen oder 4000 Punkte", bei 700 Punkten je Route dasselbe).
 
 - **Ganz, nie in Stücken um den Fortschritt** (Abschnitt 2, A8): Eine
-  Route der Ablage ist vereinfacht wie jede Route für die Uhr
-  (`kWatchMaxPoints`); musste das Handy viel stärker vereinfachen
-  (Toleranz ≥ 20 m), sagt es das beim Hinlegen.
+  Route der Ablage ist vereinfacht wie jede Route für die Uhr (das
+  Budget aus dem „hallo", Protokoll 3); musste das Handy viel stärker
+  vereinfachen (Toleranz ≥ 20 m), sagt es das beim Hinlegen, passt nur der
+  Anfang, die km, die passen.
 - **Protokoll** (weiter Protokoll 2, nur ergänzt): Die Stücke tragen
   `sh: 1`, das erste dazu `nm` (Name, wie in der Infofläche gekürzt), `len`
   (Meter), `hm` (bergauf) und `rp` (die Route, die sie ersetzt). Die Uhr

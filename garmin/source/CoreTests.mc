@@ -42,6 +42,7 @@ class FakeHost {
         if (long) { longBuzz++; } else { buzz++; }
     }
     function menu(kind as Symbol) as Void { menus.add(kind); }
+    function hasTestRoute() as Boolean { return fallbackDict != null; }
     function exit() as Void { exited = true; }
     function gps(on as Boolean, free as Boolean) as Void { gpsOn = on; }
     function fallback() as NavRoute? {
@@ -94,6 +95,10 @@ function run(c as WatchCore, h as FakeHost, ms as Number) as Void {
 //! Testroute); danach ist das Handy da.
 function loaded(h as FakeHost) as WatchCore {
     var c = fresh(h);
+    // Ohne Handy das Startmenü (#672): die letzte Route, hier die Testroute.
+    Test.assert(c.wait == WatchCore.WAIT_MENU);
+    c.startChoice(:last);
+    h.menus = [] as Array<Symbol>;
     run(c, h, 500);
     Test.assert(c.route.isReady() && !c.loading && c.wait == 0);
     h.link = true;
@@ -321,6 +326,102 @@ function coreAsksThenTakesAfterDeadline(logger as Logger) as Boolean {
     return true;
 }
 
+//! 671.1: Das hallo nennt den Speicher — frei, gesamt und die Punkte der
+//! geladenen Route (die gibt sie beim Wechsel frei).
+(:test)
+function coreHelloCarriesMemory(logger as Logger) as Boolean {
+    var h = new FakeHost();
+    var c = TestCore.loaded(h);
+    c.handle({"t" => "q"});
+    var hi = h.last("hi") as Dictionary;
+    Test.assert(hi["m"] instanceof Number && (hi["m"] as Number) > 0);
+    Test.assert(hi["tm"] instanceof Number && (hi["tm"] as Number) >= (hi["m"] as Number));
+    Test.assertEqual(hi["lp"], c.route.size());
+    Test.assertEqual(hi["v"], 3);
+    TestCore.done();
+    return true;
+}
+
+//! 659.1: Die Werte des Handys gelten, solange sie frisch sind und der
+//! eigene Stand denselben Abschnitt nennt; die Meter laufen mit.
+(:test)
+function corePhoneValuesWhileFresh(logger as Logger) as Boolean {
+    var h = new FakeHost();
+    var c = TestCore.loaded(h);
+    // Vor dem Trail (Kopf bei ~333 m): nächster Kopf 0, auf keinem Trail.
+    var nv = {"t" => "nv", "id" => "t", "k" => 0, "o" => -1, "d" => 300, "c" => 15, "r" => 1000, "g" => 40};
+    c.handle(nv);
+    h.t += 1000;
+    c.ownFix(0.0d, 0.001d, Position.QUALITY_GOOD, null, 5.0, 400.0, null, null, 1000000);
+    var v = c.ui.phoneVals as Array;
+    // 111 m gefahren seit dem Empfang: 300 − 111 bis zum Kopf.
+    Test.assert((v[2] as Float) > 185.0 && (v[2] as Float) < 193.0);
+    Test.assertEqual(v[3], 15);
+    Test.assertEqual(v[5], 40);
+    // Ein anderer Abschnitt (das Handy sieht schon den Trail): eigene Werte.
+    c.handle({"t" => "nv", "id" => "t", "k" => -1, "o" => 0, "d" => 300, "c" => 0, "r" => 600, "g" => 20});
+    c.ownFix(0.0d, 0.001d, Position.QUALITY_GOOD, null, 5.0, 400.0, null, null, 1000001);
+    Test.assert(c.ui.phoneVals == null);
+    // Eine andere Route zählt nicht.
+    nv["id"] = "andere";
+    c.handle(nv);
+    c.ownFix(0.0d, 0.001d, Position.QUALITY_GOOD, null, 5.0, 400.0, null, null, 1000002);
+    Test.assert(c.ui.phoneVals == null);
+    // Passend, dann 31 s nichts Neues: die Uhr rechnet selbst.
+    nv["id"] = "t";
+    c.handle(nv);
+    c.ownFix(0.0d, 0.001d, Position.QUALITY_GOOD, null, 5.0, 400.0, null, null, 1000003);
+    Test.assert(c.ui.phoneVals != null);
+    h.t += 31000;
+    c.ownFix(0.0d, 0.001d, Position.QUALITY_GOOD, null, 5.0, 400.0, null, null, 1000040);
+    Test.assert(c.ui.phoneVals == null);
+    TestCore.done();
+    return true;
+}
+
+//! 672.1–672.3: Das Startmenü steht, bevor eine Route lädt — ohne Handy,
+//! nach nn, nach der Frist; eine Route vom Handy nimmt es weg.
+(:test)
+function coreStartMenuChoices(logger as Logger) as Boolean {
+    // Ohne Handy: das Menü, nichts geladen; ZURÜCK/Freie Fahrt fährt frei.
+    var h = new FakeHost();
+    var c = TestCore.fresh(h);
+    Test.assert(c.wait == WatchCore.WAIT_MENU && h.lastMenu() == :start);
+    Test.assert("-".equals(c.route.id));
+    c.startChoice(:free);
+    TestCore.run(c, h, 500);
+    Test.assert(c.free && c.wait == 0 && h.gpsOn);
+    // Nichts zur Wahl (Store-Bau, keine Route, keine Ablage): gleich frei.
+    h = new FakeHost();
+    h.fallbackDict = null;
+    c = TestCore.fresh(h);
+    Test.assert(c.free && c.wait == 0 && h.lastMenu() == null);
+    // Mit Handy: nn statt 8 s Warten.
+    h = new FakeHost();
+    h.link = true;
+    c = TestCore.fresh(h);
+    Test.assert(c.wait == WatchCore.WAIT_ANSWER);
+    c.handle({"t" => "nn"});
+    Test.assert(c.wait == WatchCore.WAIT_MENU && h.lastMenu() == :start);
+    // Die Navigation beginnt doch: das Menü geht, der Lader zählt.
+    c.handle({"t" => "n", "id" => "neu", "np" => 2});
+    Test.assert(c.wait == WatchCore.WAIT_ROUTE && h.lastMenu() == :close);
+    // Ohne Antwort: nach der Frist das Menü, nicht still die alte Route.
+    h = new FakeHost();
+    h.link = true;
+    c = TestCore.fresh(h);
+    TestCore.run(c, h, WatchCore.ANSWER_MS + 500);
+    Test.assert(c.wait == WatchCore.WAIT_MENU && h.lastMenu() == :start);
+    // Eine ganze Route, während das Menü steht: still genommen, ohne Frage.
+    TestCore.newLine(c, "neu");
+    Test.assert(!c.ui.asking());
+    TestCore.run(c, h, 1000);
+    Test.assert("neu".equals(c.route.id) && c.route.isReady() && c.wait == 0);
+    Test.assert(h.lastMenu() == :close);
+    TestCore.done();
+    return true;
+}
+
 //! 513.1: START heißt bei der Frage ja (#513, E2) — die neue Linie kommt
 //! gleich, nicht erst nach der Frist, und START beginnt dabei KEINE
 //! Aufzeichnung.
@@ -513,6 +614,10 @@ function coreNoAnswerLoadsStored(logger as Logger) as Boolean {
     TestCore.run(c, h, WatchCore.ANSWER_MS - 500);
     Test.assertEqual(c.wait, WatchCore.WAIT_ANSWER);
     TestCore.run(c, h, 1000);
+    // Ohne Antwort das Startmenü (#672), die letzte Route erst auf Wahl.
+    Test.assertEqual(c.wait, WatchCore.WAIT_MENU);
+    Test.assert(h.lastMenu() == :start);
+    c.startChoice(:last);
     Test.assertEqual(c.wait, 0);
     Test.assert("alt".equals(c.route.id));
     TestCore.run(c, h, 500);
@@ -531,6 +636,10 @@ function coreWithoutPhoneLoadsStored(logger as Logger) as Boolean {
     for (var i = 0; i < msgs.size(); i++) { PhoneRoute.take(msgs[i]); }
     var c = new WatchCore(h);
     c.start();
+    // Ohne Handy das Startmenü (#672); „letzte Route" lädt die gespeicherte.
+    Test.assertEqual(c.wait, WatchCore.WAIT_MENU);
+    Test.assert(!"alt".equals(c.route.id));
+    c.startChoice(:last);
     Test.assertEqual(c.wait, 0);
     Test.assert("alt".equals(c.route.id));
     Test.assert(h.sent.size() == 0);
@@ -552,7 +661,9 @@ function coreAnnouncedRouteTimesOut(logger as Logger) as Boolean {
     TestCore.run(c, h, WatchCore.INCOMING_MS - 500);
     Test.assertEqual(c.wait, WatchCore.WAIT_ROUTE);
     TestCore.run(c, h, 1000);
-    Test.assertEqual(c.wait, 0);
+    // Kam sie nicht, fragt das Startmenü (#672).
+    Test.assertEqual(c.wait, WatchCore.WAIT_MENU);
+    c.startChoice(:last);
     Test.assert("t".equals(c.route.id));
     // `k` beim Start: sofort die gespeicherte.
     var h2 = new FakeHost();
@@ -717,6 +828,8 @@ function play(id as String, setup as Array<String>, steps as Array<Dictionary>) 
     if (inList(setup, "geladen")) {
         var c = new WatchCore(h);
         c.start();
+        // Ohne Handy steht das Startmenü (#672): die Testroute als letzte.
+        c.startChoice(:last);
         TestCore.run(c, h, 500);
         Test.assertMessage(c.route.isReady() && c.wait == 0, id + ": die Testroute lud nicht");
         h.link = true;
@@ -815,6 +928,12 @@ function act(s as Dictionary) as Void {
         c.actionChoice(:endRoute);
     } else if ("shelf0".equals(tu)) {
         c.shelfChoice(0);
+    } else if ("menuFree".equals(tu)) {
+        c.startChoice(:free);
+    } else if ("menuLast".equals(tu)) {
+        c.startChoice(:last);
+    } else if ("menuShelf0".equals(tu)) {
+        c.startChoice(0);
     } else if ("fixes".equals(tu)) {
         TestCore.fixes(c, h, s["fa"] as Number, s["fb"] as Number);
     } else {
@@ -930,6 +1049,8 @@ function deliver(want as Dictionary) as Void {
 }
 
 //! Ein Stand der Uhr (`gespraeche_form.staende_uhr`).
+function h() as FakeHost { return _h as FakeHost; }
+
 function check(st as String) as Void {
     var c = _c as WatchCore;
     var ok;
@@ -944,6 +1065,12 @@ function check(st as String) as Void {
         ok = c.wait == WatchCore.WAIT_ANSWER;
     } else if ("route_kommt".equals(st)) {
         ok = c.wait == WatchCore.WAIT_ROUTE;
+    } else if ("startmenue".equals(st)) {
+        ok = c.wait == WatchCore.WAIT_MENU && h().lastMenu() == :start;
+    } else if ("werte_handy".equals(st)) {
+        ok = c.ui.phoneVals != null;
+    } else if ("werte_uhr".equals(st)) {
+        ok = c.ui.phoneVals == null;
     } else if ("frei".equals(st)) {
         ok = c.free;
     } else if ("fragt".equals(st)) {
@@ -1085,6 +1212,9 @@ function input(c as WatchCore, h as FakeHost, k as Number, d as Number, afterRou
         if (d == 0) { c.handle({"t" => "b"}); }
     } else if (k == 7) {
         if (d <= 1) { c.endAcked(d == 0); } else { c.rideSent(d == 2); }
+    } else if (k == 12 && d > 0) {
+        // Das Startmenü (#672): die Wahl; „gezeigt" ist eine Folge.
+        c.startChoice(d == 1 ? :free : (d == 2 ? :last : 0));
     } else if (k == 9) {
         _cls = d;
         fix(c, h);
@@ -1525,6 +1655,7 @@ function shelfSurvivesRestart(logger as Logger) as Boolean {
     h = new FakeHost();
     c = new WatchCore(h);
     c.start();
+    c.startChoice(:last);
     TestCore.run(c, h, 1000);
     Test.assert("A".equals(c.route.id) && c.route.isReady());
     Test.assertEqual(TestCore.shelfIds(), "A,B");
@@ -1534,6 +1665,7 @@ function shelfSurvivesRestart(logger as Logger) as Boolean {
     Test.assert("B".equals(c.route.id));
     c = new WatchCore(h);
     c.start();
+    c.startChoice(:last);
     TestCore.run(c, h, 1000);
     c = new WatchCore(h);
     Test.assertEqual(TestCore.shelfIds(), "A");

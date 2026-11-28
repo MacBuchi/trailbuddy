@@ -180,7 +180,13 @@ void main() {
       expect(sentOf(kWatchCue), isEmpty);
       expect(sentOf(kWatchBuddies), isEmpty);
 
-      phone.bridge.answer({'t': 'hi', 'v': 2, 'ver': '1.8.0'});
+      phone.bridge.answer({
+        't': 'hi',
+        'v': 3,
+        'm': 40000,
+        'tm': 126784,
+        'ver': '1.8.0',
+      });
       await Future<void>.delayed(Duration.zero);
       // Was schon da war, geht mit dem „hallo".
       expect(sentOf(kWatchBuddies).single['l'], [
@@ -197,7 +203,13 @@ void main() {
     test(
       'dieselbe Lage geht nicht noch einmal; schneller als alle 15 s auch nicht',
       () async {
-        phone.bridge.answer({'t': 'hi', 'v': 2, 'ver': '1.8.0'});
+        phone.bridge.answer({
+          't': 'hi',
+          'v': 3,
+          'm': 40000,
+          'tm': 126784,
+          'ver': '1.8.0',
+        });
         await Future<void>.delayed(Duration.zero);
         sight(47.5);
         expect(sentOf(kWatchBuddies), hasLength(1));

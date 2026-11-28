@@ -82,7 +82,7 @@ void main() {
     ask();
     await settle();
     expect(ask().shows, isFalse);
-    bridge.answer({'t': 'hi', 'v': 2});
+    bridge.answer({'t': 'hi', 'v': 3, 'm': 40000, 'tm': 126784});
     await settle();
     expect(ask().connected, isTrue);
     bridge.answer({'t': 'w', 'id': '17', 'p': 0, 'n': 1, 'c': []});

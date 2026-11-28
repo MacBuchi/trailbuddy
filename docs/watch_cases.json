@@ -84,11 +84,6 @@
       "handy": "die Uhr meldet ihren Stand, das Handy rechnet ab ihr um"
     },
     {
-      "id": "501.6",
-      "erwartung": "Ohne hallo der Uhr-App ist ihre Fassung unbekannt: es bleibt still.",
-      "handy": "501.6 meldet sich die Uhr nicht vorher"
-    },
-    {
       "id": "501.7",
       "erwartung": "Ist keine Navigation laufend, folgt aus der Meldung nichts.",
       "handy": "501.7 endet die Navigation"
@@ -102,11 +97,6 @@
       "id": "501.9",
       "erwartung": "Während das Handy rechnet, löst die nächste Meldung keine zweite Umplanung an.",
       "handy": "501.9 zwei Meldungen zugleich"
-    },
-    {
-      "id": "501.10",
-      "erwartung": "Eine Uhr-App unter 1.3.0 kennt die Frage nicht und bleibt in Ruhe.",
-      "handy": "die Uhr meldet ihren Stand, das Handy rechnet ab ihr um"
     },
     {
       "id": "501.11",
@@ -695,6 +685,64 @@
       "id": "666.3",
       "erwartung": "Kommt von Garmin Connect keine Antwort auf einen Teil, nennt das hallo nach RIDE_WAIT_MS den Teil mit Art `s`.",
       "uhr": "coreRidePartSilentReported"
+    },
+    {
+      "id": "664.1",
+      "erwartung": "Ein Fix nahe der Rückfahrt (40 m neben dem Hinweg) springt nicht; erst drei Fixe, die 50 m auf ihr vorankommen, nehmen sie — auf Uhr und Handy dieselbe Regel.",
+      "uhr": "farPartOnlyOnceRidden",
+      "handy": "one wild fix near the way back: the place stays"
+    },
+    {
+      "id": "664.2",
+      "erwartung": "Bis die Linie einmal erreicht war, gilt jeder Teil sofort (Start mitten auf der Route).",
+      "uhr": "farPartOnlyOnceRidden",
+      "handy": "before the line was reached, a far part counts at once"
+    },
+    {
+      "id": "671.1",
+      "erwartung": "Das hallo nennt freien und gesamten Speicher und die Punkte der geladenen Route; das Handy rechnet daraus das Budget.",
+      "uhr": "coreHelloCarriesMemory",
+      "handy": "das hallo nennt frei, gesamt und die geladenen Punkte"
+    },
+    {
+      "id": "671.2",
+      "erwartung": "Eine Route, die bei 5 m nicht ins Budget passt, nutzt es ganz: genau N Punkte, Stummel und Höhen-Wendepunkte bleiben.",
+      "handy": "budget N: genau N Punkte, nicht ein Viertel weniger"
+    },
+    {
+      "id": "671.3",
+      "erwartung": "Braucht eine Route mehr als 25 m Abweichung, geht nur der Anfang, der passt, und die Leiste sagt, wie viele km.",
+      "handy": "671.3 die Leiste nennt die km, die auf die Uhr passen"
+    },
+    {
+      "id": "671.4",
+      "erwartung": "Die größte Route, die das Budget aus dem hallo erlaubt, geht ohne x mem auf die Uhr, und die Uhr nimmt während der Fahrt eine zweite gleich große.",
+      "kette": ["große Route geladen", "Wechsel auf die zweite große Route"]
+    },
+    {
+      "id": "659.1",
+      "erwartung": "Die Werte des Handys gelten, solange sie höchstens 30 s alt sind und der eigene Stand denselben Trail nennt; Meter laufen mit, danach rechnet die Uhr selbst.",
+      "uhr": "corePhoneValuesWhileFresh"
+    },
+    {
+      "id": "659.2",
+      "erwartung": "Das Handy schickt nv nach dem ok und bei jedem neuen Abschnitt, mit den Stellen der Trails in sec.",
+      "handy": "nv: Stellen in sec, Meter und Höhenmeter bis Ende, Kopf und Ziel"
+    },
+    {
+      "id": "672.1",
+      "erwartung": "Ohne Navigation am Handy antwortet es auf hallo mit nn, und die Uhr zeigt ihr Startmenü, bevor eine Route lädt.",
+      "uhr": "coreStartMenuChoices"
+    },
+    {
+      "id": "672.2",
+      "erwartung": "Ohne Handy (oder ohne Antwort) steht das Startmenü; nur mit nichts zur Wahl fährt die Uhr gleich frei.",
+      "uhr": "coreStartMenuChoices"
+    },
+    {
+      "id": "672.3",
+      "erwartung": "Kommt die Route des Handys, während das Startmenü steht, geht das Menü weg und die Route lädt.",
+      "uhr": "coreStartMenuChoices"
     }
   ],
   "gespraeche": [
@@ -704,13 +752,14 @@
       "handy": ["nav", "sprung"],
       "uhr": ["handy"],
       "schritte": [
-        {"von": "uhr", "tu": "start", "msg": {"t": "hi", "v": 2, "ver": "1.3.0"}, "gleich": ["v"], "dann": {"uhr": "wartet", "handy": "idle"}},
+        {"von": "uhr", "tu": "start", "msg": {"t": "hi", "v": 3, "m": 40000, "tm": 126784, "lp": 0, "ver": "1.3.0"}, "gleich": ["v"], "dann": {"uhr": "wartet", "handy": "idle"}},
+        {"von": "handy", "msg": {"t": "nn"}, "dann": {"uhr": "startmenue"}},
         {"von": "handy", "tu": "navigation", "msg": {"t": "n", "id": "$a", "np": 2}, "dann": {"uhr": "route_kommt"}},
         {"von": "handy", "msg": {"t": "r", "id": "$a"}, "dann": {"handy": "gesendet"}},
         {"von": "uhr", "msg": {"t": "ok", "id": "$a"}, "nach_ms": 500, "dann": {"handy": "gespeichert", "uhr": "route:$a"}},
         {"von": "handy", "msg": {"t": "b", "jn": 1, "ja": 600}, "dann": {"uhr": "bestwerte"}},
         {"von": "handy", "msg": {"t": "p", "la": 4750090, "lo": 1150000}},
-        {"von": "uhr", "tu": "neustart", "msg": {"t": "hi", "v": 2, "ver": "1.3.0", "id": "$a"}, "dann": {"uhr": "wartet"}},
+        {"von": "uhr", "tu": "neustart", "msg": {"t": "hi", "v": 3, "m": 40000, "tm": 126784, "lp": 0, "ver": "1.3.0", "id": "$a"}, "dann": {"uhr": "wartet"}},
         {"von": "handy", "msg": {"t": "k", "id": "$a"}, "nach_ms": 500, "dann": {"uhr": "route:$a", "handy": "gespeichert"}},
         {"von": "handy", "tu": "beenden", "msg": {"t": "e", "id": "$a"}, "dann": {"handy": "nav_aus", "uhr": "zu"}}
       ]
@@ -721,7 +770,8 @@
       "handy": ["nav"],
       "uhr": ["handy"],
       "schritte": [
-        {"von": "uhr", "tu": "start", "msg": {"t": "hi", "v": 2, "ver": "1.6.0"}, "gleich": ["v"], "dann": {"uhr": "wartet"}},
+        {"von": "uhr", "tu": "start", "msg": {"t": "hi", "v": 3, "m": 40000, "tm": 126784, "lp": 0, "ver": "1.6.0"}, "gleich": ["v"], "dann": {"uhr": "wartet"}},
+        {"von": "handy", "msg": {"t": "nn"}, "dann": {"uhr": "startmenue"}},
         {"von": "handy", "tu": "navigation", "msg": {"t": "n", "id": "$a", "np": 2}, "dann": {"uhr": "route_kommt"}},
         {"von": "handy", "msg": {"t": "r", "id": "$a"}},
         {"von": "uhr", "msg": {"t": "ok", "id": "$a"}, "nach_ms": 500, "dann": {"handy": "gespeichert", "uhr": ["route:$a", "erkennt_nicht"]}},
@@ -737,7 +787,7 @@
       "handy": [],
       "uhr": ["ohne_route", "handy"],
       "schritte": [
-        {"von": "uhr", "tu": "start", "msg": {"t": "hi", "v": 2, "ver": "1.10.0"}, "gleich": ["v"], "nach_ms": 8500, "dann": {"uhr": "frei"}},
+        {"von": "uhr", "tu": "start", "msg": {"t": "hi", "v": 3, "m": 40000, "tm": 126784, "lp": 0, "ver": "1.10.0"}, "gleich": ["v"], "nach_ms": 8500, "dann": {"uhr": "frei"}},
         {"von": "handy", "tu": "taschenerkennung an", "msg": {"t": "b", "on": 1, "jn": 0}, "gleich": ["on", "jn"], "dann": {"uhr": "erkennt"}},
         {"von": "handy", "tu": "sprung", "msg": {"t": "c", "k": "air", "v": 900, "s": "$sprung"}, "gleich": ["k", "v"], "dann": {"uhr": "hinweis"}},
         {"von": "uhr", "tu": "RUNTER", "msg": {"t": "ca", "k": "air", "s": "$sprung", "y": 0}, "gleich": ["k", "y"], "dann": {"handy": "sprung_verworfen"}}
@@ -749,7 +799,8 @@
       "handy": ["nav", "buddys"],
       "uhr": ["handy"],
       "schritte": [
-        {"von": "uhr", "tu": "start", "msg": {"t": "hi", "v": 2, "ver": "1.8.0"}, "gleich": ["v"], "dann": {"uhr": "wartet"}},
+        {"von": "uhr", "tu": "start", "msg": {"t": "hi", "v": 3, "m": 40000, "tm": 126784, "lp": 0, "ver": "1.8.0"}, "gleich": ["v"], "dann": {"uhr": "wartet"}},
+        {"von": "handy", "msg": {"t": "nn"}, "dann": {"uhr": "startmenue"}},
         {"von": "handy", "tu": "navigation", "msg": {"t": "n", "id": "$a", "np": 2}, "dann": {"uhr": "route_kommt"}},
         {"von": "handy", "msg": {"t": "r", "id": "$a"}},
         {"von": "uhr", "msg": {"t": "ok", "id": "$a"}, "nach_ms": 500, "dann": {"handy": "gespeichert", "uhr": "route:$a"}},
@@ -781,7 +832,7 @@
       "uhr": ["geladen"],
       "schritte": [
         {"von": "handy", "msg": {"t": "r", "id": "$a", "v": 1}},
-        {"von": "uhr", "msg": {"t": "x", "id": "$a", "c": "ver", "v": 2}, "gleich": ["c", "v"], "dann": {"uhr": "route:t"}}
+        {"von": "uhr", "msg": {"t": "x", "id": "$a", "c": "ver", "v": 3}, "gleich": ["c", "v"], "dann": {"uhr": "route:t"}}
       ]
     },
     {
@@ -804,7 +855,8 @@
       "handy": ["nav"],
       "uhr": ["handy"],
       "schritte": [
-        {"von": "uhr", "tu": "start", "msg": {"t": "hi", "v": 2, "ver": "1.3.0"}},
+        {"von": "uhr", "tu": "start", "msg": {"t": "hi", "v": 3, "m": 40000, "tm": 126784, "lp": 0, "ver": "1.3.0"}},
+        {"von": "handy", "msg": {"t": "nn"}, "dann": {"uhr": "startmenue"}},
         {"von": "handy", "tu": "navigation", "msg": {"t": "n", "id": "$a", "np": 2}},
         {"von": "handy", "msg": {"t": "r", "id": "$a"}},
         {"von": "uhr", "msg": {"t": "ok", "id": "$a"}, "nach_ms": 500, "dann": {"uhr": "route:$a", "handy": "nav_an"}},
@@ -838,7 +890,7 @@
       "handy": [],
       "uhr": ["handy", "fahrt"],
       "schritte": [
-        {"von": "uhr", "tu": "start", "msg": {"t": "hi", "v": 2, "ver": "1.3.0", "rq": ["$f"]}, "dann": {"uhr": ["wartet", "fahrt_wartet"]}},
+        {"von": "uhr", "tu": "start", "msg": {"t": "hi", "v": 3, "m": 40000, "tm": 126784, "lp": 0, "ver": "1.3.0", "rq": ["$f"]}, "dann": {"uhr": ["wartet", "fahrt_wartet"]}},
         {"von": "handy", "msg": {"t": "wq"}, "nach_ms": 9000},
         {"von": "uhr", "msg": {"t": "w", "id": "$f", "p": 0, "n": 1, "c": "*"}},
         {"von": "handy", "msg": {"t": "wk", "id": "$f"}, "dann": {"uhr": "keine_fahrt"}}
@@ -850,7 +902,8 @@
       "handy": ["frei"],
       "uhr": ["handy", "ohne_route"],
       "schritte": [
-        {"von": "uhr", "tu": "start", "msg": {"t": "hi", "v": 2, "ver": "1.3.0"}, "nach_ms": 9000, "dann": {"uhr": "frei", "handy": "idle"}},
+        {"von": "uhr", "tu": "start", "msg": {"t": "hi", "v": 3, "m": 40000, "tm": 126784, "lp": 0, "ver": "1.3.0"}, "nach_ms": 9000, "dann": {"uhr": "frei", "handy": "idle"}},
+        {"von": "handy", "msg": {"t": "nn"}, "dann": {"uhr": "frei"}},
         {"von": "uhr", "tu": "fixe 0-3", "msg": {"t": "g", "la": 4800500, "lo": 900010}},
         {"von": "handy", "msg": {"t": "n", "id": "$a", "np": 1}},
         {"von": "handy", "msg": {"t": "r", "id": "$a"}},
@@ -863,7 +916,8 @@
       "handy": ["nav"],
       "uhr": ["handy"],
       "schritte": [
-        {"von": "uhr", "tu": "start", "msg": {"t": "hi", "v": 2, "ver": "1.3.0"}},
+        {"von": "uhr", "tu": "start", "msg": {"t": "hi", "v": 3, "m": 40000, "tm": 126784, "lp": 0, "ver": "1.3.0"}},
+        {"von": "handy", "msg": {"t": "nn"}, "dann": {"uhr": "startmenue"}},
         {"von": "handy", "tu": "navigation", "msg": {"t": "n", "id": "$a", "np": 2}},
         {"von": "handy", "msg": {"t": "r", "id": "$a"}},
         {"von": "uhr", "msg": {"t": "ok", "id": "$a"}, "nach_ms": 500, "dann": {"uhr": "route:$a", "handy": "gespeichert"}},
@@ -892,7 +946,8 @@
       "handy": ["nav"],
       "uhr": ["handy"],
       "schritte": [
-        {"von": "uhr", "tu": "start", "msg": {"t": "hi", "v": 2, "ver": "1.3.0"}},
+        {"von": "uhr", "tu": "start", "msg": {"t": "hi", "v": 3, "m": 40000, "tm": 126784, "lp": 0, "ver": "1.3.0"}},
+        {"von": "handy", "msg": {"t": "nn"}, "dann": {"uhr": "startmenue"}},
         {"von": "handy", "tu": "navigation", "msg": {"t": "n", "id": "$a", "np": 2}},
         {"von": "handy", "msg": {"t": "r", "id": "$a"}},
         {"von": "uhr", "msg": {"t": "ok", "id": "$a"}, "nach_ms": 500, "dann": {"uhr": "route:$a", "handy": "gespeichert"}},
@@ -908,7 +963,7 @@
         {"von": "handy", "tu": "navigation", "msg": {"t": "n", "id": "$a", "np": 2}},
         {"von": "handy", "msg": {"t": "r", "id": "$a"}, "verloren": true, "dann": {"handy": "gesendet"}},
         {"von": "handy", "msg": {"t": "q"}, "dann": {"handy": "unbestaetigt"}},
-        {"von": "uhr", "msg": {"t": "hi", "v": 2, "ver": "1.3.0"}},
+        {"von": "uhr", "msg": {"t": "hi", "v": 3, "m": 40000, "tm": 126784, "lp": 0, "ver": "1.3.0"}},
         {"von": "handy", "msg": {"t": "n", "id": "$a", "np": 2}},
         {"von": "handy", "msg": {"t": "r", "id": "$a"}},
         {"von": "uhr", "msg": {"t": "ok", "id": "$a"}, "dann": {"handy": "gespeichert", "uhr": "fragt"}}
@@ -920,11 +975,12 @@
       "handy": ["nav"],
       "uhr": ["handy", "ohne_route"],
       "schritte": [
-        {"von": "uhr", "tu": "start", "msg": {"t": "hi", "v": 2, "ver": "1.3.0"}, "nach_ms": 9000, "dann": {"uhr": "frei", "handy": "idle"}},
+        {"von": "uhr", "tu": "start", "msg": {"t": "hi", "v": 3, "m": 40000, "tm": 126784, "lp": 0, "ver": "1.3.0"}, "nach_ms": 9000, "dann": {"uhr": "frei", "handy": "idle"}},
+        {"von": "handy", "msg": {"t": "nn"}, "dann": {"uhr": "frei"}},
         {"von": "handy", "tu": "navigation", "msg": {"t": "n", "id": "$a", "np": 2}, "verloren": true},
         {"von": "handy", "msg": {"t": "r", "id": "$a"}, "verloren": true, "dann": {"handy": "gesendet"}},
         {"von": "uhr", "tu": "fixe 0-7", "msg": {"t": "g", "la": 0, "lo": 100}},
-        {"von": "uhr", "msg": {"t": "hi", "v": 2, "ver": "1.3.0"}},
+        {"von": "uhr", "msg": {"t": "hi", "v": 3, "m": 40000, "tm": 126784, "lp": 0, "ver": "1.3.0"}},
         {"von": "handy", "msg": {"t": "n", "id": "$a", "np": 2}},
         {"von": "handy", "msg": {"t": "r", "id": "$a"}},
         {"von": "uhr", "msg": {"t": "ok", "id": "$a"}, "nach_ms": 500, "dann": {"uhr": "route:$a", "handy": "gespeichert"}}
@@ -943,7 +999,10 @@
           "tu": "start",
           "msg": {
             "t": "hi",
-            "v": 2,
+            "v": 3,
+            "m": 40000,
+            "tm": 126784,
+            "lp": 0,
             "ver": "1.9.0"
           },
           "gleich": [
@@ -988,7 +1047,7 @@
           "dann": {
             "uhr": [
               "ablage:1",
-              "route:t"
+              "startmenue"
             ],
             "handy": "ablage:1"
           }
@@ -1025,6 +1084,42 @@
           }
         }
       ]
+    },
+    {
+      "id": "startmenue-ohne-navigation",
+      "titel": "Die Uhr-App startet, das Handy navigiert nicht (#672): nn statt Schweigen, das Startmenü, die freie Fahrt",
+      "handy": [],
+      "uhr": ["handy"],
+      "schritte": [
+        {"von": "uhr", "tu": "start", "msg": {"t": "hi", "v": 3, "m": 40000, "tm": 126784, "lp": 0}, "gleich": ["v"], "dann": {"uhr": "wartet"}},
+        {"von": "handy", "msg": {"t": "nn"}, "dann": {"uhr": "startmenue"}},
+        {"von": "uhr", "tu": "Menü freie Fahrt", "nach_ms": 500, "dann": {"uhr": "frei"}}
+      ]
+    },
+    {
+      "id": "startmenue-ohne-antwort",
+      "titel": "Das hallo geht verloren (#672): nach 8 s das Startmenü, die letzte Route lädt erst auf Wahl",
+      "handy": [],
+      "uhr": ["handy"],
+      "schritte": [
+        {"von": "uhr", "tu": "start", "msg": {"t": "hi", "v": 3, "m": 40000, "tm": 126784, "lp": 0}, "verloren": true, "dann": {"uhr": "wartet"}},
+        {"von": "handy", "still": true, "nach_ms": 8500, "dann": {"uhr": "startmenue"}},
+        {"von": "uhr", "tu": "Menü letzte Route", "nach_ms": 500, "dann": {"uhr": "route:t"}}
+      ]
+    },
+    {
+      "id": "werte-vom-handy",
+      "titel": "Das Handy navigiert (#659): nach dem ok seine Werte, die Uhr zeigt sie; 30 s ohne neue rechnet sie selbst",
+      "handy": ["nav"],
+      "uhr": ["handy"],
+      "schritte": [
+        {"von": "handy", "tu": "navigation", "msg": {"t": "n", "id": "$a", "np": 2}, "dann": {"uhr": "route_kommt"}},
+        {"von": "handy", "msg": {"t": "r", "id": "$a"}},
+        {"von": "uhr", "msg": {"t": "ok", "id": "$a"}, "nach_ms": 500, "dann": {"handy": "gespeichert", "uhr": "route:$a"}},
+        {"von": "handy", "msg": {"t": "nv", "id": "$a", "k": -1, "o": -1, "d": 2400, "c": -1, "r": 2400, "g": -1}},
+        {"von": "uhr", "tu": "fixe 0-2", "dann": {"uhr": "werte_handy"}},
+        {"von": "uhr", "tu": "fixe 2-10", "dann": {"uhr": "werte_uhr"}}
+      ]
     }
   ],
   "szenarien": [
@@ -1033,8 +1128,9 @@
       "titel": "Nur die Uhr dabei, die Fahrt aufzeichnen",
       "schritte": [
         {
-          "was": "Uhr-App ohne Handy öffnen: freie Fahrt mit der eigenen Spur",
+          "was": "Uhr-App ohne Handy öffnen: das Startmenü, freie Fahrt mit der eigenen Spur",
           "faelle": [
+            "672.2",
             "484.22"
           ]
         },
@@ -1112,6 +1208,9 @@
         {
           "was": "Die Route kommt ganz an; eine halbe Übertragung lässt die alte heil",
           "faelle": [
+            "671.1",
+            "671.2",
+            "671.3",
             "484.1",
             "484.2",
             "484.5",
@@ -1119,7 +1218,7 @@
           ]
         },
         {
-          "was": "Uhr-App ohne Handy starten: die gespeicherte Route lädt",
+          "was": "Uhr-App ohne Handy starten: das Startmenü, die letzte Route lädt",
           "faelle": [
             "508.10",
             "508.4"
@@ -1162,8 +1261,9 @@
       "titel": "Handy in der Tasche, Uhr am Lenker, einfach fahren und die Trails sehen",
       "schritte": [
         {
-          "was": "Uhr-App öffnen: der erste eigene Fix geht ans Handy",
+          "was": "Uhr-App öffnen: das Handy navigiert nicht (nn), das Startmenü; der erste eigene Fix geht ans Handy",
           "faelle": [
+            "672.1",
             "500.5"
           ]
         },
@@ -1221,8 +1321,12 @@
       "titel": "Handy in der Tasche, Uhr, Route oder Runde navigieren",
       "schritte": [
         {
-          "was": "Navigation am Handy starten: die Route geht in Stücken an die Uhr",
+          "was": "Navigation am Handy starten: die Route geht im Budget der Uhr in Stücken hin, die Uhr zeigt die Werte des Handys",
           "faelle": [
+            "671.4",
+            "659.1",
+            "659.2",
+            "672.3",
             "509.2",
             "509.6",
             "449.1",
@@ -1242,8 +1346,10 @@
           ]
         },
         {
-          "was": "Abkommen: die Uhr vibriert einmal",
+          "was": "Abkommen: die Uhr vibriert einmal; ein Fix nahe der Rückfahrt springt nicht",
           "faelle": [
+            "664.1",
+            "664.2",
             "484.7",
             "484.8"
           ]
@@ -1272,11 +1378,9 @@
           "geraet": "Messung 8.10 (Frage an der fēnix 5)"
         },
         {
-          "was": "Schalter aus oder alte Uhr-App: es bleibt still",
+          "was": "Schalter aus: es bleibt still",
           "faelle": [
-            "501.6",
-            "501.8",
-            "501.10"
+            "501.8"
           ]
         },
         {

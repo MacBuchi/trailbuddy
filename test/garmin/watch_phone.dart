@@ -21,7 +21,7 @@ import 'package:trailbuddy/features/garmin/watch_ride_inbox.dart';
 import 'package:trailbuddy/features/garmin/watch_shelf.dart'
     show MemoryWatchShelfStore, watchShelfProvider, watchShelfStoreProvider;
 import 'package:trailbuddy/features/garmin/watch_route.dart'
-    show kWatchMaxPoints;
+    show kWatchDefaultPoints;
 import 'package:trailbuddy/features/keep_alive/keep_alive.dart';
 import 'package:trailbuddy/features/offline_areas/area_providers.dart'
     show areaHeightReaderProvider;
@@ -91,12 +91,11 @@ final phoneRoute = [
 ];
 
 /// Eine lange Route, die zwei Stücke braucht (`kWatchPartInts`):
-/// [kWatchMaxPoints] Punkte im Zickzack nach Norden, 30 m hin und her —
-/// das Vereinfachen lässt die Zacken stehen. Mehr wären es nicht: Über der
-/// Grenze verdoppelt `watchRouteOf` die Toleranz, und das Zickzack fiele
-/// in sich zusammen.
+/// [kWatchDefaultPoints] Punkte im Zickzack nach Norden, 30 m hin und her —
+/// das Vereinfachen lässt die Zacken stehen.
 List<LatLng> longPhoneRoute() => [
-  for (var i = 0; i < kWatchMaxPoints; i++) phoneM(i.isEven ? 0 : 30, i * 2.0),
+  for (var i = 0; i < kWatchDefaultPoints; i++)
+    phoneM(i.isEven ? 0 : 30, i * 2.0),
 ];
 
 /// Stummel an jedem zweiten Punkt von [longPhoneRoute]: Seit der Grenze 700

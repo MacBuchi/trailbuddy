@@ -404,8 +404,20 @@ class NavLeaveWatch {
   }
 }
 
+/// Ein Sprung auf einen fernen Teil der Linie gilt erst nach so vielen
+/// Fixen in Folge auf ihm … (#664, Feldbefund fēnix 6S 2026-11-27: EIN Fix
+/// nahe der Rückfahrt, und die Uhr sagte „Bis zum Ziel 582 m").
+const kNavJumpFixes = 3;
+
+/// … die zusammen so weit auf ihm vorankommen (Rauschen kommt nicht voran).
+const kNavJumpAlongM = 50.0;
+
+/// Der nächste Fix der Reihe wird so weit um den letzten gesucht.
+const kNavJumpWindowM = 200.0;
+
 /// Führt den Stand von Fix zu Fix: Fenster, Zähler für „abseits", der
-/// letzte gültige Kurs. Eine Instanz je Navigation.
+/// letzte gültige Kurs. Eine Instanz je Navigation. Dieselben Regeln hat
+/// `NavTracker` der Uhr (`garmin/source/NavTracker.mc`).
 class NavTracker {
   /// [startAlongM]: wo der Stand anfängt — „zuletzt navigiert" geht dort
   /// weiter, wo die Navigation endete, sonst spränge eine Runde hin und
@@ -419,11 +431,79 @@ class NavTracker {
   double? _heading;
   bool _arrived = false;
 
+  /// Die Linie war einmal in [kNavOffRouteM] — erst dann gilt ein Sprung
+  /// auf einen fernen Teil nur bestätigt (#664).
+  bool _reached = false;
+
+  /// Der ferne Teil, auf dem die letzten Fixe lagen (#664): wo die Reihe
+  /// begann, wo sie jetzt ist und wie viele Fixe sie hat.
+  double _candFirst = 0;
+  double _candLast = 0;
+  int _candCount = 0;
+
+  /// Der Stand zu [p] (#664): zuerst im Fenster ab dem letzten Stand; liegt
+  /// dort nichts in [kNavOffRouteM], ein ferner Teil aber schon (die
+  /// Rückfahrt 40 m daneben), ist das nur ein Kandidat — der Stand bleibt
+  /// im Fenster, der Abstand ist der zum fernen Teil (also nicht abseits).
+  /// Genommen wird er nach [kNavJumpFixes] Fixen in Folge, die zusammen
+  /// [kNavJumpAlongM] auf ihm vorankommen (in seiner Richtung oder
+  /// dagegen). Bis die Linie einmal erreicht war, gilt jeder Teil sofort
+  /// (Start mitten auf der Route).
+  RouteFix _locate(LatLng p) {
+    final window = _nearest(
+      route,
+      p,
+      from: _along - kNavBackSlackM,
+      to: _along + kNavAheadWindowM,
+    );
+    if (window != null && window.offM <= kNavOffRouteM) {
+      _reached = true;
+      _candCount = 0;
+      return window;
+    }
+    final all = _nearest(
+      route,
+      p,
+      from: double.negativeInfinity,
+      to: double.infinity,
+    )!;
+    if (window == null || all.offM > kNavOffRouteM || !_reached) {
+      _candCount = 0;
+      if (all.offM <= kNavOffRouteM) _reached = true;
+      if (window == null || all.offM <= kNavOffRouteM) return all;
+      return RouteFix(alongM: window.alongM, offM: all.offM);
+    }
+    final near = _candCount == 0
+        ? null
+        : _nearest(
+            route,
+            p,
+            from: _candLast - kNavJumpWindowM,
+            to: _candLast + kNavJumpWindowM,
+          );
+    final cand = near != null && near.offM <= kNavOffRouteM ? near : all;
+    if (identical(cand, all)) {
+      _candFirst = all.alongM;
+      _candCount = 1;
+    } else {
+      _candCount++;
+    }
+    _candLast = cand.alongM;
+    if (_candCount >= kNavJumpFixes &&
+        (_candLast - _candFirst).abs() >= kNavJumpAlongM) {
+      _candCount = 0;
+      return cand;
+    }
+    // Der Stand bleibt, wo er war: Der Fußpunkt im Fenster kann weit
+    // voraus liegen, wenn der Kandidat hinter dem Fenster liegt.
+    return RouteFix(alongM: _along, offM: cand.offM);
+  }
+
   /// [headingDeg] und [speedMps] wie vom GPS (negativ = unbekannt). Der
   /// Kurs gilt erst ab [kNavHeadingMinSpeedMps]; vorher und ohne Kurs die
   /// Richtung der Linie am Stand.
   NavState update(LatLng p, {double? headingDeg, double? speedMps}) {
-    final fix = routeProgress(route, p, lastAlongM: _along);
+    final fix = _locate(p);
     _along = fix.alongM;
     _offCount = fix.offM > kNavOffRouteM ? _offCount + 1 : 0;
     final moving = speedMps != null && speedMps >= kNavHeadingMinSpeedMps;

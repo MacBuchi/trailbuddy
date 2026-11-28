@@ -2,7 +2,11 @@ import 'dart:async';
 
 import 'package:trailbuddy/features/garmin/garmin_bridge.dart';
 import 'package:trailbuddy/features/garmin/watch_route.dart'
-    show kWatchProtocol;
+    show
+        kWatchDefaultPoints,
+        kWatchPointBytes,
+        kWatchProtocol,
+        kWatchReserveBytes;
 
 /// Der Weg über Garmin Connect, wie er gemessen ist (#509, Prüfleiter S3):
 /// Laufzeit je Nachricht, eine geschlossene Uhr-App, die still verwirft,
@@ -247,9 +251,15 @@ class FakeGarminBridge implements GarminBridge {
   /// Garmin Connect meldet die Uhr wieder verbunden.
   void reconnect() => _connected.add(null);
 
-  /// Die Uhr-App startet und meldet sich mit der Route, die sie hat.
-  void hello(String? id, {int? v = kWatchProtocol}) =>
-      answer({'t': 'hi', 'id': ?id, 'v': ?v});
+  /// Die Uhr-App startet und meldet sich mit der Route, die sie hat — und
+  /// ihrem Speicher (#671; Vorgabe: Platz für [kWatchDefaultPoints]).
+  void hello(String? id, {int? v = kWatchProtocol, int? free}) => answer({
+    't': 'hi',
+    'id': ?id,
+    'v': ?v,
+    'm': free ?? kWatchReserveBytes + kWatchDefaultPoints * kWatchPointBytes,
+    'tm': 126784,
+  });
 
   /// Die Positionen des Handys an die Uhr (`p`).
   List<Map<String, Object>> get positions => [

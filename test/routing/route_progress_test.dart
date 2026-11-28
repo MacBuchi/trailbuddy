@@ -168,10 +168,66 @@ void main() {
       final t = NavTracker(loop);
       expect(t.update(_at(0, 2)).arrived, isFalse);
       expect(t.update(_at(500)).arrived, isFalse);
-      expect(t.update(_at(1000, 500)).arrived, isFalse);
+      // Fixe alle 250 m: Das Fenster (800 m) folgt, kein Sprung nötig.
+      for (final p in [_at(1000, 250), _at(1000, 500), _at(1000, 750)]) {
+        expect(t.update(p).arrived, isFalse);
+      }
+      expect(t.update(_at(750, 1000)).arrived, isFalse);
       expect(t.update(_at(500, 1000)).arrived, isFalse);
+      expect(t.update(_at(250, 1000)).arrived, isFalse);
       expect(t.update(_at(0, 600)).arrived, isFalse);
       expect(t.update(_at(0, 20)).arrived, isTrue);
+    });
+  });
+
+  // #664: Hin- und Rückweg 40 m nebeneinander (fēnix 6S, 2026-11-27).
+  group('NavTracker: a far part only once it is ridden', () {
+    // 1 km nach Osten, Wende, 40 m nördlich zurück.
+    final r = NavRoute.of([_at(0), _at(1000), _at(1000, 40), _at(0, 40)])!;
+
+    test('one wild fix near the way back: the place stays', () {
+      final t = NavTracker(r);
+      for (var m = 0.0; m <= 300; m += 10) {
+        t.update(_at(m));
+      }
+      // 35 m nördlich: 5 m neben dem Rückweg, 35 m neben dem Hinweg.
+      final wild = t.update(_at(310, 35));
+      expect(wild.alongM, closeTo(300, 1), reason: 'der Stand bleibt');
+      expect(wild.offM, closeTo(5, 0.5), reason: 'nicht abseits');
+      expect(wild.offRoute, isFalse);
+      final back = t.update(_at(320));
+      expect(back.alongM, closeTo(320, 1));
+      expect(back.remainingM, closeTo(1720, 3));
+    });
+
+    test('two fixes are not enough, even far along', () {
+      final t = NavTracker(r);
+      for (var m = 0.0; m <= 300; m += 10) {
+        t.update(_at(m));
+      }
+      t.update(_at(310, 38));
+      final s = t.update(_at(250, 38));
+      expect(s.alongM, closeTo(300, 1));
+    });
+
+    test('riding the way back for 50 m and three fixes takes it', () {
+      final t = NavTracker(r);
+      for (var m = 0.0; m <= 300; m += 10) {
+        t.update(_at(m));
+      }
+      // Umgedreht und auf den Rückweg gewechselt.
+      NavState? s;
+      for (var m = 300.0; m >= 240; m -= 10) {
+        s = t.update(_at(m, 40));
+      }
+      expect(s!.alongM, closeTo(1800, 3), reason: 'auf dem Rückweg');
+      expect(s.remainingM, closeTo(240, 3));
+    });
+
+    test('before the line was reached, a far part counts at once', () {
+      // Start mitten auf dem Rückweg (erster eigener Fix der Uhr).
+      final s = NavTracker(r).update(_at(500, 41));
+      expect(s.alongM, closeTo(1540, 3));
     });
   });
 

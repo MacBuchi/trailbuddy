@@ -886,6 +886,15 @@ oben“ können in eine andere Teildatei zeigen — der Index sagt, in welche.
     nur der Abstand ist der zur ganzen Linie — sonst spränge eine Runde
     hin und zurück auf die Rückfahrt (`route_progress_test`, Gegenprobe
     ohne Fenster: rot).
+    **Ein ferner Teil erst, wenn er gefahren wird** (#664, seit 0.208.0):
+    Liegt ein Fix außerhalb des Fensters in 30 m eines fernen Teils, ist
+    er nur Kandidat (`NavTracker._locate`): Stand bleibt, Abstand ist der
+    zum Kandidaten (nicht abseits). Genommen nach `kNavJumpFixes` (3) Fixen
+    in Folge, die `kNavJumpAlongM` (50 m) vorankommen; vor dem ersten
+    Erreichen der Linie gilt jeder Teil sofort. `routeProgress` selbst
+    (ein Fix, ohne Gedächtnis) springt weiter — es zählt der Tracker, den
+    auch der Dienst (`nav_notice`) und die Uhr (`NavTracker.mc`) nehmen.
+    Ein Flow-Test, der weiter als 800 m „springt", braucht drei Fixe.
   - **Die Richtung ohne GPS-Kurs ist die der Linie über 50 m voraus**
     (`kNavHeadingLookM`), nicht die des ersten Abschnitts: „Zum
     Trailkopf" beginnt oft mit ein paar Metern Anschluss zurück, und die

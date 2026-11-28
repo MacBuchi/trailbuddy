@@ -29,12 +29,9 @@ import '../rides/ride_store.dart' show FileRideStore;
 import 'garmin_bridge.dart';
 import 'watch_route.dart';
 
-/// Ab dieser Fassung kennt die Uhr-App die Ablage. Eine ältere nähme ein
-/// Stück mit `sh` als Route der Navigation — sie bekommt keins.
-const kWatchShelfFrom = '1.9.0';
-
-bool watchKnowsShelf(String? version) =>
-    watchVersionAtLeast(version, kWatchShelfFrom);
+/// Spricht die Uhr-App dasselbe Protokoll? Eine andere Fassung bekommt
+/// keine Stücke (seit Protokoll 3 ohne Versionsweiche, #671).
+bool watchKnowsShelf(int? v) => v == kWatchProtocol;
 
 /// So viele Routen liegen höchstens auf der Uhr (`PhoneRoute.SHELF_MAX`;
 /// E3: drei, bis Messung 8.6 eine andere Zahl sagt).
@@ -347,7 +344,7 @@ class WatchShelf extends Notifier<WatchShelfState> {
 
   /// Die Fassung der Uhr-App aus ihrem „hallo" — gesetzt heißt: Sie hat
   /// sich in diesem Lauf gemeldet.
-  String? _ver;
+  int? _ver;
   bool _heard = false;
   Timer? _ackTimer;
   WatchShelfJob? _sending;
@@ -469,7 +466,7 @@ class WatchShelf extends Notifier<WatchShelfState> {
     final hello = watchHelloOf(message);
     if (hello.hello) {
       _heard = true;
-      _ver = hello.ver;
+      _ver = hello.v;
       _trace('hi');
       if (watchKnowsShelf(_ver)) {
         _confirm(watchShelfOf(message)!.entries, hello: true);
@@ -572,7 +569,7 @@ class WatchShelf extends Notifier<WatchShelfState> {
   void _trace(String event) {
     ref.read(watchShelfTraceProvider.notifier).state = (
       at: DateTime.now(),
-      version: _ver,
+      version: _ver?.toString(),
       event: event,
     );
   }

@@ -3488,6 +3488,24 @@
     "description": "Stand am Uhr-Symbol, wenn die Aufzeichnung auf der Garmin-Uhr pausiert (#499); das Handy zeichnet davon weiter."
   },
   "navWatchApart": "Die Uhr meldet einen Ort {dist} von hier",
+  "navWatchCut": "Nur die ersten {dist} passen auf die Uhr; ohne Handy endet die Navigation dort",
+  "@navWatchCut": {
+    "description": "Stand am Uhr-Symbol (#671): Die Route ist zu lang für den Speicher der Garmin-Uhr, das Handy schickt nur den Anfang. {dist} ist die Länge, die passt (formatMeters), englisch: Only the first {dist} fit on the watch; without the phone the navigation ends there.",
+    "placeholders": {
+      "dist": {
+        "type": "String"
+      }
+    }
+  },
+  "watchShelfCut": "Nur die ersten {dist} passen auf die Uhr.",
+  "@watchShelfCut": {
+    "description": "Ablage (#671): angehängt an die Meldung, wenn die Route zu lang für den Speicher der Uhr ist und nur der Anfang hinüber geht. {dist} ist die Länge (formatMeters).",
+    "placeholders": {
+      "dist": {
+        "type": "String"
+      }
+    }
+  },
   "navWatchDrift": "Die Uhr ist {dist} neben ihrer Route",
   "@navWatchDrift": {
     "description": "Stand am Uhr-Symbol, wenn die Garmin-Uhr über die Sicht ihrer Ansicht hinaus von ihrer Linie abseits fährt und dem Handy ihren Stand meldet (#500). {dist} ist der Abstand zur Linie, englisch: The watch is {dist} off its route.",
@@ -11521,6 +11539,24 @@
   "watchEvShelf": "{d, select, d0{Ablage: Route gestartet} other{?}}",
   "@watchEvShelf": {
     "description": "Uhr-Protokoll, Zeile (#515): eine Route aus der Ablage wurde gestartet.",
+    "placeholders": {
+      "d": {
+        "type": "String"
+      }
+    }
+  },
+  "watchEvStartMenu": "{d, select, d0{Startmenü gezeigt} d1{Startmenü: freie Fahrt} d2{Startmenü: letzte Route} d3{Startmenü: Route der Ablage} other{?}}",
+  "@watchEvStartMenu": {
+    "description": "Uhr-Protokoll, Zeile (#672): das Startmenü der Uhr und was gewählt wurde.",
+    "placeholders": {
+      "d": {
+        "type": "String"
+      }
+    }
+  },
+  "watchEvValues": "{d, select, d0{Werte vom Handy} d1{Werte der Uhr} other{?}}",
+  "@watchEvValues": {
+    "description": "Uhr-Protokoll, Zeile (#659): die Uhr zeigt die Werte des Handys oder rechnet selbst.",
     "placeholders": {
       "d": {
         "type": "String"

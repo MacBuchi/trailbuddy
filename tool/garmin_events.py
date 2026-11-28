@@ -53,11 +53,13 @@ KINDS: dict[int, tuple[str, list[str]]] = {
     9: ("Fix", ["keiner", "auf der Linie", "abseits", "frei"]),
     10: ("Frist", ["zu", "Wechsel", "ruhige Minute", "Warten vorbei"]),
     11: ("Ablage", ["Route gestartet"]),
+    12: ("Startmenü", ["gezeigt", "freie Fahrt", "letzte Route", "Route der Ablage"]),
+    13: ("Werte", ["vom Handy", "eigene"]),
 }
 
 # Was die Wiedergabe spielt (Eingaben); der Rest sind Folgen, die sie
 # abwartet (`TestReplay.play`).
-INPUTS = {1, 2, 3, 4, 7, 9}
+INPUTS = {1, 2, 3, 4, 7, 9, 12}
 
 
 def msg_names(source: str | None = None) -> tuple[list[str], list[str]]:

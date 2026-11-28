@@ -434,13 +434,9 @@ void main() {
       final la = (_m(300, 700).latitude * 1e5).round(),
           lo = (_m(300, 700).longitude * 1e5).round();
       final at = LatLng(la / 1e5, lo / 1e5);
-      // Eine alte Uhr-App kennt die Frage nicht: sie bleibt in Ruhe.
-      watch.answer(const {'t': 'hi', 'v': kWatchProtocol, 'ver': '1.2.0'});
-      watch.answer({'t': 'd', 'la': la, 'lo': lo, 'off': 300});
-      await Future<void>.delayed(const Duration(milliseconds: 50));
-      expect(c.read(navigationProvider)!.route, same(old));
-      // Ab 1.3.0: 300 m daneben, über der Schwelle von 100 m.
-      watch.answer(const {'t': 'hi', 'v': kWatchProtocol, 'ver': '1.3.0-dev'});
+      // 300 m daneben, über der Schwelle von 100 m (seit Protokoll 3 ohne
+      // Versionsweiche, #671).
+      watch.answer(const {'t': 'hi', 'v': kWatchProtocol, 'ver': '1.11.0'});
       watch.answer({'t': 'd', 'la': la, 'lo': lo, 'off': 60});
       await Future<void>.delayed(const Duration(milliseconds: 50));
       expect(
@@ -465,24 +461,6 @@ void main() {
     });
 
     // #501 (Konzept 2): Was die Standmeldung der Uhr auslöst — und was nicht.
-    test('501.6 meldet sich die Uhr nicht vorher, bleibt die Linie', () async {
-      final watch = FakeGarminBridge.connected()..autoStore = true;
-      final c = container(bridge: watch);
-      c.read(watchSyncProvider.notifier).follow(true);
-      final nav = c.read(navigationProvider.notifier);
-      nav.start(route, 'Hausrunde', sections: sections);
-      nav.onFix(_m(0, 100), headingDeg: 0, speedMps: 5);
-      await Future<void>.delayed(Duration.zero);
-      final old = c.read(navigationProvider)!.route;
-      watch.answer(_drift(300, 700, 300));
-      await Future<void>.delayed(const Duration(milliseconds: 50));
-      expect(
-        c.read(navigationProvider)!.route,
-        same(old),
-        reason: 'ohne hallo kennt das Handy die Fassung der Uhr-App nicht',
-      );
-    });
-
     test('501.7 endet die Navigation, folgt aus der Meldung nichts', () async {
       final watch = FakeGarminBridge.connected()..autoStore = true;
       final c = container(bridge: watch);

@@ -2,8 +2,8 @@
 """Routen für die Uhr-App (`garmin/`, docs/konzept-garmin.md).
 
 Schreibt eine Route in der Form, die `garmin/source/NavRoute.mc` liest —
-dieselbe wie ein einziges Stück vom Handy (Protokoll 2, #449,
-`lib/features/garmin/watch_route.dart`): `{"v": 2, "id", "rel", "np",
+dieselbe wie ein einziges Stück vom Handy (Protokoll 3, gepackt seit #449,
+`lib/features/garmin/watch_route.dart`): `{"v": 3, "id", "rel", "np",
 "o": [lat0, lon0], "e0", "sec": [[von, bis, sGrad, Name], …], "pts",
 "ele", "br"}` — `pts` je Punkt `(dLat << 16) | dLon` in 1e-5° gegen den
 Vorgänger (der erste gegen `o`), `ele` die Differenzen in Metern zu zweit
@@ -39,7 +39,7 @@ SIMPLIFY_M = 5.0
 
 
 BRANCH_M = 40.0  # so lang ist ein Stummel an einer Kreuzung
-PROTOCOL = 2
+PROTOCOL = 3
 MAX_DELTA = 32767  # ein Schritt in 16 Bit, wie kWatchMaxDelta
 
 

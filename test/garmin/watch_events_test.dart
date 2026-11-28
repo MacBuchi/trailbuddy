@@ -194,10 +194,16 @@ void main() {
       '„hallo" nach einem Absturz legt das Protokoll ab, ohne ev nichts',
       () async {
         await container.read(watchRideInboxProvider.notifier).start();
-        bridge.answer({'t': 'hi', 'v': 2});
+        bridge.answer({'t': 'hi', 'v': 3, 'm': 40000, 'tm': 126784});
         await flush();
         expect(events.logs, isEmpty);
-        bridge.answer({'t': 'hi', 'v': 2, 'ev': kSample});
+        bridge.answer({
+          't': 'hi',
+          'v': 3,
+          'm': 40000,
+          'tm': 126784,
+          'ev': kSample,
+        });
         await flush();
         expect(events.logs.single.fromCrash, isTrue);
         expect(events.logs.single.events, kSample);

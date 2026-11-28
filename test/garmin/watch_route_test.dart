@@ -180,6 +180,7 @@ void main() {
         line,
         NavSections([_trail(100, 900, grade: 1)]),
         heights: heights,
+        maxPoints: 700,
       )!;
       expect(
         route.pointCount,
@@ -235,23 +236,128 @@ void main() {
     },
   );
 
-  test('die Grenze ist gemessen: 800 Punkte, nicht mehr', () {
-    // 2000 stürzte beim Laden ab, über 800 lehnt die Uhr den Wechsel
-    // während der Fahrt ab (Kettenstand, `CHAIN_BIG=N`). Wer sie hebt,
-    // misst vorher dort neu.
-    expect(kWatchMaxPoints, lessThanOrEqualTo(800));
+  // #659: die Werte des Handys, mit den Stellen der Trails in `sec`.
+  test('nv: Stellen in sec, Meter und Höhenmeter bis Ende, Kopf und Ziel', () {
+    final line = [
+      for (var i = 0; i <= 30; i++) LatLng(i * 0.001, i.isEven ? 0 : 0.0002),
+    ];
+    final a = _trail(1000, 1500, grade: 1), b = _trail(2200, 2800, grade: 2);
+    final route = watchRouteOf(line, NavSections([a, b]), maxPoints: 900)!;
+    expect(route.secOf, [a, b]);
+    // Profil: 10 m Anstieg je 100 m bis 2 km, dann flach.
+    final dist = [for (var m = 0.0; m <= 3300; m += 100) m];
+    final ele = [for (final m in dist) 500.0 + (m < 2000 ? m / 10 : 200)];
+    Map<String, Object> at(double m) =>
+        watchNavValuesOf(route, m, 3300, climbDistM: dist, climbEleM: ele);
+    final before = at(400);
+    expect(before['id'], route.id);
+    expect((before['k'], before['o']), (0, -1));
+    expect(before['d'], 600, reason: 'bis zum Kopf des ersten');
+    expect(before['c'], 60);
+    expect((before['r'], before['g']), (2900, 160));
+    final on = at(1200);
+    expect((on['k'], on['o'], on['d']), (1, 0, 300), reason: 'Rest des Trails');
+    final last = at(3000);
+    expect((last['k'], last['o'], last['d'], last['c']), (-1, -1, 300, -1));
+    expect(
+      watchNavValuesOf(route, 400, 3300)['g'],
+      -1,
+      reason: 'ohne Profil keine Höhenmeter',
+    );
   });
 
-  test('mehr als kWatchMaxPoints: stärker vereinfacht, bis es passt', () {
+  // #671: Das Budget kommt aus dem „hallo", die Linie nutzt es ganz.
+  group('Budget aus dem Speicher der Uhr', () {
+    test('das hallo nennt frei, gesamt und die geladenen Punkte', () {
+      final free = kWatchReserveBytes + 900 * kWatchPointBytes;
+      final h = watchHelloOf({'t': 'hi', 'v': 3, 'm': free, 'tm': 126784});
+      expect(h.budget, 900);
+      expect(h.totalB, 126784);
+      // Eine geladene Route gibt ihre Punkte beim Wechsel frei.
+      final loaded = watchHelloOf({
+        't': 'hi',
+        'v': 3,
+        'm': free - 400 * kWatchPointBytes,
+        'lp': 400,
+      });
+      expect(loaded.budget, 900);
+      expect(
+        watchHelloOf({'t': 'hi', 'v': 3}).budget,
+        isNull,
+        reason: 'ohne Speicher kein Budget',
+      );
+      expect(watchBudgetOf(0, 0), kWatchMinPoints);
+    });
+
     // Zickzack mit 8 m Ausschlag: Bei 5 m bliebe jeder Punkt.
-    final line = [
+    final zigzag = [
       for (var i = 0; i < 5000; i++) LatLng(i * 0.0001, i.isEven ? 0 : 0.0001),
     ];
-    final route = watchRouteOf(line, NavSections.none)!;
-    expect(route.pointCount, lessThanOrEqualTo(kWatchMaxPoints));
-    expect(route.pointCount, greaterThan(1));
-    final first = route.pts.take(2).toList();
-    expect(first, [0, 0], reason: 'Anfang bleibt');
+
+    test('budget N: genau N Punkte, nicht ein Viertel weniger', () {
+      for (final n in [300, 700, 1234]) {
+        final route = watchRouteOf(zigzag, NavSections.none, maxPoints: n)!;
+        expect(route.pointCount, n, reason: 'Budget $n');
+        expect(route.pts.take(2).toList(), [0, 0], reason: 'Anfang bleibt');
+        expect(route.cutM, isNull);
+      }
+    });
+
+    test('nicht genauer als 5 m: eine einfache Linie spart', () {
+      final straight = [for (var i = 0; i < 500; i++) LatLng(i * 0.0001, 0)];
+      final route = watchRouteOf(straight, NavSections.none, maxPoints: 900)!;
+      expect(route.pointCount, 2);
+      expect(route.tolM, kWatchSimplifyM);
+    });
+
+    test('feste Punkte (Stummel, Höhen-Wendepunkte) bleiben', () {
+      final line = [
+        for (var i = 0; i < 2000; i++)
+          LatLng(i * 0.00005, i.isEven ? 0 : 0.0001),
+      ];
+      final branches = [
+        for (final i in [101, 777, 1503])
+          (
+            index: i,
+            at: line[i],
+            end: LatLng(line[i].latitude, line[i].longitude + 0.0003),
+          ),
+      ];
+      final s = watchSimplify(line, {101, 777, 1503}, maxPoints: 50);
+      expect(s.kept, containsAll([0, 101, 777, 1503, 1999]));
+      expect(s.kept, hasLength(50));
+      final route = watchRouteOf(
+        line,
+        NavSections.none,
+        branches: branches,
+        maxPoints: 400,
+      )!;
+      expect(route.br.length ~/ 3, 3, reason: 'jeder Stummel hat seinen Punkt');
+      // Die Stummel kosten mit: 3 × 3/4 Punkt.
+      expect(route.pointCount, lessThanOrEqualTo(400));
+    });
+
+    test('über 25 m Abweichung: abgeschnitten, wo es noch passt', () {
+      // 5000 Zacken à 11 m: Mit 100 Punkten bliebe nur eine Gerade durch
+      // alle Zacken — die Uhr sagte überall „abseits".
+      final wide = [
+        for (var i = 0; i < 5000; i++)
+          LatLng(i * 0.0001, i.isEven ? 0 : 0.0006),
+      ];
+      final route = watchRouteOf(wide, NavSections.none, maxPoints: 300)!;
+      expect(route.cutM, isNotNull);
+      expect(route.tolM, lessThanOrEqualTo(kWatchMaxTolM));
+      expect(route.pointCount, lessThanOrEqualTo(300));
+      // Je Zacke ein Punkt: Etwa 300 von 5000 passen, gut 6 % der Linie.
+      final whole = watchRouteOf(wide, NavSections.none, maxPoints: 4000)!;
+      expect(
+        whole.cutM,
+        isNotNull,
+        reason: '5000 Zacken auch für 4000 zu viel',
+      );
+      expect(route.cutM!, lessThan(whole.cutM! * 0.1));
+      expect(route.lengthM, closeTo(route.cutM!, 1));
+    });
   });
 
   test(
@@ -467,7 +573,7 @@ void main() {
         2,
         null,
       ));
-      // Ab dieser Fassung versteht die Uhr das Fenster um ihren Stand (#500).
+      // Die Fassung der Uhr-App reist mit (#500).
       expect(hi({'t': 'hi', 'v': 2, 'ver': '1.3.0-dev'}), (
         true,
         null,
@@ -475,14 +581,6 @@ void main() {
         2,
         '1.3.0-dev',
       ));
-      expect(watchKnowsWindow('1.3.0-dev'), isTrue);
-      expect(watchKnowsWindow('1.4.0'), isTrue);
-      expect(watchKnowsWindow('1.2.0'), isFalse);
-      expect(
-        watchKnowsWindow(null),
-        isFalse,
-        reason: 'eine alte Uhr-App nennt keine Fassung',
-      );
       expect(watchHelloOf({'t': 'hi', 'v': 2}).rides, isEmpty);
       expect(watchHelloOf({'t': 'hi'}).v, isNull);
       // Welche Seite ist veraltet (#449)?

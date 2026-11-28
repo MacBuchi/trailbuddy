@@ -184,7 +184,13 @@ void main() {
           trail('nah', line(at(48.000, 9.000), at(48.010, 9.000), 11)),
         ]);
         await c.read(trailsProvider.future);
-        bridge.answer({'t': 'hi', 'v': 2, 'ver': '1.3.0'});
+        bridge.answer({
+          't': 'hi',
+          'v': 3,
+          'm': 40000,
+          'tm': 126784,
+          'ver': '1.3.0',
+        });
         bridge.answer({'t': 'g', 'la': 4800500, 'lo': 900010});
         await waitRoutes(bridge);
         final route = partsOf(bridge, 'r');
@@ -200,7 +206,14 @@ void main() {
         trail('nah', line(at(48.000, 9.000), at(48.010, 9.000), 11)),
       ]);
       await c.read(trailsProvider.future);
-      bridge.answer({'t': 'hi', 'id': 'alt-1', 'v': 2, 'ver': '1.3.0'});
+      bridge.answer({
+        't': 'hi',
+        'id': 'alt-1',
+        'v': 3,
+        'm': 40000,
+        'tm': 126784,
+        'ver': '1.3.0',
+      });
       bridge.answer({'t': 'g', 'la': 4800500, 'lo': 900010});
       await Future(() {});
       expect(partsOf(bridge, 'r'), isEmpty);
@@ -211,7 +224,13 @@ void main() {
         trail('fern', line(at(48.020, 9.000), at(48.030, 9.000), 11)),
       ]);
       await c.read(trailsProvider.future);
-      bridge.answer({'t': 'hi', 'v': 2, 'ver': '1.3.0'});
+      bridge.answer({
+        't': 'hi',
+        'v': 3,
+        'm': 40000,
+        'tm': 126784,
+        'ver': '1.3.0',
+      });
       bridge.answer({'t': 'g', 'la': 4800500, 'lo': 900010});
       await Future(() {});
       expect(partsOf(bridge, 'r'), isEmpty);
@@ -222,7 +241,13 @@ void main() {
         trail('nah', line(at(48.000, 9.000), at(48.010, 9.000), 11)),
       ]);
       await c.read(trailsProvider.future);
-      bridge.answer({'t': 'hi', 'v': 2, 'ver': '1.3.0'});
+      bridge.answer({
+        't': 'hi',
+        'v': 3,
+        'm': 40000,
+        'tm': 126784,
+        'ver': '1.3.0',
+      });
       bridge.answer({'t': 'g', 'la': 4800500, 'lo': 900010});
       await waitRoutes(bridge);
       bridge.answer({'t': 'g', 'la': 4800501, 'lo': 900010});
@@ -236,7 +261,13 @@ void main() {
         trail('neu', line(at(48.020, 9.000), at(48.030, 9.000), 11)),
       ]);
       await c.read(trailsProvider.future);
-      bridge.answer({'t': 'hi', 'v': 2, 'ver': '1.3.0'});
+      bridge.answer({
+        't': 'hi',
+        'v': 3,
+        'm': 40000,
+        'tm': 126784,
+        'ver': '1.3.0',
+      });
       bridge.answer({'t': 'g', 'la': 4800500, 'lo': 900010});
       await waitRoutes(bridge);
       bridge.answer({'t': 'd', 'la': 4802200, 'lo': 900010, 'off': 500});

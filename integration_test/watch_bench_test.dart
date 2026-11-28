@@ -52,14 +52,12 @@ const _linkWait = Duration(
 const _breakOk = bool.fromEnvironment('BREAK_OK');
 
 /// Nur die Speichermessung, mit so vielen Punkten (0 = die ganze Kette,
-/// dann kWatchMaxPoints).
+/// dann das Budget aus dem „hallo", #671).
 const _bigOnly = int.fromEnvironment('BIG_ONLY');
-const _bigN = _bigOnly > 0 ? _bigOnly : kWatchMaxPoints;
 
 /// Eine erfundene Linie im Zickzack (sonst vereinfacht `watchRouteOf` sie
-/// auf zwei Punkte), [n] Punkte, je rund 25 m. Höchstens
-/// [kWatchMaxPoints]: Mit mehr verdoppelt `watchRouteOf` die Toleranz, das
-/// Zickzack fällt in sich zusammen, und die Route geht als EIN Stück.
+/// auf zwei Punkte), [n] Punkte, je rund 25 m — jeder Knick bleibt, die
+/// Route hat genau so viele Punkte wie ihr Budget.
 List<LatLng> _line(int seed, int n) => [
   for (var i = 0; i < n; i++)
     LatLng(0.001 * seed + 0.0002 * i, 0.0001 * i + (i.isEven ? 0.0001 : 0)),
@@ -199,6 +197,13 @@ void main() {
           return null;
         });
         debugPrint('BENCH hallo v=${hello['v']} ver=${hello['ver']}');
+        // #671: Das Budget aus dem „hallo" — so viele Punkte schickt die App.
+        final budget = watchHelloOf(hello).budget ?? kWatchDefaultPoints;
+        debugPrint(
+          'BENCH Speicher beim hallo: frei ${hello['m']} B von ${hello['tm']} B, '
+          'Budget $budget Punkte',
+        );
+        final bigN = _bigOnly > 0 ? _bigOnly : budget;
 
         if (_bigOnly == 0) {
           final r = watchRouteOf(_line(42, 20), NavSections.none)!;
@@ -233,8 +238,9 @@ void main() {
           final times = <int>[];
           for (var r = 1; r <= _rounds; r++) {
             final wr = watchRouteOf(
-              _line(r, kWatchMaxPoints),
+              _line(r, budget),
               NavSections.none,
+              maxPoints: budget,
             )!;
             final t0 = DateTime.now();
             await step(
@@ -282,7 +288,7 @@ void main() {
           });
 
           // Fixe entlang der Linie, damit die Fahrt Punkte hat.
-          final pts = _line(_rounds, kWatchMaxPoints);
+          final pts = _line(_rounds, budget);
           Map<String, Object> fixes(int from, int to) => {
             't': '_f',
             'la': [
@@ -330,7 +336,11 @@ void main() {
           await step('abseits → d', () => waitFor((m) => m['t'] == 'd'));
 
           // Umplanen: Eine neue Linie während der Fahrt — die Uhr fragt …
-          final b = watchRouteOf(_line(_rounds + 50, 600), NavSections.none)!;
+          final b = watchRouteOf(
+            _line(_rounds + 50, 600),
+            NavSections.none,
+            maxPoints: budget,
+          )!;
           await step('neue Linie → ok', () => route(b));
           await step(
             'Frage steht',
@@ -414,8 +424,15 @@ void main() {
           final clean = await step('Neustart nach sauberem Ende', relaunched);
           await step('hallo ohne Protokoll', () async => clean['ev'] == null);
 
-          // Ein echter Absturz nach START (gespeichert wird bei jeder Taste).
+          // Ohne Antwort auf das „hallo" das Startmenü (#672): die letzte
+          // Route, dann ein echter Absturz nach START (gespeichert wird bei
+          // jeder Taste).
           await send({'t': '_t', 'ms': 9000});
+          await step(
+            'Startmenü nach Neustart',
+            () => stateUntil((s) => s['menu'] == 'start' && s['wait'] == 3),
+          );
+          await send({'t': '_k', 'k': 'last'});
           await step(
             'Route nach Neustart',
             () => stateUntil((s) => s['ready'] == true && s['wait'] == 0),
@@ -515,14 +532,12 @@ void main() {
           });
           await send(watchRideAckOf(longId));
         }
-        // Speicher neben der größten Route, die das Handy schickt (#510:
-        // reicht der Platz mit dem Ring?): kWatchMaxPoints mit Höhen, erst
-        // geladen, dann mit laufender Aufnahme und Fixen, dann der Wechsel
-        // auf eine zweite solche Route während der Fahrt.
+        // Speicher neben der größten Route, die das Handy schickt (#510,
+        // #671): das Budget aus dem „hallo" mit Höhen, erst geladen, dann mit
+        // laufender Aufnahme und Fixen, dann der Wechsel auf eine zweite
+        // solche Route während der Fahrt — ohne `x` mem.
         WatchRoute big(int seed) {
-          // Genau so viele: Mit mehr verdoppelt watchRouteOf die Toleranz,
-          // und das gleichmäßige Zickzack fällt auf ~20 Punkte zusammen.
-          final p = _line(seed, _bigN);
+          final p = _line(seed, bigN);
           final ele = [
             for (var i = 0; i < p.length; i++) 500 + 80 * math.sin(i / 40),
           ];
@@ -530,18 +545,19 @@ void main() {
             p,
             NavSections.none,
             heights: ElevationProfile.of(p, ele),
+            maxPoints: bigN,
           )!;
         }
 
         String kb(Object? v) => v is int ? (v / 1024).toStringAsFixed(1) : '?';
         void memLine(String what, Map<Object?, Object?> s) => debugPrint(
-          'BENCH Speicher $what: ${kb(s['mem'])} KB, Spitze ${kb(s['peak'])} KB von ${kb(s['tot'])} KB',
+          'BENCH Speicher $what: ${kb(s['mem'])} KB, Spitze ${kb(s['peak'])} KB von ${kb(s['tot'])} KB (${s['mem']}/${s['peak']} B)',
         );
         final big1 = big(_rounds + 100);
         debugPrint(
           'BENCH Speicher Route ${big1.pointCount} Punkte, ${big1.parts().length} Stücke',
         );
-        if (big1.pointCount < _bigN * 0.9) {
+        if (big1.pointCount < bigN * 0.9) {
           throw _StepFailed('große Route hat nur ${big1.pointCount} Punkte');
         }
         await step('${big1.pointCount} Punkte → ok', () => route(big1));
@@ -556,7 +572,7 @@ void main() {
             ),
           ),
         );
-        final bigPts = _line(_rounds + 100, _bigN);
+        final bigPts = _line(_rounds + 100, bigN);
         inbox.clear();
         await send({'t': '_k', 'k': 'start'});
         await step(

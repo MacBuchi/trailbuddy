@@ -49,13 +49,18 @@ ACTIONS = {
     "beenden": "quit",
     "Route beenden": "endRoute",
     "aus der Ablage": "shelf0",
+    # Das Startmenü (#672).
+    "Menü freie Fahrt": "menuFree",
+    "Menü letzte Route": "menuLast",
+    "Menü Ablage": "menuShelf0",
 }
 FIXES = re.compile(r"^fixe (\d+)-(\d+)$")
 
 # Die Stände der Uhr (`gespraeche_form.staende_uhr`), die `TestTalk.check`
 # kennt; `route:$x` nimmt eine Kennung.
 STATES = {"wartet", "route_kommt", "frei", "fragt", "nimmt_auf", "pause", "zu",
-          "keine_fahrt", "fahrt_wartet", "bestwerte", "erkennt", "erkennt_nicht", "hinweis"}
+          "keine_fahrt", "fahrt_wartet", "bestwerte", "erkennt", "erkennt_nicht", "hinweis",
+          "startmenue", "werte_handy", "werte_uhr"}
 # `ablage:<n>` (#515) nimmt eine Zahl.
 NUMBERED = ("route:", "ablage:")
 
